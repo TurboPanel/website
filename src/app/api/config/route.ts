@@ -1,0 +1,36 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getApiBaseUrl, parseApiHostnames } from '@/lib/env'
+
+export type ApiConfig = {
+  servers: { url: string; description: string }[]
+  openApiUrl: string
+}
+
+export async function GET(request: Request): Promise<Response> {
+  const host = request.headers.get('host') || 'turbopanel.app'
+  const [hostname, port = ''] = host.split(':')
+
+  let apiHostnames: string | undefined
+  try {
+    const ctx = getCloudflareContext()
+    apiHostnames = ctx?.env?.API_HOSTNAMES
+  } catch {
+    apiHostnames = undefined
+  }
+
+  let servers: { url: string; description: string }[]
+  if (typeof apiHostnames === 'string' && apiHostnames.length > 0) {
+    const parsed = parseApiHostnames(apiHostnames)
+    if (parsed.length > 0) {
+      servers = parsed
+    } else {
+      servers = [{ url: getApiBaseUrl(hostname, port), description: 'API Server' }]
+    }
+  } else {
+    servers = [{ url: getApiBaseUrl(hostname, port), description: 'API Server' }]
+  }
+
+  const openApiUrl = `${servers[0].url}/api/openapi.json`
+  const body: ApiConfig = { servers, openApiUrl }
+  return Response.json(body)
+}
