@@ -4,14 +4,16 @@
   "preview_urls": false,
   "keep_names": false,
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-02-14",
+  "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "binding": "ASSETS", "directory": ".open-next/assets" },
   "images": { "binding": "IMAGES" },
-  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "development-website" }],
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "development-website" },
+  ],
   "observability": { "logs": { "enabled": true, "invocation_logs": true } },
   "vars": {
-    "API_HOSTNAMES": "localhost:8443,Local Dev"
+    "API_HOSTNAMES": "localhost:8443,Local Dev",
   },
   "name": "development-website",
   "workers_dev": false,
@@ -20,28 +22,34 @@
       "name": "testing-website",
       "workers_dev": false,
       "images": { "binding": "IMAGES" },
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "testing-website" }],
+      "services": [
+        { "binding": "WORKER_SELF_REFERENCE", "service": "testing-website" },
+      ],
       "route": { "pattern": "testing.turbopanel.io", "custom_domain": true },
-      "vars": { "API_HOSTNAMES": "testing.turbopanel.dev,Testing API" }
+      "vars": { "API_HOSTNAMES": "testing.turbopanel.dev,Testing API" },
     },
     "staging": {
       "name": "staging-website",
       "workers_dev": false,
       "images": { "binding": "IMAGES" },
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "staging-website" }],
+      "services": [
+        { "binding": "WORKER_SELF_REFERENCE", "service": "staging-website" },
+      ],
       "route": { "pattern": "staging.turbopanel.io", "custom_domain": true },
-      "vars": { "API_HOSTNAMES": "staging.turbopanel.dev,Staging API" }
+      "vars": { "API_HOSTNAMES": "staging.turbopanel.dev,Staging API" },
     },
     "live": {
       "name": "website",
       "workers_dev": false,
       "images": { "binding": "IMAGES" },
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "website" }],
+      "services": [
+        { "binding": "WORKER_SELF_REFERENCE", "service": "website" },
+      ],
       "route": {
         "pattern": "turbopanel.io",
-        "custom_domain": true
+        "custom_domain": true,
       },
-      "vars": { "API_HOSTNAMES": "turbopanel.app,Production API" }
-    }
-  }
+      "vars": { "API_HOSTNAMES": "turbopanel.app,Production API" },
+    },
+  },
 }

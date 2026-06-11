@@ -1,5 +1,5 @@
 {
     "sonarCloudOrganization": "turbopanel",
-    "projectKey": "turbopanel_turbopanel-website",
-    "region": "EU"
+    "projectKey": "turbopanel-website",
+    "region": "US"
 }
