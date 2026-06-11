@@ -18,8 +18,6 @@ const { createMDX } = require('fumadocs-mdx/next')
 function createNextConfig(phase, { defaultConfig }) {
   const config = {
     ...defaultConfig,
-    // Monorepo: trace files from repo root so workspace deps resolve correctly.
-    outputFileTracingRoot: path.join(__dirname, '../'),
     // Next.js 16: Turbopack is the default bundler. Aliases must be in turbopack for dev + default build.
     turbopack: {
       resolveAlias: {
