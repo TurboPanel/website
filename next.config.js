@@ -16,8 +16,16 @@ const { createMDX } = require('fumadocs-mdx/next')
  * @returns {import('next').NextConfig}
  */
 function createNextConfig(phase, { defaultConfig }) {
+  const { experimental, logging, ...restDefaultConfig } = defaultConfig
+  const { browserDebugInfoInTerminal, ...experimentalConfig } = experimental ?? {}
+
   const config = {
-    ...defaultConfig,
+    ...restDefaultConfig,
+    experimental: experimentalConfig,
+    logging: {
+      ...logging,
+      browserToTerminal: logging?.browserToTerminal ?? browserDebugInfoInTerminal,
+    },
     // Next.js 16: Turbopack is the default bundler. Aliases must be in turbopack for dev + default build.
     turbopack: {
       resolveAlias: {
