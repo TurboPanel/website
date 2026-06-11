@@ -1,0 +1,57 @@
+---
+title: Tilt troubleshooting
+description: Fix common Tilt, mode-switching, and local service issues in the TurboPanel monorepo
+---
+
+# Tilt troubleshooting
+
+Use this page when the Tilt UI shows errors, ports clash, or Edge vs Self-Hosted mode behaves unexpectedly. For migration-specific errors, see [Migration troubleshooting](/docs/getting-started/migration-troubleshooting).
+
+## Backend mode not switching
+
+- Always run `tilt down` before changing mode when using plain `tilt up` / `tilt up self-hosted`.
+- With `pnpm dev`, `pnpm dev:edge`, or `pnpm dev:self-hosted`, use the Tilt UI **Switch to Self-Hosted** / **Switch to Edge Mode** buttons for a guided hot-swap when available.
+- **Manual:** `tilt down && tilt up self-hosted` or `tilt down && tilt up`.
+
+## Services will not start
+
+- Open the failing resource in the Tilt UI and read the log tail.
+- Verify toolchain: `node --version`, `pnpm --version`, `tilt version`.
+- **Ports:** Edge uses 19821–19823, 19820, 10350 (and inspector ports). The Deno daemon has no dev listener. Self-Hosted adds Mailpit, Redis, RabbitMQ, and Drizzle Studio ranges (see root [AGENTS](https://github.com/turbopanel/turbopanel/blob/main/AGENTS.md) for the current list).
+- **Clean restart:** `tilt down && tilt up` (or `tilt up self-hosted`).
+
+## Port conflicts
+
+- Symptom: `address already in use` in logs.
+- Fix: `tilt down`, or stop the process holding the port.
+- **Example (Unix):** `lsof -ti :19823 | xargs kill` (replace with the port from the error).
+
+## Migration failures (summary)
+
+- Skip automatic check: `tilt up -- --skip-migration-check=true` or `tilt up self-hosted -- --skip-migration-check=true`.
+- **Locked DB:** Close Drizzle Studio and other Postgres clients connected to the dev database.
+- **Corrupt Self-Hosted DB (dev only):** Reset the Postgres volume (`docker volume rm turbopanel-database-dev-data` after stopping Tilt) or run `pnpm dev reset` to drop the public schema when `TURBOPANEL_DATABASE_URL` is set.
+
+Full tables and commands: [Migration troubleshooting](/docs/getting-started/migration-troubleshooting).
+
+## Expo QR code
+
+- Use the Tilt UI **View Expo QR Code** action.
+- **CLI:** `node scripts/expo-qr.mjs`
+- Ensure the API resource is healthy if the app depends on it.
+
+## Drizzle Studio
+
+- **Port already in use:** find and kill the process on that port (`lsof -ti :<port> | xargs kill` on macOS/Linux).
+- Close Studio before running migrations to avoid connection contention.
+
+## Wrangler not found (Edge mode)
+
+- Run `pnpm install` at the repo root.
+- Or develop in Self-Hosted mode: `tilt up self-hosted`.
+
+## Related
+
+- [Local development](/docs/getting-started/development)
+- [Monorepo architecture](/docs/architecture/monorepo)
+- [Tilt documentation](https://docs.tilt.dev/)

@@ -1,0 +1,50 @@
+---
+title: Prerequisites
+description: Supported environments and tooling needed to develop on the TurboPanel monorepo
+---
+
+# Prerequisites
+
+This page lists what you need on your machine before you follow [Local development](/docs/getting-started/development). Product installation for running TurboPanel in production is covered under [Installation](/docs/getting-started/installation).
+
+## Supported environments
+
+**macOS** and **Linux** are the environments TurboPanel development is written for and routinely tested on.
+
+**Windows** (including **WSL**) is **not officially supported**. Some contributors use WSL successfully, but your mileage may vary; if something fails on Windows, fixups are welcome but the team may not be able to reproduce native Windows issues.
+
+## Required tooling
+
+### Node.js
+
+The supported Node.js range is declared in the **repository root** [`package.json`](https://github.com/turbopanel/turbopanel/blob/main/package.json) **`engines`** field. Install a current Node release that satisfies that constraint.
+
+- **Install:** [nodejs.org](https://nodejs.org/)
+- **Verify:** `node --version`
+
+### pnpm
+
+The expected **pnpm** release is pinned in the root **`packageManager`** field in the same `package.json`. Using [Corepack](https://nodejs.org/api/corepack.html) is recommended so your pnpm version matches the repo.
+
+- **Install:** enable Corepack (`corepack enable`) and use the version the repo requests, or install pnpm globally per the [pnpm installation docs](https://pnpm.io/installation)
+- **Verify:** `pnpm --version`
+
+### Tilt
+
+[Tilt](https://docs.tilt.dev/) orchestrates the local dev stack (`pnpm dev`, `tilt up`, and related flows).
+
+- **macOS:** `brew install tilt-dev/tap/tilt`
+- **Linux:** `curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash`
+- **Manual:** [Tilt releases](https://github.com/tilt-dev/tilt/releases)
+- **Verify:** `tilt version`
+
+### Docker
+
+**Docker** (Docker Engine or Docker Desktop with **Compose** available) is required for workflows that run the control plane or dependencies via **Docker Compose** — for example root `pnpm docker:*` scripts and Tilt’s **self-hosted-docker** mode. If you only use Tilt with processes on the host, you still need Docker for those Compose-based paths and for parity with how many contributors work.
+
+- **Install:** [Docker Engine](https://docs.docker.com/engine/install/) or [Docker Desktop](https://docs.docker.com/desktop/)
+- **Verify:** `docker version` and `docker compose version`
+
+## Next steps
+
+When the above is in place, continue with [Local development](/docs/getting-started/development) for clone, install, ports, and day-to-day tasks.

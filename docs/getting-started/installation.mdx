@@ -1,0 +1,35 @@
+---
+title: Installation
+description: Install TurboPanel using the one-line install script
+---
+
+# Installation
+
+Install TurboPanel on a Linux server with one command. The script pulls the image, creates required directories, configures Docker Compose, and starts the container.
+
+## Install
+
+```bash
+curl -sSL https://start.trbp.nl/ | sh
+```
+
+## Prerequisites
+
+- A Linux server with Docker installed
+- Port 18282 open for the control plane
+
+## What the script does
+
+- Pulls `turbopanel/turbopanel:latest`
+- Creates required directories
+- Writes a Docker Compose file
+- Starts the container
+
+## Accessing the UI
+
+Navigate to `http://your-server-ip:18282` in your browser.
+
+## Next Steps
+
+- [Control Plane](/docs/deployment/control-plane) — Configuration and environment variables
+- [Daemon Setup](/docs/deployment/daemon-setup) — Adding more servers

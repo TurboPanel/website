@@ -1,0 +1,101 @@
+---
+title: Monorepo and development architecture
+description: Tiltfile layout, migration preflight, dev ports, and core technology choices
+---
+
+# Monorepo and development architecture
+
+This page describes how the TurboPanel repository orchestrates local development and why the layout looks the way it does. Before you start, see [Prerequisites](/docs/development/prerequisites). For day-to-day commands, see [Local development](/docs/getting-started/development) and [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting).
+
+## Tiltfile architecture
+
+### Overview
+
+A **single root** [`Tiltfile`](https://github.com/turbopanel/turbopanel/blob/main/Tiltfile) loads `.env` from the repo root and branches on `tilt up` (Edge) vs `tilt up self-hosted` (Self-Hosted). Shared logic lives under `tilt/common.tiltfile`, `tilt/migrations.tiltfile`, `tilt/edge.tiltfile`, and `tilt/self.tiltfile`.
+
+- **Edge mode** (`tilt up`) runs the full stack including the Edge entrypoint (`start`).
+- **Self-Hosted mode** (`tilt up self-hosted`) runs the self-hosted stack with a Node.js backend and no `start` service.
+
+### Load order (Edge)
+
+1. Root `Tiltfile` loads shared Starlark modules and per-app Tiltfiles.
+2. Per-app resources are defined under `apps/*/Tiltfile`.
+3. Unless Self-Hosted mode is selected, the stack creates the migrations resource, initializes the backend, sets up port forwarding, and adds custom Tilt UI buttons.
+
+### Self-Hosted mode
+
+1. Root `Tiltfile` runs with the `self-hosted` argument and uses `tilt/self.tiltfile` for port forwarding and resources.
+2. `start` is not included; the root Tiltfile disables that resource in Self-Hosted mode.
+
+### Per-app Tiltfiles
+
+Each app defines its own resource in `apps/<app>/Tiltfile`:
+
+- **apps/daemon/Tiltfile** — Daemon service (Docker bridge, logs).
+- **apps/api/Tiltfile** — Backend API (Edge or Self-Hosted); exposes `init_api()` and uses migrations.
+- **apps/app/Tiltfile** — Expo dev server.
+- **apps/vanity/Tiltfile** — Vanity URL worker (installer scripts; local dev in Edge and self-hosted).
+- **apps/website/Tiltfile** — Next.js docs and marketing site.
+
+Shared constants (ports, colors, env) come from `tilt/common.tiltfile`. The migrations resource is created via `tilt/migrations.tiltfile`.
+
+## Migration strategy (development)
+
+### Why automatic checks
+
+Migrations are checked and applied before development servers start so that:
+
+- The local schema stays in sync with the codebase without manual steps.
+- New contributors get a consistent database state.
+- Edge and Self-Hosted modes use the same Postgres migration flow (local container vs remote URL).
+
+### How it works
+
+1. **Pre-flight script:** `scripts/check-migrations.mjs` runs as a Tilt `local_resource` (see `tilt/migrations.tiltfile`). It detects pending migrations against Postgres, applies them, and verifies integrity.
+
+2. **Mode-specific backends:**
+   - **Self-Hosted mode:** Local Postgres 18 (Tilt **database** resource on port **19836**, or Docker **`turbopanel-database`**).
+   - **Edge mode:** Postgres via `TURBOPANEL_DATABASE_URL` (remote DB; no local Postgres container in Tilt).
+
+3. **Skipping checks:** `tilt up -- --skip-migration-check=true` or `tilt up self-hosted -- --skip-migration-check=true` skips the check when debugging.
+
+For manual commands and error messages, see [Migration troubleshooting](/docs/getting-started/migration-troubleshooting).
+
+## Service dependency graph and startup order
+
+Tilt orders work from resource dependencies:
+
+- **migrations** — No dependencies; runs first (`local_resource`).
+- **api** — Depends on migrations (and in Edge mode, `start` is separate).
+- **app** — Often independent of `api` for boot; can depend on `api` for API URL in some setups.
+- **daemon** — Independent at startup; connects to the API at runtime.
+- **start** (Edge only) — Worker entrypoint.
+- **website** — Optional; independent.
+
+The API Tiltfile calls `init_api()`, which registers the API resource for the active backend mode and migration flags.
+
+## Port allocation
+
+Ports are defined in `tilt/common.tiltfile`:
+
+| Service | Port  | Notes                                                          |
+| ------- | ----- | -------------------------------------------------------------- |
+| start   | 19821 | Edge entrypoint                                                |
+| app     | 19822 | Expo                                                           |
+| api     | 19823 | Hono API                                                       |
+| daemon  | —     | Deno dev: WS client only (no listener; Docker image **18284**) |
+| website | 19820 | Next.js                                                        |
+| Tilt UI | 10350 | Tilt dashboard                                                 |
+
+Inspector ports (for example 29821, 29823) are used by Wrangler for Workers debugging. Self-Hosted mode also uses additional ports for Mailpit, Redis, RabbitMQ, and Drizzle Studio — see [Local development](/docs/getting-started/development).
+
+The `198xx` range keeps dev ports distinct from common system ports and from the production Docker control plane port (`18282`).
+
+## Technology choices
+
+- **Hono** — Lightweight backend; runs on Cloudflare Workers and Node.js from one codebase.
+- **Expo / React Native** — Cross-platform frontend (web, iOS, Android).
+- **Next.js** — Marketing and documentation (turbopanel.io).
+- **Drizzle** — Type-safe SQL and migrations for SQLite (Self-Hosted) and D1 (Edge).
+
+These support both Edge-hosted and Self-Hosted deployment models described in [Introduction](/docs/getting-started/introduction).

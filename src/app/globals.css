@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+:root,
+.light {
+  color-scheme: light;
+  --background: #f5f7fa;
+  --foreground: #0f172a;
+
+  --tp-bg: #f5f7fa;
+  --tp-surface: #ffffff;
+  --tp-surface-muted: #edf2f8;
+  --tp-text: #0f172a;
+  --tp-text-muted: #475569;
+  --tp-border: rgba(15, 23, 42, 0.14);
+  --tp-accent: #0f172a;
+  --tp-accent-contrast: #f8fafc;
+  --tp-ring: rgba(15, 23, 42, 0.24);
+  --tp-hero-a: rgba(37, 99, 235, 0.18);
+  --tp-hero-b: rgba(15, 23, 42, 0.12);
+
+  --fd-background: var(--tp-bg);
+  --fd-foreground: var(--tp-text);
+  --fd-border: var(--tp-border);
+  --fd-accent: var(--color-fd-accent, rgba(71, 85, 105, 0.25));
+  --fd-layout-width: 100vw;
+  --fd-sidebar-width: 260px;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+
+  --tp-bg: #0b1220;
+  --tp-surface: #111a2b;
+  --tp-surface-muted: #172136;
+  --tp-text: #e2e8f0;
+  --tp-text-muted: #a8b5cc;
+  --tp-border: rgba(148, 163, 184, 0.3);
+  --tp-accent: #e2e8f0;
+  --tp-accent-contrast: #0b1220;
+  --tp-ring: rgba(148, 163, 184, 0.34);
+  --tp-hero-a: rgba(56, 189, 248, 0.2);
+  --tp-hero-b: rgba(96, 165, 250, 0.16);
+
+  --fd-background: var(--tp-bg);
+  --fd-foreground: var(--tp-text);
+  --fd-border: var(--tp-border);
+  --fd-accent: var(--color-fd-accent, rgba(148, 163, 184, 0.28));
+}
+
+/* Full-width docs layout: grid uses --fd-layout-width for main column width */
+#nd-docs-layout {
+  --fd-sidebar-width: 260px;
+  --fd-layout-width: 100vw;
+  width: 100%;
+  max-width: none;
+}
+
+#nd-page {
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  #nd-page {
+    padding-inline: 1.5rem;
+  }
+}
+
+#nd-sidebar {
+  background-color: var(--tp-bg);
+  min-width: 260px;
+}
+
+/* Keep search trigger and placeholder on one line (sidebar is 260px) */
+#nd-sidebar [data-search] {
+  white-space: nowrap;
+  min-width: 0;
+}
+#nd-sidebar [data-search] button {
+  white-space: nowrap;
+  min-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#nd-sidebar input::placeholder {
+  white-space: nowrap;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body {
+  height: 100%;
+  background: var(--tp-bg);
+  color: var(--tp-text);
+  font-family: var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
+  font-size: clamp(0.9375rem, 1.5vw + 0.75rem, 1rem);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tp-fade-up {
+  animation: fade-up 700ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+/* Touch targets: interactive elements should have min 44x44px on touch devices */
+@media (pointer: coarse) {
+  [data-search] button,
+  [data-search-full] {
+    min-height: 44px;
+  }
+}
+
+#__next {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

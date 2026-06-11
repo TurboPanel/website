@@ -2,17 +2,26 @@
  * Runtime environment detection for API URLs.
  * Use hostname and port (from window.location) to determine the correct API base URL.
  * When using turbopanel.app in /etc/hosts for local dev, hostname alone is not enough—
- * we must also check the port (19820 = dev website).
+ * we must also check the port (WEBSITE_PORT from dev/.env, default 19820).
  */
 
-const DEV_WEBSITE_PORT = '19820'
+const DEFAULT_DEV_WEBSITE_PORT = '19820'
+
+/** Dev website listen port — set by Tilt via NEXT_PUBLIC_WEBSITE_PORT / WEBSITE_PORT. */
+export function getDevWebsitePort(): string {
+  return (
+    process.env.NEXT_PUBLIC_WEBSITE_PORT ??
+    process.env.WEBSITE_PORT ??
+    DEFAULT_DEV_WEBSITE_PORT
+  )
+}
 
 export function getApiBaseUrl(hostname: string, port = ''): string {
   const normalized = hostname.split(':')[0].toLowerCase()
   if (normalized === 'localhost' || normalized === '127.0.0.1') {
     return 'http://localhost:18787'
   }
-  if (normalized === 'turbopanel.app' && port === DEV_WEBSITE_PORT) {
+  if (normalized === 'turbopanel.app' && port === getDevWebsitePort()) {
     return 'http://localhost:18787'
   }
   return 'https://turbopanel.app'

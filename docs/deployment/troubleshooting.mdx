@@ -1,0 +1,128 @@
+---
+title: Deployment Troubleshooting
+description: Troubleshoot common TurboPanel control plane deployment and runtime issues
+---
+
+# Deployment Troubleshooting
+
+This guide helps resolve common issues when deploying or running TurboPanel in production. For security-related issues, see [Security](/docs/deployment/security). For setup verification, see [Control Plane](/docs/deployment/control-plane) and [Daemon Setup](/docs/deployment/daemon-setup).
+
+## Introduction
+
+Production deployment issues typically fall into port conflicts, frontend loading problems, API connectivity, Docker socket permissions, or container startup failures. This guide provides targeted solutions with verification commands for each scenario.
+
+## Port Conflicts
+
+**Problem:** Port 18282 is already in use when starting the control plane.
+
+**Solutions:**
+
+1. Change `PORT` environment variable to a different port
+2. Update port mapping: `-p 18283:18282` (host 18283 → container 18282)
+3. Check for existing containers: `docker ps | grep turbopanel`
+4. Verify no other services use the port: `netstat -tuln | grep 18282`
+5. Stop conflicting service or change its port
+
+```bash
+# Check what's using the port
+docker ps | grep turbopanel
+netstat -tuln | grep 18282
+```
+
+## Frontend Not Loading
+
+**Problem:** Frontend UI doesn't load or shows errors.
+
+**Solutions:**
+
+1. Verify frontend build completed: check `apps/app/dist` exists in image
+2. Check container logs: `docker logs turbopanel`
+3. Ensure `FRONTEND_DIST_PATH` points to correct directory
+
+## API Connection Issues
+
+**Problem:** API requests fail or return errors.
+
+**Solutions:**
+
+1. Verify backend is running: `docker ps`
+2. Test health endpoint: `curl http://localhost:18282/api/client/v1/health`
+3. Check logs: `docker logs turbopanel`
+4. Verify port mapping and firewall allow connections to 18282
+5. Ensure backend source files are present in container
+
+```bash
+# Health check
+curl http://localhost:18282/api/client/v1/health
+```
+
+## Docker Socket Permission Errors
+
+**Problem:** `Permission denied` when accessing Docker socket.
+
+**Solutions:**
+
+1. Verify socket is mounted: `ls -la /var/run/docker.sock` in container
+2. Container runs as `turbopanel:turbopanel` (UID 9999); ensure socket is accessible to this user
+3. `docker ps` should work when exec'd into container
+4. Check host socket permissions: `ls -la /var/run/docker.sock`
+5. Verify mount: `docker inspect turbopanel | grep -A 5 Mounts`
+
+```bash
+# Verify socket in container
+docker exec turbopanel ls -la /var/run/docker.sock
+docker exec turbopanel docker ps
+```
+
+## Container Startup Failures
+
+**Problem:** Container fails to start or exits immediately.
+
+**Solutions:**
+
+1. Check logs: `docker logs turbopanel`
+2. Verify required files (frontend dist, backend source) are present
+3. Ensure dependencies are installed correctly in image
+4. Check environment variables are valid
+5. Test Node: `docker exec turbopanel node --version`
+6. Test entry point: `docker exec turbopanel pnpm --filter @turbopanel/api exec tsx src/self-hosted.ts`
+
+```bash
+# Debug startup
+docker logs -f turbopanel
+docker exec turbopanel node --version
+docker exec turbopanel ls -la apps/app/dist
+```
+
+## General Debugging
+
+| Task                 | Command                                       |
+| -------------------- | --------------------------------------------- |
+| Enable debug logging | `docker run -e LOG_LEVEL=debug ...`           |
+| View logs            | `docker logs -f turbopanel`                   |
+| Test API             | `curl http://localhost:18282/api/client/v1/health`      |
+| Inspect container    | `docker exec -it turbopanel sh`               |
+| Check frontend files | `docker exec turbopanel ls -la apps/app/dist` |
+
+```bash
+# Enable debug logging
+docker run -e LOG_LEVEL=debug ...
+
+# View logs
+docker logs -f turbopanel
+
+# Test API
+curl http://localhost:18282/api/client/v1/health
+
+# Inspect container
+docker exec -it turbopanel sh
+
+# Check frontend files
+docker exec turbopanel ls -la apps/app/dist
+```
+
+## Related Documentation
+
+- [Security](/docs/deployment/security) — Security-related configuration issues
+- [Control Plane](/docs/deployment/control-plane) — Setup verification and configuration reference
+- [Daemon Setup](/docs/deployment/daemon-setup) — Daemon troubleshooting and common issues

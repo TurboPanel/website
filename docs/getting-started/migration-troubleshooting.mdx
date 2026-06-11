@@ -1,0 +1,68 @@
+---
+title: Migration troubleshooting
+description: Fix common database migration issues in Edge and Self-Hosted development
+---
+
+# Migration troubleshooting
+
+For how migrations fit into Tilt and the Postgres schema, see [Monorepo architecture](/docs/architecture/monorepo) and the API package [AGENTS](https://github.com/turbopanel/turbopanel/blob/main/apps/api/AGENTS.md) file in the repository (short overview + links).
+
+## Automatic migration checks
+
+| Issue                                                                    | What to do                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Migration check failed: Could not read migrations journal**            | Migration tree may be corrupt or incomplete. Regenerate with `pnpm db:migration:new <name>` after schema changes; do not hand-edit applied migration files.                                                                                                                                                                                                                                    |
+| **Migration check failed: Could not read migration state from database** | Postgres may be unreachable or the `public.migration` table is inconsistent. Verify `TURBOPANEL_DATABASE_URL` or `TURBOPANEL_DATABASE_PASSWORD`, ensure the Tilt **database** resource is healthy (Self-Hosted), and close Drizzle Studio. For a dev-only reset, drop the public schema via `pnpm dev reset` or remove the Docker volume `turbopanel-database-dev-data`.                         |
+| **Set TURBOPANEL_DATABASE_URL or TURBOPANEL_DATABASE_PASSWORD**          | Add credentials to `.env` (see `.env.example`). Self-Hosted Tilt generates a password when unset; Edge dev requires a remote Postgres URL.                                                                                                                                                                                                                                                     |
+| **Migration check hangs or times out**                                   | Skip once: `tilt up -- --skip-migration-check=true` or `tilt up self-hosted -- --skip-migration-check=true`. Then apply manually: `pnpm db:migrate` from the repo root.                                                                                                                                                                                                                        |
+
+## Local vs remote (Postgres)
+
+| Aspect                | Local (Self-Hosted Tilt / Docker)                    | Remote (Edge dev / production)                                                                        |
+| --------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Location**          | `localhost:19836` (Tilt) or `turbopanel-database`    | URL in `TURBOPANEL_DATABASE_URL` (Hyperdrive in Edge production)                                      |
+| **Auto on `tilt up`** | Yes, via `scripts/check-migrations.mjs`              | Yes when URL/password is configured                                                                   |
+| **Apply remote**      | —                                                    | `pnpm db:migrate:remote` from repo root                                                               |
+| **Rollback**          | Reset dev volume or `pnpm dev reset` (data loss)     | Create a forward migration; no simple rollback on shared hosted DBs                                  |
+
+## Detailed fixes
+
+### Migration directory not found
+
+- Ensure `apps/api/migrations/` exists with `meta/_journal.json`.
+- Run `pnpm db:migration:new <name>` from the repo root after schema changes.
+
+### Database locked or connection errors
+
+- Close Drizzle Studio and other clients using the dev Postgres instance.
+- Stop Tilt, close clients, then `tilt up` again.
+
+### Schema changes not reflected
+
+- Confirm generated SQL in new migration files.
+- Re-apply: `pnpm db:migrate` from the repo root.
+
+### Postgres container not running (Self-Hosted)
+
+- Check the Tilt **database** resource logs.
+- From repo root: `bash scripts/tilt-postgres-dev.sh` (or restart Tilt).
+
+## Manual debugging commands
+
+**Run the same check Tilt uses:**
+
+```bash
+node scripts/check-migrations.mjs
+```
+
+**Skip Tilt check and migrate yourself:**
+
+```bash
+tilt up -- --skip-migration-check=true
+pnpm db:migrate
+```
+
+## Related
+
+- [Local development](/docs/getting-started/development)
+- [API architecture](/docs/architecture/api)

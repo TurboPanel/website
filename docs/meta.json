@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "search",
+    "[API Reference](/docs/api)",
+    "getting-started",
+    "development",
+    "architecture",
+    "deployment",
+    "security"
+  ]
+}
