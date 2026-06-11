@@ -48,7 +48,8 @@ website/
 
 - **`editOnGithub`** on docs pages points at the **`turbopanel/turbopanel-website`** repo on branch **`trunk`**; paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
-- **`getApiBaseUrl`** localhost fallback is **`http://localhost:18787`** (instance Workers dev port per `instance/wrangler.jsonc`).
+- **`getApiBaseUrl`** localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
+- **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_CORS_ORIGINS`** on the instance (synced from `dev/.env` via `sync-env.sh`).
 
 ## Worker / limits
 

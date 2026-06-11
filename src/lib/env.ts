@@ -2,10 +2,12 @@
  * Runtime environment detection for API URLs.
  * Use hostname and port (from window.location) to determine the correct API base URL.
  * When using turbopanel.app in /etc/hosts for local dev, hostname alone is not enough—
- * we must also check the port (WEBSITE_PORT from dev/.env, default 19820).
+ * we must also check the port (WEBSITE_PORT from dev/.env, default 19820). Local API calls
+ * target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
  */
 
 const DEFAULT_DEV_WEBSITE_PORT = '19820'
+const DEFAULT_DEV_CADDY_PORT = '8443'
 
 /** Dev website listen port — set by Tilt via NEXT_PUBLIC_WEBSITE_PORT / WEBSITE_PORT. */
 export function getDevWebsitePort(): string {
@@ -16,24 +18,63 @@ export function getDevWebsitePort(): string {
   )
 }
 
+/** Local HTTPS API entrypoint (Caddy) — set by Tilt via NEXT_PUBLIC_CADDY_PORT / CADDY_PORT. */
+export function getDevCaddyPort(): string {
+  return (
+    process.env.NEXT_PUBLIC_CADDY_PORT ??
+    process.env.CADDY_PORT ??
+    DEFAULT_DEV_CADDY_PORT
+  )
+}
+
+export function isLocalDevWebsiteHost(hostname: string, port = ''): boolean {
+  const normalized = hostname.split(':')[0].toLowerCase()
+  if (normalized === 'localhost' || normalized === '127.0.0.1') return true
+  return normalized === 'turbopanel.app' && port === getDevWebsitePort()
+}
+
+function localDevApiBaseUrl(): string {
+  return `https://localhost:${getDevCaddyPort()}`
+}
+
+function schemeForApiHost(hostnameWithOptionalPort: string): string {
+  const colon = hostnameWithOptionalPort.indexOf(':')
+  const host = colon === -1 ? hostnameWithOptionalPort : hostnameWithOptionalPort.slice(0, colon)
+  const hostPort = colon === -1 ? '' : hostnameWithOptionalPort.slice(colon + 1)
+  const normalized = host.toLowerCase()
+  if (normalized === 'localhost' || normalized === '127.0.0.1') {
+    const caddyPort = getDevCaddyPort()
+    if (!hostPort || hostPort === caddyPort || hostPort === '443') {
+      return 'https://'
+    }
+    return 'http://'
+  }
+  return 'https://'
+}
+
 export function getApiBaseUrl(hostname: string, port = ''): string {
   const normalized = hostname.split(':')[0].toLowerCase()
   if (normalized === 'localhost' || normalized === '127.0.0.1') {
-    return 'http://localhost:18787'
+    return localDevApiBaseUrl()
   }
   if (normalized === 'turbopanel.app' && port === getDevWebsitePort()) {
-    return 'http://localhost:18787'
+    return localDevApiBaseUrl()
   }
   return 'https://turbopanel.app'
 }
 
-export function getOpenApiUrl(hostname: string, port = ''): string {
+export function getScalarOpenApiUrl(hostname: string, port = ''): string {
   return `${getApiBaseUrl(hostname, port)}/api/openapi.json`
+}
+
+/** @deprecated Use getScalarOpenApiUrl. */
+export function getOpenApiUrl(hostname: string, port = ''): string {
+  return getScalarOpenApiUrl(hostname, port)
 }
 
 /**
  * Parses a CSV string of "hostname,label" pairs into a Scalar-compatible servers array.
- * Uses http:// for localhost or 127.0.0.1, https:// otherwise.
+ * Local dev uses https://localhost:{CADDY_PORT} (Caddy); production hostnames use https://.
  * Returns [] if token count is odd or input is empty/blank.
  */
 export function parseApiHostnames(csv: string): { url: string; description: string }[] {
@@ -48,8 +89,7 @@ export function parseApiHostnames(csv: string): { url: string; description: stri
   for (let i = 0; i < tokens.length; i += 2) {
     const hostname = tokens[i]
     const description = tokens[i + 1] ?? 'API Server'
-    const normalized = hostname.split(':')[0].toLowerCase()
-    const scheme = normalized === 'localhost' || normalized === '127.0.0.1' ? 'http://' : 'https://'
+    const scheme = schemeForApiHost(hostname)
     result.push({ url: `${scheme}${hostname}`, description })
   }
   return result

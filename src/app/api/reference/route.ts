@@ -1,6 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { ApiReference } from '@scalar/nextjs-api-reference'
-import { getApiBaseUrl, parseApiHostnames } from '@/lib/env'
+import { getApiBaseUrl, getScalarOpenApiUrl, parseApiHostnames } from '@/lib/env'
 import {
   buildScalarCookieAuthentication,
   resolveSessionCookieNameFromBaseUrl,
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   }
 
   const apiBaseUrl = servers[0].url
-  const openApiUrl = `${apiBaseUrl}/api/openapi.json`
+  const openApiUrl = getScalarOpenApiUrl(hostname, port)
 
   const handler = ApiReference({
     sources: [{ url: openApiUrl, title: 'TurboPanel API' }],

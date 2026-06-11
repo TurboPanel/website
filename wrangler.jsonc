@@ -11,7 +11,7 @@
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "development-website" }],
   "observability": { "logs": { "enabled": true, "invocation_logs": true } },
   "vars": {
-    "API_HOSTNAMES": "localhost:18787,Local Dev"
+    "API_HOSTNAMES": "localhost:8443,Local Dev"
   },
   "name": "development-website",
   "workers_dev": false,

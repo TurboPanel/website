@@ -4,7 +4,7 @@
 interface __BaseEnv_CloudflareEnv {
 	IMAGES: ImagesBinding;
 	ASSETS: Fetcher;
-	API_HOSTNAMES: "testing.turbopanel.dev,Testing API" | "staging.turbopanel.dev,Staging API" | "turbopanel.app,Production API" | "localhost:18787,Local Dev";
+	API_HOSTNAMES: "testing.turbopanel.dev,Testing API" | "staging.turbopanel.dev,Staging API" | "turbopanel.app,Production API" | "localhost:8443,Local Dev";
 	WORKER_SELF_REFERENCE: Fetcher /* testing-website */ | Fetcher /* staging-website */ | Fetcher /* website */ | Fetcher /* development-website */;
 }
 declare namespace Cloudflare {

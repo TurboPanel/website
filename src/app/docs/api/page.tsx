@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
@@ -89,8 +89,6 @@ export default function ApiDocsPage() {
   const { resolvedTheme } = useTheme()
   const [openApiUrl, setOpenApiUrl] = useState<string | null>(null)
   const [servers, setServers] = useState<{ url: string; description: string }[] | null>(null)
-  const [selectedServerUrl, setSelectedServerUrl] = useState<string | null>(null)
-
   useEffect(() => {
     let cancelled = false
     fetch('/api/config')
@@ -125,24 +123,19 @@ export default function ApiDocsPage() {
   const primaryOpenApiUrl = normalizeConfigUrl(openApiUrl)
 
   const apiBaseUrl = useMemo(() => {
-    if (selectedServerUrl) return selectedServerUrl
     if (servers?.[0]?.url) return servers[0].url
-    if (typeof globalThis.location !== 'undefined') {
+    if (globalThis.location !== undefined) {
       const { hostname, port } = globalThis.location
       return getApiBaseUrl(hostname, port)
     }
     return 'https://turbopanel.app'
-  }, [selectedServerUrl, servers])
+  }, [servers])
 
-  /** http → turbopanel.session_token; https → __Secure-turbopanel.session_token */
+  /** https://localhost:8443 → __Secure-turbopanel.session_token */
   const sessionCookieName = useMemo(
     () => resolveSessionCookieNameFromBaseUrl(apiBaseUrl),
     [apiBaseUrl]
   )
-
-  const handleServerChange = useCallback((url: string) => {
-    setSelectedServerUrl(url)
-  }, [])
 
   const scalarConfiguration = useMemo(
     () =>
@@ -152,7 +145,6 @@ export default function ApiDocsPage() {
             ...(servers && servers.length > 0 ? { servers } : {}),
             authentication: buildScalarCookieAuthentication(sessionCookieName),
             persistAuth: true,
-            onServerChange: handleServerChange,
             theme: 'none' as const,
             layout: 'modern' as const,
             hideDarkModeToggle: true,
@@ -166,7 +158,6 @@ export default function ApiDocsPage() {
       primaryOpenApiUrl,
       servers,
       sessionCookieName,
-      handleServerChange,
       forceDarkModeState,
     ]
   )
