@@ -118,7 +118,7 @@ function lockCookieNameRows(root: Element): void {
 export function installScalarSessionCookieNameRowLock(root: Element): () => void {
   let disconnected = false
   let observer: MutationObserver | null = null
-  const timeoutIds: number[] = []
+  const timeoutIds: ReturnType<typeof globalThis.setTimeout>[] = []
 
   const run = () => {
     if (!disconnected) lockCookieNameRows(root)
