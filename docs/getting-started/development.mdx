@@ -1,136 +1,152 @@
 ---
 title: Local development
-description: Tilt workflow, ports, and common development tasks for the TurboPanel monorepo
+description: Bootstrap, Tilt workflow, ports, and common development tasks for TurboPanel
 ---
 
 # Local development
 
-This guide covers local development setup. For supported OSes and required tooling (Node.js, pnpm, Tilt, Docker), see [Prerequisites](/docs/development/prerequisites). For monorepo and Tilt layout details, see [Monorepo architecture](/docs/architecture/monorepo). For Tilt-specific failures, see [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting).
+This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For Tilt layout and resource dependencies, see [Development architecture](/docs/architecture/development-architecture). For Tilt-specific failures, see [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting).
+
+TurboPanel is **not a monorepo**. The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository bootstraps sibling checkouts and runs Tilt.
 
 ## Quick start
 
-**1. Clone**
+**1. Bootstrap sibling repos**
+
+One-liner (fresh machine):
 
 ```bash
-git clone https://github.com/turbopanel/turbopanel.git
-cd turbopanel
+curl -fsSL https://develop.trbp.nl | sh
 ```
 
-**2. Install**
+Or, from an existing `dev/` checkout:
 
 ```bash
-pnpm install
+sh pull.sh
 ```
 
-**3. Start**
+This clones or updates `instance/`, `ui/`, `daemon/`, and `website/` next to `dev/`. All repos use branch **`trunk`**.
+
+**2. Start Tilt**
+
+From the `dev/` checkout:
 
 ```bash
-# Edge mode (default)
 tilt up
+```
 
-# Self-Hosted mode
-tilt up self-hosted
+First run creates `dev/.env` from `.env.example` and fills missing secrets. Tilt syncs env into sibling repos, starts Postgres + Caddy (Docker), the instance, Expo web, and the website.
+
+**3. Tear down**
+
+Ctrl+C stops Tilt `serve_cmd` resources but leaves Docker containers running. Remove everything with:
+
+```bash
+tilt down
 ```
 
 **4. Open**
 
-- **Tilt UI:** http://localhost:10350
-- **API health:** http://localhost:19823/api/client/v1/health
-- **App (Expo):** http://localhost:19822
-- **Website:** http://localhost:19820
-- **Daemon (Deno):** no HTTP port in dev; connects outbound to the API WebSocket (see Tilt `daemon` resource logs).
+| Service | URL |
+| ------- | --- |
+| App (Caddy → UI + API) | `https://localhost:8443` |
+| API health | `https://localhost:8443/api/health` |
+| Website (docs + API reference) | `http://localhost:19820` |
+| Tilt UI | `http://localhost:10350` |
+| Mailpit | `http://localhost:19826` |
 
-## Backend modes
+Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`.
 
-| Feature             | Edge                                | Self-Hosted                                                                   |
-| ------------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
-| **Control plane**   | Cloudflare Workers (local D1)       | Node on your machine                                                          |
-| **Communication**   | Durable Objects (dev simulation)    | WebSocket                                                                     |
-| **Daemon**          | Required per managed server in prod | Integrated on control plane; separate daemon on extra hosts                   |
-| **Local databases** | Remote Postgres via `TURBOPANEL_DATABASE_URL` (Hyperdrive in prod) | Local Postgres 18 (Tilt **database** resource, port **19836**) or Docker **`turbopanel-database`** |
+Smoke test:
 
-- **Edge** (`tilt up`): full stack including the `start` worker; migrations target your configured Postgres URL.
-- **Self-Hosted** (`tilt up self-hosted`): Node API, local Postgres container, no `start` service.
-- **Switch:** `tilt down`, then start the other mode (or use the Tilt UI buttons when using `pnpm dev` wrappers).
+```bash
+curl -k https://localhost:8443/api/health
+curl -k https://localhost:8443/api/client/v1/install/status
+```
 
-Pricing and product positioning for hosted Edge vs Self-Hosted are summarized in [Introduction](/docs/getting-started/introduction).
+## Instance runtime modes
+
+Local dev defaults to **Workers** (`TURBOPANEL_INSTANCE_RUNTIME=workers`): the instance runs via `pnpm dev` / `wrangler dev` in `instance/`, and Caddy proxies `/api/*` and `/ws/*` to wrangler.
+
+| Mode | Instance process | Caddy upstream |
+| ---- | ---------------- | -------------- |
+| **Workers** (default) | `wrangler dev` on `INSTANCE_DEV_PORT` (default **18787**) | TCP to host wrangler |
+| **Deno** | `deno run` on Unix socket under `/run/turbopanel/` | Mounted Unix socket |
+
+Switch at runtime with **Switch to Deno Mode** / **Switch to Workers Mode** in the Tilt UI nav (updates `dev/.env`, re-syncs env, recreates Caddy, restarts the instance). Deno mode requires Deno on the host.
+
+## Repository layout
+
+```
+turbopanel/
+├── dev/      # turbopanel-dev — pull.sh, Tiltfile, dev/.env
+├── instance/ # turbopanel/turbopanel — Hono API (Workers + Deno)
+├── ui/       # turbopanel/turbopanel-ui — Expo frontend
+├── daemon/   # turbopanel/turbopanel-daemon — agent daemon (not started by Tilt)
+└── website/  # turbopanel/turbopanel-website — marketing + docs (port 19820)
+```
+
+`dev/.env` is the single source of truth. `scripts/sync-env.sh` writes `instance/.dev.vars`, `instance/.env`, and `docker/.env`.
 
 ## Tilt UI
 
 - **Dashboard:** http://localhost:10350 after `tilt up`.
 - **Status:** Green = healthy; click a resource for logs.
-- **Migrations:** The `migrate` resource runs before the API in typical setups; watch it if the API fails to start.
+- **instance-db:** Runs `./sync.sh --force` when `schema.ts` changes — pushes schema to local Postgres before the instance starts.
 
 ### Custom buttons
 
-- Switch between Edge and Self-Hosted (full restart when not using the root dev wrapper).
-- Drizzle Studio links (per logical database).
-- View Expo QR code for device testing.
+- **Switch to Deno Mode** / **Switch to Workers Mode** — hot-swap instance runtime (see above).
 
 ## Hot reload
 
-- Changes under `apps/*/src` trigger reloads.
-- **App:** Expo Fast Refresh.
-- **API:** `tsx` watch (Self-Hosted) or Wrangler dev (Edge).
-- **Website:** Next.js Fast Refresh.
+- **UI:** Expo Fast Refresh (`ui/src`).
+- **Instance:** Wrangler dev reload (Workers) or Deno `--watch` (Deno mode).
+- **Website:** Next.js Fast Refresh (`website/src`, `website/docs`).
 
 ## Common tasks
 
-### Migrations
+### Database schema
 
-- **Automatic:** `scripts/check-migrations.mjs` runs as part of Tilt before the API starts (unless skipped).
-- **Manual (Self-Hosted):** `pnpm db:migrate` (same as `pnpm --filter @turbopanel/api db:migrate`).
-- **Manual (Edge / D1 local):** `wrangler d1 migrations apply <binding_or_name> --local` per database in `apps/api/wrangler.jsonc`.
-- **New migration files:** `pnpm db:migration:new <name>` from repo root.
+TurboPanel uses **drizzle-kit push** (no versioned migration files in early development). From `instance/`:
 
-See [Migration troubleshooting](/docs/getting-started/migration-troubleshooting) for errors and recovery.
+```bash
+./sync.sh          # push schema.ts → Postgres (interactive)
+./sync.sh --force  # skip destructive-change prompts (dev only)
+./introspect.sh    # pull live DB → schema.ts
+```
+
+Tilt's `instance-db` resource runs `./sync.sh --force` when `src/db/schema.ts` changes. For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting).
 
 ### Drizzle Studio
 
-Self-Hosted dev runs a single Postgres database. Tilt starts Drizzle Studio on port **19824** (see `scripts/drizzle-studio.mjs`).
+In the developer console (`/developer/database`), superadmin sessions can start Studio via the API. Caddy exposes it on HTTPS port **8444** in dev mode. Trust the same platform CA as `:8443`.
 
-**CLI:**
+### Developer console
 
-```bash
-pnpm --filter @turbopanel/api db:studio
-```
-
-Open `https://local.drizzle.studio/?port=19824`.
-
-Close Studio before applying migrations to avoid connection contention.
-
-### Mobile testing
-
-- Tilt UI: **View Expo QR Code**, or run `node scripts/expo-qr.mjs`.
-- Device must reach your dev machine on the LAN.
+In `__DEV__`, authenticated superadmins can open `/developer/fleet` for fleet health, upgrade/sync actions, Expo PTY, and database tools.
 
 ### Formatting
 
-```bash
-pnpm format
-```
+Each repo formats independently — run the formatter configured in that repo before committing.
 
-### Package-scoped commands
+## Co-located dev on a VM (systemd)
 
-```bash
-pnpm --filter @turbopanel/api <command>
-pnpm --filter @turbopanel/app <command>
-pnpm --filter @turbopanel/website <command>
-```
+For parity with managed hosts, run `./develop.sh` from the `instance/` checkout on Debian/Ubuntu. It bootstraps the daemon, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), and lets Ansible install instance + Caddy + UI as systemd units on **`:8443`**. Requires sibling `daemon/` checkout. This path does not use Tilt.
 
 ## Workflow diagram
 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Tilt as Tilt
-    participant Migrations as Migrations
-    participant Services as Services
+    participant Tilt as Tilt (dev/)
+    participant Schema as instance-db
+    participant Services as Postgres, Caddy, instance, ui, website
 
     Dev->>Tilt: tilt up
-    Tilt->>Migrations: Check and apply migrations
-    Migrations-->>Tilt: Complete
-    Tilt->>Services: Start services
+    Tilt->>Schema: sync.sh when schema.ts changes
+    Schema-->>Tilt: Postgres ready
+    Tilt->>Services: Start resources
     Services-->>Tilt: Healthy
     Tilt->>Dev: Tilt UI localhost:10350
     Dev->>Services: Code changes
@@ -140,21 +156,22 @@ sequenceDiagram
 
 ## Port reference
 
-| Service | Port  | Inspector | Description                                                  |
-| ------- | ----- | --------- | ------------------------------------------------------------ |
-| Tilt UI | 10350 | —         | Dev dashboard                                                |
-| start   | 19821 | 29821     | Edge-only installer                                          |
-| App     | 19822 | —         | Expo                                                         |
-| API     | 19823 | 29823     | Hono / Worker                                                |
-| Daemon  | —     | —         | Deno dev: outbound WS only (production image uses **18284**) |
-| Website | 19820 | —         | Next.js site                                                 |
-
-Self-Hosted mode also uses Mailpit, Redis, RabbitMQ, and Drizzle Studio ports — see [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting).
+| Service | Port | Notes |
+| ------- | ---- | ----- |
+| Tilt UI | 10350 | Dev dashboard |
+| Caddy (HTTPS app) | 8443 | Browser entrypoint (`CADDY_PORT`) |
+| Website | 19820 | Next.js (`WEBSITE_PORT`) |
+| Wrangler (internal) | 18787 | Not browser-facing (`INSTANCE_DEV_PORT`) |
+| Expo web | 8081 | Proxied by Caddy in dev (`EXPO_PORT`) |
+| Postgres | 5432 | Docker, `127.0.0.1:5432` |
+| Mailpit web | 19826 | Dev email UI |
+| Mailpit SMTP | 19825 | Dev email SMTP |
+| Drizzle Studio | 8444 | HTTPS via Caddy when started from dev console |
 
 ## Related
 
 - [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting)
-- [Migration troubleshooting](/docs/getting-started/migration-troubleshooting)
-- [Monorepo architecture](/docs/architecture/monorepo)
+- [Database troubleshooting](/docs/getting-started/database-troubleshooting)
+- [Development architecture](/docs/architecture/development-architecture)
 - [API architecture](/docs/architecture/api)
 - [Tilt documentation](https://docs.tilt.dev/)

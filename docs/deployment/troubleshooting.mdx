@@ -1,128 +1,95 @@
 ---
 title: Deployment Troubleshooting
-description: Troubleshoot common TurboPanel control plane deployment and runtime issues
+description: Troubleshoot common TurboPanel control plane and daemon deployment issues
 ---
 
 # Deployment Troubleshooting
 
-This guide helps resolve common issues when deploying or running TurboPanel in production. For security-related issues, see [Security](/docs/deployment/security). For setup verification, see [Control Plane](/docs/deployment/control-plane) and [Daemon Setup](/docs/deployment/daemon-setup).
+This guide helps resolve common issues when deploying or running TurboPanel in production. For security-related issues, see [Security](/docs/deployment/security). For setup verification, see [Control plane](/docs/deployment/control-plane) and [Daemon setup](/docs/deployment/daemon-setup).
 
 ## Introduction
 
-Production deployment issues typically fall into port conflicts, frontend loading problems, API connectivity, Docker socket permissions, or container startup failures. This guide provides targeted solutions with verification commands for each scenario.
+Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. Self-hosted entrypoint is **HTTPS on port 8443** (Caddy), not the legacy `:18282` Docker image port.
 
-## Port Conflicts
+## Port conflicts (8443)
 
-**Problem:** Port 18282 is already in use when starting the control plane.
-
-**Solutions:**
-
-1. Change `PORT` environment variable to a different port
-2. Update port mapping: `-p 18283:18282` (host 18283 → container 18282)
-3. Check for existing containers: `docker ps | grep turbopanel`
-4. Verify no other services use the port: `netstat -tuln | grep 18282`
-5. Stop conflicting service or change its port
-
-```bash
-# Check what's using the port
-docker ps | grep turbopanel
-netstat -tuln | grep 18282
-```
-
-## Frontend Not Loading
-
-**Problem:** Frontend UI doesn't load or shows errors.
+**Problem:** Caddy cannot bind `:8443`.
 
 **Solutions:**
 
-1. Verify frontend build completed: check `apps/app/dist` exists in image
-2. Check container logs: `docker logs turbopanel`
-3. Ensure `FRONTEND_DIST_PATH` points to correct directory
+1. Change `CADDY_PORT` in instance/Caddy env and update firewall rules
+2. Check for existing listeners: `ss -tlnp | grep 8443`
+3. Stop conflicting services or remap the published port in your reverse proxy
 
-## API Connection Issues
+## UI or API not loading
 
-**Problem:** API requests fail or return errors.
-
-**Solutions:**
-
-1. Verify backend is running: `docker ps`
-2. Test health endpoint: `curl http://localhost:18282/api/client/v1/health`
-3. Check logs: `docker logs turbopanel`
-4. Verify port mapping and firewall allow connections to 18282
-5. Ensure backend source files are present in container
-
-```bash
-# Health check
-curl http://localhost:18282/api/client/v1/health
-```
-
-## Docker Socket Permission Errors
-
-**Problem:** `Permission denied` when accessing Docker socket.
+**Problem:** Browser shows errors at `https://<host>:8443`.
 
 **Solutions:**
 
-1. Verify socket is mounted: `ls -la /var/run/docker.sock` in container
-2. Container runs as `turbopanel:turbopanel` (UID 9999); ensure socket is accessible to this user
-3. `docker ps` should work when exec'd into container
-4. Check host socket permissions: `ls -la /var/run/docker.sock`
-5. Verify mount: `docker inspect turbopanel | grep -A 5 Mounts`
+1. Check instance: `systemctl status turbopanel-instance`
+2. Check Caddy: `systemctl status turbopanel-caddy`
+3. Test health: `curl -k https://localhost:8443/api/health`
+4. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
+5. **Static UI:** ensure `ui/dist` exists if `TURBOPANEL_UI_MODE=static`
+6. **Dev UI:** ensure `turbopanel-ui` is running when `TURBOPANEL_UI_MODE=dev`
 
-```bash
-# Verify socket in container
-docker exec turbopanel ls -la /var/run/docker.sock
-docker exec turbopanel docker ps
-```
+## Daemon not connecting
 
-## Container Startup Failures
-
-**Problem:** Container fails to start or exits immediately.
+**Problem:** Remote server daemon fails to register.
 
 **Solutions:**
 
-1. Check logs: `docker logs turbopanel`
-2. Verify required files (frontend dist, backend source) are present
-3. Ensure dependencies are installed correctly in image
-4. Check environment variables are valid
-5. Test Node: `docker exec turbopanel node --version`
-6. Test entry point: `docker exec turbopanel pnpm --filter @turbopanel/api exec tsx src/self-hosted.ts`
+1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443`
+2. Test from node: `curl -k https://<host>:8443/api/daemon/v1/version`
+3. Confirm platform CA: compare with `GET /api/daemon/v1/instance/ca`
+4. Firewall: allow **8443** from agent nodes to instance
+5. Logs: `journalctl -u turbopanel-daemon -f`
 
-```bash
-# Debug startup
-docker logs -f turbopanel
-docker exec turbopanel node --version
-docker exec turbopanel ls -la apps/app/dist
-```
+## Postgres connection failures (self-hosted)
 
-## General Debugging
+**Problem:** Instance cannot connect to Postgres.
 
-| Task                 | Command                                       |
-| -------------------- | --------------------------------------------- |
-| Enable debug logging | `docker run -e LOG_LEVEL=debug ...`           |
-| View logs            | `docker logs -f turbopanel`                   |
-| Test API             | `curl http://localhost:18282/api/client/v1/health`      |
-| Inspect container    | `docker exec -it turbopanel sh`               |
-| Check frontend files | `docker exec turbopanel ls -la apps/app/dist` |
+**Solutions:**
 
-```bash
-# Enable debug logging
-docker run -e LOG_LEVEL=debug ...
+1. Check Postgres container: `docker ps | grep postgres`
+2. Verify Unix socket under `/var/run/turbopanel/postgres/`
+3. Confirm `TURBOPANEL_PG_*` env in `turbopanel-instance.service`
+4. Socket directory permissions: `/run/turbopanel` should be `2770 turbopanel:turbopanel`
 
-# View logs
-docker logs -f turbopanel
+## Install wizard / PAM failures (Deno)
 
-# Test API
-curl http://localhost:18282/api/client/v1/health
+**Problem:** Install bootstrap rejects host credentials.
 
-# Inspect container
-docker exec -it turbopanel sh
+**Solutions:**
 
-# Check frontend files
-docker exec turbopanel ls -la apps/app/dist
-```
+1. Install `pamtester` on the host
+2. Confirm `instance` user sudoers allows `pamtester login * authenticate`
+3. Use a host account in `sudo` / `wheel` / `admin`, or `root`
 
-## Related Documentation
+## Ansible / upgrade failures
 
-- [Security](/docs/deployment/security) — Security-related configuration issues
-- [Control Plane](/docs/deployment/control-plane) — Setup verification and configuration reference
-- [Daemon Setup](/docs/deployment/daemon-setup) — Daemon troubleshooting and common issues
+**Problem:** Upgrade System or daemon orchestration fails.
+
+**Solutions:**
+
+1. Check daemon logs — Ansible runs as `turbopanel` user
+2. Dirty git checkouts block upgrade; commit or stash platform checkouts
+3. Run normalizer if ownership is wrong: `turbopanel-normalize-dev-checkout`
+
+## General debugging
+
+| Task | Command |
+| ---- | ------- |
+| Instance health | `curl -k https://localhost:8443/api/health` |
+| Install status | `curl -k https://localhost:8443/api/client/v1/install/status` |
+| Service status | `systemctl status turbopanel-instance turbopanel-caddy turbopanel-daemon` |
+| Follow logs | `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-daemon -f` |
+| Daemon WS path | `wss://<host>:8443/ws/daemon/v1` |
+
+## Related documentation
+
+- [Security](/docs/deployment/security) — TLS and authentication
+- [Control plane](/docs/deployment/control-plane) — Service layout
+- [Daemon setup](/docs/deployment/daemon-setup) — Node installer
+- [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting) — Local dev issues

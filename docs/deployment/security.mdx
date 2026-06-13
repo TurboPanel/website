@@ -20,8 +20,10 @@ TurboPanel's security model spans the control plane (management interface and AP
   expose the control plane directly on HTTP in production.
 </Callout>
 
+Self-hosted deployments ship **Caddy** on port **8443** with a platform CA. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the instance socket:
+
 ```nginx
-# nginx example
+# nginx example — proxy to Caddy HTTPS or upstream HTTP
 server {
     listen 443 ssl;
     server_name turbopanel.example.com;
@@ -30,7 +32,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:18282;
+        proxy_pass https://127.0.0.1:8443;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -41,20 +43,20 @@ server {
 
 The control plane implements:
 
-- Token-based authentication for API access
-- Daemon token authentication for WebSocket connections (`AGENT_TOKEN`)
-- Secure token storage and rotation policies
-- Session management for web UI
+- Signed session cookies for the web UI (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`)
+- PBKDF2 password hashing for credential accounts
+- Host PAM gate for the Deno install wizard (not for routine sign-in)
+- WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
 
 ### Initial install endpoint
 
-`POST /api/client/v1/install` is only available while the instance is uninitialized (install mode). It is rate-limited per client IP; the first successful caller becomes the root admin. No setup secret is required — navigate to the install screen in your browser and complete the form.
+On Deno self-hosted, install endpoints are only available while the instance is uninitialized. The wizard verifies host PAM (`root` or sudo user) then creates a **superadmin** credential account. Host accounts cannot sign in for routine use — only the superadmin email/password works after install.
 
 ### Network Isolation
 
 - Use Docker networks to isolate containers
 - Restrict Docker socket access to necessary containers only
-- Implement firewall rules to restrict access to port 18282
+- Implement firewall rules to restrict access to the HTTPS entrypoint (default **8443**)
 - Use VPN or private networks for daemon communication when possible
 - Consider Docker Swarm or Kubernetes network policies
 
@@ -88,23 +90,23 @@ Mitigation strategies:
 
 Recommended:
 
-- Allow inbound to port 18282 only from trusted networks
+- Allow inbound to the HTTPS entrypoint (default **8443**) only from trusted networks
 - Restrict outbound to necessary services only
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
 - Implement rate limiting on API endpoints
 
-### Non-Root User
+### Service users (self-hosted)
 
-The container runs as non-root (`turbopanel:turbopanel`, UID 9999). The Dockerfile creates this user and switches before running the application.
+Managed hosts use dedicated users: `turbopanel` (UID 9999, daemon + Ansible) and `instance` (UID 9998, instance + Caddy + UI). Neither should run as root in steady state.
 
 ## Daemon Security
 
 ### Authentication
 
-- **Daemon token:** Use `AGENT_TOKEN` environment variable for authentication with the control plane
-- **Token Rotation:** Implement token rotation policies in production
-- **Token Storage:** Store tokens securely (secrets manager, environment injection); never in code or image
+- Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
+- Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic
+- Rotate `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` on the instance per your key-rotation policy
 
 ### Network Security
 
@@ -115,7 +117,7 @@ The container runs as non-root (`turbopanel:turbopanel`, UID 9999). The Dockerfi
 
 - **TLS/SSL:** Use HTTPS/WSS for production deployments
 - **Network Isolation:** Run daemons in isolated networks when possible (Docker networks, VPC)
-- **Firewall Rules:** Restrict daemon port (18284) to control plane only; block unnecessary inbound/outbound
+- **Firewall Rules:** Daemons are outbound clients — block unnecessary inbound to agent hosts; allow outbound **8443** (or your instance URL) from agents to the control plane
 
 ### Docker Socket Security
 
@@ -158,48 +160,37 @@ graph TD
   <Tab value="Self-Hosted">
 
 ```bash
-# Control plane behind nginx with TLS
-# nginx handles SSL termination and proxies to localhost:18282
+# Self-hosted: Caddy on 8443 with platform CA (default Ansible install)
+# Optional outer nginx terminates public TLS and proxies to Caddy:
 
-# Daemon with token from secrets, WSS to control plane
-docker run -d \
-  --name turbopanel-daemon \
-  -p 18284:18284 \
-  -e AGENT_MODE=websocket \
-  -e CONTROL_PLANE_URL=wss://turbopanel.example.com \
-  -e AGENT_TOKEN=$(cat /run/secrets/agent_token) \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/turbopanel/daemon:latest
+# Remote agent node — official installer
+curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+  | sudo bash -s -- \
+      --instance-url https://turbopanel.example.com:8443 \
+      --instance-ca /etc/turbopanel/instance-ca.pem
 ```
 
   </Tab>
   <Tab value="Cloud-Hosted">
 
 ```bash
-# Daemon connecting to cloud control plane
-docker run -d \
-  --name turbopanel-daemon \
-  -p 18284:18284 \
-  -e AGENT_MODE=durable-objects \
-  -e CONTROL_PLANE_URL=https://your-control-plane.workers.dev \
-  -e AGENT_TOKEN=$(cat /run/secrets/agent_token) \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/turbopanel/daemon:latest
+# Remote agent node connecting to Workers instance
+curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+  | sudo bash -s -- \
+      --instance-url https://your-instance.workers.dev
 ```
 
   </Tab>
 </Tabs>
 
 <Callout type="info" title="Daemon hardening">
-  - **Firewall:** Restrict the host firewall so port 18284 only accepts traffic from the control
-  plane IP or CIDR range. - **Read-only socket:** When a daemon only needs read operations
-  (inspection, logs), mount the Docker socket read-only: `-v
-  /var/run/docker.sock:/var/run/docker.sock:ro`. Daemons that must create or modify containers
-  require full socket access.
+  Daemons dial outbound to the instance — no inbound listener is required on agent nodes for
+  control-plane connectivity. Mount the Docker socket read-only (`:ro`) only when the daemon truly
+  needs read-only inspection; orchestration requires full socket access.
 </Callout>
 
 ## Related Documentation
 
 - [Control Plane](/docs/deployment/control-plane) — Installation and configuration
 - [Daemon Setup](/docs/deployment/daemon-setup) — Daemon deployment for both modes
-- [REST API Reference](/docs/backend/api-reference) — API structure and authentication
+- [API Reference](/docs/api) — OpenAPI browser and authentication routes

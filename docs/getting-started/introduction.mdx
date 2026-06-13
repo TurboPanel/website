@@ -5,78 +5,67 @@ description: TurboPanel overview, deployment models, and key features
 
 # Introduction
 
-TurboPanel is a comprehensive platform for managing dockerized applications and infrastructure. It provides a centralized control surface for Docker management across multiple servers.
+TurboPanel is a platform for managing dockerized applications and infrastructure. It provides a centralized control surface for Docker management across multiple servers.
 
-TurboPanel offers a unified interface for managing Docker containers across multiple servers, whether you choose cloud-hosted or self-hosted deployment. The platform uses a daemon-based architecture where lightweight daemons run on managed servers to execute Docker commands and stream logs back to the central control plane.
+TurboPanel offers a unified interface for managing Docker containers across multiple servers, whether you choose cloud-hosted or self-hosted deployment. Lightweight **daemons** run on managed servers, connect to the **instance** (control plane API) over HTTPS/WebSocket, and execute orchestration locally via Ansible.
 
-## Deployment Models
+## Deployment models
 
-TurboPanel supports two deployment models to suit different needs:
+| Feature | Cloud-hosted (Workers) | Self-hosted (Deno) |
+| ------- | ---------------------- | ------------------ |
+| **Pricing** | Pay per server | Free, unlimited servers |
+| **Control plane** | Cloudflare Workers | Your server (Deno + Caddy) |
+| **Communication** | HTTPS / WebSocket | HTTPS / WebSocket (Caddy) |
+| **Daemon required** | Yes (on each managed server) | Yes on extra servers; co-located on control plane |
+| **Best for** | Managed, global edge | Full control and cost savings |
 
-| Feature             | Edge                                 | Self-Hosted                                              |
-| ------------------- | ------------------------------------ | -------------------------------------------------------- |
-| **Pricing**         | Pay per server                       | Free, unlimited servers                                  |
-| **Control Plane**   | Global Edge Platform                 | Your infrastructure                                      |
-| **Communication**   | Durable Objects                      | WebSocket                                                |
-| **Daemon required** | Yes (on each managed server)         | Yes (on additional servers, integrated on control plane) |
-| **Best For**        | Teams wanting managed infrastructure | Teams wanting full control and cost savings              |
+### Cloud-hosted (Workers)
 
-### Edge
+- Instance can run on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy:workers`)
+- Remote daemons connect to your Workers URL over HTTPS/WSS today
+- **Durable Objects** for edge daemon coordination are **not implemented yet**
 
-- Pay per server pricing model
-- Runs on global edge platform for low-latency deployment
-- Uses Durable Objects for stateful communication with daemons
-- Managed infrastructure, no server maintenance required
+### Self-hosted (Deno)
 
-### Self-Hosted
+- Instance runs as Deno on a Unix socket; **Caddy** terminates TLS (default **`:8443`**) and proxies `/api/*` and `/ws/*`
+- Co-located **daemon** on the control plane host installs and updates the stack via Ansible
+- Additional servers use the [CDN node installer](/docs/deployment/daemon-setup)
 
-- Free with unlimited servers
-- Runs on your own infrastructure
-- Uses WebSocket for persistent bidirectional communication
-- Full control over data and infrastructure
-
-<Callout type="info" title="Integrated daemon">
-  The first server (where the control plane runs) includes integrated daemon functionality. You do
-  not need a separate daemon process on the control plane node.
+<Callout type="info" title="Co-located daemon">
+  On the control plane server, a co-located daemon connects to the local instance socket (or through
+  Caddy) and runs Ansible to manage the instance, UI, Caddy, and Postgres. You do not need a
+  separate remote daemon on the same machine.
 </Callout>
 
-## Key Features
+## Key features
 
-- **Centralized Control Surface** - Manage Docker containers across multiple servers from a single interface
-- **Dual Deployment Options** - Choose cloud-hosted (pay per server) or self-hosted (free, unlimited servers)
-- **Daemon-based architecture** - Lightweight daemons manage Docker containers on remote servers
-- **Cross-Platform Frontend** - Web, iOS, and Android applications via Expo/React Native
-- **Dual Communication Modes** - WebSockets for self-hosted, Durable Objects for cloud
-- **Integrated Control Plane** - Self-Hosted mode includes daemon functionality on control plane node
+- **Centralized control surface** — Manage servers from a single UI
+- **Dual deployment options** — Cloudflare Workers or self-hosted Deno
+- **Daemon-based architecture** — Ansible-driven installs on each node
+- **Cross-platform frontend** — Web, iOS, and Android via Expo / React Native
+- **Multi-repo codebase** — Instance, UI, daemon, website, and dev orchestration are separate Git repositories
 
-## Architecture Overview
-
-TurboPanel uses a control plane + daemons architecture:
+## Architecture overview
 
 ```mermaid
 graph TB
-    subgraph "Cloud-Hosted ($X per server)"
-        A[Edge<br/>Control Plane]
-        B[Daemon on Server 1]
-        C[Daemon on Server 2]
-        D[Daemon on Server N]
-        A -->|Durable Objects| B
-        A -->|Durable Objects| C
-        A -->|Durable Objects| D
+    subgraph "Cloud-hosted"
+        W[Workers instance] --> D1[Daemon server 1]
+        W --> D2[Daemon server 2]
     end
 
-    subgraph "Self-Hosted (Free, Unlimited)"
-        E[Self-Hosted Control Plane<br/>+ Integrated Daemon]
-        F[Daemon on Server 2]
-        G[Daemon on Server 3]
-        E -->|WebSocket| F
-        E -->|WebSocket| G
-        E -->|Local| H[Docker on Control Plane]
+    subgraph "Self-hosted"
+        C[Caddy :8443] --> I[Deno instance socket]
+        I --> CD[Co-located daemon]
+        I --> D3[Remote daemon]
+        CD --> Docker1[Local Docker]
+        D3 --> Docker2[Remote Docker]
     end
 ```
 
-## Next Steps
+## Next steps
 
-- [Installation](/docs/getting-started/installation) — Install TurboPanel using the one-line install script
-- [Daemon Setup](/docs/deployment/daemon-setup) — Daemon architecture and configuration
-- [Installation](/docs/deployment/control-plane) — Production deployment instructions
+- [Installation](/docs/getting-started/installation) — Control plane and node setup
+- [Local development](/docs/getting-started/development) — Contributor Tilt workflow
+- [Daemon setup](/docs/deployment/daemon-setup) — Adding managed servers
+- [Control plane](/docs/deployment/control-plane) — Self-hosted production layout

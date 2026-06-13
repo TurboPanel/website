@@ -1,0 +1,62 @@
+---
+title: Database troubleshooting
+description: Fix common Postgres and schema sync issues in local development
+---
+
+# Database troubleshooting
+
+TurboPanel early development uses **drizzle-kit push** (`instance/sync.sh`) — not versioned SQL migrations. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/db/AGENTS.md` in the repository.
+
+## Schema out of sync
+
+| Issue | What to do |
+| ----- | ---------- |
+| API errors about missing columns/tables | From `instance/`: `./sync.sh` (or let Tilt `instance-db` run `./sync.sh --force` after editing `schema.ts`) |
+| You changed the DB in Studio | Run `./introspect.sh` to pull live schema into `src/db/schema.ts` |
+| Fresh Postgres volume | Deno auto-pushes on startup when `user` table is missing; or run `./sync.sh --force` manually |
+
+## Connection failures
+
+| Issue | What to do |
+| ----- | ---------- |
+| Postgres unreachable | Check Tilt **postgres** resource; verify Docker is running |
+| Wrong credentials | Check `dev/.env` `POSTGRES_*` vars; re-run env sync (`tilt trigger env-sync` or restart Tilt) |
+| Connection pool wedged (Deno) | Restart the `instance` resource |
+
+## Reset dev database
+
+**Developer console (superadmin):** `/developer/database` → **Reset Dev Instance** — drops `public`, re-pushes `schema.ts`, restarts instance. UI redirects through `/recovering` then `/install` or `/sign-in`.
+
+**Manual:**
+
+```bash
+# From instance/ with Postgres running
+./sync.sh --force   # after DROP SCHEMA public CASCADE; or use reset-dev API
+```
+
+**Nuclear (dev only):** stop Tilt, remove `dev/.postgresql/` data directory, `tilt up` (recreates empty Postgres).
+
+## Drizzle Studio
+
+- Start from `/developer/database` (superadmin session in `__DEV__`).
+- Open `https://local.drizzle.studio?host=<your-host>&port=8444` — trust the platform CA (`instance/certs/ca.crt`).
+- Studio applies DDL directly — follow with `./introspect.sh` to pull changes into `schema.ts`.
+- Close Studio before running `./sync.sh` to avoid connection contention.
+
+## Do not run (current policy)
+
+- `drizzle-kit migrate` or committed `drizzle/*.sql` migration files
+- Raw `drizzle-kit push` outside `./sync.sh` / `./introspect.sh` workflows
+
+## Manual debugging
+
+```bash
+# From instance/
+./sync.sh --verbose
+docker exec -it $(docker ps -qf name=postgres) psql -U turbopanel -d turbopanel -c '\dt'
+```
+
+## Related
+
+- [Local development](/docs/getting-started/development)
+- [Instance API architecture](/docs/architecture/api)

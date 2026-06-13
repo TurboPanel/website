@@ -21,6 +21,20 @@ function createNextConfig(phase, { defaultConfig }) {
 
   const config = {
     ...restDefaultConfig,
+    async redirects() {
+      return [
+        {
+          source: '/docs/architecture/monorepo',
+          destination: '/docs/architecture/development-architecture',
+          permanent: true,
+        },
+        {
+          source: '/docs/getting-started/migration-troubleshooting',
+          destination: '/docs/getting-started/database-troubleshooting',
+          permanent: true,
+        },
+      ]
+    },
     experimental: experimentalConfig,
     logging: {
       ...logging,

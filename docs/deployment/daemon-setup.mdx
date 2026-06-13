@@ -1,144 +1,120 @@
 ---
 title: Daemon Setup
-description: Install and configure TurboPanel daemons for both cloud-hosted and self-hosted deployments
+description: Install and configure TurboPanel daemons on managed servers
 ---
 
 # Daemon Setup
 
-The TurboPanel Daemon is a lightweight service designed to run on managed servers. It executes commands from the control plane, manages Docker containers, and streams logs and SSH sessions back to the control plane.
+The TurboPanel **daemon** ([turbopanel-daemon](https://github.com/turbopanel/turbopanel-daemon)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
 
 ## Overview
 
 ### Purpose
 
-- Execute commands from the control plane on remote servers
-- Manage Docker containers and services
-- Stream logs and metrics to the control plane
-- Provide SSH session proxying; report server status and health
+- Connect to the instance control plane as an agent node
+- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, instance, UI)
+- Apply dev-sync pushes and Cloudflare tunnel tokens from the instance
+- Report server identity (`serverId`, `hostname`, `machineId`) on WebSocket `hello`
 
-### Relationship to Control Plane
+### Relationship to control plane
 
-The daemon is a **lightweight subset** of the backend without frontend dependencies. It runs on managed servers and communicates with the control plane, which coordinates multiple daemons.
+The daemon is **not** a slim Docker-only executor in the new architecture — it is the constant on every TurboPanel-managed host and the only party that runs Ansible. On the control plane host it runs co-located (Unix socket or Caddy URL). On additional servers it dials the instance URL you provide at install time.
 
 ### Architecture
 
 ```mermaid
 graph TD
-    subgraph "Cloud Mode"
-        A[Edge<br/>Control Plane] -->|Durable Objects| B[Daemon on Server 1]
-        A -->|Durable Objects| C[Daemon on Server 2]
+    subgraph "Control plane host"
+        Caddy["Caddy :8443"] --> Instance
+        CD[Co-located daemon] --> Instance
+        CD --> Ansible
     end
 
-    subgraph "Self-Hosted Mode"
-        D[Self-Hosted Control Plane<br/>+ Integrated Daemon] -->|WebSocket| E[Daemon on Server 2]
-        D -->|WebSocket| F[Daemon on Server 3]
-        D --> G[Local Docker]
+    subgraph "Remote server"
+        RD[Remote daemon] -->|WSS /ws/daemon/v1| Caddy
+        RD --> Docker[Docker]
     end
-
-    B --> H[Docker Containers]
-    C --> I[Docker Containers]
-    E --> J[Docker Containers]
-    F --> K[Docker Containers]
 ```
 
-## Deployment Models
+## Deployment models
 
-| Feature                      | Cloud-Hosted    | Self-Hosted                |
-| ---------------------------- | --------------- | -------------------------- |
-| Control Plane                | Edge            | Node.js on your server     |
-| Daemon on Control Plane Node | ✅ Required     | ❌ Integrated (not needed) |
-| Daemon on Additional Servers | ✅ Required     | ✅ Required                |
-| Communication                | Durable Objects | WebSocket                  |
-| Pricing                      | $X per server   | Free, unlimited            |
-
-**Cloud Mode:** Control plane runs on Edge platform; daemons connect via Durable Objects.
-
-**Self-Hosted Mode:** Control plane runs on your server; first server needs no separate daemon; additional servers run the daemon with WebSocket.
+| Feature | Cloud-hosted instance | Self-hosted instance |
+| ------- | --------------------- | -------------------- |
+| Instance URL | `https://your-worker.workers.dev` | `https://<host>:8443` |
+| Co-located daemon | Optional (dev / socket mode) | Yes on control plane |
+| Remote daemon | Required per extra server | Required per extra server |
+| Communication | WSS through instance URL | WSS through Caddy or direct socket |
+| Edge coordination | WSS (Durable Objects **not implemented yet**) | WSS |
 
 ## Installation
 
-<Tabs items={['Cloud Mode', 'Self-Hosted Mode']}>
-  <Tab value="Cloud Mode">
+### Remote agent node (official installer)
+
+From [turbopanel-cdn](https://github.com/turbopanel/turbopanel-cdn):
 
 ```bash
-docker pull ghcr.io/turbopanel/daemon:latest
-docker run -d \
-  --name turbopanel-daemon \
-  -p 18284:18284 \
-  -e AGENT_MODE=durable-objects \
-  -e CONTROL_PLANE_URL=https://your-control-plane.workers.dev \
-  -e AGENT_TOKEN=your-secret-token \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/turbopanel/daemon:latest
+curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+  | sudo bash -s -- \
+      --instance-url https://<instance-host>:8443
 ```
 
-  </Tab>
-  <Tab value="Self-Hosted Mode">
+For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daemon/v1/instance/ca` (one insecure bootstrap `curl` if needed) and configures `TURBOPANEL_INSTANCE_CA`.
 
-<Callout type="info" title="No Daemon Needed">
-  On the first server (control plane), no separate daemon is required. The control plane includes
-  integrated daemon functionality for local Docker. Deploy the daemon only on additional servers.
+<Callout type="info" title="Control plane host">
+  On the machine that runs the instance, use `develop.sh` or Ansible co-located install — not the
+  remote node installer.
 </Callout>
 
-```bash
-# On additional servers only (not on control plane)
-docker pull ghcr.io/turbopanel/daemon:latest
-docker run -d \
-  --name turbopanel-daemon \
-  -p 18284:18284 \
-  -e AGENT_MODE=websocket \
-  -e CONTROL_PLANE_URL=http://your-control-plane:18282 \
-  -e AGENT_TOKEN=your-secret-token \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/turbopanel/daemon:latest
-```
+### Install options
 
-  </Tab>
-</Tabs>
+| Flag | Description |
+| ---- | ----------- |
+| `--instance-url <URL>` | **Required** for remote nodes. Base URL (`https://…` or `http://…`). |
+| `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
+| `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
+| `--insecure-tls` | Skip TLS verification (dev only) |
+| `--branch <NAME>` | Git branch (default `trunk`) |
+| `--no-start` | Provision without starting `turbopanel-daemon.service` |
+
+### What gets installed
+
+The installer bootstraps uv/Python/Ansible and runs `agent-install.yml`:
+
+- User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
+- Daemon checkout under `/opt/turbopanel/platform/daemon` on `trunk`
+- Deno runtime under `/opt/turbopanel/runtimes/`
+- `turbopanel-daemon.service` (systemd, single process via `flock`)
 
 ## Configuration
 
-### Environment Variables
+Runtime config: `/opt/turbopanel/platform/daemon/.env`
 
-| Variable            | Description                        | Default | Required         |
-| ------------------- | ---------------------------------- | ------- | ---------------- |
-| `AGENT_PORT`        | Port for the daemon to listen on   | `18284` | No               |
-| `AGENT_MODE`        | `websocket` or `durable-objects`   | -       | Yes              |
-| `CONTROL_PLANE_URL` | URL of control plane               | -       | Yes              |
-| `AGENT_TOKEN`       | Authentication token (recommended) | -       | No (recommended) |
-| `LOG_LEVEL`         | `debug`, `info`, `warn`, `error`   | `info`  | No               |
+| Variable | Purpose |
+| -------- | ------- |
+| `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of instance (remote nodes) |
+| `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS |
+| `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
 
-### Docker Socket
+Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`.
 
-Required: `-v /var/run/docker.sock:/var/run/docker.sock`
+## Communication
 
-<Callout type="warn" title="Docker Socket Access">
-  Mounting the socket gives full Docker daemon access. Use network isolation and authentication in
-  production. See [Security](/docs/deployment/security) for best practices.
-</Callout>
+- **WebSocket:** `wss://<instance>/ws/daemon/v1`
+- **Hello:** daemon sends `hostname`, optional `serverId`, `machineId`; instance returns canonical `serverId`
+- **Commands:** instance routes over `daemon-hub`; dev-sync and tunnel-token messages for operator pushes
 
-## Communication Patterns
+## Common issues
 
-### WebSocket (Self-Hosted)
+| Issue | Solution |
+| ----- | -------- |
+| Connection failures | Verify `TURBOPANEL_INSTANCE_URL`, firewall, TLS CA trust |
+| TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca` |
+| Docker permission errors | Ensure `turbopanel` user is in `docker` group (installer adds this) |
 
-The daemon connects to `ws://CONTROL_PLANE_URL/agent/connect` with token in handshake. Commands flow from control plane to daemon; responses and logs flow back. Message types include command, response, log, heartbeat. Automatic reconnection with exponential backoff; heartbeat for connection health.
+See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 
-### Durable Objects (Cloud)
+## Related documentation
 
-The daemon connects to a Durable Object via HTTP/WebSocket. Flow: authenticate with control plane → control plane creates/retrieves Durable Object → daemon establishes WebSocket → commands routed through Durable Object API.
-
-## Common Issues
-
-| Issue                               | Solution                                                                                                                |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Connection failures**             | Verify `CONTROL_PLANE_URL`, network/firewall, and that `AGENT_MODE` matches control plane                               |
-| **Docker socket permission denied** | Ensure socket is mounted and container user (turbopanel:turbopanel) can access it; `docker ps` in container should work |
-| **Port 18284 in use**               | Change `AGENT_PORT` or host mapping (e.g. `-p 18285:18284`)                                                             |
-
-For detailed troubleshooting, see [Deployment Troubleshooting](/docs/deployment/troubleshooting).
-
-## Related Documentation
-
-- [Control Plane](/docs/deployment/control-plane) — Control plane setup and configuration
-- [Security](/docs/deployment/security) — Security best practices for daemons
-- [Deployment Troubleshooting](/docs/deployment/troubleshooting) — Common issues and debugging
+- [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
+- [Security](/docs/deployment/security) — TLS and socket hardening
+- [Daemon README](https://github.com/turbopanel/turbopanel-daemon/blob/trunk/README.md) — Maintainer reference

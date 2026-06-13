@@ -1,35 +1,72 @@
 ---
 title: Installation
-description: Install TurboPanel using the one-line install script
+description: Install TurboPanel control plane and agent nodes
 ---
 
 # Installation
 
-Install TurboPanel on a Linux server with one command. The script pulls the image, creates required directories, configures Docker Compose, and starts the container.
+TurboPanel is split across multiple repositories. Installation paths depend on whether you are setting up **contributor local dev**, a **self-hosted control plane**, or an **additional agent node**.
 
-## Install
+## Contributor local development
+
+Bootstrap all sibling repos and start Tilt from [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev):
 
 ```bash
-curl -sSL https://start.trbp.nl/ | sh
+curl -fsSL https://develop.trbp.nl | sh
+cd dev   # or your turbopanel-dev checkout path
+tilt up
 ```
 
-## Prerequisites
+See [Local development](/docs/getting-started/development) for URLs, ports, and day-to-day workflow.
 
-- A Linux server with Docker installed
-- Port 18282 open for the control plane
+## Self-hosted control plane (Debian / Ubuntu VM)
 
-## What the script does
+<Callout type="info" title="No public install script yet">
+  Self-hosted production today uses **`develop.sh`** on a VM with sibling `instance/` and `daemon/`
+  checkouts. A one-line public installer (like the old `turbopanel.sh` flow) is not available yet.
+</Callout>
 
-- Pulls `turbopanel/turbopanel:latest`
-- Creates required directories
-- Writes a Docker Compose file
-- Starts the container
+On a fresh Debian or Ubuntu host:
 
-## Accessing the UI
+```bash
+cd instance
+./develop.sh
+```
 
-Navigate to `http://your-server-ip:18282` in your browser.
+`develop.sh` bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopanel-daemon.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres.
 
-## Next Steps
+- **HTTPS entrypoint:** `https://<host>:8443` (Caddy)
+- **Install wizard:** first visit prompts host PAM + superadmin setup (Deno path)
+- Trust the platform CA from `GET /api/daemon/v1/instance/ca` or `instance/certs/ca.crt`
 
-- [Control Plane](/docs/deployment/control-plane) — Configuration and environment variables
-- [Daemon Setup](/docs/deployment/daemon-setup) — Adding more servers
+Details: [Control plane](/docs/deployment/control-plane).
+
+## Cloud-hosted (Workers)
+
+The instance can run on Cloudflare Workers (`pnpm deploy:workers` in the instance repo). Managed edge features such as **Durable Objects** for daemon coordination are **not implemented yet** — remote daemons today connect over HTTPS/WSS to a reachable instance URL. See [Control plane](/docs/deployment/control-plane).
+
+## Additional agent nodes
+
+Install the daemon on servers that should be managed remotely (not the co-located control plane):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+  | sudo bash -s -- \
+      --instance-url https://<instance-host>:8443
+```
+
+Replace host and port with where the instance is reachable from the node. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
+
+Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
+
+## Prerequisites (all paths)
+
+- Linux server (Debian/Ubuntu recommended for Ansible paths)
+- Docker (daemon running)
+- For Tilt dev: Node.js ≥ 24, pnpm ≥ 11, Tilt — see [Prerequisites](/docs/development/prerequisites)
+
+## Next steps
+
+- [Control plane](/docs/deployment/control-plane) — Components, configuration, and API surface
+- [Daemon setup](/docs/deployment/daemon-setup) — Node installer flags and communication
+- [Security](/docs/deployment/security) — TLS, socket access, and hardening

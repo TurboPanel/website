@@ -1,13 +1,13 @@
 ---
 title: Architecture
-description: TurboPanel monorepo layout, Tilt orchestration, and API surface design
+description: TurboPanel multi-repo layout, Tilt orchestration, and instance API design
 ---
 
 # Architecture
 
 TurboPanel splits documentation by concern:
 
-- **[Monorepo and development](/docs/architecture/monorepo)** — Tilt orchestration, automatic migrations in dev, ports, and technology choices.
-- **[API package](/docs/architecture/api)** — Surface-based routing, feature modules, and how requests flow through `apps/api`.
+- **[Development architecture](/docs/architecture/development-architecture)** — Multi-repo layout, Tilt orchestration, schema sync in dev, ports, and technology choices.
+- **[Instance API](/docs/architecture/api)** — Versioned surfaces, routing modules, and how requests flow through the `turbopanel` instance repo.
 
 For deployment and production operations, see [Deployment](/docs/deployment) and [Security](/docs/security/password-safety).

@@ -1,161 +1,147 @@
 ---
 title: Control Plane
-description: Install and configure the TurboPanel control plane for self-hosted deployment
+description: Install and configure the TurboPanel control plane for self-hosted and cloud-hosted deployment
 ---
 
 # Control Plane Deployment
 
-The TurboPanel Control Plane is a self-hosted Docker image containing the frontend (Expo web build) and backend (Hono API with integrated daemon functionality). It is the centralized management interface for Docker containers and infrastructure across multiple servers.
+The TurboPanel **instance** is the control plane API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for cloud-hosted deployments. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
 
 ## Overview
 
 ### Purpose
 
-- Centralized management for Docker containers and infrastructure
-- REST API and frontend (Expo web) for management
-- Integrated Docker management on the control plane server (self-hosted)
-- WebSocket server for remote daemons (self-hosted)
+- Centralized API for organizations, servers, auth, and daemon orchestration
+- Web UI (Expo web) for operators
+- WebSocket hub for agent daemons (`/ws/daemon/v1`)
+- OpenAPI + Scalar at `/api/openapi.json` and `/api/reference`
 
-### Relationship to Daemon
+### Relationship to daemon
 
-In self-hosted mode, the control plane can manage local Docker directly without a separate daemon on the same server. Additional servers use the daemon image and connect via WebSocket. See [Daemon Setup](/docs/deployment/daemon-setup) for multi-server deployments.
+On the control plane host, a **co-located daemon** installs and updates the instance, Caddy, UI, and Postgres via Ansible. Additional servers run a standalone daemon that connects back over WSS. See [Daemon setup](/docs/deployment/daemon-setup).
 
-<Callout type="info" title="Integrated Daemon">
-  The first server (where the control plane runs) includes integrated daemon functionality. You do
-  not need a separate daemon process on the control plane node.
+<Callout type="info" title="Co-located daemon">
+  The control plane server includes a co-located daemon that dials the local instance (socket or Caddy).
+  Remote nodes use the CDN installer — not a separate control-plane container image.
 </Callout>
 
-### Architecture
+### Architecture (self-hosted)
 
 ```mermaid
 graph TD
-    subgraph "Runtime"
-        F[runtime image] --> G[Frontend dist]
-        F --> H[Backend source]
-        F --> I[Shared package]
-        F --> J[Node.js · Port 18282]
-    end
+    Browser --> Caddy["Caddy :8443 TLS"]
+    Caddy --> Instance["Deno instance Unix socket"]
+    Caddy --> UI["Expo web or static export"]
+    Daemon["turbopanel-daemon"] --> Instance
+    Instance --> PG["Postgres 18 Docker"]
+    Daemon --> Ansible["Ansible playbooks"]
 ```
 
-## Deployment Models Comparison
+## Deployment models
 
-| Feature                          | Self-Hosted                 | Edge                          |
-| -------------------------------- | --------------------------- | ----------------------------- |
-| **Control Plane**                | This Docker image (Node.js) | Edge                          |
-| **Frontend**                     | ✅ Included (Expo web)      | ✅ Served separately          |
-| **Integrated Daemon**            | ✅ Yes (local Docker)       | ❌ No (separate daemon)       |
-| **Daemon on Control Plane Node** | ❌ Not needed               | ✅ Required                   |
-| **Daemon on Additional Servers** | ✅ Required (WebSocket)     | ✅ Required (Durable Objects) |
-| **Communication**                | WebSocket                   | Durable Objects               |
-| **Pricing**                      | Free, unlimited             | $X per server                 |
-
-**This guide covers Self-Hosted deployment only.** Edge mode uses a different control plane on the TurboPanel Edge platform.
+| Feature | Self-hosted (Deno) | Cloud-hosted (Workers) |
+| ------- | ------------------ | ---------------------- |
+| **Runtime** | Deno on Unix socket | Cloudflare Workers |
+| **TLS** | Caddy (platform CA) | Cloudflare edge |
+| **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
+| **UI** | Caddy → Expo dev or `ui/dist` | Workers assets / separate hosting |
+| **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
+| **Pricing** | Free, unlimited servers | Pay per server |
 
 ## Installation
 
-### Quick Start
+### Self-hosted (systemd + Ansible)
+
+<Callout type="info" title="Current production path">
+  There is no public one-line install script for self-hosted control planes yet. Use **`develop.sh`**
+  on a Debian/Ubuntu VM with sibling `instance/` and `daemon/` checkouts (clone via
+  [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) `pull.sh` or manual layout).
+</Callout>
+
+On Debian/Ubuntu with `instance/` and `daemon/` checkouts:
 
 ```bash
-curl -sSL https://start.trbp.nl/ | sh
+cd instance
+./develop.sh
 ```
 
-The script pulls the image, creates directories, configures Docker Compose, and starts the container.
+This enables co-located dev-instance mode and lets the daemon run `instance-dev-install` via Ansible. Services:
 
-### Manual Docker
+| Unit | User | Role |
+| ---- | ---- | ---- |
+| `turbopanel-daemon.service` | `turbopanel` (9999) | Ansible orchestration |
+| `turbopanel-instance.service` | `instance` (9998) | Deno API on Unix socket |
+| `turbopanel-caddy.service` | `instance` | TLS + reverse proxy `:8443` |
+| `turbopanel-ui.service` | `instance` | Expo web dev (`:8081`, dev only) |
 
-1. `docker pull turbopanel/turbopanel:latest`
-2. Run with port 18282, Docker socket mount, `--restart unless-stopped`
-3. Access UI at `http://your-server-ip:18282`
+Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopanel-daemon -f`
+
+### Cloud-hosted (Workers)
+
+From the instance repo:
 
 ```bash
-docker run -d \
-  --name turbopanel \
-  --restart unless-stopped \
-  -p 18282:18282 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  turbopanel/turbopanel:latest
+pnpm install
+pnpm deploy:workers
 ```
 
-### Docker Compose
+Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
 
-Save the following as `docker-compose.yml` in a directory of your choice (for example `/opt/turbopanel/`), then run `docker compose up -d` from that directory:
+<Callout type="warn" title="Edge coordination not complete">
+  **Durable Objects** for cloud-hosted daemon coordination are **not implemented yet**. Deployed
+  Workers instances and remote daemons use the same HTTPS/WSS paths as self-hosted (`/api/daemon/v1/*`,
+  `/ws/daemon/v1`) until edge-specific coordination ships.
+</Callout>
 
-```yaml
-services:
-  turbopanel:
-    image: turbopanel/turbopanel:latest
-    restart: unless-stopped
-    ports:
-      - '18282:18282'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-```
+### Contributor local dev (Tilt)
 
 ```bash
-docker compose up -d
+curl -fsSL https://develop.trbp.nl | sh
+cd dev && tilt up
 ```
 
-The [install script](https://start.trbp.nl/) writes an equivalent compose file and starts the container for you; the path it uses may vary by environment.
-
-### Multi-Server Setup
-
-- **Control plane server:** Use this image only; integrated daemon handles local Docker.
-- **Additional servers:** Deploy the daemon image; see [Daemon Setup](/docs/deployment/daemon-setup).
+Defaults to Workers (`wrangler dev`) behind Caddy — see [Local development](/docs/getting-started/development).
 
 ## Configuration
 
-### Environment Variables
+### Key environment variables (instance)
 
-| Variable             | Description                      | Default         | Required |
-| -------------------- | -------------------------------- | --------------- | -------- |
-| `PORT`               | API and frontend port            | `18282`         | No       |
-| `FRONTEND_DIST_PATH` | Frontend dist path in image      | `apps/app/dist` | No       |
-| `LOG_LEVEL`          | `debug`, `info`, `warn`, `error` | `info`          | No       |
+| Variable | Purpose |
+| -------- | ------- |
+| `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` | Session signing (required in production) |
+| `TURBOPANEL_PG_*` | Postgres socket connection (self-hosted) |
+| `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
+| `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
+| `TURBOPANEL_UI_ROOT` | Static UI path (default `../ui/dist`) |
+| `CADDY_PORT` | HTTPS listen port (default **8443**) |
+| `TURBOPANEL_IS_SIGNUP_ENABLED` | Workers dev sign-up override |
 
-`NODE_ENV` is set to `production` in the control-plane image; you do not configure it in Compose for normal deployments.
+Local Tilt copies these from `dev/.env` via `scripts/sync-env.sh`. Managed hosts inject vars via Ansible `instance-launch`.
 
-### Volume and Port
+### API entrypoints
 
-- **Docker socket:** `-v /var/run/docker.sock:/var/run/docker.sock` (required for local Docker management)
-- **Port:** `-p 18282:18282`
+| Path | Description |
+| ---- | ----------- |
+| `/api/health` | Unversioned health probe |
+| `/api/client/v1/*` | End-user REST API + auth |
+| `/api/developer/v1/*` | Developer console (dev tooling) |
+| `/api/admin/v1/*` | Reserved admin surface |
+| `/api/daemon/v1/*` | Daemon REST (`version`, `instance/ca`) |
+| `/ws/daemon/v1` | Daemon WebSocket |
+| `/api/openapi.json` | OpenAPI 3.1 spec |
+| `/` | Web UI (via Caddy) |
 
-<Callout type="warn" title="Docker Socket">
-  Mounting the Docker socket gives full daemon access. Use network isolation and authentication in
-  production. See [Security](/docs/deployment/security) for best practices.
-</Callout>
+HTTPS entrypoint for browsers: **`https://<host>:8443`** (self-hosted).
 
-### API Endpoints
+## Communication patterns
 
-| Endpoint             | Description                                     |
-| -------------------- | ----------------------------------------------- |
-| `/api/client/v1/*`   | Authenticated client REST API                   |
-| `/api/admin/v1/*`    | Admin REST API                                  |
-| `/api/client/auth/*` | Better Auth (sign-in, sessions, password, etc.) |
-| `/`                  | Web UI                                          |
-| `/api/openapi.json`  | OpenAPI spec                                    |
-| `/api/client/v1/health` | Health check                                 |
+- **Browser → Caddy → instance:** REST and cookies on `/api/client/v1/*`
+- **Daemon → instance:** WSS `/ws/daemon/v1` (through Caddy or direct Unix socket when co-located)
+- **Dev sync / tunnel:** Operator pushes daemon builds or tunnel tokens via developer API + daemon WS messages
 
-## Communication Patterns
+## Related documentation
 
-- **Frontend–Backend:** Same port; API under `/api/client/v1`, `/api/admin/v1`, and `/api/client/auth`; REST + WebSocket; token-based auth
-- **Integrated Daemon:** Direct Docker socket access on control plane server; no separate daemon container
-- **WebSocket Server:** `ws://your-control-plane:18282/agent/connect`; token auth; commands to daemons, responses/logs back
-
-## Comparison: Control Plane vs Daemon
-
-| Feature           | Control Plane (turbopanel)             | Daemon                       |
-| ----------------- | -------------------------------------- | ---------------------------- |
-| **Purpose**       | Centralized management interface       | Execute commands on servers  |
-| **Components**    | Frontend + Backend + Integrated Daemon | Backend only (daemon subset) |
-| **Port**          | 18282                                  | 18284                        |
-| **Entry Point**   | `src/self-hosted.ts`                   | `apps/daemon` (`main.ts`)    |
-| **Frontend**      | ✅ Included                            | ❌ Not included              |
-| **Docker Socket** | Local container management             | Remote container management  |
-| **Deployment**    | One per infrastructure                 | One per server (except CP)   |
-| **API / Web UI**  | ✅ Full REST API, Web UI               | ❌ Command execution only    |
-
-## Related Documentation
-
-- [Daemon Setup](/docs/deployment/daemon-setup) — Multi-server deployments and daemon configuration
-- [Security](/docs/deployment/security) — Security best practices
-- [Deployment Troubleshooting](/docs/deployment/troubleshooting) — Common deployment issues
+- [Daemon setup](/docs/deployment/daemon-setup) — Remote node installer
+- [Security](/docs/deployment/security) — TLS, auth, and hardening
+- [Deployment troubleshooting](/docs/deployment/troubleshooting) — Runtime issues
+- [Instance API architecture](/docs/architecture/api) — Code layout

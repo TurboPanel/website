@@ -15,7 +15,7 @@ TurboPanel is a self-hosted control plane for managing applications and infrastr
   />
   <Card
     title="Develop on TurboPanel"
-    description="Prerequisites and tooling for working in the monorepo"
+    description="Prerequisites and tooling for the multi-repo dev environment"
     href="/docs/development/prerequisites"
   />
   <Card
@@ -36,8 +36,8 @@ TurboPanel is a self-hosted control plane for managing applications and infrastr
 | Feature           | Cloud-Hosted               | Self-Hosted                   |
 | ----------------- | -------------------------- | ----------------------------- |
 | **Pricing**       | Pay per server             | Free, unlimited servers       |
-| **Control Plane** | Global Edge Platform       | Docker                        |
-| **Communication** | Durable Objects            | HTTPS / WebSocket             |
+| **Control Plane** | Cloudflare Workers         | Your infrastructure (Deno)  |
+| **Communication** | HTTPS / WebSocket          | HTTPS / WebSocket (via Caddy) |
 | **Best For**      | Managed, high availability | Full control and cost savings |
 
 ## Key Features
@@ -47,7 +47,19 @@ TurboPanel is a self-hosted control plane for managing applications and infrastr
 - **Multi-server**: Manage multiple servers from a single control surface
 - **Daemon-based**: Lightweight daemons run on managed servers for remote execution
 
+## Repositories
+
+TurboPanel is split across sibling Git repositories (not a monorepo). The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repo bootstraps the rest:
+
+| Repository | Purpose |
+| ---------- | ------- |
+| [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) | Bootstrap (`pull.sh`), Tilt orchestration, shared dev env |
+| [turbopanel](https://github.com/turbopanel/turbopanel) | Instance (Hono API — Workers + Deno) |
+| [turbopanel-ui](https://github.com/turbopanel/turbopanel-ui) | Expo web / native UI |
+| [turbopanel-daemon](https://github.com/turbopanel/turbopanel-daemon) | Agent-node daemon (Ansible orchestration) |
+| [turbopanel-website](https://github.com/turbopanel/turbopanel-website) | Marketing site and these docs |
+
 ## External Resources
 
-- [GitHub Repository](https://github.com/turbopanel/turbopanel) — Source code and contributions
-- [Issue Tracker](https://github.com/turbopanel/turbopanel/issues) — Report bugs and request features
+- [Instance repository](https://github.com/turbopanel/turbopanel) — API and control plane source
+- [Issue tracker](https://github.com/turbopanel/turbopanel/issues) — Report bugs and request features
