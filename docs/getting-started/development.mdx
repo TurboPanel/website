@@ -120,7 +120,7 @@ Tilt's `instance-db` resource runs `./sync.sh --force` when `src/db/schema.ts` c
 
 ### Drizzle Studio
 
-In the developer console (`/developer/database`), superadmin sessions can start Studio via the API. Caddy exposes it on HTTPS port **8444** in dev mode. Trust the same platform CA as `:8443`.
+In the developer console Database section, start Studio via the API. The instance spawns `drizzle-kit studio` on **4983**; open **`https://local.drizzle.studio?host=localhost&port=4983`** in your browser.
 
 ### Developer console
 
@@ -166,7 +166,7 @@ sequenceDiagram
 | Postgres | 5432 | Docker, `127.0.0.1:5432` |
 | Mailpit web | 19826 | Dev email UI |
 | Mailpit SMTP | 19825 | Dev email SMTP |
-| Drizzle Studio | 8444 | HTTPS via Caddy when started from dev console |
+| Drizzle Studio | 4983 | HTTP API (`drizzle-kit studio`); UI at `local.drizzle.studio` |
 
 ## Related
 

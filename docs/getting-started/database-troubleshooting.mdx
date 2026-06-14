@@ -38,8 +38,8 @@ TurboPanel early development uses **drizzle-kit push** (`instance/sync.sh`) — 
 
 ## Drizzle Studio
 
-- Start from `/developer/database` (superadmin session in `__DEV__`).
-- Open `https://local.drizzle.studio?host=<your-host>&port=8444` — trust the platform CA (`instance/certs/ca.crt`).
+- Start from the developer console Database section.
+- Open `https://local.drizzle.studio?host=localhost&port=4983`.
 - Studio applies DDL directly — follow with `./introspect.sh` to pull changes into `schema.ts`.
 - Close Studio before running `./sync.sh` to avoid connection contention.
 
