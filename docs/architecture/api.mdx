@@ -16,7 +16,7 @@ Three audiences each have REST + WebSocket namespaces. Prefixes live in `src/sur
 | Client | `/api/client/v1/*` | `/ws/client/v1` | End-user UI |
 | Developer | `/api/developer/v1/*` | `/ws/developer/v1` | Dev console (`__DEV__` only) |
 | Admin | `/api/admin/v1/*` | `/ws/admin/v1` | Reserved for future admin UI |
-| Daemon | `/api/daemon/v1/*` | `/ws/daemon/v1` | Agent nodes |
+| Daemon | `/api/daemon/v1/*` | `/ws/daemon/v1` | Remote daemons |
 
 Unversioned docs:
 
@@ -28,10 +28,11 @@ Unversioned docs:
 | Area | Files | Role |
 | ---- | ----- | ---- |
 | App shell | `app.ts`, `surfaces.ts` | `createApp()` mounts routers, health, OpenAPI, Scalar |
-| Client | `client-routes.ts`, `auth/*` | Sign-in, install wizard, org servers |
+| Client | `client-routes.ts`, `auth/*` | Sign-in, org servers |
+| Install | `install-routes.ts`, `auth/install-state.ts` | Self-hosted install wizard (`/api/install/v1/*`, Deno only) |
 | Developer | `developer-routes-core.ts`, `developer-routes.ts` | Fleet, database (Deno-only extras in `developer-routes.ts`) |
 | Admin | `admin-routes.ts` | Reserved / legacy admin paths |
-| Daemon | `daemon-api-routes.ts`, `daemon-hub.ts` | Agent registration, CA fetch, WS hub |
+| Daemon | `daemon-api-routes.ts`, `daemon-hub.ts` | Daemon registration, CA fetch, WS hub |
 | Deno-only | `deno.ts`, `system-routes.ts`, `dev-sync.ts`, `tunnel-routes.ts` | Upgrade, reset-dev, dev-sync push |
 | Database | `db.ts`, `db/schema.ts` | Drizzle + postgres.js (`prepare: false` for Hyperdrive) |
 | Workers entry | `workers.ts` | Wrangler main; registers `developer-routes-core` only |
@@ -53,7 +54,7 @@ sequenceDiagram
     Instance-->>Browser: Set-Cookie + JSON
 ```
 
-In self-hosted production, Caddy terminates TLS and proxies `/api/*` and `/ws/*` to the Deno Unix socket. In local Tilt dev, Caddy proxies to wrangler (Workers mode) or the dev socket (Deno mode).
+In self-hosted production, Caddy terminates TLS and proxies `/api/*` and `/ws/*` to the Deno Unix socket. In local dev, Caddy proxies to the Deno Unix socket (default) or wrangler (Workers mode).
 
 ## Authentication
 
@@ -64,7 +65,7 @@ Custom auth built on the **Web Crypto API** (no `nodejs_compat`):
 - **Install wizard (Deno only):** host PAM via `pamtester` for bootstrap; superadmin email/password for first org
 - **Workers dev:** optional public sign-up via `TURBOPANEL_IS_SIGNUP_ENABLED`
 
-Client auth routes under `/api/client/v1/auth/*` and `/api/client/v1/install/*`. See the instance repo `AGENTS.md` for the full route table.
+Client auth routes under `/api/client/v1/auth/*`. Install wizard routes live under `/api/install/v1/*`. See the instance repo `AGENTS.md` for the full route table.
 
 ## Database
 

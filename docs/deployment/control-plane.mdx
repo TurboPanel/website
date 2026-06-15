@@ -13,7 +13,7 @@ The TurboPanel **instance** is the control plane API. It runs as **Deno** on sel
 
 - Centralized API for organizations, servers, auth, and daemon orchestration
 - Web UI (Expo web) for operators
-- WebSocket hub for agent daemons (`/ws/daemon/v1`)
+- WebSocket hub for remote daemons (`/ws/daemon/v1`)
 - OpenAPI + Scalar at `/api/openapi.json` and `/api/reference`
 
 ### Relationship to daemon
@@ -53,19 +53,19 @@ graph TD
 ### Self-hosted (systemd + Ansible)
 
 <Callout type="info" title="Current production path">
-  There is no public one-line install script for self-hosted control planes yet. Use **`develop.sh`**
-  on a Debian/Ubuntu VM with sibling `instance/` and `daemon/` checkouts (clone via
-  [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) `pull.sh` or manual layout).
+  There is no public one-line install script for self-hosted control planes yet. Use the
+  [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) console on a Debian/Ubuntu VM.
 </Callout>
 
-On Debian/Ubuntu with `instance/` and `daemon/` checkouts:
+On Debian/Ubuntu:
 
 ```bash
-cd instance
-./develop.sh
+curl -fsSL https://develop.trbp.nl | sh
+cd turbopanel-dev
+./console
 ```
 
-This enables co-located dev-instance mode and lets the daemon run `instance-dev-install` via Ansible. Services:
+Choose **Start dev stack** in the console. This enables co-located dev-instance mode and lets the daemon run `instance-dev-install` via Ansible. Services:
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
@@ -93,14 +93,15 @@ Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and 
   `/ws/daemon/v1`) until edge-specific coordination ships.
 </Callout>
 
-### Contributor local dev (Tilt)
+### Contributor local dev
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
-cd dev && tilt up
+cd turbopanel-dev
+./console
 ```
 
-Defaults to Workers (`wrangler dev`) behind Caddy — see [Local development](/docs/getting-started/development).
+Use **Start dev stack** in the console — see [Local development](/docs/getting-started/development).
 
 ## Configuration
 
@@ -116,7 +117,7 @@ Defaults to Workers (`wrangler dev`) behind Caddy — see [Local development](/d
 | `CADDY_PORT` | HTTPS listen port (default **8443**) |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Workers dev sign-up override |
 
-Local Tilt copies these from `dev/.env` via `scripts/sync-env.sh`. Managed hosts inject vars via Ansible `instance-launch`.
+Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout.
 
 ### API entrypoints
 
@@ -124,6 +125,7 @@ Local Tilt copies these from `dev/.env` via `scripts/sync-env.sh`. Managed hosts
 | ---- | ----------- |
 | `/api/health` | Unversioned health probe |
 | `/api/client/v1/*` | End-user REST API + auth |
+| `/api/install/v1/*` | Self-hosted install wizard (Deno only) |
 | `/api/developer/v1/*` | Developer console (dev tooling) |
 | `/api/admin/v1/*` | Reserved admin surface |
 | `/api/daemon/v1/*` | Daemon REST (`version`, `instance/ca`) |

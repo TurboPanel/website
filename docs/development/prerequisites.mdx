@@ -29,21 +29,18 @@ pnpm **11.x** or newer. Using [Corepack](https://nodejs.org/api/corepack.html) i
 - **Install:** `corepack enable`, then use the version each repo requests, or install globally per the [pnpm installation docs](https://pnpm.io/installation)
 - **Verify:** `pnpm --version`
 
-### Tilt
-
-[Tilt](https://docs.tilt.dev/) orchestrates the local dev stack from the `dev/` checkout (`tilt up`).
-
-- **macOS:** `brew install tilt-dev/tap/tilt`
-- **Linux:** `curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash`
-- **Manual:** [Tilt releases](https://github.com/tilt-dev/tilt/releases)
-- **Verify:** `tilt version`
-
 ### Docker
 
-**Docker** (Docker Engine or Docker Desktop with **Compose** available) is required. Tilt runs Postgres and Caddy in Docker Compose; the daemon installer and production paths also rely on Docker.
+**Docker** (Docker Engine or Docker Desktop) is required. The daemon runs Postgres in Docker; production and co-located dev paths also rely on Docker.
 
 - **Install:** [Docker Engine](https://docs.docker.com/engine/install/) or [Docker Desktop](https://docs.docker.com/desktop/)
-- **Verify:** `docker version` and `docker compose version`
+- **Verify:** `docker version`
+
+### Git + SSH
+
+Platform repos clone via SSH (`git@github.com:turbopanel/...`). Ensure your GitHub SSH key is loaded before running `./console`.
+
+- **Verify:** `ssh -T git@github.com`
 
 ### openssl
 
@@ -53,15 +50,15 @@ pnpm **11.x** or newer. Using [Corepack](https://nodejs.org/api/corepack.html) i
 - **Debian/Ubuntu:** `apt install openssl`
 - **Verify:** `openssl version`
 
-## Optional (Deno instance runtime)
+## Optional (Workers instance runtime)
 
-Local dev defaults to the **Cloudflare Workers** path (`wrangler dev`). To run the self-hosted Deno instance instead, set `TURBOPANEL_INSTANCE_RUNTIME=deno` in `dev/.env` or use **Switch to Deno Mode** in the Tilt UI nav. Deno mode requires Deno on the host:
+Local dev defaults to the **Deno** path (`turbopanel-instance.service` on a Unix socket). To run the Cloudflare Workers path instead, switch to **Workers mode** in the **Instance** area of `./console` and run `pnpm dev` in the instance checkout. Workers mode requires Node.js and pnpm (see above).
 
 | Tool | Purpose | Install |
 | ---- | ------- | ------- |
-| Deno | Instance runtime | [deno.com](https://docs.deno.com/runtime/getting_started/installation/) |
+| Deno | Console + instance runtime (installed by `./console`) | [deno.com](https://docs.deno.com/runtime/getting_started/installation/) — or let `./console` install the pinned version under `/opt/turbopanel/runtimes` |
 
-Co-located dev on a Debian VM (`develop.sh`) uses Deno + systemd and does not use Tilt.
+Co-located dev on a Debian VM uses the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) console (`./console` → **Start dev stack**) with Deno + systemd.
 
 ## Next steps
 

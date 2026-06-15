@@ -1,39 +1,43 @@
 ---
 title: Installation
-description: Install TurboPanel control plane and agent nodes
+description: Install TurboPanel control plane and managed server daemons
 ---
 
 # Installation
 
-TurboPanel is split across multiple repositories. Installation paths depend on whether you are setting up **contributor local dev**, a **self-hosted control plane**, or an **additional agent node**.
+TurboPanel is split across multiple repositories. Installation paths depend on whether you are setting up **contributor local dev**, a **self-hosted control plane**, or an **additional managed server daemon**.
 
 ## Contributor local development
 
-Bootstrap all sibling repos and start Tilt from [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev):
+Bootstrap the dev console from [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev):
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
-cd dev   # or your turbopanel-dev checkout path
-tilt up
+cd turbopanel-dev
+./console
 ```
 
-See [Local development](/docs/getting-started/development) for URLs, ports, and day-to-day workflow.
+The one-liner clones or updates `./turbopanel-dev` in your current directory. `./console` installs the pinned Deno runtime (sudo on first run), caches dependencies, and launches the Ink dev console. From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd.
+
+See [Local development](/docs/getting-started/development) for console areas, URLs, and day-to-day workflow.
 
 ## Self-hosted control plane (Debian / Ubuntu VM)
 
 <Callout type="info" title="No public install script yet">
-  Self-hosted production today uses **`develop.sh`** on a VM with sibling `instance/` and `daemon/`
-  checkouts. A one-line public installer (like the old `turbopanel.sh` flow) is not available yet.
+  Self-hosted production uses the same [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  console on a VM. A one-line public installer (like the managed-node CDN flow) is not available yet
+  for control planes.
 </Callout>
 
 On a fresh Debian or Ubuntu host:
 
 ```bash
-cd instance
-./develop.sh
+curl -fsSL https://develop.trbp.nl | sh
+cd turbopanel-dev
+./console
 ```
 
-`develop.sh` bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopanel-daemon.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres.
+In the console, choose **Start dev stack**. This writes developer identity into the daemon `.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopanel-daemon.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres under `/opt/turbopanel/platform/`.
 
 - **HTTPS entrypoint:** `https://<host>:8443` (Caddy)
 - **Install wizard:** first visit prompts host PAM + superadmin setup (Deno path)
@@ -45,7 +49,7 @@ Details: [Control plane](/docs/deployment/control-plane).
 
 The instance can run on Cloudflare Workers (`pnpm deploy:workers` in the instance repo). Managed edge features such as **Durable Objects** for daemon coordination are **not implemented yet** — remote daemons today connect over HTTPS/WSS to a reachable instance URL. See [Control plane](/docs/deployment/control-plane).
 
-## Additional agent nodes
+## Additional managed server daemons
 
 Install the daemon on servers that should be managed remotely (not the co-located control plane):
 
@@ -63,7 +67,8 @@ Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 
 - Linux server (Debian/Ubuntu recommended for Ansible paths)
 - Docker (daemon running)
-- For Tilt dev: Node.js ≥ 24, pnpm ≥ 11, Tilt — see [Prerequisites](/docs/development/prerequisites)
+- SSH access to GitHub for platform repo clones (`git@github.com:turbopanel/...`)
+- For local dev: see [Prerequisites](/docs/development/prerequisites)
 
 ## Next steps
 

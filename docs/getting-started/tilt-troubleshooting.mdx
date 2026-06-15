@@ -1,60 +1,66 @@
 ---
-title: Tilt troubleshooting
-description: Fix common Tilt and local service issues in the TurboPanel dev environment
+title: Dev console troubleshooting
+description: Fix common issues in the TurboPanel dev console and local service stack
 ---
 
-# Tilt troubleshooting
+# Dev console troubleshooting
 
-Use this page when the Tilt UI shows errors, ports clash, or Workers vs Deno instance mode behaves unexpectedly. For database schema issues, see [Database troubleshooting](/docs/getting-started/database-troubleshooting).
+Use this page when `./console` fails to start the stack, systemd units are unhealthy, or Deno vs Workers instance mode behaves unexpectedly. For database schema issues, see [Database troubleshooting](/docs/getting-started/database-troubleshooting).
+
+## Console will not start
+
+- Verify Deno runtime: `/opt/turbopanel/runtimes/deno/v2.8.3/bin/deno --version`
+- First run may require **sudo** to create `/opt/turbopanel/runtimes` — re-run `./console` after granting privileges.
+- Update the checkout: `sh scripts/install.sh` from inside `turbopanel-dev`.
+
+## Dev stack will not start
+
+- Open the **Status** area in `./console` and check unit states.
+- Follow logs from the **Actions** area (**Follow logs**).
+- Verify Docker is running: `docker version` (Postgres runs in Docker).
+- Confirm the daemon checkout exists: `/opt/turbopanel/platform/daemon/`.
+- If the daemon repo is missing, use **Install daemon** in the Actions area first, then **Start dev stack**.
 
 ## Instance runtime not switching
 
-- Use the Tilt UI **Switch to Deno Mode** / **Switch to Workers Mode** nav buttons (updates `dev/.env`, re-syncs env, recreates Caddy, restarts instance).
-- **Manual:** set `TURBOPANEL_INSTANCE_RUNTIME=workers` or `deno` in `dev/.env`, then `tilt down && tilt up`.
-- Deno mode requires Deno on the host.
-
-## Services will not start
-
-- Open the failing resource in the Tilt UI and read the log tail.
-- Verify toolchain: `node --version`, `pnpm --version`, `tilt version`, `docker version`.
-- Confirm sibling repos exist: `instance/`, `ui/`, `website/` next to `dev/` — run `sh pull.sh` if missing.
-- **Ports:** Caddy **8443**, website **19820**, wrangler **18787**, Expo **8081**, Postgres **5432**, Tilt **10350**, Mailpit **19825–19826**.
-- **Clean restart:** `tilt down && tilt up`.
+- Use the **Instance** area in `./console` (**Switch to Deno Mode** / **Switch to Workers Mode**).
+- Workers mode requires `pnpm dev` running manually in `/opt/turbopanel/platform/turbopanel/` (or `instance/` symlink).
+- Deno mode requires `/run/turbopanel` to exist and `turbopanel-instance.service` to be active.
 
 ## Port conflicts
 
-- Symptom: `address already in use` in logs.
-- Fix: `tilt down`, or stop the process holding the port.
+- Symptom: `address already in use` in journal logs.
+- Fix: stop the conflicting process or change `CADDY_PORT` in the daemon `.env` and restart Caddy.
 - **Example (Unix):** `lsof -ti :8443 | xargs kill` (replace with the port from the error).
 
 ## Caddy 502 on https://localhost:8443
 
-- Ensure the `instance` and `ui` resources are healthy before `caddy` starts (Tilt dependency order).
-- Workers mode: wrangler must bind `0.0.0.0` (see `wrangler.jsonc` `dev.ip`) so Docker Caddy can reach it via `host.docker.internal`.
-- Deno mode: confirm `/run/turbopanel` exists and the instance bound `instance.sock`.
+- Ensure `turbopanel-instance.service` and `turbopanel-ui.service` are active before Caddy serves traffic.
+- Deno mode: confirm `/run/turbopanel/instance.sock` exists and is group-writable.
+- Workers mode: wrangler must bind `0.0.0.0` (see `wrangler.jsonc` `dev.ip`) if Caddy reaches it over TCP.
 
 ## TLS / certificate warnings
 
-- Trust `instance/certs/ca.crt` in your OS or browser.
-- Re-run `instance-certs` in Tilt (or `pnpm cert:generate` in `instance/`) if certs are missing.
+- Trust `instance/certs/ca.crt` (under the platform checkout) in your OS or browser.
+- Re-run the `instance-certs` Ansible role or `pnpm cert:generate` in the instance checkout if certs are missing.
 
-## instance-db / schema sync failures
+## Schema sync failures
 
-- Check `instance-db` logs — it runs `./sync.sh --force` from `instance/`.
-- Ensure Postgres is healthy and `instance/.env` has connection vars (synced from `dev/.env`).
+- Run `./sync.sh --force` from the instance checkout.
+- Ensure Postgres is healthy (`docker ps` / **Services** section in the developer console).
 - See [Database troubleshooting](/docs/getting-started/database-troubleshooting).
 
 ## Expo / UI not loading
 
-- Confirm `ui` resource is running on `EXPO_PORT` (default **8081**).
+- Confirm `turbopanel-ui.service` is active.
 - Caddy proxies non-API traffic to Expo when `TURBOPANEL_UI_MODE=dev`.
 
-## Wrangler not found (Workers mode)
+## Platform checkouts missing
 
-- Run `pnpm install` in `instance/` (Tilt `instance-deps` should do this on first start).
+The console installs only the **daemon** repo. Instance, UI, and website are installed by the daemon via Ansible when **Start dev stack** runs. If checkouts are incomplete, restart the daemon unit and check `journalctl -u turbopanel-daemon -f` for Ansible errors.
 
 ## Related
 
 - [Local development](/docs/getting-started/development)
 - [Development architecture](/docs/architecture/development-architecture)
-- [Tilt documentation](https://docs.tilt.dev/)
+- [Deployment troubleshooting](/docs/deployment/troubleshooting)

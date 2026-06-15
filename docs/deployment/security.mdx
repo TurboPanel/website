@@ -117,7 +117,7 @@ Managed hosts use dedicated users: `turbopanel` (UID 9999, daemon + Ansible) and
 
 - **TLS/SSL:** Use HTTPS/WSS for production deployments
 - **Network Isolation:** Run daemons in isolated networks when possible (Docker networks, VPC)
-- **Firewall Rules:** Daemons are outbound clients — block unnecessary inbound to agent hosts; allow outbound **8443** (or your instance URL) from agents to the control plane
+- **Firewall Rules:** Daemons are outbound clients — block unnecessary inbound to daemon hosts; allow outbound **8443** (or your instance URL) from daemons to the control plane
 
 ### Docker Socket Security
 
@@ -163,7 +163,7 @@ graph TD
 # Self-hosted: Caddy on 8443 with platform CA (default Ansible install)
 # Optional outer nginx terminates public TLS and proxies to Caddy:
 
-# Remote agent node — official installer
+# Remote managed server — official installer
 curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
   | sudo bash -s -- \
       --instance-url https://turbopanel.example.com:8443 \
@@ -174,7 +174,7 @@ curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/ins
   <Tab value="Cloud-Hosted">
 
 ```bash
-# Remote agent node connecting to Workers instance
+# Remote managed server connecting to Workers instance
 curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
   | sudo bash -s -- \
       --instance-url https://your-instance.workers.dev
@@ -184,8 +184,8 @@ curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/ins
 </Tabs>
 
 <Callout type="info" title="Daemon hardening">
-  Daemons dial outbound to the instance — no inbound listener is required on agent nodes for
-  control-plane connectivity. Mount the Docker socket read-only (`:ro`) only when the daemon truly
+  Daemons dial outbound to the instance — no inbound listener is required on managed
+  server hosts for control-plane connectivity. Mount the Docker socket read-only (`:ro`) only when the daemon truly
   needs read-only inspection; orchestration requires full socket access.
 </Callout>
 

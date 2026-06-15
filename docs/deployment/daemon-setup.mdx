@@ -11,7 +11,7 @@ The TurboPanel **daemon** ([turbopanel-daemon](https://github.com/turbopanel/tur
 
 ### Purpose
 
-- Connect to the instance control plane as an agent node
+- Connect to the instance control plane as a remote daemon
 - Run Ansible playbooks (installs, upgrades, Postgres, Caddy, instance, UI)
 - Apply dev-sync pushes and Cloudflare tunnel tokens from the instance
 - Report server identity (`serverId`, `hostname`, `machineId`) on WebSocket `hello`
@@ -48,7 +48,7 @@ graph TD
 
 ## Installation
 
-### Remote agent node (official installer)
+### Remote managed server (official installer)
 
 From [turbopanel-cdn](https://github.com/turbopanel/turbopanel-cdn):
 
@@ -61,8 +61,8 @@ curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/ins
 For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daemon/v1/instance/ca` (one insecure bootstrap `curl` if needed) and configures `TURBOPANEL_INSTANCE_CA`.
 
 <Callout type="info" title="Control plane host">
-  On the machine that runs the instance, use `develop.sh` or Ansible co-located install — not the
-  remote node installer.
+  On the machine that runs the instance, use the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  console (**Start dev stack**) or Ansible co-located install — not the remote node installer.
 </Callout>
 
 ### Install options
@@ -78,7 +78,7 @@ For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daem
 
 ### What gets installed
 
-The installer bootstraps uv/Python/Ansible and runs `agent-install.yml`:
+The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`:
 
 - User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
 - Daemon checkout under `/opt/turbopanel/platform/daemon` on `trunk`

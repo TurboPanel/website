@@ -1,59 +1,49 @@
 ---
 title: Local development
-description: Bootstrap, Tilt workflow, ports, and common development tasks for TurboPanel
+description: Bootstrap, dev console workflow, ports, and common development tasks for TurboPanel
 ---
 
 # Local development
 
-This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For Tilt layout and resource dependencies, see [Development architecture](/docs/architecture/development-architecture). For Tilt-specific failures, see [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting).
+This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
-TurboPanel is **not a monorepo**. The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository bootstraps sibling checkouts and runs Tilt.
+TurboPanel is **not a monorepo**. The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository is the entry point — it installs the dev console and orchestrates platform checkouts under `/opt/turbopanel/platform/`.
 
 ## Quick start
 
-**1. Bootstrap sibling repos**
+**1. Bootstrap the dev console**
 
 One-liner (fresh machine):
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
+cd turbopanel-dev
 ```
 
-Or, from an existing `dev/` checkout:
+Or, from an existing checkout:
 
 ```bash
-sh pull.sh
+sh scripts/install.sh   # update turbopanel-dev only
+./console
 ```
 
-This clones or updates `instance/`, `ui/`, `daemon/`, and `website/` next to `dev/`. All repos use branch **`trunk`**.
+**2. Start the dev stack**
 
-**2. Start Tilt**
+From `./console`, choose **Start dev stack** in the Actions area. The console:
 
-From the `dev/` checkout:
+- Installs the **daemon** repo under `/opt/turbopanel/platform/daemon` (if missing)
+- Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into the daemon `.env`
+- Runs `bootstrap-orchestration.sh` and `install-daemon-systemd.sh`
+- Lets the daemon install instance, UI, Caddy, and Postgres via Ansible
 
-```bash
-tilt up
-```
-
-First run creates `dev/.env` from `.env.example` and fills missing secrets. Tilt syncs env into sibling repos, starts Postgres + Caddy (Docker), the instance, Expo web, and the website.
-
-**3. Tear down**
-
-Ctrl+C stops Tilt `serve_cmd` resources but leaves Docker containers running. Remove everything with:
-
-```bash
-tilt down
-```
-
-**4. Open**
+**3. Open**
 
 | Service | URL |
 | ------- | --- |
 | App (Caddy → UI + API) | `https://localhost:8443` |
 | API health | `https://localhost:8443/api/health` |
-| Website (docs + API reference) | `http://localhost:19820` |
-| Tilt UI | `http://localhost:10350` |
-| Mailpit | `http://localhost:19826` |
+| Website (docs + API reference) | `http://localhost:19820` (when running separately) |
+| Mailpit | `http://localhost:19826` (when configured) |
 
 Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`.
 
@@ -61,48 +51,49 @@ Smoke test:
 
 ```bash
 curl -k https://localhost:8443/api/health
-curl -k https://localhost:8443/api/client/v1/install/status
+curl -k https://localhost:8443/api/install/v1/status
 ```
+
+## Dev console areas
+
+Use **←** / **→** to switch areas in `./console`:
+
+| Area | Contents |
+| ---- | -------- |
+| **Status** | Runtime, platform checkout, dev stack units |
+| **Instance** | Runtime mode (Deno/Workers), instance unit status, switch action |
+| **Developer** | Fleet, services, shell, database, … (when `instance.sock` is present) |
+| **Actions** | Install daemon, start stack, follow logs, build mode, refresh, quit |
+
+In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc** returns to the section list.
 
 ## Instance runtime modes
 
-Local dev defaults to **Workers** (`TURBOPANEL_INSTANCE_RUNTIME=workers`): the instance runs via `pnpm dev` / `wrangler dev` in `instance/`, and Caddy proxies `/api/*` and `/ws/*` to wrangler.
+`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` selects how the instance runs locally. Switch via the **Instance** area in the console.
 
-| Mode | Instance process | Caddy upstream |
-| ---- | ---------------- | -------------- |
-| **Workers** (default) | `wrangler dev` on `INSTANCE_DEV_PORT` (default **18787**) | TCP to host wrangler |
-| **Deno** | `deno run` on Unix socket under `/run/turbopanel/` | Mounted Unix socket |
+| Mode | Behaviour |
+| ---- | --------- |
+| **deno** (default) | `turbopanel-instance` systemd unit + Unix socket at `/run/turbopanel/instance.sock` |
+| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `platform/instance` manually |
 
-Switch at runtime with **Switch to Deno Mode** / **Switch to Workers Mode** in the Tilt UI nav (updates `dev/.env`, re-syncs env, recreates Caddy, restarts the instance). Deno mode requires Deno on the host.
+Workers mode has no Redis. Set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in `instance/.dev.vars`.
 
 ## Repository layout
 
+Platform repos live under `/opt/turbopanel/platform/` (installed by the daemon via Ansible):
+
 ```
-turbopanel/
-├── dev/      # turbopanel-dev — pull.sh, Tiltfile, dev/.env
-├── instance/ # turbopanel/turbopanel — Hono API (Workers + Deno)
-├── ui/       # turbopanel/turbopanel-ui — Expo frontend
-├── daemon/   # turbopanel/turbopanel-daemon — agent daemon (not started by Tilt)
-└── website/  # turbopanel/turbopanel-website — marketing + docs (port 19820)
+/opt/turbopanel/
+├── platform/
+│   ├── daemon/    # turbopanel-daemon — installed by the console
+│   ├── turbopanel/  # instance (Hono API — Workers + Deno)
+│   ├── ui/        # Expo frontend
+│   └── website/   # marketing + docs (optional local run)
+└── runtimes/
+    └── deno/v2.8.3/   # pinned Deno runtime (console-managed)
 ```
 
-`dev/.env` is the single source of truth. `scripts/sync-env.sh` writes `instance/.dev.vars`, `instance/.env`, and `docker/.env`.
-
-## Tilt UI
-
-- **Dashboard:** http://localhost:10350 after `tilt up`.
-- **Status:** Green = healthy; click a resource for logs.
-- **instance-db:** Runs `./sync.sh --force` when `schema.ts` changes — pushes schema to local Postgres before the instance starts.
-
-### Custom buttons
-
-- **Switch to Deno Mode** / **Switch to Workers Mode** — hot-swap instance runtime (see above).
-
-## Hot reload
-
-- **UI:** Expo Fast Refresh (`ui/src`).
-- **Instance:** Wrangler dev reload (Workers) or Deno `--watch` (Deno mode).
-- **Website:** Next.js Fast Refresh (`website/src`, `website/docs`).
+Your `turbopanel-dev` checkout stays wherever you cloned it (for example `./turbopanel-dev` in your home directory).
 
 ## Common tasks
 
@@ -116,62 +107,49 @@ TurboPanel uses **drizzle-kit push** (no versioned migration files in early deve
 ./introspect.sh    # pull live DB → schema.ts
 ```
 
-Tilt's `instance-db` resource runs `./sync.sh --force` when `src/db/schema.ts` changes. For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting).
+For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). The dev console **Database** section can reset the dev instance or start Drizzle Studio.
 
 ### Drizzle Studio
 
-In the developer console Database section, start Studio via the API. The instance spawns `drizzle-kit studio` on **4983**; open **`https://local.drizzle.studio?host=localhost&port=4983`** in your browser.
-
-### Developer console
-
-In `__DEV__`, authenticated superadmins can open `/developer/fleet` for fleet health, upgrade/sync actions, Expo PTY, and database tools.
+In the developer console **Database** section, start Studio via the API. The instance spawns `drizzle-kit studio` on **4983**; open **`https://local.drizzle.studio?host=localhost&port=4983`** in your browser.
 
 ### Formatting
 
 Each repo formats independently — run the formatter configured in that repo before committing.
-
-## Co-located dev on a VM (systemd)
-
-For parity with managed hosts, run `./develop.sh` from the `instance/` checkout on Debian/Ubuntu. It bootstraps the daemon, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), and lets Ansible install instance + Caddy + UI as systemd units on **`:8443`**. Requires sibling `daemon/` checkout. This path does not use Tilt.
 
 ## Workflow diagram
 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Tilt as Tilt (dev/)
-    participant Schema as instance-db
-    participant Services as Postgres, Caddy, instance, ui, website
+    participant Console as turbopanel-dev console
+    participant Daemon as turbopanel-daemon
+    participant Services as instance, Caddy, UI, Postgres
 
-    Dev->>Tilt: tilt up
-    Tilt->>Schema: sync.sh when schema.ts changes
-    Schema-->>Tilt: Postgres ready
-    Tilt->>Services: Start resources
-    Services-->>Tilt: Healthy
-    Tilt->>Dev: Tilt UI localhost:10350
-    Dev->>Services: Code changes
-    Services->>Services: Hot reload
-    Services-->>Dev: Updated app
+    Dev->>Console: ./console → Start dev stack
+    Console->>Daemon: bootstrap + systemd install
+    Daemon->>Services: Ansible instance-dev-install
+    Services-->>Console: Healthy (Status area)
+    Dev->>Console: Developer sections (fleet, DB, …)
+    Dev->>Services: Edit source in platform checkouts
 ```
 
 ## Port reference
 
 | Service | Port | Notes |
 | ------- | ---- | ----- |
-| Tilt UI | 10350 | Dev dashboard |
-| Caddy (HTTPS app) | 8443 | Browser entrypoint (`CADDY_PORT`) |
-| Website | 19820 | Next.js (`WEBSITE_PORT`) |
-| Wrangler (internal) | 18787 | Not browser-facing (`INSTANCE_DEV_PORT`) |
-| Expo web | 8081 | Proxied by Caddy in dev (`EXPO_PORT`) |
-| Postgres | 5432 | Docker, `127.0.0.1:5432` |
+| Caddy (HTTPS app) | 8443 | Browser entrypoint |
+| Website | 19820 | Next.js (when run locally) |
+| Wrangler (Workers mode) | 18787 | Not browser-facing |
+| Expo web | 8081 | Proxied by Caddy in dev |
+| Postgres | 5432 | Docker, `127.0.0.1:5432` (Workers mode) or Unix socket (Deno) |
 | Mailpit web | 19826 | Dev email UI |
 | Mailpit SMTP | 19825 | Dev email SMTP |
-| Drizzle Studio | 4983 | HTTP API (`drizzle-kit studio`); UI at `local.drizzle.studio` |
+| Drizzle Studio | 4983 | HTTP API; UI at `local.drizzle.studio` |
 
 ## Related
 
-- [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting)
+- [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting)
 - [Database troubleshooting](/docs/getting-started/database-troubleshooting)
 - [Development architecture](/docs/architecture/development-architecture)
 - [API architecture](/docs/architecture/api)
-- [Tilt documentation](https://docs.tilt.dev/)

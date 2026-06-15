@@ -43,7 +43,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443`
 2. Test from node: `curl -k https://<host>:8443/api/daemon/v1/version`
 3. Confirm platform CA: compare with `GET /api/daemon/v1/instance/ca`
-4. Firewall: allow **8443** from agent nodes to instance
+4. Firewall: allow **8443** from remote daemons to instance
 5. Logs: `journalctl -u turbopanel-daemon -f`
 
 ## Postgres connection failures (self-hosted)
@@ -82,7 +82,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 | Task | Command |
 | ---- | ------- |
 | Instance health | `curl -k https://localhost:8443/api/health` |
-| Install status | `curl -k https://localhost:8443/api/client/v1/install/status` |
+| Install status | `curl -k https://localhost:8443/api/install/v1/status` |
 | Service status | `systemctl status turbopanel-instance turbopanel-caddy turbopanel-daemon` |
 | Follow logs | `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-daemon -f` |
 | Daemon WS path | `wss://<host>:8443/ws/daemon/v1` |
@@ -92,4 +92,4 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 - [Security](/docs/deployment/security) — TLS and authentication
 - [Control plane](/docs/deployment/control-plane) — Service layout
 - [Daemon setup](/docs/deployment/daemon-setup) — Node installer
-- [Tilt troubleshooting](/docs/getting-started/tilt-troubleshooting) — Local dev issues
+- [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting) — Local dev issues
