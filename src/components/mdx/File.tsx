@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { docsGithubBlobUrl } from '@/lib/docs-github'
 
 interface FileProps {
   path: string
@@ -8,12 +9,9 @@ interface FileProps {
   href?: string
 }
 
-const GITHUB_BASE = 'https://github.com/turbopanel/turbopanel/blob/main'
-
 export function File({ path, children, href }: FileProps) {
   const displayPath = children ?? path
-  const linkHref =
-    href ?? (path.startsWith('/') ? `${GITHUB_BASE}${path}` : `${GITHUB_BASE}/${path}`)
+  const linkHref = href ?? docsGithubBlobUrl(path)
 
   return (
     <code className="fd-file inline-flex items-center gap-1.5 rounded-md bg-fd-secondary px-2 py-1 text-sm font-mono text-fd-foreground">

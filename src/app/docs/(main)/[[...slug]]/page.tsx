@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { MDXComponents } from 'mdx/types'
 import { getMDXComponents } from '../../../../../mdx-components'
+import { DOCS_GITHUB } from '@/lib/docs-github'
 import { source } from '@/lib/source'
 import { DocsPage } from 'fumadocs-ui/page'
 import { notFound } from 'next/navigation'
@@ -49,9 +50,9 @@ export default async function Page({ params }: DocsPageProps) {
         includeRoot: true,
       }}
       editOnGithub={{
-        owner: 'turbopanel',
-        repo: 'turbopanel-website',
-        sha: 'trunk',
+        owner: DOCS_GITHUB.owner,
+        repo: DOCS_GITHUB.repo,
+        sha: DOCS_GITHUB.sha,
         path: `docs/${data.info?.path ?? page.path}`,
       }}
     >
