@@ -54,7 +54,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 
 1. Check Postgres container: `docker ps | grep postgres`
 2. Verify Unix socket under `/var/run/turbopanel/postgres/`
-3. Confirm `TURBOPANEL_PG_*` env in `turbopanel-instance.service`
+3. Confirm `TURBOPANEL_DATABASE_URL` in `turbopanel-instance.service` — a full Postgres URL, typically injected by the `instance-launch` role
 4. Socket directory permissions: `/run/turbopanel` should be `2770 turbopanel:turbopanel`
 
 ## Install wizard / PAM failures (Deno)

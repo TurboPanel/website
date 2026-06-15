@@ -67,11 +67,6 @@ export function getScalarOpenApiUrl(hostname: string, port = ''): string {
   return `${getApiBaseUrl(hostname, port)}/api/openapi.json`
 }
 
-/** @deprecated Use getScalarOpenApiUrl. */
-export function getOpenApiUrl(hostname: string, port = ''): string {
-  return getScalarOpenApiUrl(hostname, port)
-}
-
 /**
  * Parses a CSV string of "hostname,label" pairs into a Scalar-compatible servers array.
  * Local dev uses https://localhost:{CADDY_PORT} (Caddy); production hostnames use https://.

@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
 import { resolveSessionCookieNameFromBaseUrl } from '@/lib/scalar-session-cookie'
-import { getApiBaseUrl, getOpenApiUrl } from '@/lib/env'
+import { getApiBaseUrl, getScalarOpenApiUrl } from '@/lib/env'
 import {
   buildScalarCookieAuthentication,
   installScalarSessionCookieNameRowLock,
@@ -107,7 +107,7 @@ export default function ApiDocsPage() {
       .catch(() => {
         if (cancelled) return
         const { hostname, port } = globalThis.location
-        setOpenApiUrl(getOpenApiUrl(hostname, port))
+        setOpenApiUrl(getScalarOpenApiUrl(hostname, port))
         setServers(null)
       })
     return () => {

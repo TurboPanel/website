@@ -21,11 +21,11 @@
     "paths": {
       "@/*": ["./src/*"],
       "fumadocs-mdx:collections/*": ["./.source/*"]
-    },
-    "types": ["./cloudflare-env.d.ts", "node"]
+    }
   },
   "include": [
     "next-env.d.ts",
+    "cloudflare-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

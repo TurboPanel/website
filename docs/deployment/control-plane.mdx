@@ -110,7 +110,7 @@ Use **Start dev stack** in the console — see [Local development](/docs/getting
 | Variable | Purpose |
 | -------- | ------- |
 | `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` | Session signing (required in production) |
-| `TURBOPANEL_PG_*` | Postgres socket connection (self-hosted) |
+| `TURBOPANEL_DATABASE_URL` | Full Postgres connection URL (self-hosted; typically injected by `instance-launch`) |
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI path (default `../ui/dist`) |
@@ -127,7 +127,6 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 | `/api/client/v1/*` | End-user REST API + auth |
 | `/api/install/v1/*` | Self-hosted install wizard (Deno only) |
 | `/api/developer/v1/*` | Developer console (dev tooling) |
-| `/api/admin/v1/*` | Reserved admin surface |
 | `/api/daemon/v1/*` | Daemon REST (`version`, `instance/ca`) |
 | `/ws/daemon/v1` | Daemon WebSocket |
 | `/api/openapi.json` | OpenAPI 3.1 spec |
