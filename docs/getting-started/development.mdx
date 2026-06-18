@@ -23,7 +23,7 @@ cd turbopanel-dev
 Or, from an existing checkout:
 
 ```bash
-sh scripts/install.sh   # update turbopanel-dev only
+sh scripts/develop.sh   # update turbopanel-dev only
 ./console
 ```
 
@@ -33,7 +33,7 @@ From `./console`, choose **Start dev stack** in the Actions area. The console:
 
 - Installs the **daemon** repo under `/opt/turbopanel/platform/daemon` (if missing)
 - Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into the daemon `.env`
-- Runs `bootstrap-orchestration.sh` and `install-daemon-systemd.sh`
+- Runs `scripts/bootstrap-orchestration.ts` (uv, Python, Ansible under `/opt/turbopanel/runtimes/`) and `install-daemon-systemd.sh`
 - Lets the daemon install instance, UI, Caddy, and Postgres via Ansible
 
 **3. Open**
@@ -90,7 +90,10 @@ Platform repos live under `/opt/turbopanel/platform/` (installed by the daemon v
 │   ├── ui/        # Expo frontend
 │   └── website/   # marketing + docs (optional local run)
 └── runtimes/
-    └── deno/v2.8.3/   # pinned Deno runtime (console-managed)
+    ├── deno/2.8.3/        # pinned Deno runtime (console-managed)
+    ├── uv/                # shared orchestration runtime (daemon bootstrap)
+    ├── python/            # managed Python for Ansible venv
+    └── ansible/           # ansible-playbook venv + Galaxy content
 ```
 
 Your `turbopanel-dev` checkout stays wherever you cloned it (for example `./turbopanel-dev` in your home directory).
