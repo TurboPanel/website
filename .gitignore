@@ -4,3 +4,6 @@ node_modules/
 .source/
 *.env*.local
 .dev.vars
+
+# co-located dev host stamp (normalize-dev-checkout.sh)
+.turbopanel-checkout-stamp
