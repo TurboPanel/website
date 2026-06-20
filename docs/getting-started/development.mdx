@@ -43,7 +43,7 @@ From `./console`, choose **Start dev stack** in the Actions area. The console:
 | App (Caddy → UI + API) | `https://localhost:8443` |
 | API health | `https://localhost:8443/api/health` |
 | Website (docs + API reference) | `http://localhost:19820` (when running separately) |
-| Mailpit | `http://localhost:19826` (when configured) |
+| Mailpit | `http://localhost:8025` (when configured) |
 
 Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`.
 
@@ -146,8 +146,8 @@ sequenceDiagram
 | Wrangler (Workers mode) | 18787 | Not browser-facing |
 | Expo web | 8081 | Proxied by Caddy in dev |
 | Postgres | 5432 | Docker, `127.0.0.1:5432` (Workers mode) or Unix socket (Deno) |
-| Mailpit web | 19826 | Dev email UI |
-| Mailpit SMTP | 19825 | Dev email SMTP |
+| Mailpit web | 8025 | Dev email UI |
+| Mailpit SMTP | 1025 | Dev email SMTP |
 | Drizzle Studio | 4983 | HTTP API; UI at `local.drizzle.studio` |
 
 ## Related
