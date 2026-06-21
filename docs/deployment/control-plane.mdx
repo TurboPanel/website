@@ -81,11 +81,15 @@ Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u
 From the instance repo:
 
 ```bash
+export TURBOPANEL_DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+# or, for CI / dashboard deploy workflows:
+# export DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+export CLOUDFLARE_ENV=live   # or testing — must match a wrangler.jsonc env name
 pnpm install
-pnpm deploy:workers
+pnpm deploy
 ```
 
-Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
+`pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy. The legacy `pnpm deploy:workers` script remains as a compatibility alias to `pnpm deploy`.
 
 <Callout type="warn" title="Edge coordination not complete">
   **Durable Objects** for cloud-hosted daemon coordination are **not implemented yet**. Deployed
@@ -110,7 +114,9 @@ Use **Start dev stack** in the console — see [Local development](/docs/getting
 | Variable | Purpose |
 | -------- | ------- |
 | `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` | Session signing (required in production) |
-| `TURBOPANEL_DATABASE_URL` | Full Postgres connection URL (self-hosted; typically injected by `instance-launch`) |
+| `TURBOPANEL_DATABASE_URL` | Full Postgres connection URL for self-hosted Deno boot (`instance-launch`) and tooling |
+| `DATABASE_URL` | Tooling-only fallback for `pnpm migrate` / drizzle-kit when `TURBOPANEL_DATABASE_URL` is unset (common in CI and dashboard deploy) |
+| `CLOUDFLARE_ENV` | Wrangler env name for Workers deploy (e.g. `live`, `testing`) — required by `pnpm deploy` |
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI path (default `../ui/dist`) |

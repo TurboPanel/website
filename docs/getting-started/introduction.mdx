@@ -21,7 +21,7 @@ TurboPanel offers a unified interface for managing Docker containers across mult
 
 ### Cloud-hosted (Workers)
 
-- Instance can run on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy:workers`)
+- Instance can run on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy` with `TURBOPANEL_DATABASE_URL` and `CLOUDFLARE_ENV` set)
 - Remote daemons connect to your Workers URL over HTTPS/WSS today
 - **Durable Objects** for edge daemon coordination are **not implemented yet**
 

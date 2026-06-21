@@ -64,7 +64,7 @@ export function getApiBaseUrl(hostname: string, port = ''): string {
 }
 
 export function getScalarOpenApiUrl(hostname: string, port = ''): string {
-  return `${getApiBaseUrl(hostname, port)}/api/openapi.json`
+  return `${getApiBaseUrl(hostname, port)}/api/client/v1/openapi.json`
 }
 
 /**
