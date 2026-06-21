@@ -22,6 +22,8 @@ Marketing and docs **must** match live product pages. Canonical public page: **h
 | Script | Purpose |
 | --- | --- |
 | `pnpm dev` | `next dev --port 19820` |
+
+Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd). Stdout/stderr append to gitignored **`logs/website.log`** and **`logs/website.err.log`** in this checkout (same pattern as instance/UI); production deploys to Cloudflare Workers only.
 | `pnpm build` | `next build --webpack` |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |

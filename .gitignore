@@ -2,6 +2,9 @@ node_modules/
 .next/
 .open-next/
 .source/
+.local/
+.config/
+logs/
 *.env*.local
 .dev.vars
 
