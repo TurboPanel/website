@@ -1,6 +1,11 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { ApiReference } from '@scalar/nextjs-api-reference'
-import { getApiBaseUrl, getScalarOpenApiUrl, parseApiHostnames } from '@/lib/env'
+import {
+  getApiBaseUrl,
+  getScalarDaemonOpenApiUrl,
+  getScalarOpenApiUrl,
+  parseApiHostnames,
+} from '@/lib/env'
 import {
   buildScalarCookieAuthentication,
   resolveSessionCookieNameFromBaseUrl,
@@ -43,9 +48,13 @@ export async function GET(request: Request) {
 
   const apiBaseUrl = servers[0].url
   const openApiUrl = getScalarOpenApiUrl(hostname, port)
+  const daemonOpenApiUrl = getScalarDaemonOpenApiUrl(hostname, port)
 
   const handler = ApiReference({
-    sources: [{ url: openApiUrl, title: 'TurboPanel API' }],
+    sources: [
+      { url: openApiUrl, title: 'Client API', slug: 'client' },
+      { url: daemonOpenApiUrl, title: 'Daemon API', slug: 'daemon' },
+    ],
     servers,
     authentication: buildScalarCookieAuthentication(
       resolveSessionCookieNameFromBaseUrl(apiBaseUrl)

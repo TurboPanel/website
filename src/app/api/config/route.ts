@@ -1,9 +1,15 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getApiBaseUrl, getScalarOpenApiUrl, parseApiHostnames } from '@/lib/env'
+import {
+  getApiBaseUrl,
+  getScalarDaemonOpenApiUrl,
+  getScalarOpenApiUrl,
+  parseApiHostnames,
+} from '@/lib/env'
 
 export type ApiConfig = {
   servers: { url: string; description: string }[]
   openApiUrl: string
+  daemonOpenApiUrl: string
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -31,6 +37,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const openApiUrl = getScalarOpenApiUrl(hostname, port)
-  const body: ApiConfig = { servers, openApiUrl }
+  const daemonOpenApiUrl = getScalarDaemonOpenApiUrl(hostname, port)
+  const body: ApiConfig = { servers, openApiUrl, daemonOpenApiUrl }
   return Response.json(body)
 }

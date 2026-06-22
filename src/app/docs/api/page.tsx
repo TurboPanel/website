@@ -15,6 +15,7 @@ import {
 type ApiConfig = {
   servers: { url: string; description: string }[]
   openApiUrl: string
+  daemonOpenApiUrl: string
 }
 
 /** Non-empty trimmed string URLs only; rejects non-strings and blank values. */
@@ -88,6 +89,7 @@ const scalarCustomCss = `
 export default function ApiDocsPage() {
   const { resolvedTheme } = useTheme()
   const [openApiUrl, setOpenApiUrl] = useState<string | null>(null)
+  const [daemonOpenApiUrl, setDaemonOpenApiUrl] = useState<string | null>(null)
   const [servers, setServers] = useState<{ url: string; description: string }[] | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -97,8 +99,10 @@ export default function ApiDocsPage() {
       )
       .then((data) => {
         const open = normalizeConfigUrl(data.openApiUrl)
+        const daemon = normalizeConfigUrl(data.daemonOpenApiUrl)
         if (!cancelled && (data.servers?.length ?? 0) > 0 && open) {
           setOpenApiUrl(open)
+          setDaemonOpenApiUrl(daemon)
           setServers(data.servers)
           return
         }
@@ -137,30 +141,36 @@ export default function ApiDocsPage() {
     [apiBaseUrl]
   )
 
-  const scalarConfiguration = useMemo(
-    () =>
-      primaryOpenApiUrl
-        ? {
-            sources: [{ url: primaryOpenApiUrl, title: 'TurboPanel API' }],
-            ...(servers && servers.length > 0 ? { servers } : {}),
-            authentication: buildScalarCookieAuthentication(sessionCookieName),
-            persistAuth: true,
-            theme: 'none' as const,
-            layout: 'modern' as const,
-            hideDarkModeToggle: true,
-            hideSearch: true,
-            documentDownloadType: 'none' as const,
-            forceDarkModeState,
-            customCss: scalarCustomCss,
-          }
-        : null,
-    [
-      primaryOpenApiUrl,
-      servers,
-      sessionCookieName,
-      forceDarkModeState,
+  const scalarConfiguration = useMemo(() => {
+    if (!primaryOpenApiUrl) return null
+
+    const sources: { url: string; title: string; slug: string }[] = [
+      { url: primaryOpenApiUrl, title: 'Client API', slug: 'client' },
     ]
-  )
+    if (daemonOpenApiUrl) {
+      sources.push({ url: daemonOpenApiUrl, title: 'Daemon API', slug: 'daemon' })
+    }
+
+    return {
+      sources,
+      ...(servers && servers.length > 0 ? { servers } : {}),
+      authentication: buildScalarCookieAuthentication(sessionCookieName),
+      persistAuth: true,
+      theme: 'none' as const,
+      layout: 'modern' as const,
+      hideDarkModeToggle: true,
+      hideSearch: true,
+      documentDownloadType: 'none' as const,
+      forceDarkModeState,
+      customCss: scalarCustomCss,
+    }
+  }, [
+    primaryOpenApiUrl,
+    daemonOpenApiUrl,
+    servers,
+    sessionCookieName,
+    forceDarkModeState,
+  ])
 
   useEffect(() => {
     if (!scalarConfiguration) return
@@ -177,7 +187,7 @@ export default function ApiDocsPage() {
         ← Documentation
       </a>
       <ApiReferenceReact
-        key={`${primaryOpenApiUrl}-${sessionCookieName}`}
+        key={`${primaryOpenApiUrl}-${daemonOpenApiUrl ?? ''}-${sessionCookieName}`}
         configuration={scalarConfiguration}
       />
     </div>
