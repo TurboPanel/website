@@ -7,7 +7,7 @@ import '@scalar/api-reference-react/style.css'
 import { resolveSessionCookieNameFromBaseUrl } from '@/lib/scalar-session-cookie'
 import { getApiBaseUrl, getScalarDaemonOpenApiUrl, getScalarOpenApiUrl } from '@/lib/env'
 import {
-  buildScalarCookieAuthentication,
+  buildScalarMultiSourceAuthentication,
   installScalarSessionCookieNameRowLock,
   scalarSessionCookieNameRowCss,
 } from '@/lib/scalar-session-cookie'
@@ -155,7 +155,7 @@ export default function ApiDocsPage() {
     return {
       sources,
       ...(servers && servers.length > 0 ? { servers } : {}),
-      authentication: buildScalarCookieAuthentication(sessionCookieName),
+      authentication: buildScalarMultiSourceAuthentication(sessionCookieName),
       persistAuth: true,
       theme: 'none' as const,
       layout: 'modern' as const,

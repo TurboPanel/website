@@ -60,6 +60,19 @@ export function buildScalarCookieAuthentication(
   }
 }
 
+/** Client + daemon sources: register both schemes; each spec picks its own from OpenAPI. */
+export function buildScalarMultiSourceAuthentication(
+  cookieName: string
+): AuthenticationConfiguration {
+  return {
+    createAnySecurityScheme: false,
+    securitySchemes: {
+      cookieAuth: { name: cookieName },
+      bearerAuth: { token: '' },
+    },
+  }
+}
+
 function isCookieNameLabel(label: Element | null): boolean {
   const text = label?.textContent?.trim() ?? ''
   return text === 'Name' || text.startsWith('Name:')

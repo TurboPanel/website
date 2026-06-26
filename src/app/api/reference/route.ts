@@ -7,7 +7,7 @@ import {
   parseApiHostnames,
 } from '@/lib/env'
 import {
-  buildScalarCookieAuthentication,
+  buildScalarMultiSourceAuthentication,
   resolveSessionCookieNameFromBaseUrl,
   scalarSessionCookieNameRowCss,
 } from '@/lib/scalar-session-cookie'
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       { url: daemonOpenApiUrl, title: 'Daemon API', slug: 'daemon' },
     ],
     servers,
-    authentication: buildScalarCookieAuthentication(
+    authentication: buildScalarMultiSourceAuthentication(
       resolveSessionCookieNameFromBaseUrl(apiBaseUrl)
     ),
     persistAuth: true,
