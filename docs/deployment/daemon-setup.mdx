@@ -48,17 +48,51 @@ graph TD
 
 ## Installation
 
+### Supported platforms
+
+| OS | Architecture | Notes |
+| -- | ------------ | ----- |
+| Debian 12+ (Bookworm/Trixie) | `x86_64` (amd64) | Recommended for managed servers |
+| Debian 12+ (Bookworm/Trixie) | `aarch64` (arm64) | Supported |
+| Raspberry Pi OS **64-bit** | `aarch64` (arm64) | Supported on 64-bit images only |
+
+**Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any
+CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during
+Ansible provisioning with an explicit architecture error.
+
 ### Remote managed server (official installer)
 
-From [turbopanel-cdn](https://github.com/turbopanel/turbopanel-cdn):
+Obtain a license from your TurboPanel organization, then run the channel
+installer. The only required flag is `--license` (base64url-encoded
+`licenseId:licenseToken`).
+
+**Production control plane** (Cloudflare Workers — default host from the channel
+manifest):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
-  | sudo bash -s -- \
-      --instance-url https://<instance-host>:8443
+curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- --license <base64url-encoded-license>
 ```
 
-For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daemon/v1/instance/ca` (one insecure bootstrap `curl` if needed) and configures `TURBOPANEL_INSTANCE_CA`.
+**Self-hosted instance** (pass `--host` with the full instance URL):
+
+```bash
+curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
+  --license <base64url-encoded-license> \
+  --host https://<instance-host>:8443
+```
+
+When the instance is reachable on the same host as the installer script, you may
+fetch `run.sh` from the instance URL instead:
+
+```bash
+curl -fsSL https://<instance-host>:8443/run.sh | sudo sh -s -- \
+  --license <base64url-encoded-license> \
+  --host https://<instance-host>:8443
+```
+
+For self-hosted HTTPS, the installer fetches the platform CA from
+`GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
+Re-run the same command any time to upgrade or reconcile a node.
 
 <Callout type="info" title="Control plane host">
   On the machine that runs the instance, use the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
@@ -69,11 +103,11 @@ For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daem
 
 | Flag | Description |
 | ---- | ----------- |
-| `--instance-url <URL>` | **Required** for remote nodes. Base URL (`https://…` or `http://…`). |
+| `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
+| `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
-| `--insecure-tls` | Skip TLS verification (dev only) |
-| `--branch <NAME>` | Git branch (default `trunk`) |
+| `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
 | `--no-start` | Provision without starting `turbopanel-daemon.service` |
 
 ### What gets installed
@@ -81,8 +115,8 @@ For self-hosted HTTPS, the installer fetches the platform CA from `GET /api/daem
 The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`:
 
 - User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
-- Daemon checkout under `/opt/turbopanel/platform/daemon` on `trunk`
-- Deno runtime under `/opt/turbopanel/runtimes/`
+- Compiled `turbopaneld` binary and orchestration tree under `/opt/turbopanel/platform/daemon`
+- Shared runtimes under `/opt/turbopanel/runtimes/` (installed on demand by playbooks)
 - `turbopanel-daemon.service` (systemd, single process via `flock`)
 
 ## Configuration
@@ -107,9 +141,10 @@ Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/tu
 
 | Issue | Solution |
 | ----- | -------- |
-| Connection failures | Verify `TURBOPANEL_INSTANCE_URL`, firewall, TLS CA trust |
+| Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, firewall, TLS CA trust |
 | TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca` |
-| Docker permission errors | Ensure `turbopanel` user is in `docker` group (installer adds this) |
+| Unsupported architecture | TurboPanel requires 64-bit `aarch64` or `x86_64`; 32-bit Raspberry Pi OS is not supported |
+| Docker permission errors | Ensure `turbopanel` user is in `docker` group (installer adds this when Docker is installed) |
 
 See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 

@@ -23,10 +23,10 @@ See [Local development](/docs/getting-started/development) for console areas, UR
 
 ## Self-hosted control plane (Debian / Ubuntu VM)
 
-<Callout type="info" title="No public install script yet">
-  Self-hosted production uses the same [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
-  console on a VM. A one-line public installer (like the managed-node CDN flow) is not available yet
-  for control planes.
+<Callout type="info" title="Control plane install path">
+  Self-hosted **control planes** use the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  console on a VM (**Start dev stack**). Additional **managed server daemons** use the
+  public `run.sh` installer documented below.
 </Callout>
 
 On a fresh Debian or Ubuntu host:
@@ -51,23 +51,43 @@ The instance can run on Cloudflare Workers (`pnpm deploy` in the instance repo; 
 
 ## Additional managed server daemons
 
-Install the daemon on servers that should be managed remotely (not the co-located control plane):
+Install the daemon on servers that should be managed remotely (not the co-located
+control plane). Obtain a license from your organization first.
+
+**Production control plane** (Cloudflare Workers):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
-  | sudo bash -s -- \
-      --instance-url https://<instance-host>:8443
+curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- --license <base64url-encoded-license>
 ```
 
-Replace host and port with where the instance is reachable from the node. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
+**Self-hosted instance** (pass `--host`):
+
+```bash
+curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
+  --license <base64url-encoded-license> \
+  --host https://<instance-host>:8443
+```
+
+Replace host and port with where the instance is reachable from the node. The
+installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically
+for HTTPS instances.
+
+### Supported platforms (managed nodes)
+
+| OS | Architecture |
+| -- | ------------ |
+| Debian 12+ | `x86_64` (amd64), `aarch64` (arm64) |
+| Raspberry Pi OS **64-bit** | `aarch64` (arm64) only |
+
+32-bit ARM (including 32-bit Raspberry Pi OS) is **not** supported.
 
 Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 
 ## Prerequisites (all paths)
 
-- Linux server (Debian/Ubuntu recommended for Ansible paths)
-- Docker (daemon running)
-- SSH access to GitHub for platform repo clones (`git@github.com:turbopanel/...`)
+- **64-bit** Linux server (Debian 12+ recommended for Ansible paths; Raspberry Pi OS 64-bit on arm64)
+- Docker (optional — installed on demand when a node runs container workloads)
+- SSH access to GitHub for platform repo clones on co-located dev hosts (`git@github.com:turbopanel/...`)
 - For local dev: see [Prerequisites](/docs/development/prerequisites)
 
 ## Next steps
