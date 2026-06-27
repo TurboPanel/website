@@ -70,13 +70,13 @@ installer. The only required flag is `--license` (base64url-encoded
 manifest):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- --license <base64url-encoded-license>
+curl -fsSL https://trbp.nl/run.sh | sh -s -- --license <base64url-encoded-license>
 ```
 
 **Self-hosted instance** (pass `--host` with the full instance URL):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
+curl -fsSL https://trbp.nl/run.sh | sh -s -- \
   --license <base64url-encoded-license> \
   --host https://<instance-host>:8443
 ```
@@ -85,10 +85,13 @@ When the instance is reachable on the same host as the installer script, you may
 fetch `run.sh` from the instance URL instead:
 
 ```bash
-curl -fsSL https://<instance-host>:8443/run.sh | sudo sh -s -- \
+curl -fsSL https://<instance-host>:8443/run.sh | sh -s -- \
   --license <base64url-encoded-license> \
   --host https://<instance-host>:8443
 ```
+
+The installer self-escalates with `sudo` and prompts for your password when
+needed — do not prefix the pipeline with `sudo`.
 
 For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
