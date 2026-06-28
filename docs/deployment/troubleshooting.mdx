@@ -87,9 +87,17 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes
 PID for a long time. A second update attempt returns `update already in progress`.
 
 **Cause:** The UI update path uses `run.sh --no-start` (does not stop the daemon
-during reconcile). The daemon then calls `systemctl enable --now`, which does
-**not** restart an already-active unit — so old code keeps running and an
-in-memory lock blocks further updates.
+during reconcile). The daemon then tries to restart itself with plain
+`systemctl enable --now` as the **`turbopanel` user** — that fails silently
+(non-root cannot restart systemd units; `enable --now` also skips restart when
+already active). An in-memory lock then blocks further updates.
+
+**Check logs on the server:**
+
+```bash
+sudo tail -30 /var/log/turbopanel/daemon/daemon.err.log
+sudo grep -i 'systemctl\|sudo\|update' /var/log/turbopanel/daemon/daemon.log | tail -20
+```
 
 **Immediate recovery on the server:**
 
