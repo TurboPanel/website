@@ -81,6 +81,26 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes
 2. Confirm `instance` user sudoers allows `pamtester login * authenticate`
 3. Use a host account in `sudo` / `wheel` / `admin`, or `root`
 
+## UI Update stuck on "update already in progress"
+
+**Problem:** After clicking **Update**, Ansible runs but the daemon keeps the same
+PID for a long time. A second update attempt returns `update already in progress`.
+
+**Cause:** The UI update path uses `run.sh --no-start` (does not stop the daemon
+during reconcile). The daemon then calls `systemctl enable --now`, which does
+**not** restart an already-active unit — so old code keeps running and an
+in-memory lock blocks further updates.
+
+**Immediate recovery on the server:**
+
+```bash
+sudo systemctl enable --now turbopanel-daemon
+sudo systemctl restart turbopanel-daemon
+```
+
+Or use [update.sh](/docs/deployment/daemon-update) to pull the latest release
+and restart cleanly.
+
 ## Ansible / upgrade failures
 
 **Problem:** Upgrade System or daemon orchestration fails.
