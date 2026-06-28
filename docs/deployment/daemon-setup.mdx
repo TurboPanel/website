@@ -97,6 +97,25 @@ For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
 Re-run the same command any time to upgrade or reconcile a node.
 
+### Refresh an existing node (`update.sh`)
+
+If the server is already installed, use **`update.sh`** instead of hunting for the
+license. It reads credentials from the daemon state directory and the update
+channel from `.env`:
+
+```bash
+curl -fsSL https://trbp.nl/update.sh | sh
+```
+
+Switch channel (written back to `.env` on success):
+
+```bash
+curl -fsSL https://trbp.nl/update.sh | sh -s -- --channel trunk
+```
+
+See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
+mismatches, missing license files, and self-hosted hosts.
+
 <Callout type="info" title="Control plane host">
   On the machine that runs the instance, use the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
   console (**Start dev stack**) or Ansible co-located install — not the remote node installer.
@@ -107,6 +126,7 @@ Re-run the same command any time to upgrade or reconcile a node.
 | Flag | Description |
 | ---- | ----------- |
 | `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
+| `--channel <name>` | Release channel (`trunk`, `edge`, `canary`, `rc`, `release`). Default: `trunk`. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
@@ -130,6 +150,7 @@ Runtime config: `/opt/turbopanel/platform/daemon/.env`
 | -------- | ------- |
 | `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of instance (remote nodes) |
 | `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS |
+| `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`trunk` default) |
 | `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
 
 Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`.

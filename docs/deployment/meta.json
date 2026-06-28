@@ -1,4 +1,4 @@
 {
   "title": "Deployment",
-  "pages": ["control-plane", "daemon-setup", "security", "troubleshooting"]
+  "pages": ["control-plane", "daemon-setup", "daemon-update", "security", "troubleshooting"]
 }

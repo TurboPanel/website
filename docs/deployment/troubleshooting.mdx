@@ -34,6 +34,20 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 5. **Static UI:** ensure `ui/dist` exists if `TURBOPANEL_UI_MODE=static`
 6. **Dev UI:** ensure `turbopanel-ui` is running when `TURBOPANEL_UI_MODE=dev`
 
+## Daemon shows offline but service is running
+
+**Problem:** UI badge is **Offline** (or Update fails) while `systemctl status turbopanel-daemon` is active and the Cell panel shows recent activity.
+
+**Cause:** The server list uses a Postgres presence projection that can drift from live WebSocket state after a failed upgrade or reconnect.
+
+**Solution:** Refresh the node from the release channel:
+
+```bash
+curl -fsSL https://trbp.nl/update.sh | sh
+```
+
+See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes and missing license files.
+
 ## Daemon not connecting
 
 **Problem:** Remote server daemon fails to register.
