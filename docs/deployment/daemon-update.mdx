@@ -5,7 +5,7 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. The fix is the same: run a full reconcile from the release channel — the same path as the initial installer, but without looking up your license again.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Use the **`update.sh` script in the daemon checkout** on the server — it is **not** a CDN short URL like `run.sh`.
 
 ## When to use this
 
@@ -22,62 +22,43 @@ Use the update script when:
 
 ## One-command update (recommended)
 
-On the managed server, as **root** or a **sudo** user:
-
-```bash
-curl -fsSL https://trbp.nl/update.sh | sh
-```
-
-If that URL is not available yet (404), pipe the script from the daemon repo:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-daemon/trunk/scripts/update.sh | sh
-```
-
-Or run the copy already on disk after a prior install:
+On the managed server, as **root**:
 
 ```bash
 sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
 ```
 
-All paths download the **latest** `run.sh` from the CDN for the actual upgrade.
-
 That script:
 
 1. Reads your **license** from `/opt/turbopanel/platform/daemon/state/` (saved at install)
-2. Reads your **update channel** from `/opt/turbopanel/platform/daemon/.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
+2. Reads your **update channel** from `.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
 3. Reads your **control plane URL** from `.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`)
-4. Downloads the **latest** `run.sh` from the CDN (not the old copy in the checkout)
+4. Downloads the latest **`run.sh`** from `https://trbp.nl/run.sh` (the CDN installer)
 5. Stops the daemon, replaces the source tree, re-runs Ansible, and starts the daemon again
 
-You should see **Stopping turbopanel-daemon…** and then **Daemon running** when it finishes.
+<Callout type="warning" title="Not a curl pipe">
+  Unlike first-time install, there is no `trbp.nl/update.sh`. Always run the script from the checkout path above. Piping `curl | sh` as a non-root user will hang or fail.
+</Callout>
 
 ### Self-hosted control plane
 
-If the instance runs on your own host (not `turbopanel.app`), fetch from that host instead:
+Pass `--host` only if you need to override `.env`:
 
 ```bash
-curl -fsSL https://<instance-host>:8443/update.sh | sh
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh \
+  --host https://<instance-host>:8443
 ```
-
-The script picks up `TURBOPANEL_INSTANCE_URL` from `.env` automatically. Pass `--host` only if you need to override it.
 
 ## Change update channel
 
-Channels select **which release manifest** to install from (`https://dl.trbp.nl/channels.json`). Today only **`trunk`** is published; `edge`, `canary`, `rc`, and `release` are reserved for future use.
-
-Switch channel for the next update:
-
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh -s -- --channel trunk
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk
 ```
-
-The channel is written back into `.env` as `TURBOPANEL_UPDATE_CHANNEL` during provisioning.
 
 Preview without changing anything:
 
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh -s -- --channel trunk --dry-run
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk --dry-run
 ```
 
 ## If the license file is missing
@@ -98,14 +79,13 @@ sudo ls -la /opt/turbopanel/platform/daemon/state/
 If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and pass `--license` manually:
 
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh -s -- --license <base64url-from-install-command>
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh \
+  --license <base64url-from-install-command>
 ```
-
-An already-enrolled server (like kore) can use **any valid license from the same organization** — you are refreshing the install, not enrolling a new machine.
 
 ## Manual fallback (same as update.sh)
 
-If you prefer not to use `update.sh`, build the license argument yourself:
+If you prefer not to use `update.sh`, build the license argument yourself and pipe **`run.sh`** only:
 
 ```bash
 LICENSE_B64=$(python3 -c "
@@ -115,12 +95,12 @@ tok = open('/opt/turbopanel/platform/daemon/state/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
+curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
   --license "$LICENSE_B64" \
   --channel trunk
 ```
 
-Always use **`curl … trbp.nl/run.sh`**, not `./run.sh` from the local checkout — the checkout is the version you are trying to replace.
+Always use **`curl … trbp.nl/run.sh`** for the installer — not `./run.sh` from the local checkout you are trying to replace.
 
 ## Verify after update
 
@@ -133,5 +113,5 @@ In the UI, refresh the servers page — the node should show **Online** with a c
 
 ## Related
 
-- [Daemon setup](/docs/deployment/daemon-setup) — First-time install
+- [Daemon setup](/docs/deployment/daemon-setup) — First-time install (`trbp.nl/run.sh`)
 - [Deployment troubleshooting](/docs/deployment/troubleshooting) — TLS, Postgres, connectivity

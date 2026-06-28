@@ -43,7 +43,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 **Solution:** Refresh the node from the release channel:
 
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
 ```
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes and missing license files.
@@ -102,12 +102,14 @@ sudo grep -i 'systemctl\|sudo\|update' /var/log/turbopanel/daemon/daemon.log | t
 **Immediate recovery on the server:**
 
 ```bash
-sudo systemctl enable --now turbopanel-daemon
 sudo systemctl restart turbopanel-daemon
 ```
 
-Or use [update.sh](/docs/deployment/daemon-update) to pull the latest release
-and restart cleanly.
+Or reconcile from the checkout (not a CDN URL):
+
+```bash
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
+```
 
 ## Ansible / upgrade failures
 

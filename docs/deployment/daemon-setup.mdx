@@ -99,18 +99,18 @@ Re-run the same command any time to upgrade or reconcile a node.
 
 ### Refresh an existing node (`update.sh`)
 
-If the server is already installed, use **`update.sh`** instead of hunting for the
-license. It reads credentials from the daemon state directory and the update
-channel from `.env`:
+If the server is already installed, run **`update.sh` from the checkout** on the
+server (not a CDN URL — unlike `run.sh`). It reads the license from state and
+the channel from `.env`:
 
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
 ```
 
 Switch channel (written back to `.env` on success):
 
 ```bash
-curl -fsSL https://trbp.nl/update.sh | sh -s -- --channel trunk
+sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk
 ```
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
