@@ -33,7 +33,7 @@ Unversioned docs:
 | Developer | `developer-routes-core.ts`, `developer-routes.ts` | Fleet, database (Deno-only extras in `developer-routes.ts`) |
 | Daemon | `daemon-api-routes.ts`, `daemon-hub.ts` | Daemon registration, CA fetch, WS hub |
 | Deno-only | `deno.ts`, `system-routes.ts`, `dev-sync.ts`, `tunnel-routes.ts` | Upgrade, reset-dev, dev-sync push |
-| Database | `db.ts`, `db/schema.ts` | Drizzle + postgres.js (`prepare: false` for Hyperdrive) |
+| Database | `db.ts`, `db/schema.ts` | Drizzle + postgres.js (`prepare: true` on Workers/Hyperdrive for cached parameterized reads; `prepare: false` on Deno/direct Postgres) |
 | Workers entry | `workers.ts` | Wrangler main; registers `developer-routes-core` only |
 
 **Workers bundle rule:** Deno-only modules must not be imported from `app.ts` or `workers.ts` — register Deno routes only from `deno.ts`.
