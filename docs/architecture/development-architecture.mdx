@@ -96,5 +96,6 @@ Browser traffic should use **Caddy on `:8443`**, not wrangler or the raw Expo po
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink (`@deno-ink/core`)** — Terminal dev console in turbopanel-dev.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; Daemon Cell for live WS delivery and request correlation. Production daemon commands are typed handlers only — never arbitrary shell strings. See `instance/src/lib/commands/` and `daemon/src/instance/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).
