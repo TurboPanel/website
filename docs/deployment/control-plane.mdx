@@ -91,10 +91,13 @@ pnpm deploy
 
 `pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy. The legacy `pnpm deploy:workers` script remains as a compatibility alias to `pnpm deploy`.
 
-<Callout type="warn" title="Edge coordination not complete">
-  **Durable Objects** for cloud-hosted daemon coordination are **not implemented yet**. Deployed
-  Workers instances and remote daemons use the same HTTPS/WSS paths as self-hosted (`/api/daemon/v1/*`,
-  `/ws/daemon/v1`) until edge-specific coordination ships.
+<Callout type="info" title="Daemon Cell on Workers">
+  Cloud-hosted coordination uses a **hibernation-safe Durable Object per server**
+  (`getByName(serverId)`) for live WS presence, outbox delivery, and request
+  correlation — same `/api/daemon/v1/*` and `/ws/daemon/v1` paths as self-hosted.
+  Self-hosted uses the Redis cell backend instead. UI status reads come from Postgres
+  only; the cell is not a polling API. See `instance/AGENTS.md` (Daemon Cell) for
+  cost/hibernation rules agents must not regress.
 </Callout>
 
 ### Contributor local dev
