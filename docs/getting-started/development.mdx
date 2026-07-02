@@ -40,18 +40,23 @@ From `./console`, choose **Start dev stack** in the Actions area. The console:
 
 | Service | URL |
 | ------- | --- |
-| App (Caddy → UI + API) | `https://localhost:8443` |
-| API health | `https://localhost:8443/api/health` |
+| App (Caddy → UI + API, HTTPS) | `https://localhost:8443` |
+| App (Caddy → UI + API, dev plaintext) | `http://localhost:8880` — co-located dev only; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` |
+| API health (HTTPS) | `https://localhost:8443/api/health` |
+| API health (dev plaintext) | `http://localhost:8880/api/health` |
 | Website (docs + API reference) | `http://localhost:19820` (when running separately) |
 | Mailpit | `http://localhost:8025` (when configured) |
 
-Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`.
+Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`. The **`:8880`** entrypoint is a dev-only plaintext mirror of `:8443` — gated by **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`** (set automatically on co-located dev) — and works the same for **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** because both runtimes sit behind the same Caddy proxy.
 
 Smoke test:
 
 ```bash
 curl -k https://localhost:8443/api/health
 curl -k https://localhost:8443/api/client/v1/status
+# Co-located dev plaintext mirror (no -k needed):
+curl http://localhost:8880/api/health
+curl http://localhost:8880/api/client/v1/status
 ```
 
 ## Dev console areas
@@ -141,7 +146,8 @@ sequenceDiagram
 
 | Service | Port | Notes |
 | ------- | ---- | ----- |
-| Caddy (HTTPS app) | 8443 | Browser entrypoint |
+| Caddy (HTTPS app) | 8443 | Primary browser entrypoint (TLS) |
+| Caddy (HTTP dev mirror) | 8880 | Plaintext mirror of `:8443`; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`; co-located dev only |
 | Website | 19820 | Next.js (when run locally) |
 | Wrangler (Workers mode) | 18787 | Not browser-facing |
 | Expo web | 8081 | Proxied by Caddy in dev |

@@ -30,14 +30,23 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 ## Port conflicts
 
 - Symptom: `address already in use` in journal logs.
-- Fix: stop the conflicting process or change `CADDY_PORT` in the daemon `.env` and restart Caddy.
-- **Example (Unix):** `lsof -ti :8443 | xargs kill` (replace with the port from the error).
+- Fix: stop the conflicting process or change `CADDY_PORT` / `CADDY_HTTP_PORT` in the daemon `.env` and restart Caddy.
+- **Example (Unix):** `lsof -ti :8443 | xargs kill` or `lsof -ti :8880 | xargs kill` (replace with the port from the error).
 
-## Caddy 502 on https://localhost:8443
+## Dev plaintext entrypoint (http://localhost:8880)
+
+Co-located dev exposes a plaintext mirror of the control plane at **`http://<host>:8880`**. It is gated by **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`** (injected automatically when the dev user is configured) and is **not** enabled on managed or production installs. Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** use the same Caddy proxy, so `:8880` mirrors every route on `:8443` for either runtime.
+
+- **403 on `:8880`:** confirm `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` is set on the Caddy/instance env (Ansible sets this on co-located dev).
+- **Smoke test:** `curl http://localhost:8880/api/health` (compare with `curl -k https://localhost:8443/api/health`).
+- **Daemon attach without CA:** point co-located daemon config at `http://<host>:8880` instead of `https://<host>:8443` during local troubleshooting.
+
+## Caddy 502 on https://localhost:8443 or http://localhost:8880
 
 - Ensure `turbopanel-instance.service` and `turbopanel-ui.service` are active before Caddy serves traffic.
 - Deno mode: confirm `/run/turbopanel/instance.sock` exists and is group-writable.
 - Workers mode: wrangler must bind `0.0.0.0` (see `wrangler.jsonc` `dev.ip`) if Caddy reaches it over TCP.
+- The `:8880` plaintext entrypoint shares the same upstreams as `:8443`; a 502 on one usually means the same backend issue on both.
 
 ## TLS / certificate warnings
 

@@ -9,30 +9,31 @@ This guide helps resolve common issues when deploying or running TurboPanel in p
 
 ## Introduction
 
-Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. Self-hosted entrypoint is **HTTPS on port 8443** (Caddy), not the legacy `:18282` Docker image port.
+Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. Self-hosted browser entrypoint is **HTTPS on port 8443** (Caddy), not the legacy `:18282` Docker image port. On co-located dev hosts only, Caddy also serves a plaintext mirror at **`http://<host>:8880`** when **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`**.
 
-## Port conflicts (8443)
+## Port conflicts (8443 / 8880)
 
-**Problem:** Caddy cannot bind `:8443`.
+**Problem:** Caddy cannot bind `:8443` or (dev) `:8880`.
 
 **Solutions:**
 
-1. Change `CADDY_PORT` in instance/Caddy env and update firewall rules
-2. Check for existing listeners: `ss -tlnp | grep 8443`
+1. Change `CADDY_PORT` / `CADDY_HTTP_PORT` in instance/Caddy env and update firewall rules
+2. Check for existing listeners: `ss -tlnp | grep -E '8443|8880'`
 3. Stop conflicting services or remap the published port in your reverse proxy
 
 ## UI or API not loading
 
-**Problem:** Browser shows errors at `https://<host>:8443`.
+**Problem:** Browser shows errors at `https://<host>:8443` or (co-located dev) `http://<host>:8880`.
 
 **Solutions:**
 
 1. Check instance: `systemctl status turbopanel-instance`
 2. Check Caddy: `systemctl status turbopanel-caddy`
-3. Test health: `curl -k https://localhost:8443/api/health`
-4. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
-5. **Static UI:** ensure `ui/dist` exists if `TURBOPANEL_UI_MODE=static`
-6. **Dev UI:** ensure `turbopanel-ui` is running when `TURBOPANEL_UI_MODE=dev`
+3. Test health over HTTPS: `curl -k https://localhost:8443/api/health`
+4. **Co-located dev only:** test plaintext mirror: `curl http://localhost:8880/api/health` (requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`; **403** when the flag is off)
+5. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
+6. **Static UI:** ensure `ui/dist` exists if `TURBOPANEL_UI_MODE=static`
+7. **Dev UI:** ensure `turbopanel-ui` is running when `TURBOPANEL_UI_MODE=dev`
 
 ## Daemon shows offline but service is running
 
@@ -54,11 +55,12 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes
 
 **Solutions:**
 
-1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443`
-2. Test from node: `curl -k https://<host>:8443/api/daemon/v1/version`
-3. Confirm platform CA: compare with `GET /api/daemon/v1/instance/ca`
-4. Firewall: allow **8443** from remote daemons to instance
-5. Logs: `journalctl -u turbopanel-daemon -f`
+1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443` (production) or, on co-located dev only, `http://<host>:8880` when `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` (no CA required)
+2. Test from node over HTTPS: `curl -k https://<host>:8443/api/daemon/v1/version`
+3. **Co-located dev only:** test plaintext: `curl http://<host>:8880/api/daemon/v1/version`
+4. Confirm platform CA (HTTPS path): compare with `GET /api/daemon/v1/instance/ca`
+5. Firewall: allow **8443** from remote daemons to instance (**8880** is dev-only and not for remote production nodes)
+6. Logs: `journalctl -u turbopanel-daemon -f`
 
 ## Postgres connection failures (self-hosted)
 
@@ -125,11 +127,14 @@ sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
 
 | Task | Command |
 | ---- | ------- |
-| Instance health | `curl -k https://localhost:8443/api/health` |
-| Client status | `curl -k https://localhost:8443/api/client/v1/status` |
+| Instance health (HTTPS) | `curl -k https://localhost:8443/api/health` |
+| Instance health (dev HTTP) | `curl http://localhost:8880/api/health` — co-located dev only; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` |
+| Client status (HTTPS) | `curl -k https://localhost:8443/api/client/v1/status` |
+| Client status (dev HTTP) | `curl http://localhost:8880/api/client/v1/status` — co-located dev only |
 | Service status | `systemctl status turbopanel-instance turbopanel-caddy turbopanel-daemon` |
 | Follow logs | `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-daemon -f` |
-| Daemon WS path | `wss://<host>:8443/ws/daemon/v1` |
+| Daemon WS path (HTTPS) | `wss://<host>:8443/ws/daemon/v1` |
+| Daemon WS path (dev HTTP) | `ws://<host>:8880/ws/daemon/v1` — co-located dev only |
 
 ## Related documentation
 

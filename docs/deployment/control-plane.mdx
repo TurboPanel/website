@@ -30,6 +30,7 @@ On the control plane host, a **co-located daemon** installs and updates the inst
 ```mermaid
 graph TD
     Browser --> Caddy["Caddy :8443 TLS"]
+    DevBrowser["Dev browser :8880 HTTP"] --> Caddy
     Caddy --> Instance["Deno instance Unix socket"]
     Caddy --> UI["Expo web or static export"]
     Daemon["turbopanel-daemon"] --> Instance
@@ -71,7 +72,7 @@ Choose **Start dev stack** in the console. This enables co-located dev-instance 
 | ---- | ---- | ---- |
 | `turbopanel-daemon.service` | `turbopanel` (9999) | Ansible orchestration |
 | `turbopanel-instance.service` | `instance` (9998) | Deno API on Unix socket |
-| `turbopanel-caddy.service` | `instance` | TLS + reverse proxy `:8443` |
+| `turbopanel-caddy.service` | `instance` | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
 | `turbopanel-ui.service` | `instance` | Expo web dev (`:8081`, dev only) |
 
 Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopanel-daemon -f`
@@ -124,6 +125,8 @@ Use **Start dev stack** in the console — see [Local development](/docs/getting
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI path (default `../ui/dist`) |
 | `CADDY_PORT` | HTTPS listen port (default **8443**) |
+| `CADDY_HTTP_PORT` | Dev-only plaintext HTTP listen port (default **8880**) |
+| `TURBOPANEL_DEV_HTTP_CONTROL_PLANE` | Must be `"1"` to serve the dev plaintext entrypoint on `CADDY_HTTP_PORT`; injected automatically on co-located dev hosts only |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Workers dev sign-up override |
 
 Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout.
@@ -141,7 +144,19 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 | `/api/openapi.json` | OpenAPI 3.1 spec |
 | `/` | Web UI (via Caddy) |
 
-HTTPS entrypoint for browsers: **`https://<host>:8443`** (self-hosted).
+**HTTPS entrypoint (self-hosted):** **`https://<host>:8443`**
+
+<Callout type="warn" title="Dev-only plaintext HTTP entrypoint">
+  Co-located development also exposes a plaintext mirror at **`http://<host>:8880`**
+  (`CADDY_HTTP_PORT`, default **8880**). It is gated by
+  **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`** (set automatically by Ansible when
+  `turbopanel_dev_user` is configured). Requests are rejected with **403** when
+  the flag is off. This entrypoint is **not** enabled on managed or production
+  installs — it exists to bypass self-signed TLS friction when troubleshooting
+  daemon WebSocket connections or attaching a daemon without CA setup. Both
+  **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** use the same Caddy
+  proxy, so `:8880` mirrors every route on `:8443` for either runtime.
+</Callout>
 
 ## Communication patterns
 
