@@ -29,6 +29,23 @@ cd turbopanel-dev
 
 **Start dev stack** in the console installs the daemon (if missing) and hands off to Ansible for instance, UI, Caddy, and Postgres. Platform repos clone on branch **`trunk`** via SSH.
 
+### Dev vs production path model
+
+The console drives a **co-located source-checkout layout** that is intentionally different from the **FHS tree** a managed install lays down. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
+
+| Concern | Development (co-located checkout) | Production (managed / FHS) |
+| ------- | --------------------------------- | -------------------------- |
+| Daemon entrypoint | `deno run main.ts` from the checkout | `/opt/turbopanel/bin/turbopaneld` (native) or `turbopaneld.js` (`deno run` fallback) |
+| Orchestration assets | `<checkout>/orchestration` | `/opt/turbopanel/share/orchestration` |
+| Vendored runtimes | `/opt/turbopanel/runtimes` | `/opt/turbopanel/lib/runtime` |
+| Config | `<checkout>/.env` | `/etc/turbopanel/daemon.env` |
+| State / identity | `<checkout>/state` | `/var/lib/turbopanel` |
+| Logs | `<checkout>/logs` | `/var/log/turbopanel` |
+| Sockets / runtime | `/run/turbopanel` | `/run/turbopanel` |
+| systemd unit | `turbopaneld.service` | `turbopaneld.service` |
+
+Both modes share the `turbopaneld.service` unit name (renamed from the legacy `turbopanel-daemon`; old units are migrated on install). Production code never names the dev checkout root — a CI guard (`deno task check:layout`) and `src/orchestration/paths.test.ts` pin the two trees and the shared `DENO_VERSION` (`2.9.0`).
+
 ## Dev console orchestration
 
 The Ink console (`./console`) is the single operator surface:
@@ -44,7 +61,7 @@ The Ink console (`./console`) is the single operator surface:
 
 ```mermaid
 graph TD
-    console[turbopanel-dev console] --> daemon[turbopanel-daemon.service]
+    console[turbopanel-dev console] --> daemon[turbopaneld.service]
     daemon --> ansible[Ansible instance-dev-install]
     ansible --> instance[turbopanel-instance.service]
     ansible --> caddy[turbopanel-caddy.service]

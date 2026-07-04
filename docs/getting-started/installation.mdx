@@ -37,7 +37,7 @@ cd turbopanel-dev
 ./console
 ```
 
-In the console, choose **Start dev stack**. This writes developer identity into the daemon `.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopanel-daemon.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres under `/opt/turbopanel/platform/`.
+In the console, choose **Start dev stack**. This writes developer identity into the daemon `.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres under `/opt/turbopanel/platform/`.
 
 - **HTTPS entrypoint:** `https://<host>:8443` (Caddy)
 - **Install wizard:** first visit prompts host PAM + superadmin setup (Deno path)

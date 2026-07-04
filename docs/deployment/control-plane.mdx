@@ -33,7 +33,7 @@ graph TD
     DevBrowser["Dev browser :8880 HTTP"] --> Caddy
     Caddy --> Instance["Deno instance Unix socket"]
     Caddy --> UI["Expo web or static export"]
-    Daemon["turbopanel-daemon"] --> Instance
+    Daemon["turbopaneld"] --> Instance
     Instance --> PG["Postgres 18 Docker"]
     Daemon --> Ansible["Ansible playbooks"]
 ```
@@ -45,7 +45,7 @@ graph TD
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
 | **TLS** | Caddy (platform CA) | Cloudflare edge |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
-| **UI** | Caddy → Expo dev or `ui/dist` | Workers assets / separate hosting |
+| **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
 | **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
 | **Pricing** | Free, unlimited servers | Pay per server |
 
@@ -70,12 +70,12 @@ Choose **Start dev stack** in the console. This enables co-located dev-instance 
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
-| `turbopanel-daemon.service` | `turbopanel` (9999) | Ansible orchestration |
+| `turbopaneld.service` | `turbopanel` (9999) | Ansible orchestration (daemon from source checkout in dev) |
 | `turbopanel-instance.service` | `instance` (9998) | Deno API on Unix socket |
 | `turbopanel-caddy.service` | `instance` | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
 | `turbopanel-ui.service` | `instance` | Expo web dev (`:8081`, dev only) |
 
-Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopanel-daemon -f`
+Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
 
 ### Cloud-hosted (Workers)
 
@@ -123,7 +123,7 @@ Use **Start dev stack** in the console — see [Local development](/docs/getting
 | `CLOUDFLARE_ENV` | Wrangler env name for Workers deploy (e.g. `live`, `testing`) — required by `pnpm deploy` |
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
-| `TURBOPANEL_UI_ROOT` | Static UI path (default `../ui/dist`) |
+| `TURBOPANEL_UI_ROOT` | Static UI export root. Production (FHS) default `/opt/turbopanel/share/ui` (where the daemon `ui-build` role publishes the export); co-located dev overrides it to a checkout-relative path such as `../ui/dist` |
 | `CADDY_PORT` | HTTPS listen port (default **8443**) |
 | `CADDY_HTTP_PORT` | Dev-only plaintext HTTP listen port (default **8880**) |
 | `TURBOPANEL_DEV_HTTP_CONTROL_PLANE` | Must be `"1"` to serve the dev plaintext entrypoint on `CADDY_HTTP_PORT`; injected automatically on co-located dev hosts only |

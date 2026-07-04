@@ -97,20 +97,21 @@ For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
 Re-run the same command any time to upgrade or reconcile a node.
 
-### Refresh an existing node (`update.sh`)
+### Refresh an existing node (`turbopanel-update`)
 
-If the server is already installed, run **`update.sh` from the checkout** on the
-server (not a CDN URL — unlike `run.sh`). It reads the license from state and
-the channel from `.env`:
+If the server is already installed, run the **`turbopanel-update` helper** that
+`run.sh` installs into the managed tree (not a CDN URL — unlike `run.sh`, and no
+source checkout required). It reads the license from `/var/lib/turbopanel` and
+the channel/host from `/etc/turbopanel/daemon.env`:
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
+sudo sh /opt/turbopanel/bin/turbopanel-update
 ```
 
-Switch channel (written back to `.env` on success):
+Switch channel (read from `daemon.env`, override per-run):
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk
+sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk
 ```
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
@@ -131,25 +132,48 @@ mismatches, missing license files, and self-hosted hosts.
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
 | `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
-| `--no-start` | Provision without starting `turbopanel-daemon.service` |
+| `--no-start` | Provision without starting `turbopaneld.service` |
 
-### What gets installed
+### What gets installed (FHS layout)
 
-The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`:
+The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which
+lays out a clean **Filesystem Hierarchy Standard** tree — there is **no source
+checkout** on a managed server:
+
+| Purpose | Path |
+| ------- | ---- |
+| Native daemon binary | `/opt/turbopanel/bin/turbopaneld` |
+| Deno `deno run` fallback (when the native binary can't run) | `/opt/turbopanel/bin/turbopaneld.js` |
+| Manual update helper | `/opt/turbopanel/bin/turbopanel-update` |
+| Orchestration assets (Ansible) | `/opt/turbopanel/share/orchestration` |
+| Static UI export (control plane host) | `/opt/turbopanel/share/ui` |
+| Vendored runtimes (deno/uv/python/ansible/cloudflared) | `/opt/turbopanel/lib/runtime` |
+| Config (`daemon.env`, `instance-ca.pem`) | `/etc/turbopanel` |
+| Persistent identity (license, `server.id`, keys, tunnels) | `/var/lib/turbopanel` |
+| Logs | `/var/log/turbopanel` |
+| Runtime (sockets, `daemon.lock`) | `/run/turbopanel` |
 
 - User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
-- Compiled `turbopaneld` binary and orchestration tree under `/opt/turbopanel/platform/daemon`
-- Shared runtimes under `/opt/turbopanel/runtimes/` (installed on demand by playbooks)
-- `turbopanel-daemon.service` (systemd, single process via `flock`)
+- `turbopaneld.service` (systemd, single process via `flock`). The unit runs the
+  native binary when `turbopaneld --version` succeeds, otherwise the
+  `turbopaneld.js` fallback via the vendored Deno.
+
+<Callout type="info" title="Co-located dev is different">
+  A control-plane host provisioned via the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  console runs the daemon **from a source checkout** at `/opt/turbopanel/platform/daemon`
+  (`deno run main.ts`), with config in `.env`, state/logs under the checkout, and
+  runtimes under `/opt/turbopanel/runtimes`. The FHS tree above applies to
+  managed/production installs only.
+</Callout>
 
 ## Configuration
 
-Runtime config: `/opt/turbopanel/platform/daemon/.env`
+Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld.service`).
 
 | Variable | Purpose |
 | -------- | ------- |
 | `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of instance (remote nodes) |
-| `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS |
+| `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS (default `/etc/turbopanel/instance-ca.pem`) |
 | `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`trunk` default) |
 | `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
 

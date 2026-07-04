@@ -5,19 +5,26 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Use the **`update.sh` script in the daemon checkout** on the server — it is **not** a CDN short URL like `run.sh`.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Use the **`turbopanel-update` helper** that `run.sh` installs into the managed FHS tree at `/opt/turbopanel/bin/turbopanel-update` — it is **not** a CDN short URL like `run.sh`, and it needs **no source checkout**.
 
 ## When to use this
 
-Use the update script when:
+Use the update helper when:
 
-- The server badge shows **Offline** but the daemon service is running (`systemctl status turbopanel-daemon`)
+- The server badge shows **Offline** but the daemon service is running (`systemctl status turbopaneld`)
 - The **Update** button in the UI errors or does nothing (common on very old builds)
-- You changed **update channel** in `.env` and want to pull from the new channel immediately
+- You changed **update channel** in `/etc/turbopanel/daemon.env` and want to pull from the new channel immediately
 - You want to **reconcile** after a bad upgrade (daemon disabled, wrong version, etc.)
 
+<Callout type="info" title="Co-located dev hosts">
+  This page covers **managed servers** (FHS tree). If your control-plane host was
+  provisioned with the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  console, update it from the console (**Sync Dev Build** / **Upgrade System**)
+  instead — that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
+</Callout>
+
 <Callout type="info" title="UI vs cell panel">
-  The server list reads a **Postgres projection** for online/offline. The **Cell** panel reads live WebSocket state. If those disagree, the daemon is usually fine — run an update to refresh both the binary tree and presence.
+  The server list reads a **Postgres projection** for online/offline. The **Cell** panel reads live WebSocket state. If those disagree, the daemon is usually fine — run an update to refresh both the installed binary and presence.
 </Callout>
 
 ## One-command update (recommended)
@@ -25,73 +32,73 @@ Use the update script when:
 On the managed server, as **root**:
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh
+sudo sh /opt/turbopanel/bin/turbopanel-update
 ```
 
-That script:
+That helper:
 
-1. Reads your **license** from `/opt/turbopanel/platform/daemon/state/` (saved at install)
-2. Reads your **update channel** from `.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
-3. Reads your **control plane URL** from `.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`)
+1. Reads your **license** from `/var/lib/turbopanel/license.id` + `license.token` (saved at install)
+2. Reads your **update channel** from `/etc/turbopanel/daemon.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
+3. Reads your **control plane URL** and **CA** from `daemon.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`, `TURBOPANEL_INSTANCE_CA`, else `/etc/turbopanel/instance-ca.pem`)
 4. Downloads the latest **`run.sh`** from `https://trbp.nl/run.sh` (the CDN installer)
-5. Stops the daemon, replaces the source tree, re-runs Ansible, and starts the daemon again
+5. Reinstalls the daemon binary + orchestration tree, re-runs Ansible, and restarts `turbopaneld.service`
 
 <Callout type="warning" title="Not a curl pipe">
-  Unlike first-time install, there is no `trbp.nl/update.sh`. Always run the script from the checkout path above. Piping `curl | sh` as a non-root user will hang or fail.
+  Unlike first-time install, there is no `trbp.nl/update.sh`. Always run the installed helper at the path above. Piping `curl | sh` as a non-root user will hang or fail.
 </Callout>
 
 ### Self-hosted control plane
 
-Pass `--host` only if you need to override `.env`:
+Pass `--host` only if you need to override `daemon.env`:
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh \
+sudo sh /opt/turbopanel/bin/turbopanel-update \
   --host https://<instance-host>:8443
 ```
 
 ## Change update channel
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk
+sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk
 ```
 
 Preview without changing anything:
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh --channel trunk --dry-run
+sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk --dry-run
 ```
 
 ## If the license file is missing
 
-The update script reads:
+The update helper reads:
 
 | File | Purpose |
 | ---- | ------- |
-| `state/license.id` | Organization license UUID |
-| `state/license.token` | Secret token (shown **once** at license creation) |
+| `/var/lib/turbopanel/license.id` | Organization license UUID |
+| `/var/lib/turbopanel/license.token` | Secret token (shown **once** at license creation) |
 
 Check on the server:
 
 ```bash
-sudo ls -la /opt/turbopanel/platform/daemon/state/
+sudo ls -la /var/lib/turbopanel/
 ```
 
 If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and pass `--license` manually:
 
 ```bash
-sudo sh /opt/turbopanel/platform/daemon/scripts/update.sh \
+sudo sh /opt/turbopanel/bin/turbopanel-update \
   --license <base64url-from-install-command>
 ```
 
-## Manual fallback (same as update.sh)
+## Manual fallback (same as the helper)
 
-If you prefer not to use `update.sh`, build the license argument yourself and pipe **`run.sh`** only:
+If you prefer not to use `turbopanel-update`, build the license argument yourself and pipe **`run.sh`** only:
 
 ```bash
 LICENSE_B64=$(python3 -c "
 import base64
-id = open('/opt/turbopanel/platform/daemon/state/license.id').read().strip()
-tok = open('/opt/turbopanel/platform/daemon/state/license.token').read().strip()
+id = open('/var/lib/turbopanel/license.id').read().strip()
+tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
@@ -100,12 +107,12 @@ curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
   --channel trunk
 ```
 
-Always use **`curl … trbp.nl/run.sh`** for the installer — not `./run.sh` from the local checkout you are trying to replace.
+Always use **`curl … trbp.nl/run.sh`** for the installer — not a local copy from the tree you are trying to replace.
 
 ## Verify after update
 
 ```bash
-sudo systemctl status turbopanel-daemon
+sudo systemctl status turbopaneld
 curl -sS https://turbopanel.app/api/daemon/v1/version   # or your instance URL
 ```
 
