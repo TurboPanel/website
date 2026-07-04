@@ -13,7 +13,7 @@ TurboPanel split from a single monorepo into sibling repositories. The [turbopan
 
 | Location | GitHub repo | Role |
 | -------- | ----------- | ---- |
-| `~/dev/` (or `./turbopanel-dev/`) | turbopanel/turbopanel-dev | `./console`, bootstrap installer, Ink dev UI |
+| `~/dev/` | turbopanel/turbopanel-dev | `./console`, bootstrap installer, Ink dev UI |
 | `~/daemon/` | turbopanel/turbopanel-daemon | Remote daemon + Ansible (installed by console) |
 | `~/instance/` | turbopanel/instance | Hono API (Workers wrangler + Deno self-hosted) |
 | `~/ui/` | turbopanel/turbopanel-ui | Expo web / native UI |
@@ -24,9 +24,14 @@ Paths resolve via `TURBOPANEL_DEV_ROOT` and per-repo `TURBOPANEL_<DIR>_REPO` ove
 Bootstrap flow:
 
 ```bash
-curl -fsSL https://develop.trbp.nl | sh   # clone/update turbopanel-dev
-cd turbopanel-dev
-./console                                  # Deno runtime + Ink console
+curl -fsSL https://develop.trbp.nl | sh   # clone/update ~/dev, launch console
+```
+
+To run again from an existing checkout:
+
+```bash
+cd ~/dev
+./console                                  # Node runtime + Ink console
 ```
 
 **Start dev stack** in the console installs the daemon (if missing) and hands off to Ansible for instance, UI, Caddy, and Postgres. Platform repos clone on branch **`trunk`** via SSH.

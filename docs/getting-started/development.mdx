@@ -24,12 +24,14 @@ One-liner (fresh machine):
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
-cd turbopanel-dev
 ```
+
+The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console` automatically.
 
 Or, from an existing checkout:
 
 ```bash
+cd ~/dev
 sh scripts/develop.sh   # update turbopanel-dev only
 ./console
 ```

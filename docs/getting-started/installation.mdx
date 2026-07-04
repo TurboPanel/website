@@ -13,11 +13,9 @@ Bootstrap the dev console from [turbopanel-dev](https://github.com/turbopanel/tu
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
-cd turbopanel-dev
-./console
 ```
 
-The one-liner clones or updates `./turbopanel-dev` in your current directory. `./console` installs the pinned Deno runtime (sudo on first run), caches dependencies, and launches the Ink dev console. From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd.
+The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console` automatically. `./console` installs the pinned Node runtime (sudo on first run), runs `pnpm install`, and starts the Ink dev console. From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd. To run the console again later: `cd ~/dev && ./console`.
 
 See [Local development](/docs/getting-started/development) for console areas, URLs, and day-to-day workflow.
 
@@ -33,8 +31,6 @@ On a fresh Debian or Ubuntu host:
 
 ```bash
 curl -fsSL https://develop.trbp.nl | sh
-cd turbopanel-dev
-./console
 ```
 
 In the console, choose **Start dev stack**. This writes developer identity into `/etc/turbopanel/daemon.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres: source repos under `$HOME` (`~/daemon`, `~/instance`, `~/ui`, `~/website`), mutable state under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`), and vendored runtimes under `/opt/turbopanel/lib/runtime`.
