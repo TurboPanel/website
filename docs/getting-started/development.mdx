@@ -7,7 +7,14 @@ description: Bootstrap, dev console workflow, ports, and common development task
 
 This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
-TurboPanel is **not a monorepo**. The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository is the entry point — it installs the dev console and orchestrates platform checkouts under `/opt/turbopanel/platform/`.
+TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`). The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
+
+## Fresh-clone → working dev
+
+1. Clone the five repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`).
+2. From `~/dev`, run `./console` → prereqs, pinned Node, `pnpm install`, TUI launch (exports `TURBOPANEL_MODE=development`, `TURBOPANEL_DEV_ROOT`, `TURBOPANEL_<DIR>_REPO`).
+3. **Start dev stack** → daemon bootstraps as the dev user, writes `/etc/turbopanel/daemon.env`, runs the `dev/orchestration` overlay: runtimes into `/opt/turbopanel/lib/runtime`, systemd units + Docker (postgres/redis/rabbitmq/mailpit) as the dev user, mutable data under FHS trees dev-user-owned. No `turbopanel` / `turbopaneli` / `turbopanelc` accounts created.
+4. Open `https://localhost:8443` (or dev `http://localhost:8880`); edit source in place under `$HOME`.
 
 ## Quick start
 
@@ -31,10 +38,10 @@ sh scripts/develop.sh   # update turbopanel-dev only
 
 From `./console`, choose **Start dev stack** in the Actions area. The console:
 
-- Installs the **daemon** repo under `/opt/turbopanel/platform/daemon` (if missing)
-- Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into the daemon `.env`
-- Runs `scripts/bootstrap-orchestration.ts` (uv, Python, Ansible under `/opt/turbopanel/runtimes/`) and `install-daemon-systemd.sh`
-- Lets the daemon install instance, UI, Caddy, and Postgres via Ansible
+- Ensures the **daemon** repo exists at `~/daemon` (or `TURBOPANEL_DAEMON_REPO`)
+- Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into `/etc/turbopanel/daemon.env`
+- Runs `scripts/bootstrap-orchestration.ts` (uv, Python, Ansible under `/opt/turbopanel/lib/runtime/`) and `install-daemon-systemd.sh`
+- Lets the daemon install instance, UI, Caddy, and Postgres via Ansible (dev overlay in `dev/orchestration/`)
 
 **3. Open**
 
@@ -65,7 +72,7 @@ Use **←** / **→** to switch areas in `./console`:
 
 | Area | Contents |
 | ---- | -------- |
-| **Status** | Runtime, platform checkout, dev stack units |
+| **Status** | Runtime, source checkouts, dev stack units |
 | **Instance** | Runtime mode (Deno/Workers), instance unit status, switch action |
 | **Developer** | Fleet, services, shell, database, … (when `instance.sock` is present) |
 | **Actions** | Install daemon, start stack, follow logs, build mode, refresh, quit |
@@ -74,34 +81,39 @@ In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc
 
 ## Instance runtime modes
 
-`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` selects how the instance runs locally. Switch via the **Instance** area in the console.
+`TURBOPANEL_INSTANCE_RUNTIME` in `/etc/turbopanel/daemon.env` selects how the instance runs locally. Switch via the **Instance** area in the console.
 
 | Mode | Behaviour |
 | ---- | --------- |
 | **deno** (default) | `turbopanel-instance` systemd unit + Unix socket at `/run/turbopanel/instance.sock` |
-| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `platform/instance` manually |
+| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `~/instance` manually |
 
 Workers mode has no Redis. Set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in `instance/.dev.vars`.
 
 ## Repository layout
 
-Platform repos live under `/opt/turbopanel/platform/` (installed by the daemon via Ansible):
+Source repos live under `$HOME` (override with `TURBOPANEL_DEV_ROOT` and `TURBOPANEL_<DIR>_REPO`):
 
 ```
+~/
+├── dev/           # turbopanel-dev — console entrypoint
+├── daemon/        # turbopanel-daemon
+├── instance/      # Hono API (Workers + Deno)
+├── ui/            # Expo frontend
+└── website/       # marketing + docs (optional local run)
+
 /opt/turbopanel/
-├── platform/
-│   ├── daemon/    # turbopanel-daemon — installed by the console
-│   ├── instance/  # Hono API (Workers + Deno)
-│   ├── ui/        # Expo frontend
-│   └── website/   # marketing + docs (optional local run)
-└── runtimes/
-    ├── deno/2.8.3/        # pinned Deno runtime (console-managed)
+└── lib/runtime/
+    ├── deno/2.9.0/        # pinned Deno runtime (console-managed)
     ├── uv/                # shared orchestration runtime (daemon bootstrap)
     ├── python/            # managed Python for Ansible venv
     └── ansible/           # ansible-playbook venv + Galaxy content
-```
 
-Your `turbopanel-dev` checkout stays wherever you cloned it (for example `./turbopanel-dev` in your home directory).
+/etc/turbopanel/           # config (dev-user-owned)
+/var/lib/turbopanel/       # state (dev-user-owned)
+/var/log/turbopanel/       # service logs (dev-user-owned)
+/run/turbopanel/           # runtime sockets (dev-user-owned)
+```
 
 ## Common tasks
 
@@ -139,7 +151,7 @@ sequenceDiagram
     Daemon->>Services: Ansible instance-dev-install
     Services-->>Console: Healthy (Status area)
     Dev->>Console: Developer sections (fleet, DB, …)
-    Dev->>Services: Edit source in platform checkouts
+    Dev->>Services: Edit source in $HOME checkouts
 ```
 
 ## Port reference

@@ -13,11 +13,13 @@ TurboPanel split from a single monorepo into sibling repositories. The [turbopan
 
 | Location | GitHub repo | Role |
 | -------- | ----------- | ---- |
-| `./turbopanel-dev/` (your cwd) | turbopanel/turbopanel-dev | `./console`, bootstrap installer, Ink dev UI |
-| `/opt/turbopanel/platform/daemon/` | turbopanel/turbopanel-daemon | Remote daemon + Ansible (installed by console) |
-| `/opt/turbopanel/platform/instance/` | turbopanel/instance | Hono API (Workers wrangler + Deno self-hosted) |
-| `/opt/turbopanel/platform/ui/` | turbopanel/turbopanel-ui | Expo web / native UI |
-| `/opt/turbopanel/platform/website/` | turbopanel/turbopanel-website | Marketing + Fumadocs (this site) |
+| `~/dev/` (or `./turbopanel-dev/`) | turbopanel/turbopanel-dev | `./console`, bootstrap installer, Ink dev UI |
+| `~/daemon/` | turbopanel/turbopanel-daemon | Remote daemon + Ansible (installed by console) |
+| `~/instance/` | turbopanel/instance | Hono API (Workers wrangler + Deno self-hosted) |
+| `~/ui/` | turbopanel/turbopanel-ui | Expo web / native UI |
+| `~/website/` | turbopanel/turbopanel-website | Marketing + Fumadocs (this site) |
+
+Paths resolve via `TURBOPANEL_DEV_ROOT` and per-repo `TURBOPANEL_<DIR>_REPO` overrides (defaults: `$HOME/{daemon,instance,ui,website}`).
 
 Bootstrap flow:
 
@@ -31,18 +33,19 @@ cd turbopanel-dev
 
 ### Dev vs production path model
 
-The console drives a **co-located source-checkout layout** that is intentionally different from the **FHS tree** a managed install lays down. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
+The console drives a **dev layout** where source repos live under `$HOME` and mutable data uses FHS paths owned by the dev user. Production uses the same FHS tree with dedicated service users. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
 
-| Concern | Development (co-located checkout) | Production (managed / FHS) |
-| ------- | --------------------------------- | -------------------------- |
-| Daemon entrypoint | `deno run main.ts` from the checkout | `/opt/turbopanel/bin/turbopaneld` (native) or `turbopaneld.js` (`deno run` fallback) |
-| Orchestration assets | `<checkout>/orchestration` | `/opt/turbopanel/share/orchestration` |
-| Vendored runtimes | `/opt/turbopanel/runtimes` | `/opt/turbopanel/lib/runtime` |
-| Config | `<checkout>/.env` | `/etc/turbopanel/daemon.env` |
-| State / identity | `<checkout>/state` | `/var/lib/turbopanel` |
-| Logs | `<checkout>/logs` | `/var/log/turbopanel` |
-| Sockets / runtime | `/run/turbopanel` | `/run/turbopanel` |
-| systemd unit | `turbopaneld.service` | `turbopaneld.service` |
+| Concern | Development | Production (managed / FHS) |
+| ------- | ----------- | -------------------------- |
+| Source repos | `$HOME/{daemon,instance,ui,website}` | No source checkout (compiled release) |
+| Daemon entrypoint | `deno run main.ts` from `~/daemon` | `/opt/turbopanel/bin/turbopaneld` (native) or `turbopaneld.js` (`deno run` fallback) |
+| Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
+| Vendored runtimes | `/opt/turbopanel/lib/runtime` | `/opt/turbopanel/lib/runtime` |
+| Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
+| State / identity | `/var/lib/turbopanel` (dev-user-owned) | `/var/lib/turbopanel` |
+| Logs | `/var/log/turbopanel` (dev-user-owned) | `/var/log/turbopanel` |
+| Sockets / runtime | `/run/turbopanel` (dev-user-owned) | `/run/turbopanel` (`2770 turbopanel:turbopanel`) |
+| systemd unit | `turbopaneld.service` (dev user) | `turbopaneld.service` (`turbopanel`) |
 
 Both modes share the `turbopaneld.service` unit name (renamed from the legacy `turbopanel-daemon`; old units are migrated on install). Production code never names the dev checkout root — a CI guard (`deno task check:layout`) and `src/orchestration/paths.test.ts` pin the two trees and the shared `DENO_VERSION` (`2.9.0`).
 
@@ -52,7 +55,7 @@ The Ink console (`./console`) is the single operator surface:
 
 | Console area | What it drives |
 | ------------ | -------------- |
-| **Status** | Deno runtime, `/opt/turbopanel/platform` checkouts, systemd unit health |
+| **Status** | Node runtime, `$HOME` source checkouts, systemd unit health |
 | **Instance** | `TURBOPANEL_INSTANCE_RUNTIME` (Deno vs Workers), unit restart |
 | **Developer** | Fleet, services, shell, database, servers (via instance API over Unix socket) |
 | **Actions** | Install daemon, start stack, follow logs, build mode toggle, quit |

@@ -9,8 +9,8 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 
 ## Console will not start
 
-- Verify Deno runtime: `/opt/turbopanel/runtimes/deno/current/deno --version`
-- First run may require **sudo** to create `/opt/turbopanel/runtimes` — re-run `./console` after granting privileges.
+- Verify Deno runtime: `/opt/turbopanel/lib/runtime/deno/current/deno --version`
+- First run may require **sudo** to create `/opt/turbopanel/lib/runtime` — re-run `./console` after granting privileges.
 - Update the checkout: `sh scripts/develop.sh` from inside `turbopanel-dev`.
 
 ## Dev stack will not start
@@ -18,19 +18,19 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 - Open the **Status** area in `./console` and check unit states.
 - Follow logs from the **Actions** area (**Follow logs**).
 - Verify Docker is running: `docker version` (Postgres runs in Docker).
-- Confirm the daemon checkout exists: `/opt/turbopanel/platform/daemon/`.
+- Confirm the daemon checkout exists: `~/daemon/`.
 - If the daemon repo is missing, use **Install daemon** in the Actions area first, then **Start dev stack**.
 
 ## Instance runtime not switching
 
 - Use the **Instance** area in `./console` (**Switch to Deno Mode** / **Switch to Workers Mode**).
-- Workers mode requires `pnpm dev` running manually in `/opt/turbopanel/platform/instance/`.
+- Workers mode requires `pnpm dev` running manually in `~/instance/`.
 - Deno mode requires `/run/turbopanel` to exist and `turbopanel-instance.service` to be active.
 
 ## Port conflicts
 
 - Symptom: `address already in use` in journal logs.
-- Fix: stop the conflicting process or change `CADDY_PORT` / `CADDY_HTTP_PORT` in the daemon `.env` and restart Caddy.
+- Fix: stop the conflicting process or change `CADDY_PORT` / `CADDY_HTTP_PORT` in `/etc/turbopanel/daemon.env` and restart Caddy.
 - **Example (Unix):** `lsof -ti :8443 | xargs kill` or `lsof -ti :8880 | xargs kill` (replace with the port from the error).
 
 ## Dev plaintext entrypoint (http://localhost:8880)
@@ -50,7 +50,7 @@ Co-located dev exposes a plaintext mirror of the control plane at **`http://<hos
 
 ## TLS / certificate warnings
 
-- Trust `instance/certs/ca.crt` (under the platform checkout) in your OS or browser.
+- Trust `~/instance/certs/ca.crt` (or fetch from `GET /api/daemon/v1/instance/ca`) in your OS or browser.
 - Re-run the `instance-certs` Ansible role or `pnpm cert:generate` in the instance checkout if certs are missing.
 
 ## Schema sync failures

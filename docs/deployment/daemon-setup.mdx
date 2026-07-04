@@ -160,9 +160,13 @@ checkout** on a managed server:
 
 <Callout type="info" title="Co-located dev is different">
   A control-plane host provisioned via the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
-  console runs the daemon **from a source checkout** at `/opt/turbopanel/platform/daemon`
-  (`deno run main.ts`), with config in `.env`, state/logs under the checkout, and
-  runtimes under `/opt/turbopanel/runtimes`. The FHS tree above applies to
+  console runs the daemon **from a source checkout** under `$HOME` (e.g. `~/daemon`, via
+  `deno run main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
+  and sockets under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`,
+  `/var/log/turbopanel`, `/run/turbopanel`); vendored runtimes under
+  `/opt/turbopanel/lib/runtime`. No dedicated `turbopanel` / `turbopaneli` / `turbopanelc`
+  service accounts are created — systemd units and Docker-backed services run as the
+  current dev user. The FHS tree above (including `turbopanel:turbopanel`) applies to
   managed/production installs only.
 </Callout>
 

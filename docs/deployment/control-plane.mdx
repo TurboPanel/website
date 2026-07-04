@@ -70,10 +70,12 @@ Choose **Start dev stack** in the console. This enables co-located dev-instance 
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
-| `turbopaneld.service` | `turbopanel` (9999) | Ansible orchestration (daemon from source checkout in dev) |
-| `turbopanel-instance.service` | `instance` (9998) | Deno API on Unix socket |
-| `turbopanel-caddy.service` | `instance` | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
-| `turbopanel-ui.service` | `instance` | Expo web dev (`:8081`, dev only) |
+| `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/daemon` in dev) |
+| `turbopanel-instance.service` | current dev user | Deno API on Unix socket |
+| `turbopanel-caddy.service` | current dev user | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
+| `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |
+
+A hardened production install uses dedicated service users (`turbopanel`, `turbopaneli`) — see [Daemon setup](/docs/deployment/daemon-setup).
 
 Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
 

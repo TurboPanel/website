@@ -23,7 +23,7 @@ Marketing and docs **must** match live product pages. Canonical public page: **h
 | --- | --- |
 | `pnpm dev` | `next dev --port 19820` |
 
-Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd). Stdout/stderr append to gitignored **`logs/website.log`** and **`logs/website.err.log`** in this checkout (same pattern as instance/UI); production deploys to Cloudflare Workers only.
+Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only.
 | `pnpm build` | `next build --webpack` |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
