@@ -93,6 +93,13 @@ curl -fsSL https://<instance-host>:8443/run.sh | sh -s -- \
 The installer self-escalates with `sudo` and prompts for your password when
 needed — do not prefix the pipeline with `sudo`.
 
+While provisioning runs, the terminal shows a **rolling status view** (spinner on
+TTY hosts) with neutral labels — orchestration instead of Ansible tool names,
+**cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role
+names, and env vars on disk are unchanged; full detail remains in
+`/var/log/turbopanel/daemon.log` after install. See the daemon repo
+[`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopanel-daemon/blob/trunk/AGENTS.md#installer-presentation-layer).
+
 For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
 Re-run the same command any time to upgrade or reconcile a node.
