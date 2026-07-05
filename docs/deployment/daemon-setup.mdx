@@ -97,21 +97,22 @@ For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
 Re-run the same command any time to upgrade or reconcile a node.
 
-### Refresh an existing node (`turbopanel-update`)
+### Refresh an existing node
 
-If the server is already installed, run the **`turbopanel-update` helper** that
-`run.sh` installs into the managed tree (not a CDN URL — unlike `run.sh`, and no
-source checkout required). It reads the license from `/var/lib/turbopanel` and
-the channel/host from `/etc/turbopanel/daemon.env`:
+If the server is already installed, re-run the same **`run.sh`** installer. Build
+the license argument from state on disk (or copy a fresh install command from the UI):
 
 ```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update
-```
+LICENSE_B64=$(python3 -c "
+import base64
+id = open('/var/lib/turbopanel/license.id').read().strip()
+tok = open('/var/lib/turbopanel/license.token').read().strip()
+print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
+")
 
-Switch channel (read from `daemon.env`, override per-run):
-
-```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk
+curl -fsSL https://trbp.nl/run.sh | sh -s -- \
+  --license "$LICENSE_B64" \
+  --channel trunk
 ```
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
@@ -143,8 +144,7 @@ checkout** on a managed server:
 | Purpose | Path |
 | ------- | ---- |
 | Native daemon binary | `/opt/turbopanel/bin/turbopaneld` |
-| Deno `deno run` fallback (when the native binary can't run) | `/opt/turbopanel/bin/turbopaneld.js` |
-| Manual update helper | `/opt/turbopanel/bin/turbopanel-update` |
+| Deno `deno run` fallback (only when the native binary cannot run) | `/opt/turbopanel/bin/turbopaneld.js` |
 | Orchestration assets (Ansible) | `/opt/turbopanel/share/orchestration` |
 | Static UI export (control plane host) | `/opt/turbopanel/share/ui` |
 | Vendored runtimes (deno/uv/python/ansible/cloudflared) | `/opt/turbopanel/lib/runtime` |

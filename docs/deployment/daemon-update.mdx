@@ -5,11 +5,11 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Use the **`turbopanel-update` helper** that `run.sh` installs into the managed FHS tree at `/opt/turbopanel/bin/turbopanel-update` — it is **not** a CDN short URL like `run.sh`, and it needs **no source checkout**.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — it reads license state from disk and reconciles the FHS tree in place.
 
 ## When to use this
 
-Use the update helper when:
+Use a manual `run.sh` refresh when:
 
 - The server badge shows **Offline** but the daemon service is running (`systemctl status turbopaneld`)
 - The **Update** button in the UI errors or does nothing (common on very old builds)
@@ -32,45 +32,53 @@ Use the update helper when:
 On the managed server, as **root**:
 
 ```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update
+LICENSE_B64=$(python3 -c "
+import base64
+id = open('/var/lib/turbopanel/license.id').read().strip()
+tok = open('/var/lib/turbopanel/license.token').read().strip()
+print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
+")
+
+curl -fsSL https://trbp.nl/run.sh | sh -s -- \
+  --license "$LICENSE_B64" \
+  --channel trunk
 ```
 
-That helper:
+The installer:
 
-1. Reads your **license** from `/var/lib/turbopanel/license.id` + `license.token` (saved at install)
-2. Reads your **update channel** from `/etc/turbopanel/daemon.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
+1. Uses your **license** from the `--license` argument (built from `/var/lib/turbopanel/license.id` + `license.token` above)
+2. Reads your **update channel** from `--channel` or `/etc/turbopanel/daemon.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
 3. Reads your **control plane URL** and **CA** from `daemon.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`, `TURBOPANEL_INSTANCE_CA`, else `/etc/turbopanel/instance-ca.pem`)
-4. Downloads the latest **`run.sh`** from `https://trbp.nl/run.sh` (the CDN installer)
-5. Reinstalls the daemon binary + orchestration tree, re-runs Ansible, and restarts `turbopaneld.service`
+4. Reinstalls the host-arch native binary + orchestration tree (and the JS fallback **only** when the native binary cannot execute)
+5. Re-runs Ansible and restarts `turbopaneld.service`
 
-<Callout type="warning" title="Not a curl pipe">
-  Unlike first-time install, there is no `trbp.nl/update.sh`. Always run the installed helper at the path above. Piping `curl | sh` as a non-root user will hang or fail.
+<Callout type="warning" title="Run as root">
+  Pipe the installer to `sh` as **root** (`su -` or `sudo sh`). A non-root pipe will hang or fail when provisioning needs elevated privileges.
 </Callout>
 
 ### Self-hosted control plane
 
-Pass `--host` only if you need to override `daemon.env`:
+Add `--host` when the instance is not production Cloudflare:
 
 ```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update \
+curl -fsSL https://trbp.nl/run.sh | sh -s -- \
+  --license "$LICENSE_B64" \
   --host https://<instance-host>:8443
 ```
 
 ## Change update channel
 
-```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk
-```
-
-Preview without changing anything:
+Pass `--channel` on the same command:
 
 ```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update --channel trunk --dry-run
+curl -fsSL https://trbp.nl/run.sh | sh -s -- \
+  --license "$LICENSE_B64" \
+  --channel edge
 ```
 
 ## If the license file is missing
 
-The update helper reads:
+The refresh command reads:
 
 | File | Purpose |
 | ---- | ------- |
@@ -83,31 +91,7 @@ Check on the server:
 sudo ls -la /var/lib/turbopanel/
 ```
 
-If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and pass `--license` manually:
-
-```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update \
-  --license <base64url-from-install-command>
-```
-
-## Manual fallback (same as the helper)
-
-If you prefer not to use `turbopanel-update`, build the license argument yourself and pipe **`run.sh`** only:
-
-```bash
-LICENSE_B64=$(python3 -c "
-import base64
-id = open('/var/lib/turbopanel/license.id').read().strip()
-tok = open('/var/lib/turbopanel/license.token').read().strip()
-print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
-")
-
-curl -fsSL https://trbp.nl/run.sh | sudo sh -s -- \
-  --license "$LICENSE_B64" \
-  --channel trunk
-```
-
-Always use **`curl … trbp.nl/run.sh`** for the installer — not a local copy from the tree you are trying to replace.
+If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and run it on the server.
 
 ## Verify after update
 

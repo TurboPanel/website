@@ -41,13 +41,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 
 **Cause:** The server list uses a Postgres presence projection that can drift from live WebSocket state after a failed upgrade or reconnect.
 
-**Solution:** Refresh the node from the release channel:
-
-```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update
-```
-
-See [Refresh a stuck daemon](/docs/deployment/daemon-update) for channel changes and missing license files.
+**Solution:** Re-run the release installer — see [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
 ## Daemon not connecting
 
@@ -107,11 +101,7 @@ sudo grep -i 'systemctl\|sudo\|update' /var/log/turbopanel/daemon/daemon.log | t
 sudo systemctl restart turbopaneld
 ```
 
-Or reconcile with the installed update helper (not a CDN URL):
-
-```bash
-sudo sh /opt/turbopanel/bin/turbopanel-update
-```
+Or reconcile by re-running `run.sh` — see [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
 ## Ansible / upgrade failures
 
