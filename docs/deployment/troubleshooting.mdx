@@ -91,8 +91,8 @@ already active). An in-memory lock then blocks further updates.
 **Check logs on the server:**
 
 ```bash
-sudo tail -30 /var/log/turbopanel/daemon/daemon.err.log
-sudo grep -i 'systemctl\|sudo\|update' /var/log/turbopanel/daemon/daemon.log | tail -20
+sudo tail -30 /var/log/turbopanel/daemon.err.log
+sudo grep -i 'systemctl\|sudo\|update' /var/log/turbopanel/daemon.log | tail -20
 ```
 
 **Immediate recovery on the server:**
