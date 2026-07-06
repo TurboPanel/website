@@ -4,7 +4,7 @@
 
 **Default branch:** `trunk`
 
-**Docs content:** MDX under `docs/` (Fumadocs; `source.config.ts` → `dir: 'docs'`).
+**Docs content:** MDX under `docs/` (Fumadocs; `source.config.ts` → `dir: 'docs'`). Daemon-cell / Durable Object architecture docs must use the **SQLite-backed** Durable Object pricing model (rows read/written, `setAlarm()` = 1 row written, deletes = writes, KV-style methods billed as rows; compute requests incl. WS connect + 20:1 incoming-WS-message ratio + alarm invocations; 128 MB duration; hibernation) — **never legacy KV-backed DO pricing** — and the canonical source is `~/instance/AGENTS.md` (Daemon Cell). (Leave the actual docs/diagrams to the website-docs phase.)
 
 ## Pricing (copy source of truth)
 

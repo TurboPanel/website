@@ -97,8 +97,8 @@ pnpm deploy
   (`getByName(serverId)`) for live WS presence, outbox delivery, and request
   correlation — same `/api/daemon/v1/*` and `/ws/daemon/v1` paths as self-hosted.
   Self-hosted uses the Redis cell backend instead. UI status reads come from Postgres
-  only; the cell is not a polling API. See `instance/AGENTS.md` (Daemon Cell) for
-  cost/hibernation rules agents must not regress.
+  only; the cell is not a polling API. See [Daemon cell architecture](/docs/architecture/daemon-cell)
+  and `instance/AGENTS.md` (Daemon Cell) for cost/hibernation rules agents must not regress.
 </Callout>
 
 ### Contributor local dev
