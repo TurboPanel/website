@@ -31,7 +31,14 @@ const lastModified = require(
   path.join(mdxRootResolved, 'dist', 'plugins', 'last-modified.js')
 ).default
 
-function toMermaidMdx(code) {
+interface RemarkNode {
+  type?: string
+  lang?: string
+  value?: string
+  children?: RemarkNode[]
+}
+
+function toMermaidMdx(code: string) {
   const chart = code.trim()
   return {
     type: 'mdxJsxFlowElement',
@@ -66,8 +73,8 @@ function toMermaidMdx(code) {
 }
 
 function remarkMdxMermaid() {
-  return (tree) => {
-    function walk(node) {
+  return (tree: RemarkNode) => {
+    function walk(node: RemarkNode) {
       if (!node?.children) return
       for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i]
