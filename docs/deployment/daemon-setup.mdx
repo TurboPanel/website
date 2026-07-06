@@ -5,7 +5,7 @@ description: Install and configure TurboPanel daemons on managed servers
 
 # Daemon Setup
 
-The TurboPanel **daemon** ([turbopanel-daemon](https://github.com/turbopanel/turbopanel-daemon)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
+The TurboPanel **daemon** ([turbopaneld](https://github.com/turbopanel/turbopaneld)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
 
 ## Overview
 
@@ -98,7 +98,7 @@ TTY hosts) with neutral labels — orchestration instead of Ansible tool names,
 **cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role
 names, and env vars on disk are unchanged; full detail remains in
 `/var/log/turbopanel/daemon.log` after install. See the daemon repo
-[`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopanel-daemon/blob/trunk/AGENTS.md#installer-presentation-layer).
+[`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md#installer-presentation-layer).
 
 For self-hosted HTTPS, the installer fetches the platform CA from
 `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
@@ -126,7 +126,7 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
 mismatches, missing license files, and self-hosted hosts.
 
 <Callout type="info" title="Control plane host">
-  On the machine that runs the instance, use the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  On the machine that runs the instance, use the [dev](https://github.com/turbopanel/dev)
   console (**Start dev stack**) or Ansible co-located install — not the remote node installer.
 </Callout>
 
@@ -166,7 +166,7 @@ checkout** on a managed server:
   `turbopaneld.js` fallback via the vendored Deno.
 
 <Callout type="info" title="Co-located dev is different">
-  A control-plane host provisioned via the [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev)
+  A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev)
   console runs the daemon **from a source checkout** under `$HOME` (e.g. `~/daemon`, via
   `deno run main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
   and sockets under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`,
@@ -211,4 +211,4 @@ See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 
 - [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
 - [Security](/docs/deployment/security) — TLS and socket hardening
-- [Daemon README](https://github.com/turbopanel/turbopanel-daemon/blob/trunk/README.md) — Maintainer reference
+- [Daemon README](https://github.com/turbopanel/turbopaneld/blob/trunk/README.md) — Maintainer reference

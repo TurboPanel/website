@@ -9,15 +9,15 @@ This page describes how the TurboPanel **multi-repo** dev environment is orchest
 
 ## Repository model
 
-TurboPanel split from a single monorepo into sibling repositories. The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repo is the entry point — it does **not** contain platform source; it installs and drives them.
+TurboPanel split from a single monorepo into sibling repositories. The [dev](https://github.com/turbopanel/dev) repo is the entry point — it does **not** contain platform source; it installs and drives them. Local checkout path is `~/dev`, independent of the GitHub repo name.
 
 | Location | GitHub repo | Role |
 | -------- | ----------- | ---- |
-| `~/dev/` | turbopanel/turbopanel-dev | `./console`, bootstrap installer, Ink dev UI |
-| `~/daemon/` | turbopanel/turbopanel-daemon | Remote daemon + Ansible (installed by console) |
-| `~/instance/` | turbopanel/instance | Hono API (Workers wrangler + Deno self-hosted) |
-| `~/ui/` | turbopanel/turbopanel-ui | Expo web / native UI |
-| `~/website/` | turbopanel/turbopanel-website | Marketing + Fumadocs (this site) |
+| `~/dev/` | turbopanel/dev | `./console`, bootstrap installer, Ink dev UI |
+| `~/daemon/` | turbopanel/turbopaneld | Remote daemon + Ansible (installed by console) |
+| `~/instance/` | turbopanel/turbopanel | Hono API (Workers wrangler + Deno self-hosted) |
+| `~/ui/` | turbopanel/ui | Expo web / native UI |
+| `~/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
 
 Paths resolve via `TURBOPANEL_DEV_ROOT` and per-repo `TURBOPANEL_<DIR>_REPO` overrides (defaults: `$HOME/{daemon,instance,ui,website}`).
 
@@ -69,7 +69,7 @@ The Ink console (`./console`) is the single operator surface:
 
 ```mermaid
 graph TD
-    console[turbopanel-dev console] --> daemon[turbopaneld.service]
+    console[dev console] --> daemon[turbopaneld.service]
     daemon --> ansible[Ansible instance-dev-install]
     ansible --> instance[turbopanel-instance.service]
     ansible --> caddy[turbopanel-caddy.service]
@@ -124,7 +124,7 @@ Browser traffic should use **Caddy on `:8443`** (HTTPS) or, on co-located dev on
 - **Drizzle + Postgres** — Schema in `instance/src/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
-- **Ink (`@deno-ink/core`)** — Terminal dev console in turbopanel-dev.
+- **Ink** — Terminal dev console in [turbopanel/dev](https://github.com/turbopanel/dev).
 - **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `instance/AGENTS.md` (Daemon Cell + Command Pipeline) and `instance/src/lib/commands/` / `daemon/src/instance/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).

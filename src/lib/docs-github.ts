@@ -1,6 +1,6 @@
 export const DOCS_GITHUB = {
   owner: 'turbopanel',
-  repo: 'turbopanel-website',
+  repo: 'website',
   sha: 'trunk',
 } as const
 

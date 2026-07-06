@@ -7,7 +7,7 @@ description: Bootstrap, dev console workflow, ports, and common development task
 
 This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
-TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`). The [turbopanel-dev](https://github.com/turbopanel/turbopanel-dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
+TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`). The [dev](https://github.com/turbopanel/dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
 
 ## Fresh-clone → working dev
 
@@ -32,7 +32,7 @@ Or, from an existing checkout:
 
 ```bash
 cd ~/dev
-sh scripts/develop.sh   # update turbopanel-dev only
+sh scripts/develop.sh   # update dev repo only
 ./console
 ```
 
@@ -98,8 +98,8 @@ Source repos live under `$HOME` (override with `TURBOPANEL_DEV_ROOT` and `TURBOP
 
 ```
 ~/
-├── dev/           # turbopanel-dev — console entrypoint
-├── daemon/        # turbopanel-daemon
+├── dev/           # turbopanel/dev — console entrypoint
+├── daemon/        # turbopanel/turbopaneld
 ├── instance/      # Hono API (Workers + Deno)
 ├── ui/            # Expo frontend
 └── website/       # marketing + docs (optional local run)
@@ -144,8 +144,8 @@ Each repo formats independently — run the formatter configured in that repo be
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Console as turbopanel-dev console
-    participant Daemon as turbopanel-daemon
+    participant Console as dev console
+    participant Daemon as turbopaneld
     participant Services as instance, Caddy, UI, Postgres
 
     Dev->>Console: ./console → Start dev stack

@@ -48,7 +48,7 @@ website/
 
 ## Key conventions
 
-- **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`turbopanel/turbopanel-website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
+- **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`turbopanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
 - **`getApiBaseUrl`** localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
 - **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_UI_CORS_ORIGINS`** on the instance (synced from `dev/.env` via `sync-env.sh`).

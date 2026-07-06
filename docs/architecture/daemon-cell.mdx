@@ -387,7 +387,7 @@ Two lease types:
 1. **Daemon-socket single-writer lease** — keyed by `connectionId` (`DAEMON_SOCKET_LEASE_NAME`, `holder = connectionId`). `DaemonCellLease = { holder, expiresAt }` (no duplicate `token`). Ensures one live cell attachment per server.
 2. **Delivery lease** — distinct from the socket lease (`claimDeliveryLease` / `renewDeliveryLease` / `releaseDeliveryLease`). Owns in-flight outbox delivery.
 
-Safety-critical single-daemon guarantee on managed hosts combines the cell lease with `IdlePresence` and `ensure-single-daemon.sh` flock on `/run/turbopanel/daemon.lock` (see [daemon AGENTS.md](https://github.com/turbopanel/turbopanel-daemon/blob/trunk/AGENTS.md)).
+Safety-critical single-daemon guarantee on managed hosts combines the cell lease with `IdlePresence` and `ensure-single-daemon.sh` flock on `/run/turbopanel/daemon.lock` (see [daemon AGENTS.md](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md)).
 
 ## JWT / JWKS auth flow
 
@@ -443,7 +443,7 @@ Setting `TURBOPANEL_DAEMON_DEBUG=1` (via `isDaemonDebugEnabled()`) surfaces per-
 - DO: incremented by `#sql(callSite,…)` / `#setAlarm` / `#deleteAlarm` wrappers (thin pass-through when debug is off)
 - Redis: equivalent counters via `#bumpMethodRoute` / `#bumpDiag`
 
-Greppable trace lines use the `daemon-cell` component tag in instance logs. The dev console **Cell trace** viewer tails these lines — see [turbopanel-dev AGENTS.md](https://github.com/turbopanel/turbopanel-dev/blob/trunk/AGENTS.md).
+Greppable trace lines use the `daemon-cell` component tag in instance logs. The dev console **Cell trace** viewer tails these lines — see [dev AGENTS.md](https://github.com/turbopanel/dev/blob/trunk/AGENTS.md).
 
 ## Billing audit checklist
 
