@@ -63,6 +63,16 @@
   padding-inline: 1rem;
 }
 
+/* fd-step badges anchor to each step row (fumadocs utility only styles ::before). */
+.fd-step {
+  position: relative;
+  padding-bottom: 1.25rem;
+}
+
+.fd-step:last-child {
+  padding-bottom: 0;
+}
+
 @media (min-width: 768px) {
   #nd-page {
     padding-inline: 1.5rem;

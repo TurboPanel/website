@@ -31,6 +31,57 @@ const lastModified = require(
   path.join(mdxRootResolved, 'dist', 'plugins', 'last-modified.js')
 ).default
 
+function toMermaidMdx(code) {
+  const chart = code.trim()
+  return {
+    type: 'mdxJsxFlowElement',
+    name: 'Mermaid',
+    attributes: [
+      {
+        type: 'mdxJsxAttribute',
+        name: 'chart',
+        value: {
+          type: 'mdxJsxAttributeValueExpression',
+          value: JSON.stringify(chart),
+          data: {
+            estree: {
+              type: 'Program',
+              body: [
+                {
+                  type: 'ExpressionStatement',
+                  expression: {
+                    type: 'Literal',
+                    value: chart,
+                  },
+                },
+              ],
+              sourceType: 'module',
+            },
+          },
+        },
+      },
+    ],
+    children: [],
+  }
+}
+
+function remarkMdxMermaid() {
+  return (tree) => {
+    function walk(node) {
+      if (!node?.children) return
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i]
+        if (child.type === 'code' && child.lang === 'mermaid' && child.value) {
+          node.children[i] = toMermaidMdx(child.value)
+        } else {
+          walk(child)
+        }
+      }
+    }
+    walk(tree)
+  }
+}
+
 export const docs = defineDocs({
   dir: 'docs',
   docs: {
@@ -44,4 +95,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   plugins: [lastModified()],
+  mdxOptions: {
+    remarkPlugins: [remarkMdxMermaid],
+  },
 })

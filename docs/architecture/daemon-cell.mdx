@@ -139,7 +139,7 @@ sequenceDiagram
     Instance->>Cell: putSnapshot keyLastUsedAt lastSeenAt (async RPC)
     Note right of Cell: DO wake · read cell · write cell
     Instance-->>Daemon: EdDSA JWT (15 min)
-    Note right of Instance: JWT returned from Worker isolate; DO billed separately
+    Note right of Instance: JWT returned from Worker isolate, DO billed separately
 
     Daemon->>Instance: GET /ws/daemon/v1 Authorization Bearer
     Instance->>Cell: attachDaemonSocket (single-writer lease)
