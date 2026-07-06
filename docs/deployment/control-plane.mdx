@@ -90,7 +90,7 @@ pnpm install
 pnpm deploy
 ```
 
-`pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy. The legacy `pnpm deploy:workers` script remains as a compatibility alias to `pnpm deploy`.
+`pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
 
 <Callout type="info" title="Daemon Cell on Workers">
   Cloud-hosted coordination uses a **hibernation-safe Durable Object per server**

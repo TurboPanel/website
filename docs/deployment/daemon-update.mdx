@@ -12,7 +12,7 @@ Sometimes a managed server **looks offline in the UI** even though the daemon is
 Use a manual `run.sh` refresh when:
 
 - The server badge shows **Offline** but the daemon service is running (`systemctl status turbopaneld`)
-- The **Update** button in the UI errors or does nothing (common on very old builds)
+- The **Update** button in the UI errors or does nothing
 - You changed **update channel** in `/etc/turbopanel/daemon.env` and want to pull from the new channel immediately
 - You want to **reconcile** after a bad upgrade (daemon disabled, wrong version, etc.)
 

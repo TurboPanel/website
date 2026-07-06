@@ -9,7 +9,7 @@ This guide helps resolve common issues when deploying or running TurboPanel in p
 
 ## Introduction
 
-Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. Self-hosted browser entrypoint is **HTTPS on port 8443** (Caddy), not the legacy `:18282` Docker image port. On co-located dev hosts only, Caddy also serves a plaintext mirror at **`http://<host>:8880`** when **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`**.
+Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. Self-hosted browser entrypoint is **HTTPS on port 8443** (Caddy). On co-located dev hosts only, Caddy also serves a plaintext mirror at **`http://<host>:8880`** when **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`**.
 
 ## Port conflicts (8443 / 8880)
 

@@ -82,8 +82,7 @@ TurboPanel daemon cells use **SQLite-backed** Durable Objects. Do not apply lega
     synchronously calls `#initializeFromStorage()` from the constructor body.
   </Step>
   <Step>
-    **`#initializeFromStorage()`** — calls `#ensureSchema()` (creates SQLite tables; one-time idempotent
-    migration renames legacy `cell_meta` → `cell`, migrates rows, and drops the old table), reads
+    **`#initializeFromStorage()`** — calls `#ensureSchema()` (creates SQLite tables), reads
     `cell` once (`SELECT server_id, remote_address, agent_json`), caches `#serverId`, and sets in-memory
     `#runtimeConnected` when `#hasLiveSocket()` finds a live WS attachment for that server.
   </Step>
@@ -265,7 +264,7 @@ SQLite tables in `DaemonCellObject` (`#ensureSchema`):
 | `connection_id` | In-memory + WS attachment (`serializeAttachment`) / `leases.holder` |
 | `connected` (persisted int) | In-memory `#runtimeConnected` + `getWebSockets()`; `last_seen_at` retained solely as offline-sweep input |
 
-The legacy `cell_meta` table was renamed to `cell` with a one-time idempotent migration. Co-located daemons are stored with `remote_address = '__direct__'` so colocated routing and tunnel assignment still work.
+Co-located daemons are stored with `remote_address = '__direct__'` so colocated routing and tunnel assignment still work.
 
 ```mermaid
 graph TD

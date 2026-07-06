@@ -52,7 +52,7 @@ The console drives a **dev layout** where source repos live under `$HOME` and mu
 | Sockets / runtime | `/run/turbopanel` (dev-user-owned) | `/run/turbopanel` (`2770 turbopanel:turbopanel`) |
 | systemd unit | `turbopaneld.service` (dev user) | `turbopaneld.service` (`turbopanel`) |
 
-Both modes share the `turbopaneld.service` unit name (renamed from the legacy `turbopanel-daemon`; old units are migrated on install). Production code never names the dev checkout root — a CI guard (`deno task check:layout`) and `src/orchestration/paths.test.ts` pin the two trees and the shared `DENO_VERSION` (`2.9.0`).
+Both modes use the `turbopaneld.service` systemd unit. Production code never names the dev checkout root — a CI guard (`deno task check:layout`) and `src/orchestration/paths.test.ts` pin the two trees and the shared `DENO_VERSION` (`2.9.1`).
 
 ## Dev console orchestration
 
