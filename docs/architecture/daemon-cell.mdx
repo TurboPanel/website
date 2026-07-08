@@ -135,10 +135,9 @@ sequenceDiagram
     Note right of Instance: No DO wake (Worker isolate)
 
     Daemon->>Instance: POST /api/daemon/v1/auth/session (signed payload)
-    Instance->>Cell: putSnapshot keyLastUsedAt lastSeenAt (async RPC)
-    Note right of Cell: DO wake · read cell · write cell
+    Instance->>Instance: touchDaemonKeyLastUsed (Postgres only)
+    Note right of Instance: No DO wake — primary DB write only
     Instance-->>Daemon: EdDSA JWT (15 min)
-    Note right of Instance: JWT returned from Worker isolate, DO billed separately
 
     Daemon->>Instance: GET /ws/daemon/v1 Authorization Bearer
     Instance->>Cell: attachDaemonSocket (single-writer lease)
@@ -161,15 +160,15 @@ Cost-safe Workers cells **must hibernate** when idle. Enforced rules:
 
 ### Presence model
 
-- **`hello`** — sent once on connect with agent identity.
-- **Wire cell ping** — after ~60 s of inbound silence, daemon sends `{"type":"ping"}` (`DAEMON_CELL_PING`). On Workers the DO auto-responds with pong **without waking**.
-- **App-level `heartbeat`** — sent **only when the agent commit changed** since the last hello/heartbeat, not on every idle tick.
+- **`hello`** — sent once on connect with agent identity. On Workers, steady-state `hello` performs **no SQLite `cell` write** on the hot path — Postgres projection handles identity separately.
+- **Wire cell ping** — after ~60 s of inbound silence, daemon sends `{"type":"ping"}` (`DAEMON_CELL_PING`). On Workers the DO auto-responds with pong **without waking** — this is the primary idle liveness signal.
+- **App-level `heartbeat`** — sent **only when the agent commit changed** since the last hello/heartbeat, not on every idle tick. On Workers, steady-state heartbeats also perform **no SQLite `cell` write** on the hot path.
 
 ### Storage coalescing
 
-- `webSocketMessage` performs a **single consolidated `cell` read** per message.
-- `last_seen_at` writes are **coalesced** (`HEARTBEAT_COALESCE_MS`).
-- Postgres projection (`lastSeenAt`) is throttled to **≤ once/60 s**; steady-state heartbeats skip DB entirely.
+- Steady-state presence is **wire ping only** for liveness; auto-response timestamps (`getWebSocketAutoResponseTimestamp`) feed the offline-sweep cron.
+- `webSocketMessage` for `hello` / `heartbeat` does **not** write SQLite `cell` rows on the hot path on Workers.
+- Postgres projection (`lastSeenAt`) is throttled to **≤ once/60 s** when agent identity changes; steady-state heartbeats skip DB entirely.
 
 ### Before: recurring stale-sweep amplification
 
@@ -208,9 +207,8 @@ sequenceDiagram
     Note over Daemon,Storage: AFTER — disconnect-first, alarms for real work only
 
     Daemon->>DO: hello / heartbeat (when agent commit changes)
-    DO->>Storage: 1 consolidated cell read
-    DO->>Storage: coalesced last_seen_at write (throttled)
-    Note right of Storage: 20:1 request ratio + rows
+    Note right of DO: No SQLite cell write on hot path
+    Note right of Storage: Postgres projection only (throttled)
 
     Daemon->>DO: reply (command-ack / *-result / command-outcome)
     DO->>Storage: read cell + requests
@@ -280,8 +278,7 @@ graph TD
     attach -->|write| leases
     attach -->|write| cell
 
-    wsPresence["webSocketMessage hello/heartbeat"] -->|read 1x| cell
-    wsPresence -->|write coalesced| cell
+    wsPresence["webSocketMessage hello/heartbeat"] -->|no hot-path write| cell
 
     wsReply["webSocketMessage reply"] -->|read| cell
     wsReply -->|read| requests
@@ -289,9 +286,6 @@ graph TD
     wsReply -->|write cell on ack| cell
     wsReply -->|delete terminal| outbox
     wsReply -->|schedule| setAlarm
-
-    authSession["POST auth/session putSnapshot"] -->|read| cell
-    authSession -->|write keyLastUsedAt| cell
 
     pump["pumpOutbox"] -->|read batch| outbox
     pump -->|write sent_at| outbox
@@ -419,9 +413,9 @@ sequenceDiagram
     Instance->>Instance: sign session JWT active kid EdDSA
 
     Daemon->>Instance: POST /api/daemon/v1/auth/session
-    Instance->>Instance: getCell serverId putSnapshot async
-    Note right of Instance: DO RPC /rpc/snapshot PATCH · read+write cell
-    Instance-->>Daemon: JWT with kid header
+    Instance->>Instance: touchDaemonKeyLastUsed (Postgres)
+    Note right of Instance: No getCell / putSnapshot — Worker isolate only
+    Instance-->>Daemon: JWT with kid header EdDSA
 
     Daemon->>JWKS: fetch public keys
     Note right of JWKS: Worker HTTP · cached · no DO
@@ -451,8 +445,8 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 | Operation | Wakes DO | Reads storage | Writes storage | Billing impact |
 | --------- | -------- | ------------- | -------------- | -------------- |
 | WS connection establishment (upgrade) | Yes | `cell` + `leases` | lease + `cell` rows | 1 request + rows |
-| `POST /auth/session` → `putSnapshot` (async RPC) | Yes (DO RPC) | `cell` (return snapshot) | `cell` (`key_last_used_at`, `last_seen_at`) | 1 RPC request + rows |
-| Incoming WS message (`hello` / `heartbeat`) | Yes | 1 consolidated `cell` read | coalesced `last_seen_at` (throttled) | 20:1 request + rows |
+| `POST /auth/session` (JWT issuance) | No | — | Postgres `server.daemon.key.lastUsedAt` only | primary DB write |
+| Incoming WS message (`hello` / `heartbeat`, steady state) | Yes | none on hot path | none on hot path | 20:1 request when handled; no cell SQLite write |
 | Incoming WS reply (`command-ack`, `*-result`, `command-outcome`) | Yes | `cell` + `requests` | `requests` status update; may update `cell` (ack path); may DELETE `outbox` when terminal; may call `setAlarm()` | 20:1 request + heavier row I/O |
 | Wire ping `DAEMON_CELL_PING` (auto-response) | No | No | No | Not charged (outgoing pong + protocol) |
 | Alarm invocation (real pending work only) | Yes | outbox / requests | deletes / `setAlarm` | 1 request + rows |
@@ -460,10 +454,10 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 | WS close / error → cleanup | Yes | lease / `cell` | lease release + offline mark | request + rows |
 | JWKS fetch (`/jwks.json`) | No (normal Worker) | — | — | cached HTTP request |
 
-**Auth/session snapshot touch:** after JWT verification, `POST /api/daemon/v1/auth/session` fires
-`registry.getCell(serverId).putSnapshot({ keyLastUsedAt, lastSeenAt })` without blocking the HTTP
-response. On Workers this becomes a DO `/rpc/snapshot` PATCH — the object wakes, updates `cell`, and
-reads the row back for the RPC response.
+**Auth/session:** after JWT verification, `POST /api/daemon/v1/auth/session` updates
+`server.daemon.key.lastUsedAt` through the primary Postgres connection via
+`touchDaemonKeyLastUsed()` — it does **not** call `registry.getCell(serverId).putSnapshot()`
+and does not wake the Durable Object.
 
 **Inbound reply path:** non-presence WS messages skip `#handlePresenceMessage` and run
 `#recordInbound` (optional coalesced `cell` write) plus `#handleInbound`, which reads `requests`,
