@@ -5,7 +5,7 @@ description: Fix common Postgres and schema sync issues in local development
 
 # Database troubleshooting
 
-TurboPanel early development uses **drizzle-kit push** (`instance/sync.sh`) — not versioned SQL migrations. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/db/AGENTS.md` in the repository.
+TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`instance/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/lib/db/AGENTS.md` in the repository.
 
 ## Schema out of sync
 
@@ -45,8 +45,8 @@ TurboPanel early development uses **drizzle-kit push** (`instance/sync.sh`) — 
 
 ## Do not run (current policy)
 
-- `drizzle-kit migrate` or committed `drizzle/*.sql` migration files
-- Raw `drizzle-kit push` outside `./sync.sh` / `./introspect.sh` workflows
+- Raw `drizzle-kit push` outside `./sync.sh` / `./introspect.sh` workflows (use `./sync.sh` for Deno dev push)
+- Applying or committing migration SQL without reviewing generated files under `migrations/`
 
 ## Manual debugging
 

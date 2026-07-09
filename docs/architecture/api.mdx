@@ -77,7 +77,7 @@ Single **PostgreSQL 18** database per environment. Schema groups:
 | Config | `setting` |
 | Runtime | `server` |
 
-Early development uses **drizzle-kit push** (`./sync.sh`) — not versioned migrations. See `instance/src/db/AGENTS.md`.
+Schema changes are versioned in `instance/migrations/` and applied via `pnpm migrate` (Workers deploy and co-located dev converge). Deno dev can still use **drizzle-kit push** (`./sync.sh`) for quick iteration without committing SQL. See `instance/src/lib/db/AGENTS.md`.
 
 ## Daemon hub
 

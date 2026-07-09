@@ -45,7 +45,7 @@ The console drives a **dev layout** where source repos live under `$HOME` and mu
 | Source repos | `$HOME/{daemon,instance,ui,website}` | No source checkout (compiled release) |
 | Daemon entrypoint | `deno run main.ts` from `~/daemon` | `/opt/turbopanel/bin/turbopaneld` (native) or `turbopaneld.js` (`deno run` fallback) |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
-| Vendored runtimes | `/opt/turbopanel/lib/runtime` | `/opt/turbopanel/lib/runtime` |
+| Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
 | State / identity | `/var/lib/turbopanel` (dev-user-owned) | `/var/lib/turbopanel` |
 | Logs | `/var/log/turbopanel` (dev-user-owned) | `/var/log/turbopanel` |
@@ -92,10 +92,11 @@ On co-located dev hosts, Caddy also listens on **8880** (`CADDY_HTTP_PORT`) as a
 
 ## Database schema (development)
 
-There are **no versioned migration files** in early development. Schema stays aligned via drizzle-kit:
+Schema changes are versioned in `instance/migrations/`. Workers deploy and co-located dev converge apply pending SQL via `pnpm migrate` (tracked in `public.migration`). Deno dev can still use drizzle-kit push for quick iteration:
 
-1. **Push (code → DB):** edit `instance/src/db/schema.ts`, run `./sync.sh` from the instance checkout.
+1. **Push (code → DB, Deno dev only):** edit `instance/src/lib/db/schema.ts`, run `./sync.sh` from the instance checkout.
 2. **Pull (DB → code):** change tables in Drizzle Studio, then `./introspect.sh`.
+3. **Generate + apply migrations (Workers path):** edit `schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate`.
 
 On Deno startup, `ensureDbSchemaReady()` auto-pushes when the `user` table is missing (fresh Postgres volume).
 

@@ -154,7 +154,7 @@ checkout** on a managed server:
 | Deno `deno run` fallback (only when the native binary cannot run) | `/opt/turbopanel/bin/turbopaneld.js` |
 | Orchestration assets (Ansible) | `/opt/turbopanel/share/orchestration` |
 | Static UI export (control plane host) | `/opt/turbopanel/share/ui` |
-| Vendored runtimes (deno/uv/python/ansible/cloudflared) | `/opt/turbopanel/lib/runtime` |
+| Vendored runtimes (deno/uv/python/ansible/cloudflared) | `/opt/turbopanel/vendor` |
 | Config (`daemon.env`, `instance-ca.pem`) | `/etc/turbopanel` |
 | Persistent identity (license, `server.id`, keys, tunnels) | `/var/lib/turbopanel` |
 | Logs | `/var/log/turbopanel` |
@@ -171,7 +171,7 @@ checkout** on a managed server:
   `deno run main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
   and sockets under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`,
   `/var/log/turbopanel`, `/run/turbopanel`); vendored runtimes under
-  `/opt/turbopanel/lib/runtime`. No dedicated `turbopanel` / `turbopaneli` / `turbopanelc`
+  `/opt/turbopanel/vendor`. No dedicated `turbopanel` / `turbopaneli` / `turbopanelc`
   service accounts are created — systemd units and Docker-backed services run as the
   current dev user. The FHS tree above (including `turbopanel:turbopanel`) applies to
   managed/production installs only.

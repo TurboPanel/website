@@ -33,7 +33,7 @@ On a fresh Debian or Ubuntu host:
 curl -fsSL https://develop.trbp.nl | sh
 ```
 
-In the console, choose **Start dev stack**. This writes developer identity into `/etc/turbopanel/daemon.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres: source repos under `$HOME` (`~/daemon`, `~/instance`, `~/ui`, `~/website`), mutable state under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`), and vendored runtimes under `/opt/turbopanel/lib/runtime`.
+In the console, choose **Start dev stack**. This writes developer identity into `/etc/turbopanel/daemon.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres: source repos under `$HOME` (`~/daemon`, `~/instance`, `~/ui`, `~/website`), mutable state under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`), and vendored runtimes under `/opt/turbopanel/vendor`.
 
 - **HTTPS entrypoint:** `https://<host>:8443` (Caddy)
 - **Install wizard:** first visit prompts host PAM + superadmin setup (Deno path)
