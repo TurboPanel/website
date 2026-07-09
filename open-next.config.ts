@@ -1,9 +1,11 @@
 import { defineCloudflareConfig } from '@opennextjs/cloudflare'
+import staticAssetsIncrementalCache from '@opennextjs/cloudflare/overrides/incremental-cache/static-assets-incremental-cache'
 
+// Marketing + docs are SSG. Serve prerendered HTML from Workers Static Assets
+// (free, unlimited) and skip loading Next.js page JS on cache hits.
+// No R2 / KV / D1 / DO queue needed unless we add ISR or on-demand revalidation.
+// See https://opennext.js.org/cloudflare/caching#ssg-site
 export default defineCloudflareConfig({
-  // Uncomment to enable R2 cache,
-  // It should be imported as:
-  // `import r2IncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/r2-incremental-cache";`
-  // See https://opennext.js.org/cloudflare/caching for more details
-  // incrementalCache: r2IncrementalCache,
+  incrementalCache: staticAssetsIncrementalCache,
+  enableCacheInterception: true,
 })
