@@ -60,14 +60,12 @@ export function buildScalarCookieAuthentication(
   }
 }
 
-/** Client + daemon sources: register both schemes; each spec picks its own from OpenAPI. */
-export function buildScalarMultiSourceAuthentication(
-  cookieName: string
-): AuthenticationConfiguration {
+/** Daemon surface: JWT Bearer only — do not register cookieAuth here. */
+export function buildScalarBearerAuthentication(): AuthenticationConfiguration {
   return {
+    preferredSecurityScheme: 'bearerAuth',
     createAnySecurityScheme: false,
     securitySchemes: {
-      cookieAuth: { name: cookieName },
       bearerAuth: { token: '' },
     },
   }

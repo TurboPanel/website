@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
-import { resolveSessionCookieNameFromBaseUrl } from '@/lib/scalar-session-cookie'
 import { getApiBaseUrl, getScalarDaemonOpenApiUrl, getScalarOpenApiUrl } from '@/lib/env'
 import {
-  buildScalarMultiSourceAuthentication,
+  buildScalarBearerAuthentication,
+  buildScalarCookieAuthentication,
   installScalarSessionCookieNameRowLock,
+  resolveSessionCookieNameFromBaseUrl,
   scalarSessionCookieNameRowCss,
 } from '@/lib/scalar-session-cookie'
 
@@ -145,17 +146,8 @@ export default function ApiDocsPage() {
   const scalarConfiguration = useMemo(() => {
     if (!primaryOpenApiUrl) return null
 
-    const sources: { url: string; title: string; slug: string }[] = [
-      { url: primaryOpenApiUrl, title: 'Client API', slug: 'client' },
-    ]
-    if (daemonOpenApiUrl) {
-      sources.push({ url: daemonOpenApiUrl, title: 'Daemon API', slug: 'daemon' })
-    }
-
-    return {
-      sources,
+    const shared = {
       ...(servers && servers.length > 0 ? { servers } : {}),
-      authentication: buildScalarMultiSourceAuthentication(sessionCookieName),
       persistAuth: true,
       theme: 'none' as const,
       layout: 'modern' as const,
@@ -165,6 +157,31 @@ export default function ApiDocsPage() {
       forceDarkModeState,
       customCss: scalarCustomCss,
     }
+
+    // One config per OpenAPI document so auth schemes stay surface-specific.
+    // A shared `sources` + global authentication registers every scheme on every doc.
+    const clientDocument = {
+      ...shared,
+      url: primaryOpenApiUrl,
+      title: 'Client API',
+      slug: 'client',
+      default: true as const,
+      authentication: buildScalarCookieAuthentication(sessionCookieName),
+    }
+
+    if (!daemonOpenApiUrl) return [clientDocument]
+
+    return [
+      clientDocument,
+      {
+        ...shared,
+        url: daemonOpenApiUrl,
+        title: 'Daemon API',
+        slug: 'daemon',
+        default: false as const,
+        authentication: buildScalarBearerAuthentication(),
+      },
+    ]
   }, [
     primaryOpenApiUrl,
     daemonOpenApiUrl,
