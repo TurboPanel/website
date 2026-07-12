@@ -1,4 +1,4 @@
 {
   "title": "Architecture",
-  "pages": ["index", "development-architecture", "api", "daemon-cell"]
+  "pages": ["index", "development-architecture", "api", "daemon-cell", "server-metrics"]
 }

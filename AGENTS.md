@@ -10,6 +10,8 @@
 
 Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing** (Edge-hosted tiers: base **$6**/mo including first server, **$4**/mo per additional server, annual **pay 10 get 12**; self-hosted control plane **free**, unlimited servers subject to customer infra).
 
+**Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
+
 ## Stack
 
 - **Next.js 16** App Router; **Turbopack** for `pnpm dev` (port **19820**); **webpack** for `next build --webpack` (OpenNext Cloudflare)

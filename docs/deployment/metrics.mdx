@@ -1,0 +1,96 @@
+---
+title: Server metrics operations
+description: Host metrics storage, ClickHouse resources, retention, troubleshooting, and privacy
+---
+
+# Server metrics operations
+
+Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For the wire contract, metric list, AE positional map, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
+
+## Configuration
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | `90` | ClickHouse table TTL (days) |
+| `TURBOPANEL_CLICKHOUSE_URL` | — | HTTP base, e.g. `http://127.0.0.1:8123` (Deno) |
+| `TURBOPANEL_CLICKHOUSE_DATABASE` | `turbopanel_metrics` | App database |
+| `TURBOPANEL_CLICKHOUSE_USER` | `turbopanel_app` | Least-privilege app user |
+| `TURBOPANEL_CLICKHOUSE_PASSWORD` | generated | In `runtime.dev-vars` on managed hosts |
+| `CLOUDFLARE_ACCOUNT_ID` | — | **Workers only** — required for Analytics Engine SQL reads |
+| `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` | — | **Workers only** — Account Analytics Read token for AE SQL queries |
+| `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS` | `7776000` (90 d) | **Workers only** — optional max query window override |
+
+When no storage backend is configured yet (pre-converge), the instance uses a temporary no-op store with a one-time boot warning until ClickHouse (Deno) or Analytics Engine (Workers) is wired.
+
+**Workers (hosted):** add the `SERVER_METRICS` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the hosted query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
+
+**Deno (self-hosted):** provide a full ClickHouse config to persist samples. Query failures return **503** `metrics_backend_unavailable`.
+
+Ansible injects ClickHouse env when `.clickhouse_app_pass` exists — see [daemon AGENTS.md](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md) (ClickHouse role).
+
+## ClickHouse resources (self-hosted)
+
+Installed by the daemon **`clickhouse`** Ansible role (co-located dev converge or `playbooks/clickhouse-setup.yml`).
+
+| Expectation | Detail |
+| ----------- | ------ |
+| Runtime | Docker container `turbopanelch` (official `clickhouse/clickhouse-server` image) on the `turbopanel` network |
+| Bind | **127.0.0.1:8123** HTTP only (no public exposure; native TCP 9000 stays internal to the container) |
+| Auth | Anonymous disabled; separate admin + app passwords (mode `0600` under `/etc/turbopanel/clickhouse/`) |
+| App user | `turbopanel_app` — created via SQL, scoped to `turbopanel_metrics` |
+| Data path | Named Docker volume `turbopanelch` (`/var/lib/clickhouse` in-container) |
+| Unit | `turbopanel-clickhouse.service` (`Type=oneshot`) |
+| Footprint | Single control-plane host; small-server MergeTree workload |
+
+Pin: `CLICKHOUSE_VERSION` **26.5.5.8** (daemon orchestration).
+
+## Retention
+
+| Layer | Config | Default |
+| ----- | ------ | ------- |
+| ClickHouse (`turbopanel_server_metrics`) | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | **90** days |
+| Analytics Engine (hosted) | Cloudflare platform | **3 months** — UI cannot exceed this on Workers |
+
+Change ClickHouse TTL via env on the instance unit (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`); the instance applies it when ensuring schema at runtime.
+
+## Troubleshooting ingestion
+
+| Symptom | Likely cause | Action |
+| ------- | ------------ | ------ |
+| No samples at all | ClickHouse/AE not wired | Verify ClickHouse env in `runtime.env` / `runtime.dev-vars`, or AE binding + SQL credentials on Workers |
+| Samples on Workers, not Deno | ClickHouse down or misconfigured | `systemctl status turbopanel-clickhouse`; verify URL/user/password in `runtime.env` / `runtime.dev-vars` |
+| API 503 on charts | ClickHouse unreachable | Fix ClickHouse service; check `/var/log/turbopanel/clickhouse/` |
+| Workers charts empty | AE SQL credentials missing | Set `CLOUDFLARE_ACCOUNT_ID` and `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN`; store reports `available: false` when either is absent |
+| Daemon connected, no metrics | Unsupported OS collector | Internal to `turbopaneld`: logs `metrics unsupported: unsupported_os:<os>`, stops periodic metrics for that attach, and does **not** send a metrics sample — check daemon logs |
+| Gap after connect | Normal warm-up | First rate metrics need two snapshots; allow ~1 min |
+
+Writes are fire-and-forget at the WebSocket boundary — ingestion errors do not block daemon liveness.
+
+## Troubleshooting missing charts (UI)
+
+| Symptom | Likely cause |
+| ------- | ------------ |
+| "No metrics yet" | Daemon offline or &lt; ~1 min since connect |
+| Storage still starting | ClickHouse (self-hosted) or AE binding/credentials (Workers) not ready yet — re-run instance-launch / converge |
+| Unsupported OS | Server OS metadata from daemon hello (`server.os.family !== 'linux'`) — not a metrics wire signal; Linux collector failures appear as no data/gaps instead |
+| Empty range | Selected window beyond retention (90 d API cap; 3 mo on hosted AE) |
+| Backend unavailable | ClickHouse 503 on self-hosted |
+| Gaps in lines | `sampleCount` &lt; `expectedSampleCount` — missing samples, not zero usage |
+| Stale appearance | Charts are not real-time below the ~60 s collection interval |
+
+Use `sampleCount`, `expectedSampleCount`, and `gapCount` from the series API — do not treat null/zero the same.
+
+## Privacy
+
+Metrics stores:
+
+- **`serverId`** (authenticated UUID index) — from server context after auth, not client-supplied identity
+- **Low-cardinality dimensions:** daemon version, OS name, architecture, kernel release
+
+Metrics does **not** store organization names, account emails, hostnames, client IPs, license tokens, or secrets. Query endpoints require session + server read grant — never bare UUID access.
+
+## Related
+
+- [Server metrics architecture](/docs/architecture/server-metrics) — contract, mappings, cost model
+- [Control plane deployment](/docs/deployment/control-plane) — instance + co-located daemon
+- [Daemon setup](/docs/deployment/daemon-setup) — remote node install

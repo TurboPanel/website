@@ -1,0 +1,189 @@
+---
+title: Server metrics architecture
+description: Shared host-metrics contract, Analytics Engine and ClickHouse storage, retention windows, and the dated Cloudflare cost model
+---
+
+# Server metrics architecture
+
+TurboPanel collects **host metrics** from connected daemons over `/ws/daemon/v1` — approximately one sample per minute per server. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
+
+<Callout type="info" title="Canonical source">
+  Agent maintenance detail lives in{' '}
+  <File path="AGENTS.md" href="https://github.com/turbopanel/turbopanel/blob/trunk/AGENTS.md">
+    instance/AGENTS.md
+  </File>{' '}
+  and{' '}
+  <File path="AGENTS.md" href="https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md">
+    daemon/AGENTS.md
+  </File>{' '}
+  (Host metrics). Operations: [Metrics deployment](/docs/deployment/metrics).
+</Callout>
+
+## Overview
+
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 1`) is mirrored in the daemon and instance repos (not build-coupled). Storage is **dual-runtime**:
+
+| Runtime | Store | Backend |
+| ------- | ----- | ------- |
+| Cloudflare Workers | Analytics Engine | `SERVER_METRICS` binding → `turbopanel_server_metrics` dataset |
+| Self-hosted Deno | ClickHouse | `ClickHouseServerMetricsStore` on `127.0.0.1:8123` |
+
+Store selection: `resolveServerMetricsStore` (always on — Workers → Analytics Engine, Deno → ClickHouse).
+
+```mermaid
+graph LR
+    Daemon["turbopaneld"] -->|"{ type: metrics } ~1/min"| WS["/ws/daemon/v1"]
+    WS --> Workers["Workers DO validate + write"]
+    WS --> Deno["Deno WS validate + write"]
+    Workers --> AE["Analytics Engine"]
+    Deno --> CH["ClickHouse"]
+    API["GET /metrics/series"] --> AE
+    API --> CH
+    UI["Server metrics UI"] --> API
+```
+
+Daemon wire frame:
+
+```json
+{
+  "type": "metrics",
+  "version": 1,
+  "at": "2026-07-12T12:00:00.000Z",
+  "intervalSeconds": 60,
+  "sequence": 42,
+  "metrics": { "cpuUsagePercent": 12.5, "load1": 0.8, "..." : "..." },
+  "dimensions": { "daemonVersion": "…", "operatingSystem": "…", "architecture": "…", "kernelRelease": "…" }
+}
+```
+
+Scheduling: **60 s** interval, ≤**5 s** deterministic per-`serverId` phase jitter, monotonic process-local `sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`.
+
+## 20-metric contract
+
+Order is fixed — positional AE doubles and ClickHouse columns depend on it (`HOST_METRIC_KEYS`).
+
+| # | Metric | Unit / semantics |
+| - | ------ | ---------------- |
+| 1 | `cpuUsagePercent` | Percent 0–100 (total CPU) |
+| 2 | `cpuUserPercent` | Percent 0–100 |
+| 3 | `cpuSystemPercent` | Percent 0–100 |
+| 4 | `cpuIowaitPercent` | Percent 0–100 |
+| 5 | `load1` | Load average (1 min) |
+| 6 | `load5` | Load average (5 min) |
+| 7 | `load15` | Load average (15 min) |
+| 8 | `memoryUsedPercent` | Percent 0–100 |
+| 9 | `memoryUsedBytes` | Bytes |
+| 10 | `memoryAvailableBytes` | Bytes |
+| 11 | `swapUsedPercent` | Percent 0–100 |
+| 12 | `diskUsedPercent` | Percent 0–100 (root filesystem `/`) |
+| 13 | `diskReadBytesPerSecond` | Bytes per second (aggregate disks) |
+| 14 | `diskWriteBytesPerSecond` | Bytes per second |
+| 15 | `diskReadOpsPerSecond` | Operations per second |
+| 16 | `diskWriteOpsPerSecond` | Operations per second |
+| 17 | `networkReceiveBytesPerSecond` | Bytes per second (excludes `lo`) |
+| 18 | `networkTransmitBytesPerSecond` | Bytes per second |
+| 19 | `processCount` | Count |
+| 20 | `uptimeSeconds` | Seconds |
+
+**Missing values** are `null` on the wire — never coerced to `0`. First-sample rate metrics (disk/network per-second) are `null` until a second delta exists.
+
+## Analytics Engine mapping (Workers)
+
+| Slot | Content |
+| ---- | ------- |
+| `indexes[0]` / `index1` | Authenticated `serverId` UUID only — never org, account, hostname, or metric name |
+| `double1` … `double20` | Metrics 1–20 in table order above |
+| `blob1` | Event type `"host"` |
+| `blob2` | Schema version (`"1"`) |
+| `blob3` | `daemonVersion` |
+| `blob4` | Operating system |
+| `blob5` | Architecture |
+| `blob6` | Kernel release |
+| `blob7` … `blob20` | Reserved empty strings until schema v2 |
+
+AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -1e308`** — never `0`. All host metrics are ≥ 0, so the sentinel cannot collide.
+
+**Query aggregation** (SQL API): filter `blob1 = 'host'` and supported `blob2`; rows under `result.data` (Cloudflare v4 envelope). Weighted average per bucket:
+
+```sql
+SUM(if(doubleN = -1e308, 0, _sample_interval * doubleN))
+/ NULLIF(SUM(if(doubleN = -1e308, 0, _sample_interval)), 0)
+```
+
+Metrics is **sampled** — always weight by `_sample_interval`; do not assume one row per minute.
+
+**Hosted retention:** Cloudflare Analytics Engine retains data for **3 months**. UI/API max range is 90 days on Workers; do not imply long-term persistence beyond AE retention on hosted deployments.
+
+## ClickHouse schema (self-hosted)
+
+Database `turbopanel_metrics`; DDL is idempotent (`ensureSchema` once per process).
+
+ClickHouse stores the **same positional column layout as Analytics Engine** — `timestamp`, `index1` (serverId), `double1..double20` (in `HOST_METRIC_KEYS` order), and `blob1..blob20` (identity dimensions + reserved slots) — in a single physical table named **`turbopanel_server_metrics`** (same as the AE dataset). Missing metrics use the same **`AE_MISSING_METRIC_SENTINEL` (`-1e308`)** as Analytics Engine — never `null` or coerced `0`. Query aggregates exclude the sentinel with the same filtering semantics as AE; resolution is chosen at **query time** (no rollup tables or materialized views).
+
+| Table | Role | Default TTL |
+| ----- | ---- | ----------- |
+| `turbopanel_server_metrics` | MergeTree raw samples (`ORDER BY (index1, timestamp)`) | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` (**90**) |
+
+**Late arrivals / duplicates:** all inserts accepted (no `ReplacingMergeTree` / `FINAL`). Legacy `host_metrics_raw` / rollup objects are removed during admin-owned converge migrations.
+
+## Query API & caching
+
+| Endpoint | Purpose |
+| -------- | ------- |
+| `GET /api/client/v1/servers/:id/metrics/series` | Time-series buckets for selected metrics |
+| `GET /api/client/v1/servers/:id/metrics/summary` | Aggregated summary for a range |
+
+Session + server read grant required. **One combined backend query** per `(server, range)` — not per metric or chart.
+
+**Resolution ladder:** range ≤ 6 h → 60 s; ≤ 24 h → 300 s; ≤ 30 d → 3600 s; else 86400 s (ClickHouse maps 60 → 300). Max **1500** points; range ≤ **90 days**.
+
+**Chart cache:** key includes authorized `serverId`, bucket-rounded range, sorted metrics, resolution, backend, schema version. TTL: live **45 s** / historical **300 s**.
+
+## Cost model
+
+<Callout type="warn" title="Verified: 12 July 2026 (Cloudflare docs updated 2026-04-23); currently not billed">
+  Cloudflare states Analytics Engine is **currently not billed**. The constants below are for
+  capacity planning only — not product pricing. TurboPanel product tiers remain on{' '}
+  <a href="https://turbopanel.io/pricing">turbopanel.io/pricing</a>.
+</Callout>
+
+### Cloudflare Analytics Engine limits & prices
+
+| Item | Workers Paid | Workers Free |
+| ---- | ------------ | ------------ |
+| **Writes** | 10M/mo included, then **$0.25/M** | 100k/day |
+| **Reads** (SQL API) | 1M/mo included, then **$1.00/M** | 10k/day |
+| **Retention** | **3 months** | **3 months** |
+| Per `writeDataPoint` | ≤ 250 data points/invocation; ≤ 20 doubles, 20 blobs, 1 index; blobs ≤ 16 KB; index ≤ 96 B | same |
+
+All **20 metrics = one** `writeDataPoint` per sample (one AE data point per minute per server).
+
+### Write volume formulas
+
+| Constant | Value |
+| -------- | ----- |
+| Samples per server per day | `86400 / intervalSeconds` = **1,440** @ 60 s |
+| Samples per server per 30-day month | **43,200** |
+| Monthly AE writes (fleet) | `connectedServers × (2,592,000 / intervalSeconds)` |
+| Included write allowance | **10,000,000**/mo |
+| Break-even (connected servers @ 1 min) | `10,000,000 / 43,200 ≈ **231**` servers before write overage |
+| Write overage cost | `max(0, monthlyWrites − 10,000,000) / 1,000,000 × $0.25` |
+
+### Read volume (dashboards)
+
+Reads scale with **dashboard views ÷ cache TTL** (live 45 s / historical 300 s), **not** chart count or fleet size — one combined query per server/range/resolution, cache-collapsed.
+
+| Item | Value |
+| ---- | ----- |
+| Included SQL reads | **1,000,000**/mo |
+| Read overage | `$1.00` per million |
+
+### Worked examples (60 s interval, all servers connected 24×7)
+
+| Connected servers | Monthly writes | Write overage | Est. write cost/mo |
+| ----------------- | -------------- | ------------- | ------------------ |
+| 100 | 4,320,000 | 0 | $0.00 |
+| 1,000 | 43,200,000 | 33,200,000 | $8.30 |
+| 5,000 | 216,000,000 | 206,000,000 | $51.50 |
+
+Cloudflare **currently does not bill** Analytics Engine — treat overage dollars as planning figures until billing activates.
