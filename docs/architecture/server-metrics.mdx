@@ -124,7 +124,7 @@ ClickHouse stores the **same positional column layout as Analytics Engine** — 
 | ----- | ---- | ----------- |
 | `turbopanel_server_metrics` | MergeTree raw samples (`ORDER BY (index1, timestamp)`) | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` (**90**) |
 
-**Late arrivals / duplicates:** all inserts accepted (no `ReplacingMergeTree` / `FINAL`). Legacy `host_metrics_raw` / rollup objects are removed during admin-owned converge migrations.
+**Late arrivals / duplicates:** all inserts accepted (no `ReplacingMergeTree` / `FINAL`).
 
 ## Query API & caching
 

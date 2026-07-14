@@ -34,11 +34,11 @@ Installed by the daemon **`clickhouse`** Ansible role (co-located dev converge o
 
 | Expectation | Detail |
 | ----------- | ------ |
-| Runtime | Docker container `turbopanela` (official `clickhouse/clickhouse-server` image) on the `turbopanel` network |
+| Runtime | Docker container `turbopanel-analytics` (official `clickhouse/clickhouse-server` image) on the `turbopanel` network |
 | Bind | **127.0.0.1:8123** HTTP only (no public exposure; native TCP 9000 stays internal to the container) |
 | Auth | Anonymous disabled; separate admin + app passwords (mode `0600` under `/etc/turbopanel/clickhouse/`) |
 | App user | `turbopanel_app` — created via SQL, scoped to `turbopanel_metrics` |
-| Data path | Named Docker volume `turbopanela` (`/var/lib/clickhouse` in-container) |
+| Data path | Named Docker volume `turbopanel-analytics` (`/var/lib/clickhouse` in-container) |
 | Unit | `turbopanel-clickhouse.service` (`Type=oneshot`) |
 | Footprint | Single control-plane host; small-server MergeTree workload |
 
