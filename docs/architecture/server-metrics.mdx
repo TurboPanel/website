@@ -106,8 +106,8 @@ AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -
 **Query aggregation** (SQL API): filter `blob1 = 'host'` and supported `blob2`; rows under `result.data` (Cloudflare v4 envelope). Weighted average per bucket:
 
 ```sql
-SUM(if(doubleN = -pow(10, 308), 0, _sample_interval * doubleN))
-/ SUM(if(doubleN = -pow(10, 308), 0, _sample_interval))
+SUM(if(doubleN = -pow(10, 308), 0.0, _sample_interval * doubleN))
+/ SUM(if(doubleN = -pow(10, 308), 0.0, _sample_interval * 1.0))
 ```
 
 Metrics is **sampled** — always weight by `_sample_interval`; do not assume one row per minute.
