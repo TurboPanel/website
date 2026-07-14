@@ -238,6 +238,9 @@ On Workers:
 1. **`webSocketClose` / `webSocketError`** → `#cleanupWebSocket` marks offline and releases the lease immediately on clean disconnect.
 2. **No periodic stale-sweep alarm** — silent half-open sockets self-heal on reconnect (lease force-detach) or command dispatch (outbox requeue → consumer timeout).
 3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable outbox, retries, expiry, or terminal retention work.
+4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost.
+
+**WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the instance-side max-age check remains only as that suspect-path backstop.
 
 On Redis (self-hosted), timer-driven `maintain()` + `sweepStalePresence` remain the offline path — cost-safe because there is no DO billing.
 
@@ -446,6 +449,7 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 | --------- | -------- | ------------- | -------------- | -------------- |
 | WS connection establishment (upgrade) | Yes | `cell` + `leases` | lease + `cell` rows | 1 request + rows |
 | `POST /auth/session` (JWT issuance) | No | — | Postgres `server.daemon.key.lastUsedAt` only | primary DB write |
+| `POST /api/daemon/v1/metrics` (host metrics ingest) | No | — | AE / ClickHouse only | normal Worker/Deno request; **no DO duration** |
 | Incoming WS message (`hello` / `heartbeat`, steady state) | Yes | none on hot path | none on hot path | 20:1 request when handled; no cell SQLite write |
 | Incoming WS reply (`command-ack`, `*-result`, `command-outcome`) | Yes | `cell` + `requests` | `requests` status update; may update `cell` (ack path); may DELETE `outbox` when terminal; may call `setAlarm()` | 20:1 request + heavier row I/O |
 | Wire ping `DAEMON_CELL_PING` (auto-response) | No | No | No | Not charged (outgoing pong + protocol) |
@@ -453,6 +457,9 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 | `setAlarm()` (skipped when unchanged) | — | — | 1 row when target changes | 1 row written |
 | WS close / error → cleanup | Yes | lease / `cell` | lease release + offline mark | request + rows |
 | JWKS fetch (`/jwks.json`) | No (normal Worker) | — | — | cached HTTP request |
+| Offline-sweep `checkLiveness` (AE suspects only) | Yes (suspects) | auto-response timestamp only | none | 1 subrequest per suspect; AE-active servers skip entirely |
+
+**Host metrics no longer traverse the Durable Object** — they use `POST /api/daemon/v1/metrics` on the normal Worker isolate / Deno process — so idle connected servers incur no DO duration for metrics. AE pricing constants live in [Server metrics](/docs/architecture/server-metrics), not here.
 
 **Auth/session:** after JWT verification, `POST /api/daemon/v1/auth/session` updates
 `server.daemon.key.lastUsedAt` through the primary Postgres connection via

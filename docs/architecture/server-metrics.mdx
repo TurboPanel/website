@@ -5,7 +5,7 @@ description: Shared host-metrics contract, Analytics Engine and ClickHouse stora
 
 # Server metrics architecture
 
-TurboPanel collects **host metrics** from connected daemons over `/ws/daemon/v1` — approximately one sample per minute per server. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
+TurboPanel collects **host metrics** from connected daemons via authenticated `POST /api/daemon/v1/metrics` — approximately one sample per minute per server. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
 
 <Callout type="info" title="Canonical source">
   Agent maintenance detail lives in{' '}
@@ -32,17 +32,18 @@ Store selection: `resolveServerMetricsStore` (always on — Workers → Analytic
 
 ```mermaid
 graph LR
-    Daemon["turbopaneld"] -->|"{ type: metrics } ~1/min"| WS["/ws/daemon/v1"]
-    WS --> Workers["Workers DO validate + write"]
-    WS --> Deno["Deno WS validate + write"]
-    Workers --> AE["Analytics Engine"]
-    Deno --> CH["ClickHouse"]
+    Daemon["turbopaneld"] -->|"WS: commands / outbox / cell ping"| WS["/ws/daemon/v1 (DO / Redis)"]
+    Daemon -->|"POST /api/daemon/v1/metrics ~1/min (JWT)"| HTTP["Worker isolate / Deno (no DO)"]
+    HTTP --> AE["Analytics Engine"]
+    HTTP --> CH["ClickHouse"]
+    Cron["offline-sweep cron"] -->|"1 fleet AE SQL read/tick"| AE
+    Cron -->|"checkLiveness only for AE-suspects"| WS
     API["GET /metrics/series"] --> AE
     API --> CH
     UI["Server metrics UI"] --> API
 ```
 
-Daemon wire frame:
+HTTP request body (protocol v1):
 
 ```json
 {
@@ -52,11 +53,11 @@ Daemon wire frame:
   "intervalSeconds": 60,
   "sequence": 42,
   "metrics": { "cpuUsagePercent": 12.5, "load1": 0.8, "..." : "..." },
-  "dimensions": { "daemonVersion": "…", "operatingSystem": "…", "architecture": "…", "kernelRelease": "…" }
+  "dimensions": { "schemaVersion": 1, "daemonVersion": "…", "operatingSystem": "…", "architecture": "…", "kernelRelease": "…" }
 }
 ```
 
-Scheduling: **60 s** interval, ≤**5 s** deterministic per-`serverId` phase jitter, monotonic process-local `sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`.
+Scheduling: **60 s** interval, ≤**5 s** deterministic per-`serverId` phase jitter, monotonic process-local `sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`. The daemon WS `{ type: "metrics" }` frame path is a deprecated transition fallback only.
 
 ## 20-metric contract
 
@@ -140,6 +141,8 @@ Session + server read grant required. **One combined backend query** per `(serve
 **Chart cache:** key includes authorized `serverId`, bucket-rounded range, sorted metrics, resolution, backend, schema version. TTL: live **45 s** / historical **300 s**.
 
 ## Cost model
+
+Metrics ingestion runs on the normal Worker isolate (or Deno process) and **no longer incurs Durable Object GB-sec** — see [Daemon Cell](/docs/architecture/daemon-cell) for DO billing. The Analytics Engine price constants, limits, and formulas below remain the single source of truth for AE cost planning.
 
 <Callout type="warn" title="Verified: 12 July 2026 (Cloudflare docs updated 2026-04-23); currently not billed">
   Cloudflare states Analytics Engine is **currently not billed**. The constants below are for
