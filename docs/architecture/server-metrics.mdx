@@ -101,13 +101,13 @@ Order is fixed — positional AE doubles and ClickHouse columns depend on it (`H
 | `blob6` | Kernel release |
 | `blob7` … `blob20` | Reserved empty strings until schema v2 |
 
-AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -1e308`** — never `0`. All host metrics are ≥ 0, so the sentinel cannot collide.
+AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -1e308`** — never `0`. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`** (scientific-notation literals and `NULLIF` are not documented for AE SQL).
 
 **Query aggregation** (SQL API): filter `blob1 = 'host'` and supported `blob2`; rows under `result.data` (Cloudflare v4 envelope). Weighted average per bucket:
 
 ```sql
-SUM(if(doubleN = -1e308, 0, _sample_interval * doubleN))
-/ NULLIF(SUM(if(doubleN = -1e308, 0, _sample_interval)), 0)
+SUM(if(doubleN = -pow(10, 308), 0, _sample_interval * doubleN))
+/ SUM(if(doubleN = -pow(10, 308), 0, _sample_interval))
 ```
 
 Metrics is **sampled** — always weight by `_sample_interval`; do not assume one row per minute.
