@@ -4,69 +4,69 @@ import { SiteHeader } from '@/components/marketing/SiteHeader'
 
 const PHASES = [
   {
-    title: 'Phase 1: Core Features',
+    title: 'Phase 1: Foundation',
     status: 'Complete',
-    summary: 'The first production foundation for TurboPanel is now in place.',
+    summary: 'Sign-in, install, and the dual control-plane model are ready to use.',
     focus: [
-      'Email/password auth, sessions, verification, password reset, and MFA',
-      'First-run install, root admin setup, and admin configuration',
-      'Organizations, users, settings, and API foundations',
-      'Self-hosted control plane, local dev, migrations, and setup docs',
+      'Email/password auth, sessions, email OTP, verification, and password reset',
+      'Self-hosted first-run install and Edge-hosted (Cloudflare Workers) control plane',
+      'Organizations, workspaces, users, invitations, and access grants',
+      'Public docs for setup, architecture, deployment, and the API',
     ],
   },
   {
-    title: 'Phase 2: Better Day-To-Day Ops',
+    title: 'Phase 2: Fleet Operations',
+    status: 'Complete',
+    summary: 'Manage many servers from one place without guessing what is online.',
+    focus: [
+      'Multi-server dashboard with live status, OS, and connection details',
+      'Host metrics charts for CPU, memory, disk, network, and more',
+      'Daemon connect, reconnect, ping, hostname, reboot, and trunk updates',
+      'Add-server flow with registration keys (licenses)',
+    ],
+  },
+  {
+    title: 'Phase 3: Apps and Deploy',
     status: 'In Progress',
-    summary: 'Tools that make managing multiple servers easier and less stressful.',
+    summary: 'Ship Docker Compose apps today; deepen everyday website hosting next.',
     focus: [
-      'Multi-server dashboard',
-      'CPU, memory, and disk visibility',
-      'Stronger reconnect and error handling',
-      'Cleaner, easier interface',
-    ],
-  },
-  {
-    title: 'Phase 3: Website Hosting Tools',
-    status: 'Planned',
-    summary: 'Helpful features for people running classic websites and web apps.',
-    focus: [
-      'WordPress and PHP support',
-      'Domain and SSL setup',
-      'Environment variable management',
-      'Database and scheduled task tools',
+      'Projects, environments, compose editing, and one-click deploy (shipped)',
+      'Secrets and environment variables, plus starter catalog templates (shipped)',
+      'Richer WordPress / PHP workflows and clearer domain + TLS setup',
+      'Database helpers, scheduled tasks, and better container day-to-day views',
     ],
   },
   {
     title: 'Phase 4: Reliability and Security',
     status: 'Planned',
-    summary: 'Make recovery, alerts, and security practices much stronger.',
+    summary: 'Make recovery, alerting, and account security feel production-grade.',
     focus: [
       'Backup and restore workflows',
-      'Health checks and alerts',
-      'Audit logs and security hardening',
-      'Smoother install and upgrade path',
+      'Health checks and operator alerts',
+      'MFA, audit logs, and further security hardening',
+      'Smoother install, upgrade, and recovery paths',
     ],
   },
   {
-    title: 'Phase 5: Team Features',
+    title: 'Phase 5: Teams and Automation',
     status: 'Planned',
-    summary: 'Built for teams that share access and responsibilities.',
+    summary: 'Share work safely and hook TurboPanel into the rest of your stack.',
     focus: [
-      'Team roles and permissions',
-      'Client account support',
-      'API tokens and webhooks',
+      'Deeper team roles and client-facing account support',
+      'API tokens for external automation',
+      'Webhooks for deploy and status events',
       'Usage and reporting views',
     ],
   },
   {
     title: 'Phase 6: Platform Expansion',
     status: 'Future',
-    summary: 'Longer-term improvements once core workflows are fully mature.',
+    summary: 'Longer-term surfaces once core hosting and ops workflows are mature.',
     focus: [
-      'Cloud-hosted control plane option',
-      'Managed daemon updates',
-      'Mobile operations interface',
+      'Native mobile operations experience',
       'Plugin and extension system',
+      'Broader app catalog and managed service presets',
+      'More operator tooling for large fleets',
     ],
   },
 ] as const
@@ -90,10 +90,11 @@ function HeroSection() {
           Product roadmap
         </p>
         <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-tight text-[var(--tp-text)] sm:text-5xl">
-          Here&apos;s what we&apos;re building next.
+          What&apos;s shipped — and what&apos;s next.
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--tp-text-muted)]">
-          We share our roadmap in public so you always know where TurboPanel is going.
+          We keep this roadmap honest: completed work stays listed, and upcoming phases
+          reflect what we are actually building next.
         </p>
       </div>
     </section>

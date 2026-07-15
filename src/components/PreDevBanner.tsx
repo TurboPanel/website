@@ -30,7 +30,7 @@ export function PreDevBanner() {
       <div className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500">
         <div className="flex items-center justify-between px-4 py-2.5 gap-4">
           <p className="text-sm font-medium text-white text-center flex-1">
-            TurboPanel is evolving fast — see what's coming next.{' '}
+            TurboPanel is evolving fast — see what&apos;s shipped and what&apos;s next.{' '}
             <Link
               href="/roadmap"
               className="underline underline-offset-2 font-semibold ml-1.5 hover:text-blue-100 transition-colors"

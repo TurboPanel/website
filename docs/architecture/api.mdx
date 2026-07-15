@@ -79,6 +79,44 @@ Single **PostgreSQL 18** database per environment. Schema groups:
 
 Schema changes are versioned in `instance/migrations/` and applied via `pnpm migrate` (Workers deploy and co-located dev converge). Deno dev can still use **drizzle-kit push** (`./sync.sh`) for quick iteration without committing SQL. See `instance/src/lib/db/AGENTS.md`.
 
+## Compose documents & server placement
+
+`project.options.compose` / `environment.options.compose` store a versioned **ComposeDocument** (`version: 1`, `data`, `presentation`) so YAML comments, blank lines, and section order survive editor round-trips. Deploy strips `presentation` to runtime YAML and merges the environment overlay onto the project base. The compose library lives at `instance/src/lib/compose/`.
+
+### `x-turbopanel` vendor extension
+
+TurboPanel reserves a top-level `x-turbopanel` key with a `placement.server_id` field. This is a **standard Docker Compose `x-*` vendor extension**, so `docker compose` itself ignores it — the key round-trips untouched through `composeDocumentToRuntimeYaml`.
+
+### Whole-project pinning (today)
+
+`placement.server_id` is read from the **project's base compose** and pins the **entire project — all its environments — to one server**. The value must be a server UUID in the same organization (validated; unknown or stale ids fail cleanly).
+
+### Deploy resolution
+
+`POST /api/client/v1/environments/:id/deploy` accepts an optional request body `serverId`. Resolution order:
+
+| Project pinned? | Body `serverId` | Result |
+| --- | --- | --- |
+| Yes | omitted | Deploy to the pinned server |
+| Yes | matches pin | Deploy to the pinned server |
+| Yes | differs from pin | `400 server_placement_mismatch` |
+| No | provided | Deploy to the requested server |
+| No | omitted | `400` (a target is required) |
+
+### Minimal example
+
+```yaml
+x-turbopanel:
+  placement:
+    server_id: 01989d42-9adb-7e65-bc2e-f38792c53691
+services:
+  ...
+```
+
+### Future: per-service placement
+
+**Per-service placement** (different services on different servers, Docker Swarm–style deploy compose) is a planned extension of this **same `x-turbopanel` mechanism** — the multi-server compose-placement seam noted in the instance/daemon architecture. It is not implemented yet.
+
 ## Daemon hub
 
 Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The instance resolves a canonical `server` row, dedupes reconnects, and routes commands over the hub (`src/daemon-hub.ts`).
