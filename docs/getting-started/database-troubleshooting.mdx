@@ -5,15 +5,15 @@ description: Fix common Postgres and schema sync issues in local development
 
 # Database troubleshooting
 
-TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`instance/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/lib/db/AGENTS.md` in the repository.
+TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/lib/db/AGENTS.md` in the repository.
 
 ## Schema out of sync
 
 | Issue | What to do |
 | ----- | ---------- |
-| API errors about missing columns/tables | From `instance/`: `./sync.sh` (or let Tilt `instance-db` run `./sync.sh --force` after editing `schema.ts`) |
-| You changed the DB in Studio | Run `./introspect.sh` to pull live schema into `src/db/schema.ts` |
-| Fresh Postgres volume | Deno auto-pushes on startup when `user` table is missing; or run `./sync.sh --force` manually |
+| API errors about missing columns/tables | From `dev/`: `./scripts/sync.sh` (or `./scripts/sync.sh --force` after editing `schema.ts`) |
+| You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `instance/src/lib/db/schema.ts` |
+| Fresh Postgres volume | Deno auto-pushes on startup when `user` table is missing; or run `dev/scripts/sync.sh --force` manually |
 
 ## Connection failures
 
@@ -30,8 +30,8 @@ TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied 
 **Manual:**
 
 ```bash
-# From instance/ with Postgres running
-./sync.sh --force   # after DROP SCHEMA public CASCADE; or use reset-dev API
+# From dev/ with Postgres running
+./scripts/sync.sh --force   # after DROP SCHEMA public CASCADE; or use reset-dev API
 ```
 
 **Nuclear (dev only):** stop Tilt, remove `dev/.postgresql/` data directory, `tilt up` (recreates empty Postgres).
@@ -40,19 +40,19 @@ TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied 
 
 - Start from the developer console Database section.
 - Open `https://local.drizzle.studio?host=localhost&port=4983`.
-- Studio applies DDL directly — follow with `./introspect.sh` to pull changes into `schema.ts`.
-- Close Studio before running `./sync.sh` to avoid connection contention.
+- Studio applies DDL directly — follow with `dev/scripts/introspect.sh` to pull changes into `schema.ts`.
+- Close Studio before running `dev/scripts/sync.sh` to avoid connection contention.
 
 ## Do not run (current policy)
 
-- Raw `drizzle-kit push` outside `./sync.sh` / `./introspect.sh` workflows (use `./sync.sh` for Deno dev push)
+- Raw `drizzle-kit push` outside `dev/scripts/sync.sh` / `dev/scripts/introspect.sh` workflows (use `dev/scripts/sync.sh` for Deno dev push)
 - Applying or committing migration SQL without reviewing generated files under `migrations/`
 
 ## Manual debugging
 
 ```bash
-# From instance/
-./sync.sh --verbose
+# From dev/
+./scripts/sync.sh --verbose
 docker exec -it $(docker ps -qf name=postgres) psql -U turbopanel -d turbopanel -c '\dt'
 ```
 

@@ -122,12 +122,12 @@ Source repos live under `$HOME` (override with `TURBOPANEL_DEV_ROOT` and `TURBOP
 
 ### Database schema
 
-TurboPanel ships versioned SQL migrations in `instance/migrations/`. Co-located dev converge and Workers deploy apply them via `pnpm migrate`. For quick Deno-only iteration without committing migration files, use drizzle-kit push from `instance/`:
+TurboPanel ships versioned SQL migrations in `instance/migrations/`. Co-located dev converge and Workers deploy apply them via `pnpm migrate`. For quick Deno-only iteration without committing migration files, use drizzle-kit push from the dev checkout:
 
 ```bash
-./sync.sh          # push schema.ts → Postgres (interactive)
-./sync.sh --force  # skip destructive-change prompts (dev only)
-./introspect.sh    # pull live DB → schema.ts
+./scripts/sync.sh          # push instance schema.ts → Postgres (interactive)
+./scripts/sync.sh --force  # skip destructive-change prompts (dev only)
+./scripts/introspect.sh    # pull live DB → instance schema.ts
 ```
 
 For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). The dev console **Database** section can reset the dev instance or start Drizzle Studio.

@@ -94,8 +94,8 @@ On co-located dev hosts, Caddy also listens on **8880** (`CADDY_HTTP_PORT`) as a
 
 Schema changes are versioned in `instance/migrations/`. Workers deploy and co-located dev converge apply pending SQL via `pnpm migrate` (tracked in `public.migration`). Deno dev can still use drizzle-kit push for quick iteration:
 
-1. **Push (code → DB, Deno dev only):** edit `instance/src/lib/db/schema.ts`, run `./sync.sh` from the instance checkout.
-2. **Pull (DB → code):** change tables in Drizzle Studio, then `./introspect.sh`.
+1. **Push (code → DB, Deno dev only):** edit `instance/src/lib/db/schema.ts`, run `./scripts/sync.sh` from the dev checkout.
+2. **Pull (DB → code):** change tables in Drizzle Studio, then `./scripts/introspect.sh` from the dev checkout.
 3. **Generate + apply migrations (Workers path):** edit `schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate`.
 
 On Deno startup, `ensureDbSchemaReady()` auto-pushes when the `user` table is missing (fresh Postgres volume).
