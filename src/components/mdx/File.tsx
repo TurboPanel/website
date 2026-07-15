@@ -3,11 +3,11 @@
 import type { ReactNode } from 'react'
 import { docsGithubBlobUrl } from '@/lib/docs-github'
 
-interface FileProps {
+type FileProps = Readonly<{
   path: string
   children?: ReactNode
   href?: string
-}
+}>
 
 export function File({ path, children, href }: FileProps) {
   const displayPath = children ?? path
@@ -28,7 +28,7 @@ export function File({ path, children, href }: FileProps) {
   )
 }
 
-function FileIcon({ path }: { path: string }) {
+function FileIcon({ path }: Readonly<{ path: string }>) {
   const ext = path.split('.').pop()?.toLowerCase() ?? ''
   const iconMap: Record<string, string> = {
     ts: '📄',

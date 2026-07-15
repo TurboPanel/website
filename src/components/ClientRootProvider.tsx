@@ -10,11 +10,11 @@ export function ClientRootProvider({
   children,
   i18n,
   theme,
-}: {
+}: Readonly<{
   children: React.ReactNode
   i18n?: { locale: string; translations?: { search?: string } }
   theme?: { enabled: boolean }
-}) {
+}>) {
   return (
     <RootProvider i18n={i18n} theme={theme}>
       {children}

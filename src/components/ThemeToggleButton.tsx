@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-type ThemeToggleButtonProps = {
+type ThemeToggleButtonProps = Readonly<{
   compact?: boolean
-}
+}>
 
 export function ThemeToggleButton({ compact = false }: ThemeToggleButtonProps) {
   const [mounted, setMounted] = useState(false)
@@ -16,7 +16,10 @@ export function ThemeToggleButton({ compact = false }: ThemeToggleButtonProps) {
   }, [])
 
   const isDark = resolvedTheme === 'dark'
-  const label = mounted ? (isDark ? 'Dark' : 'Light') : 'Theme'
+  let label = 'Theme'
+  if (mounted) {
+    label = isDark ? 'Dark' : 'Light'
+  }
 
   return (
     <button

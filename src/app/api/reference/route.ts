@@ -38,10 +38,10 @@ ${options.customCss}
   </head>
   <body>
     <div id="app"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
     <script type="text/javascript">
       Scalar.createApiReference('#app', ${configJson})
-    <\/script>
+    </script>
   </body>
 </html>`
 }

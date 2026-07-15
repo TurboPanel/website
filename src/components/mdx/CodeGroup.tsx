@@ -3,10 +3,10 @@
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs'
 import type { ReactNode } from 'react'
 
-interface CodeGroupProps {
+type CodeGroupProps = Readonly<{
   children: ReactNode
   titles?: string[]
-}
+}>
 
 export function CodeGroup({ children, titles = [] }: CodeGroupProps) {
   const items = Array.isArray(children) ? children : [children]
@@ -15,7 +15,7 @@ export function CodeGroup({ children, titles = [] }: CodeGroupProps) {
   return (
     <Tabs items={tabLabels}>
       {items.map((item, i) => (
-        <Tab key={i}>{item}</Tab>
+        <Tab key={tabLabels[i]}>{item}</Tab>
       ))}
     </Tabs>
   )

@@ -35,8 +35,8 @@ function MermaidContent({ chart }: Readonly<{ chart: string }>) {
         })
 
         const { svg: rendered, bindFunctions } = await mermaid.render(
-          id.replace(/:/g, ''),
-          chart.replaceAll('\\n', '\n'),
+          id.replaceAll(':', ''),
+          chart.replaceAll(String.raw`\n`, '\n'),
         )
 
         if (cancelled) return

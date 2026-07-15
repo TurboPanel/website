@@ -4,9 +4,9 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 
 type ActivePage = 'overview' | 'roadmap' | 'pricing' | 'docs'
 
-type SiteHeaderProps = {
+type SiteHeaderProps = Readonly<{
   active?: ActivePage
-}
+}>
 
 const LINKS = [
   { href: '/', label: 'Overview', key: 'overview' },
