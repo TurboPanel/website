@@ -117,7 +117,7 @@ Metrics is **sampled** — always weight by `_sample_interval`; do not assume on
 
 ## ClickHouse schema (self-hosted)
 
-Database `turbopanel_metrics`; DDL is idempotent (`ensureSchema` once per process).
+Database `turbopanel_metrics`; DDL is idempotent (`ensureSchema` once per process): `CREATE TABLE IF NOT EXISTS` plus `ALTER … MODIFY SETTING` (compact-part thresholds) and `ALTER … MODIFY TTL` so retention changes apply to existing tables.
 
 ClickHouse stores the **same positional column layout as Analytics Engine** — `timestamp`, `index1` (serverId), `double1..double20` (in `HOST_METRIC_KEYS` order), and `blob1..blob20` (identity dimensions + reserved slots) — in a single physical table named **`turbopanel_server_metrics`** (same as the AE dataset). Missing metrics use the same **`AE_MISSING_METRIC_SENTINEL` (`-1e308`)** as Analytics Engine — never `null` or coerced `0`. Query aggregates exclude the sentinel with the same filtering semantics as AE; resolution is chosen at **query time** (no rollup tables or materialized views).
 

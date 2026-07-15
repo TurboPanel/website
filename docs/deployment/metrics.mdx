@@ -40,7 +40,7 @@ Installed by the daemon **`clickhouse`** Ansible role (co-located dev converge o
 | App user | `turbopanel_app` — created via SQL, scoped to `turbopanel_metrics` |
 | Data path | Named Docker volume `turbopanel-analytics` (`/var/lib/clickhouse` in-container) |
 | Unit | `turbopanel-clickhouse.service` (`Type=oneshot`) |
-| Footprint | Single control-plane host; small-server MergeTree workload |
+| Footprint | Low-footprint profile: 64 MiB mark cache, 512 MiB server memory cap, container `--memory 768m` / `--cpus 1.0` |
 
 Pin: `CLICKHOUSE_VERSION` **26.5.5.8** (daemon orchestration).
 
@@ -51,7 +51,7 @@ Pin: `CLICKHOUSE_VERSION` **26.5.5.8** (daemon orchestration).
 | ClickHouse (`turbopanel_server_metrics`) | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | **90** days |
 | Analytics Engine (hosted) | Cloudflare platform | **3 months** — UI cannot exceed this on Workers |
 
-Change ClickHouse TTL via env on the instance unit (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`); the instance applies it when ensuring schema at runtime.
+Change ClickHouse TTL via env on the instance unit (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`). On `ensureSchema`, the instance creates the table with that TTL and idempotently runs `ALTER TABLE … MODIFY TTL` so existing installations pick up retention changes (requires `ALTER` on the metrics DB, granted to `turbopanel_app` by the ClickHouse role bootstrap).
 
 ## Troubleshooting ingestion
 
