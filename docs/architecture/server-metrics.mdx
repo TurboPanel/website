@@ -57,7 +57,7 @@ HTTP request body (protocol v1):
 }
 ```
 
-Scheduling: **60 s** interval, ≤**5 s** deterministic per-`serverId` phase jitter, monotonic process-local `sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`. The daemon WS `{ type: "metrics" }` frame path is a deprecated transition fallback only.
+Scheduling: **60 s** interval, ≤**5 s** deterministic per-`serverId` phase jitter, monotonic process-local `sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`. Host metrics are ingested **only** via authenticated `POST /api/daemon/v1/metrics`; WebSocket `{ type: "metrics" }` frames are no longer accepted.
 
 ## 20-metric contract
 
