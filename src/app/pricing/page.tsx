@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { SiteFooter } from '@/components/marketing/SiteFooter'
-import { SiteHeader } from '@/components/marketing/SiteHeader'
+import { MarketingHero } from '@/components/marketing/MarketingHero'
+import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
 
 const EDGE_PRICE_ROWS = [
   {
@@ -32,25 +32,8 @@ const FAQ = [
   },
 ] as const
 
-function HeroSection() {
-  return (
-    <section className="relative overflow-hidden px-4 pb-12 pt-20 sm:px-6 sm:pt-24">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(860px_circle_at_18%_-12%,var(--tp-hero-a),transparent_56%),radial-gradient(620px_circle_at_88%_7%,var(--tp-hero-b),transparent_58%)]" />
-      <div className="mx-auto w-full max-w-6xl tp-fade-up">
-        <p className="inline-flex rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tp-text-muted)]">
-          Pricing
-        </p>
-        <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-tight text-[var(--tp-text)] sm:text-5xl">
-          Simple pricing. No surprises.
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--tp-text-muted)]">
-          Self-hosted is free. Edge-hosted is paid per server. Annual billing gives you two months
-          free.
-        </p>
-      </div>
-    </section>
-  )
-}
+const PRICING_HERO_GRADIENT =
+  'bg-[radial-gradient(860px_circle_at_18%_-12%,var(--tp-hero-a),transparent_56%),radial-gradient(620px_circle_at_88%_7%,var(--tp-hero-b),transparent_58%)]'
 
 function OfferingsSection() {
   return (
@@ -173,16 +156,17 @@ function FaqSection() {
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-[var(--tp-bg)] text-[var(--tp-text)]">
-      <SiteHeader active="pricing" />
-      <main>
-        <HeroSection />
-        <OfferingsSection />
-        <PricingBreakdownSection />
-        <LaunchOfferSection />
-        <FaqSection />
-      </main>
-      <SiteFooter />
-    </div>
+    <MarketingPageShell active="pricing">
+      <MarketingHero
+        eyebrow="Pricing"
+        title="Simple pricing. No surprises."
+        description="Self-hosted is free. Edge-hosted is paid per server. Annual billing gives you two months free."
+        gradientClassName={PRICING_HERO_GRADIENT}
+      />
+      <OfferingsSection />
+      <PricingBreakdownSection />
+      <LaunchOfferSection />
+      <FaqSection />
+    </MarketingPageShell>
   )
 }

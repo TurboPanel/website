@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 
-type ActivePage = 'overview' | 'roadmap' | 'pricing' | 'docs'
+export type ActivePage = 'overview' | 'roadmap' | 'pricing' | 'docs'
 
 type SiteHeaderProps = Readonly<{
   active?: ActivePage

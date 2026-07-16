@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { SiteFooter } from '@/components/marketing/SiteFooter'
-import { SiteHeader } from '@/components/marketing/SiteHeader'
+import { MarketingHero } from '@/components/marketing/MarketingHero'
+import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
 
 const PHASES = [
   {
@@ -81,26 +81,6 @@ const STATUS_CLASS: Record<string, string> = {
   Future: 'border-[var(--tp-border)] bg-[var(--tp-surface-muted)] text-[var(--tp-text-muted)]',
 }
 
-function HeroSection() {
-  return (
-    <section className="relative overflow-hidden px-4 pb-12 pt-20 sm:px-6 sm:pt-24">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(900px_circle_at_12%_-12%,var(--tp-hero-a),transparent_56%),radial-gradient(620px_circle_at_90%_4%,var(--tp-hero-b),transparent_58%)]" />
-      <div className="mx-auto w-full max-w-6xl tp-fade-up">
-        <p className="inline-flex rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tp-text-muted)]">
-          Product roadmap
-        </p>
-        <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-tight text-[var(--tp-text)] sm:text-5xl">
-          What&apos;s shipped — and what&apos;s next.
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--tp-text-muted)]">
-          We keep this roadmap honest: completed work stays listed, and upcoming phases
-          reflect what we are actually building next.
-        </p>
-      </div>
-    </section>
-  )
-}
-
 function PhaseGrid() {
   return (
     <section className="px-4 pb-16 pt-8 sm:px-6">
@@ -170,14 +150,14 @@ function FooterCallout() {
 
 export default function RoadmapPage() {
   return (
-    <div className="min-h-screen bg-[var(--tp-bg)] text-[var(--tp-text)]">
-      <SiteHeader active="roadmap" />
-      <main>
-        <HeroSection />
-        <PhaseGrid />
-        <FooterCallout />
-      </main>
-      <SiteFooter />
-    </div>
+    <MarketingPageShell active="roadmap">
+      <MarketingHero
+        eyebrow="Product roadmap"
+        title="What's shipped — and what's next."
+        description="We keep this roadmap honest: completed work stays listed, and upcoming phases reflect what we are actually building next."
+      />
+      <PhaseGrid />
+      <FooterCallout />
+    </MarketingPageShell>
   )
 }

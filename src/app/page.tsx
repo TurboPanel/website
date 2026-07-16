@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { SiteFooter } from '@/components/marketing/SiteFooter'
-import { SiteHeader } from '@/components/marketing/SiteHeader'
+import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
 
 const STAGE_SOLUTIONS = [
   {
@@ -216,16 +215,12 @@ function WhySection() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[var(--tp-bg)] text-[var(--tp-text)]">
-      <SiteHeader active="overview" />
-      <main>
-        <HeroSection />
-        <StageSection />
-        <ProductOsSection />
-        <PricingStrip />
-        <WhySection />
-      </main>
-      <SiteFooter />
-    </div>
+    <MarketingPageShell active="overview">
+      <HeroSection />
+      <StageSection />
+      <ProductOsSection />
+      <PricingStrip />
+      <WhySection />
+    </MarketingPageShell>
   )
 }
