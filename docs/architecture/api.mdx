@@ -87,15 +87,15 @@ Schema changes are versioned in `instance/migrations/` and applied via `pnpm mig
 
 TurboPanel reserves a top-level `x-turbopanel` key with a `placement.server_id` field. This is a **standard Docker Compose `x-*` vendor extension**, so `docker compose` itself ignores it — the key round-trips untouched through `composeDocumentToRuntimeYaml`.
 
-### Whole-project pinning (today)
+### Environment pinning (today)
 
-`placement.server_id` is read from the **project's base compose** and pins the **entire project — all its environments — to one server**. The value must be a server UUID in the same organization (validated; unknown or stale ids fail cleanly).
+`placement.server_id` is read from the **environment overlay compose** and pins that **environment to one whole server**. Different environments in the same project may pin to different servers. The value must be a server UUID in the same organization (validated; unknown or stale ids fail cleanly). Project base compose does not own placement — stale project-level pins are ignored (hard cut) and stripped before merge into runtime YAML.
 
 ### Deploy resolution
 
 `POST /api/client/v1/environments/:id/deploy` accepts an optional request body `serverId`. Resolution order:
 
-| Project pinned? | Body `serverId` | Result |
+| Environment pinned? | Body `serverId` | Result |
 | --- | --- | --- |
 | Yes | omitted | Deploy to the pinned server |
 | Yes | matches pin | Deploy to the pinned server |
@@ -104,6 +104,8 @@ TurboPanel reserves a top-level `x-turbopanel` key with a `placement.server_id` 
 | No | omitted | `400` (a target is required) |
 
 ### Minimal example
+
+Place this on the **environment** compose overlay (not the project base):
 
 ```yaml
 x-turbopanel:
