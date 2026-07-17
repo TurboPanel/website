@@ -86,6 +86,21 @@ Mitigation strategies:
 - Monitor token usage and revoke compromised tokens
 - Use secrets management (Docker secrets, Kubernetes secrets, etc.)
 
+### Secret management (at rest vs delivery)
+
+TurboPanel uses a **single root of trust** — `TURBOPANEL_SECRET` or the versioned `TURBOPANEL_SECRETS` keyring — for session signing, daemon JWT material, and data encryption. There are **no per-server at-rest encryption keys**.
+
+| Envelope | When | Scope |
+| -------- | ---- | ----- |
+| `tpsecret.v1.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and principal passwords |
+| `tpdaemon.v1.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
+
+A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the instance and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
+
+**Encrypt-only client boundary:** the client/UI surface seals secrets (`encryptSecret` / `generateSealedSecret`) and may show a generated plaintext once. It never decrypts at-rest envelopes for display or reuse.
+
+**Rotation:** add a new highest version to `TURBOPANEL_SECRETS` and deploy. New writes **lazy re-seal** under the current data-encryption key version; older `tpsecret` rows stay decryptable via keyring fallbacks until rewritten. Superadmin `POST /api/admin/v1/secrets/reencrypt` (Admin → Secrets → **Re-encrypt secrets**) sweeps existing `variable`, `tls`, and `principal` blobs onto the current version. Each sweep write is conditional on the original envelope still being present, so a concurrent secret update during rotation is left untouched. Drop old root keys from the keyring only after the sweep (and after short-lived daemon JWTs issued under those keys have expired).
+
 ### Firewall Rules
 
 Recommended:
@@ -106,7 +121,7 @@ Managed hosts use dedicated users: `turbopanel` (UID 9999, daemon + Ansible) and
 
 - Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
 - Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic
-- Rotate `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` on the instance per your key-rotation policy
+- Rotate `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` on the instance per your key-rotation policy, then run the admin at-rest secret re-encrypt sweep before dropping old key versions (see [Secret management](#secret-management-at-rest-vs-delivery))
 
 ### Network Security
 
