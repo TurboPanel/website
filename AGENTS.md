@@ -8,7 +8,7 @@
 
 ## Pricing (copy source of truth)
 
-Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing** (Edge-hosted tiers: base **$6**/mo including first server, **$4**/mo per additional server, annual **pay 10 get 12**; self-hosted control plane **free**, unlimited servers subject to customer infra).
+Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing** (Edge-hosted tiers: base **$X**/mo including first server, **$X**/mo per additional server, annual **pay X get X**; self-hosted control plane **free**, unlimited servers subject to customer infra). Dollar amounts on marketing surfaces are placeholders (`X`) until final pricing ships.
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 

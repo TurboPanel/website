@@ -166,11 +166,11 @@ function PricingStrip() {
           Simple pricing
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-4xl">
-          Self-hosted is free. Edge-hosted starts at $6/month.
+          Self-hosted is free. Edge-hosted starts at $X/month.
         </h2>
         <p className="mt-3 max-w-2xl text-base text-[var(--tp-text-muted)]">
-          Edge-hosted includes one server for $6/month, then $4/month for each extra server. Annual
-          billing gives you 12 months for the price of 10.
+          Edge-hosted includes one server for $X/month, then $X/month for each extra server. Annual
+          billing gives you X months for the price of X.
         </p>
         <div className="mt-6">
           <Link

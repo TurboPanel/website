@@ -5,15 +5,15 @@ import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
 const EDGE_PRICE_ROWS = [
   {
     item: 'Edge plan (includes 1 server)',
-    monthly: '$6 / month',
+    monthly: '$X / month',
   },
   {
     item: 'Each extra server',
-    monthly: '$4 / month per server',
+    monthly: '$X / month per server',
   },
   {
     item: 'Annual billing',
-    monthly: 'Pay for 10 months, get 12 months',
+    monthly: 'Pay for X months, get X months',
   },
 ] as const
 
@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: 'Is there a confusing pricing formula?',
-    a: 'No. It is just $6/month for the first server, then $4/month for each additional server.',
+    a: 'No. It is just $X/month for the first server, then $X/month for each additional server.',
   },
 ] as const
 
@@ -43,7 +43,7 @@ function OfferingsSection() {
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
             Self-hosted
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--tp-text)]">$0</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--tp-text)]">$X</h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)]">
             Host TurboPanel on your own setup for free. Great if you want full control and no
             monthly platform bill.
@@ -66,7 +66,7 @@ function OfferingsSection() {
             Edge-hosted
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--tp-text)]">
-            $6/mo + $4/server
+            $X/mo + $X/server
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)]">
             We run the control plane for you. This is the easy choice if you want managed high
