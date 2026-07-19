@@ -44,7 +44,7 @@ server {
 The control plane implements:
 
 - Signed session cookies for the web UI (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`)
-- PBKDF2 password hashing for credential accounts
+- Argon2id password hashing for credential accounts (OWASP `m=19456,t=2,p=1`)
 - Host PAM gate for the Deno install wizard (not for routine sign-in)
 - WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
 

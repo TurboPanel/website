@@ -59,7 +59,7 @@ In self-hosted production, Caddy terminates TLS and proxies `/api/*` and `/ws/*`
 
 Custom auth built on the **Web Crypto API** (no `nodejs_compat`):
 
-- Passwords: PBKDF2-HMAC-SHA256 (`src/auth/password.ts`)
+- Passwords: Argon2id (`src/client/authn/password.ts`, OWASP `m=19456,t=2,p=1`)
 - Sessions: opaque DB tokens + signed cookies (`src/auth/session-store.ts`)
 - **Install wizard (Deno only):** host PAM via `pamtester` for bootstrap; superadmin email/password for first org
 - **Workers dev:** optional public sign-up via `TURBOPANEL_IS_SIGNUP_ENABLED`
