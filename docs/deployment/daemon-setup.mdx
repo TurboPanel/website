@@ -63,31 +63,33 @@ Ansible provisioning with an explicit architecture error.
 ### Remote managed server (official installer)
 
 Obtain a license from your TurboPanel organization, then run the channel
-installer. The only required flag is `--license` (base64url-encoded
-`licenseId:licenseToken`).
+installer. Set `TURBOPANEL_LICENSE` to the base64url-encoded
+`licenseId:licenseToken` (the UI copy-paste command includes this).
 
 **Production control plane** (Cloudflare Workers — default host from the channel
 manifest):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- --license <base64url-encoded-license>
+curl -fsSL trbp.nl/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
-**Self-hosted instance** (pass `--host` with the full instance URL):
+**Self-hosted instance** (pass `TURBOPANEL_HOST` with the full instance URL):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license <base64url-encoded-license> \
-  --host https://<instance-host>:8443
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE=<base64url-encoded-license> \
+  TURBOPANEL_HOST=https://<instance-host>:8443 \
+  sh
 ```
 
 When the instance is reachable on the same host as the installer script, you may
 fetch `run.sh` from the instance URL instead:
 
 ```bash
-curl -fsSL https://<instance-host>:8443/run.sh | sh -s -- \
-  --license <base64url-encoded-license> \
-  --host https://<instance-host>:8443
+curl -fsSL https://<instance-host>:8443/run.sh | \
+  TURBOPANEL_LICENSE=<base64url-encoded-license> \
+  TURBOPANEL_HOST=https://<instance-host>:8443 \
+  sh
 ```
 
 The installer self-escalates with `sudo` and prompts for your password when
@@ -117,9 +119,10 @@ tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license "$LICENSE_B64" \
-  --channel trunk
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE="$LICENSE_B64" \
+  TURBOPANEL_UPDATE_CHANNEL=trunk \
+  sh
 ```
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
@@ -132,14 +135,14 @@ mismatches, missing license files, and self-hosted hosts.
 
 ### Install options
 
-| Flag | Description |
+| Variable / flag | Description |
 | ---- | ----------- |
-| `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
-| `--channel <name>` | Release channel (`trunk`, `edge`, `canary`, `rc`, `release`). Default: `trunk`. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
-| `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
+| `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
+| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel (`trunk`, `edge`, `canary`, `rc`, `release`). Default: `trunk`. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
+| `TURBOPANEL_HOST` / `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
+| `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
-| `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
 | `--no-start` | Provision without starting `turbopaneld.service` |
 
 ### What gets installed (FHS layout)

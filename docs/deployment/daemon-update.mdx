@@ -39,15 +39,16 @@ tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license "$LICENSE_B64" \
-  --channel trunk
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE="$LICENSE_B64" \
+  TURBOPANEL_UPDATE_CHANNEL=trunk \
+  sh
 ```
 
 The installer:
 
-1. Uses your **license** from the `--license` argument (built from `/var/lib/turbopanel/license.id` + `license.token` above)
-2. Reads your **update channel** from `--channel` or `/etc/turbopanel/daemon.env` (`TURBOPANEL_UPDATE_CHANNEL`, default `trunk`)
+1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
+2. Reads your **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel` or `/etc/turbopanel/daemon.env` (default `trunk`)
 3. Reads your **control plane URL** and **CA** from `daemon.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`, `TURBOPANEL_INSTANCE_CA`, else `/etc/turbopanel/instance-ca.pem`)
 4. Reinstalls the host-arch native binary + orchestration tree (and the JS fallback **only** when the native binary cannot execute)
 5. Re-runs Ansible and restarts `turbopaneld.service`
@@ -58,22 +59,24 @@ The installer:
 
 ### Self-hosted control plane
 
-Add `--host` when the instance is not production Cloudflare:
+Add `TURBOPANEL_HOST` when the instance is not production Cloudflare:
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license "$LICENSE_B64" \
-  --host https://<instance-host>:8443
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE="$LICENSE_B64" \
+  TURBOPANEL_HOST=https://<instance-host>:8443 \
+  sh
 ```
 
 ## Change update channel
 
-Pass `--channel` on the same command:
+Set `TURBOPANEL_UPDATE_CHANNEL` on the same command:
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license "$LICENSE_B64" \
-  --channel edge
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE="$LICENSE_B64" \
+  TURBOPANEL_UPDATE_CHANNEL=edge \
+  sh
 ```
 
 ## If the license file is missing

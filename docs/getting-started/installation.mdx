@@ -53,15 +53,16 @@ control plane). Obtain a license from your organization first.
 **Production control plane** (Cloudflare Workers):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- --license <base64url-encoded-license>
+curl -fsSL trbp.nl/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
-**Self-hosted instance** (pass `--host`):
+**Self-hosted instance** (pass `TURBOPANEL_HOST`):
 
 ```bash
-curl -fsSL https://trbp.nl/run.sh | sh -s -- \
-  --license <base64url-encoded-license> \
-  --host https://<instance-host>:8443
+curl -fsSL trbp.nl/run.sh | \
+  TURBOPANEL_LICENSE=<base64url-encoded-license> \
+  TURBOPANEL_HOST=https://<instance-host>:8443 \
+  sh
 ```
 
 The installer self-escalates with `sudo` and prompts for your password when
