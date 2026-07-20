@@ -154,7 +154,7 @@ checkout** on a managed server:
 | Purpose | Path |
 | ------- | ---- |
 | Native daemon binary | `/opt/turbopanel/bin/turbopaneld` |
-| Deno `deno run` fallback (only when the native binary cannot run) | `/opt/turbopanel/bin/turbopaneld.js` |
+| Deno JS runtime (hosts where the native binary cannot load) | `/opt/turbopanel/bin/turbopaneld.js` |
 | Orchestration assets (Ansible) | `/opt/turbopanel/share/orchestration` |
 | Static UI export (control plane host) | `/opt/turbopanel/share/ui` |
 | Vendored runtimes (deno/uv/python/ansible/cloudflared) | `/opt/turbopanel/vendor` |
@@ -165,8 +165,12 @@ checkout** on a managed server:
 
 - User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
 - `turbopaneld.service` (systemd, single process via `flock`). The unit runs the
-  native binary when `turbopaneld --version` succeeds, otherwise the
-  `turbopaneld.js` fallback via the vendored Deno.
+  native binary when `turbopaneld --version` succeeds. On hosts where that probe
+  fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size,
+  which cannot load the usual **4 KiB**-page `deno compile` binary — install
+  downloads `turbopaneld.js`, installs vendored Deno, and uses
+  `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
+  Deno is installed only on that path; native hosts skip it.
 
 <Callout type="info" title="Co-located dev is different">
   A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev)

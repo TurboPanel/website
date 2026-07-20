@@ -50,7 +50,7 @@ The installer:
 1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
 2. Reads your **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel` or `/etc/turbopanel/daemon.env` (default `trunk`)
 3. Reads your **control plane URL** and **CA** from `daemon.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`, `TURBOPANEL_INSTANCE_CA`, else `/etc/turbopanel/instance-ca.pem`)
-4. Reinstalls the host-arch native binary + orchestration tree (and the JS fallback **only** when the native binary cannot execute)
+4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
 
 <Callout type="warning" title="Run as root">

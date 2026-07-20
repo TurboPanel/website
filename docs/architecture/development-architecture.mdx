@@ -43,7 +43,7 @@ The console drives a **dev layout** where source repos live under `$HOME` and mu
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
 | Source repos | `$HOME/{daemon,instance,ui,website}` | No source checkout (compiled release) |
-| Daemon entrypoint | `deno run main.ts` from `~/daemon` | `/opt/turbopanel/bin/turbopaneld` (native) or `turbopaneld.js` (`deno run` fallback) |
+| Daemon entrypoint | `deno run main.ts` from `~/daemon` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
