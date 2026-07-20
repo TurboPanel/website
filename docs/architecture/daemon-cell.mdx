@@ -1,6 +1,6 @@
 ---
 title: Daemon cell architecture
-description: SQLite-backed Durable Object daemon cell for presence, outbox delivery, and request correlation — hibernation-safe design and Cloudflare billing model
+description: SQLite-backed Durable Object daemon cell for presence, merged request delivery/correlation, and reduced per-reconnect write cost — hibernation-safe design and Cloudflare billing model
 ---
 
 # Daemon cell architecture
@@ -82,9 +82,15 @@ TurboPanel daemon cells use **SQLite-backed** Durable Objects. Do not apply lega
     synchronously calls `#initializeFromStorage()` from the constructor body.
   </Step>
   <Step>
-    **`#initializeFromStorage()`** — calls `#ensureSchema()` (creates SQLite tables), reads
-    `cell` once (`SELECT server_id, remote_address, agent_json`), caches `#serverId`, and sets in-memory
-    `#runtimeConnected` when `#hasLiveSocket()` finds a live WS attachment for that server.
+    **`#initializeFromStorage()`** — restores `serverId`, `remoteAddress`, and `connectedAt` from
+    hibernation WebSocket attachments (`getWebSockets()` / `deserializeAttachment`) only. Sets
+    in-memory `#runtimeConnected` when a live attachment exists. Does **not** call `#ensureSchema()`
+    or `SELECT` from `cell`. Agent identity comes from Postgres/in-memory, not the cell row.
+  </Step>
+  <Step>
+    **`#ensureSchema()` (lazy)** — runs only on storage-touching paths: WS upgrade, storage RPCs,
+    `webSocketMessage`, close/error cleanup, and `alarm`. Cold wakes that only handle liveness or
+    diagnostics pay zero SQLite schema/version reads.
   </Step>
   <Step>
     **Attach** — JWT-verified WS upgrade calls `attachDaemonSocket`, which acquires the
@@ -141,7 +147,7 @@ sequenceDiagram
 
     Daemon->>Instance: GET /ws/daemon/v1 Authorization Bearer
     Instance->>Cell: attachDaemonSocket (single-writer lease)
-    Note right of Cell: DO wake · read cell+leases · write lease+cell
+    Note right of Cell: DO wake · read cell · write cell only (in-memory socket lease)
     Instance-->>Daemon: 101 Switching Protocols
     Note right of Cell: 1 billable request + storage rows
 ```
@@ -211,20 +217,20 @@ sequenceDiagram
     Note right of Storage: Postgres projection only (throttled)
 
     Daemon->>DO: reply (command-ack / *-result / command-outcome)
-    DO->>Storage: read cell + requests
-    DO->>Storage: write requests status (+ cell on ack)
-    DO->>Storage: delete outbox row when terminal
+    DO->>Storage: read/write request (status + delivery_status)
+    DO->>Storage: mark delivery_status=acked (row retained)
+    Note right of Storage: no cell write · terminal rows pruned later by runAlarmCleanup (expiry/retention)
     DO->>Storage: setAlarm when expiry/retention pending
-    Note right of Storage: 20:1 request + heavier row I/O
+    Note right of Storage: 20:1 request + request-row I/O
 
     Daemon->>DO: DAEMON_CELL_PING (idle ~60s)
     Note right of DO: Auto-response pong · no wake · no billing
 
     Daemon->>DO: webSocketClose / webSocketError
-    DO->>Storage: cleanupWebSocket · lease release · offline mark
-    Note right of Storage: request + rows
+    DO->>Storage: cleanupWebSocket · in-memory socket lease release
+    Note right of Storage: Postgres disconnect projection · optional setAlarm · no cell write
 
-    Note over DO,Storage: alarm() only when outbox/retry/expiry/retention pending
+    Note over DO,Storage: alarm() only when request delivery/retry/expiry/retention pending
     DO->>Storage: setAlarm (skipped if target unchanged)
     Note right of Storage: 1 row written when target changes
 ```
@@ -235,9 +241,9 @@ Workers offline detection is **disconnect-first** — there is **no periodic sta
 
 On Workers:
 
-1. **`webSocketClose` / `webSocketError`** → `#cleanupWebSocket` marks offline and releases the lease immediately on clean disconnect.
+1. **`webSocketClose` / `webSocketError`** → `#cleanupWebSocket` marks offline and releases the socket lease **in-memory** (no lease-row delete, no `last_seen_at` write — column gone) on clean disconnect. Postgres demotion still runs via `#projectDisconnected`.
 2. **No periodic stale-sweep alarm** — silent half-open sockets self-heal on reconnect (lease force-detach) or command dispatch (outbox requeue → consumer timeout).
-3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable outbox, retries, expiry, or terminal retention work.
+3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable/retry/inflight request rows, expiry, or terminal retention work.
 4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost.
 
 **WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the instance-side max-age check remains only as that suspect-path backstop.
@@ -246,14 +252,15 @@ On Redis (self-hosted), timer-driven `maintain()` + `sweepStalePresence` remain 
 
 ## Durable Object storage schema
 
-SQLite tables in `DaemonCellObject` (`#ensureSchema`):
+SQLite tables in `DaemonCellObject` (`#ensureSchema`). `CELL_SCHEMA_VERSION` = **2** — on upgrade, `#ensureSchema` drops the legacy `cell`/`leases`/`outbox`/`requests` tables and recreates the singular set (safe because all cell state is ephemeral/rebuildable).
 
 | Table | Columns |
 | ----- | ------- |
-| `cell` | `server_id` (PK), `remote_address`, `connected_at`, `last_seen_at`, `key_last_used_at`, `agent_json`, `updated_at` |
-| `leases` | `lease_name` (PK), `holder`, `expires_at` |
-| `outbox` | `seq`, `request_id`, `delivery_id`, `kind`, `payload_json`, `status`, `created_at`, `expires_at`, `sent_at`, `acked_at`, `retry_count`, `retry_at` |
-| `requests` | `request_id` (PK), `request_kind`, `command_text`, `status`, `result_json`, `error`, `created_at`, `updated_at`, `expires_at`, `ack_at`, `finished_at`, `sent_at`, `daemon_received_at`, `daemon_responded_at` |
+| `cell` | `server_id` (PK), `remote_address` (sole `__direct__` co-located marker), `key_last_used_at` (written on attach), `updated_at` |
+| `lease` | `lease_name` (PK), `holder`, `expires_at` — **delivery lease only** |
+| `request` | `seq` (PK AUTOINCREMENT), `request_id` (UNIQUE), `delivery_id` (UNIQUE), `request_kind`, `command_text`, `payload_json`, `status` (correlation), `delivery_status` (delivery), `result_json`, `error`, `created_at`, `updated_at`, `expires_at`, `sent_at`, `ack_at`, `finished_at`, `daemon_received_at`, `daemon_responded_at`, `retry_count`, `retry_at` |
+
+The singular `request` table carries two distinct status columns: `status` = correlation lifecycle (`queued→sent→acked→done/failed/expired`); `delivery_status` = delivery lifecycle (`queued`/`inflight`/`sent`/`acked`/`dead`). **Retain-on-ack-then-prune:** `ackOutbox` marks `delivery_status='acked'` and keeps the row for reply correlation; `#runAlarmCleanup` prunes by `expires_at`/`TERMINAL_UPDATE_RETENTION_MS`.
 
 ### Removed fields → new home
 
@@ -262,48 +269,39 @@ SQLite tables in `DaemonCellObject` (`#ensureSchema`):
 | `session_id` | Not persisted — JWT is stateless (`jti` only) |
 | `key_id` | JWT `kid` / JWKS path; passed via attach meta to Postgres projection |
 | `hostname`, `machine_id` | Postgres `server.metadata` (via `touchServerMetadata`) |
-| `connection_id` | In-memory + WS attachment (`serializeAttachment`) / `leases.holder` |
-| `connected` (persisted int) | In-memory `#runtimeConnected` + `getWebSockets()`; `last_seen_at` retained solely as offline-sweep input |
+| `connection_id` | In-memory + WS attachment (`serializeAttachment`) |
+| `connected` (persisted int) | In-memory `#runtimeConnected` + `getWebSockets()` |
+| `connected_at`, `last_seen_at`, `agent_json` | Postgres projection (`server.daemon.status` / `.projection`); admin/debug cell snapshot sources `connectedAt`/`lastInboundAt`/`lastSeenAt`/`agent`/`connected` from Postgres, `keyLastUsedAt`/`remoteAddress` from the `cell` row |
+| persisted `daemon-socket` lease row | In-memory + WS attachment on Workers (`getWebSockets()` + `serializeAttachment` carrying `connectionId`/`connectedAtMs`); **Redis retains the persisted lease + presence meta for the Lua sweep** (documented asymmetry) |
 
-Co-located daemons are stored with `remote_address = '__direct__'` so colocated routing and tunnel assignment still work.
+Co-located daemons are stored with `remote_address = '__direct__'` so colocated routing and tunnel assignment still work. Co-located detection reads the Postgres projection (`src/client/servers/colocated.ts`); the projection's `remoteAddress`/`__direct__` marker flows from attach meta into Postgres rather than from the cell-row snapshot.
 
 ```mermaid
 graph TD
     subgraph Tables
         cell["cell"]
-        leases["leases"]
-        outbox["outbox"]
-        requests["requests"]
+        lease["lease"]
+        request["request"]
     end
 
-    attach["attachDaemonSocket"] -->|read| cell
-    attach -->|read| leases
-    attach -->|write| leases
-    attach -->|write| cell
+    attach["attachDaemonSocket"] -->|read/write| cell
 
     wsPresence["webSocketMessage hello/heartbeat"] -->|no hot-path write| cell
 
-    wsReply["webSocketMessage reply"] -->|read| cell
-    wsReply -->|read| requests
-    wsReply -->|write| requests
-    wsReply -->|write cell on ack| cell
-    wsReply -->|delete terminal| outbox
+    wsReply["webSocketMessage reply"] -->|read/write status + delivery_status| request
+    wsReply -->|mark delivery_status=acked retained| request
     wsReply -->|schedule| setAlarm
 
-    pump["pumpOutbox"] -->|read batch| outbox
-    pump -->|write sent_at| outbox
+    pump["pumpOutbox"] -->|read batch write sent_at| request
 
-    inbound["handleInbound reply"] -->|read| requests
-    inbound -->|write status| requests
+    inbound["handleInbound reply"] -->|read/write status| request
 
-    cleanup["cleanupWebSocket"] -->|read| leases
-    cleanup -->|write release| leases
-    cleanup -->|write offline| cell
+    cleanup["cleanupWebSocket in-memory lease release"] -->|Postgres disconnect projection| postgres["Postgres projection"]
+    cleanup -->|optional schedule| setAlarm
 
-    alarmOp["alarm pending work"] -->|read| outbox
-    alarmOp -->|read| requests
-    alarmOp -->|write delete/expiry| outbox
-    alarmOp -->|write delete/expiry| requests
+    deliveryLease["claimDeliveryLease / renew"] -->|read/write| lease
+
+    alarmOp["alarm pending work"] -->|read/write delete/expiry| request
     alarmOp -->|write| setAlarm["setAlarm target"]
 ```
 
@@ -311,20 +309,22 @@ graph TD
 
 Self-hosted Deno uses `RedisDaemonCell` at `tp:cell:{serverId}:*` (Streams + HASH + SET) on Unix socket `/run/turbopanel/redis.sock`.
 
-Redis keeps `connectionId` / `connected` in the meta HASH **because Redis has no per-connection isolate memory** — the Lua sweep and orphan reclaim need persisted connection state. The online set powers `listOnlineServerIds()`.
+Redis **intentionally retains its persisted socket lease + presence meta** (`connected`, `connectionId`, `lastInboundAt`, `lastSeenAt`, `connectedAt`) in the meta HASH **because Redis has no per-connection isolate memory** — the Lua sweep and orphan reclaim need persisted connection state. The online set powers `listOnlineServerIds()`. Delivery still uses the outbox Stream + PEL (no `delivery_status` column); the correlation record is retained until terminal+retention to match the DO merged lifecycle. No key renames (`eventsKey` removed).
 
 Offline detection uses timer-driven `maintain()` + `sweepStalePresence` (`DAEMON_CELL_MAINTAIN_MS`, demote at `DAEMON_OFFLINE_SWEEP_MS`) — cost-safe with no DO billing.
 
 ```mermaid
 graph TD
     redis["Redis /run/turbopanel/redis.sock"]
-    meta["tp:cell:serverId:meta HASH connectionId connected lastSeenAt"]
+    meta["tp:cell:serverId:meta HASH connectionId connected lastSeenAt lastInboundAt connectedAt"]
+    leaseKey["tp:cell:serverId:lease persisted socket lease"]
     stream["tp:cell:serverId:outbox Stream"]
     online["tp:cell:online SET"]
     maintain["maintain timer"]
     sweep["sweepStalePresence"]
 
     attachR["attachDaemonSocket"] --> meta
+    attachR --> leaseKey
     attachR --> online
     attachR --> stream
 
@@ -332,20 +332,21 @@ graph TD
     maintain --> sweep
     sweep --> online
     sweep --> meta
+    sweep --> leaseKey
 
     listOnline["listOnlineServerIds"] --> online
 ```
 
-## Requests vs outbox
+## Merged request table (delivery + correlation)
 
-Two distinct queues inside the cell:
+One `request` row per `requestId` carries both delivery and correlation concerns:
 
-| Store | Purpose | Key | Lifecycle |
-| ----- | ------- | --- | --------- |
-| **`outbox`** | Instance → daemon durable delivery | `deliveryId` | Retryable via `retry_count` / `retry_at`; deleted on ack; ephemeral once delivered |
-| **`requests`** | Correlation / response tracking | `requestId` | `PendingRequestRecord`: queued → sent → acked → done/failed/expired; terminal rows retained `TERMINAL_UPDATE_RETENTION_MS` |
+| Concern | Fields | Key | Lifecycle |
+| ------- | ------ | --- | --------- |
+| **Delivery** | `seq`, `delivery_id`, `delivery_status`, `retry_count`/`retry_at`, `payload_json` | `deliveryId` | Retryable via `retry_count`/`retry_at`; ack marks `delivery_status='acked'` **in place** (row retained for reply correlation); pruned at terminal+`TERMINAL_UPDATE_RETENTION_MS` by `#runAlarmCleanup` |
+| **Correlation** | `status`, `result_json`, `error`, timestamps | `requestId` | `PendingRequestRecord`: queued → sent → acked → done/failed/expired |
 
-Daemon replies (`handleInbound`) mutate the **request row** (completed responses). The WS send is ephemeral in-memory delivery.
+Daemon replies (`handleInbound`) mutate the **correlation status** on the same row. The WS send is ephemeral in-memory delivery. Redis keeps delivery on the outbox Stream + PEL but retains the correlation record until terminal+retention for behavioral parity.
 
 **Enqueue-then-poll contract:** correlated outbound work (dev-sync, tunnel-token, public-urls apply, command dispatch) uses `createRequestAndWait` / `waitForRequest`. The backend **enqueues once and returns immediately** — it must not block inside the DO or Redis cell. The caller-side adapter polls `getRequest(requestId)` until terminal or deadline.
 
@@ -355,23 +356,23 @@ sequenceDiagram
     participant Cell as Daemon Cell
     participant Daemon
 
-    Note over Caller,Daemon: Instance to daemon (outbox)
+    Note over Caller,Daemon: Instance to daemon (delivery on request row)
 
-    Caller->>Cell: enqueue outbox deliveryId
-    Note right of Cell: write outbox row · schedule alarm
+    Caller->>Cell: enqueue deliveryId on request row
+    Note right of Cell: write request row · schedule alarm
     Cell-->>Caller: return immediately
 
-    Cell->>Daemon: WS frame from outbox
-    Note right of Cell: write sent_at
+    Cell->>Daemon: WS frame from request row
+    Note right of Cell: write sent_at delivery_status
     Daemon->>Cell: ack deliveryId
-    Note right of Cell: delete outbox row · write
+    Note right of Cell: mark delivery_status=acked (retained)
 
-    Note over Caller,Daemon: Daemon to instance (requests)
+    Note over Caller,Daemon: Daemon to instance (correlation on same row)
 
     Caller->>Cell: createRequest requestId
-    Note right of Cell: write requests row queued
+    Note right of Cell: write request row status=queued
     Daemon->>Cell: handleInbound reply
-    Note right of Cell: write requests status done/failed
+    Note right of Cell: write request status done/failed
     Caller->>Cell: poll getRequest requestId
     Cell-->>Caller: terminal PendingRequestRecord
 ```
@@ -380,8 +381,10 @@ sequenceDiagram
 
 Two lease types:
 
-1. **Daemon-socket single-writer lease** — keyed by `connectionId` (`DAEMON_SOCKET_LEASE_NAME`, `holder = connectionId`). `DaemonCellLease = { holder, expiresAt }` (no duplicate `token`). Ensures one live cell attachment per server.
-2. **Delivery lease** — distinct from the socket lease (`claimDeliveryLease` / `renewDeliveryLease` / `releaseDeliveryLease`). Owns in-flight outbox delivery.
+1. **Daemon-socket single-writer lease** — **in-memory on Workers** (`getWebSockets()` + `serializeAttachment` carrying `connectionId`/`connectedAtMs`); no persisted row. `attachDaemonSocket` still returns `{ connectionId, lease }` with the lease constructed in memory (`DAEMON_SOCKET_LEASE_MS`). `DaemonCellLease = { holder, expiresAt }` (no duplicate `token`). Ensures one live cell attachment per server.
+2. **Delivery lease** — the only persisted lease in the singular `lease` table (`DELIVERY_LEASE_NAME`, `claimDeliveryLease` / `renewDeliveryLease` / `releaseDeliveryLease`). Owns in-flight delivery on the merged `request` row.
+
+**Redis asymmetry:** Redis persists `leaseKey` + `connectionId`/`connected` in the meta HASH because it has no per-connection isolate memory.
 
 Safety-critical single-daemon guarantee on managed hosts combines the cell lease with `IdlePresence` and `ensure-single-daemon.sh` flock on `/run/turbopanel/daemon.lock` (see [daemon AGENTS.md](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md)).
 
@@ -447,15 +450,15 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 
 | Operation | Wakes DO | Reads storage | Writes storage | Billing impact |
 | --------- | -------- | ------------- | -------------- | -------------- |
-| WS connection establishment (upgrade) | Yes | `cell` + `leases` | lease + `cell` rows | 1 request + rows |
+| WS connection establishment (upgrade) | Yes | `cell` | `cell` row only (in-memory socket lease, no lease row) | 1 request + rows |
 | `POST /auth/session` (JWT issuance) | No | — | Postgres `server.daemon.key.lastUsedAt` only | primary DB write |
 | `POST /api/daemon/v1/metrics` (host metrics ingest) | No | — | AE / ClickHouse only | normal Worker/Deno request; **no DO duration** |
 | Incoming WS message (`hello` / `heartbeat`, steady state) | Yes | none on hot path | none on hot path | 20:1 request when handled; no cell SQLite write |
-| Incoming WS reply (`command-ack`, `*-result`, `command-outcome`) | Yes | `cell` + `requests` | `requests` status update; may update `cell` (ack path); may DELETE `outbox` when terminal; may call `setAlarm()` | 20:1 request + heavier row I/O |
+| Incoming WS reply (`command-ack`, `*-result`, `command-outcome`) | Yes | `request` | `request` status + `delivery_status` update; marks `delivery_status='acked'` (row retained); no `cell` write; prune deferred to alarm cleanup; may call `setAlarm()` | 20:1 request + request-row I/O |
 | Wire ping `DAEMON_CELL_PING` (auto-response) | No | No | No | Not charged (outgoing pong + protocol) |
-| Alarm invocation (real pending work only) | Yes | outbox / requests | deletes / `setAlarm` | 1 request + rows |
+| Alarm invocation (real pending work only) | Yes | `request` | deletes / `setAlarm` | 1 request + rows |
 | `setAlarm()` (skipped when unchanged) | — | — | 1 row when target changes | 1 row written |
-| WS close / error → cleanup | Yes | lease / `cell` | lease release + offline mark | request + rows |
+| WS close / error → cleanup | Yes | none required | in-memory socket lease release; Postgres disconnect projection; may call `setAlarm()` (no `cell` write) | request + optional alarm row |
 | JWKS fetch (`/jwks.json`) | No (normal Worker) | — | — | cached HTTP request |
 | Offline-sweep `checkLiveness` (AE suspects only) | Yes (suspects) | auto-response timestamp only | none | 1 subrequest per suspect; AE-active servers skip entirely |
 
@@ -467,9 +470,9 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 and does not wake the Durable Object.
 
 **Inbound reply path:** non-presence WS messages skip `#handlePresenceMessage` and run
-`#recordInbound` (optional coalesced `cell` write) plus `#handleInbound`, which reads `requests`,
-updates terminal or in-flight status, may delete matching `outbox` rows, and may schedule alarms for
-retention/expiry — do not bucket these with lightweight heartbeats.
+`#recordInbound` (in-memory only — no `cell` write) plus `#handleInbound`, which reads `request`,
+updates terminal or in-flight correlation `status` and `delivery_status` (acked/retained), and may schedule alarms for
+retention/expiry via `#runAlarmCleanup` — do not bucket these with lightweight heartbeats.
 
 ### Alarm lifecycle
 
@@ -479,9 +482,9 @@ stateDiagram-v2
 
     Idle --> Scheduled: scheduleNearestAlarm
     note right of Scheduled
-        Triggers: deliverable outbox
-        retry / inflight outbox
-        request or outbox expiry
+        Triggers: deliverable request rows
+        retry / inflight delivery_status
+        request expiry
         terminal retention
     end note
 
@@ -494,7 +497,7 @@ stateDiagram-v2
     AlarmFired --> WorkDone: alarm handler runs
     note right of WorkDone
         1 request + row reads/writes
-        pump outbox / expire rows / retention
+        pump delivery / expire rows / retention
     end note
 
     WorkDone --> Scheduled: still pending work
