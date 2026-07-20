@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ClientRootProvider } from '@/components/ClientRootProvider'
-import { PreDevBanner } from '@/components/PreDevBanner'
 import { Providers } from '@/components/Providers'
+import { StickySiteChrome } from '@/components/StickySiteChrome'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,8 +31,8 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <PreDevBanner />
         <Providers>
+          <StickySiteChrome />
           <ClientRootProvider
             i18n={{ locale: 'en', translations: { search: 'Search documentation' } }}
             theme={{ enabled: false }}

@@ -58,6 +58,8 @@ website/
 - Avoid **nested ternaries** — use `if`/`switch` or helpers (`typescript:S3358`).
 - Extract helpers when **cognitive complexity** exceeds 15 (`typescript:S3776`).
 
+- **Site chrome** (`src/components/StickySiteChrome.tsx`) — sticky banner + `SiteHeader` (Sign in, social icons, theme toggle). On scroll the evolving-fast banner collapses and the nav shrinks; `--tp-chrome-height` (via ResizeObserver) feeds Fumadocs `--fd-banner-height` and Scalar `--scalar-custom-header-height` so docs/API sidebars fill the remaining viewport without a dead scroll strip. Docs sidebar theme switch is disabled (`themeSwitch.enabled: false`) — theme lives only in the site nav.
+- **Control-plane URL for Sign in / API docs:** `getControlPlaneBaseUrl` / `getSignInUrl` in `src/lib/env.ts`. Local website → `https://localhost:8443`; marketing hosts map to Edge (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Wrangler `API_HOSTNAMES` (first entry) wins when present — keep the host map and `wrangler.jsonc` vars aligned. `/api/config` exposes `controlPlaneUrl` + `signInUrl`.
 - **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`turbopanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
 - **`getApiBaseUrl`** localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.

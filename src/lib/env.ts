@@ -63,6 +63,53 @@ export function getApiBaseUrl(hostname: string, port = ''): string {
   return 'https://turbopanel.app'
 }
 
+/**
+ * Marketing-site host → Edge control plane origin.
+ * Keep in sync with `API_HOSTNAMES` in `wrangler.jsonc` (testing / staging / live).
+ */
+const WEBSITE_HOST_TO_CONTROL_PLANE: Readonly<Record<string, string>> = {
+  'turbopanel.io': 'https://turbopanel.app',
+  'www.turbopanel.io': 'https://turbopanel.app',
+  'testing.turbopanel.io': 'https://testing.turbopanel.dev',
+  'staging.turbopanel.io': 'https://staging.turbopanel.dev',
+}
+
+/**
+ * Control-plane origin for the current website environment.
+ * Local Next (`localhost` / `turbopanel.app:19820`) → Caddy `:8443`;
+ * deployed marketing hosts → matching Edge instance (`turbopanel.app`, etc.).
+ * Optional `apiHostnames` (Wrangler `API_HOSTNAMES`) wins when provided.
+ */
+export function getControlPlaneBaseUrl(
+  hostname: string,
+  port = '',
+  apiHostnames?: string
+): string {
+  if (typeof apiHostnames === 'string' && apiHostnames.length > 0) {
+    const parsed = parseApiHostnames(apiHostnames)
+    const fromEnv = parsed[0]?.url
+    if (fromEnv) return fromEnv
+  }
+
+  if (isLocalDevWebsiteHost(hostname, port)) {
+    return localDevApiBaseUrl()
+  }
+
+  const mapped = WEBSITE_HOST_TO_CONTROL_PLANE[hostname.split(':')[0].toLowerCase()]
+  if (mapped) return mapped
+
+  return getApiBaseUrl(hostname, port)
+}
+
+/** Sign-in page on the env-appropriate control plane. */
+export function getSignInUrl(
+  hostname: string,
+  port = '',
+  apiHostnames?: string
+): string {
+  return `${getControlPlaneBaseUrl(hostname, port, apiHostnames)}/sign-in`
+}
+
 export function getScalarOpenApiUrl(hostname: string, port = ''): string {
   return `${getApiBaseUrl(hostname, port)}/api/client/v1/openapi.json`
 }

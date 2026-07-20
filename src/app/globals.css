@@ -26,6 +26,9 @@
   --fd-accent: var(--color-fd-accent, rgba(71, 85, 105, 0.25));
   --fd-layout-width: 100vw;
   --fd-sidebar-width: 260px;
+  /* Sticky site chrome height; ResizeObserver keeps this current. */
+  --tp-chrome-height: 0px;
+  --fd-banner-height: var(--tp-chrome-height);
 }
 
 .dark {
@@ -49,12 +52,15 @@
   --fd-foreground: var(--tp-text);
   --fd-border: var(--tp-border);
   --fd-accent: var(--color-fd-accent, rgba(148, 163, 184, 0.28));
+  --fd-banner-height: var(--tp-chrome-height);
 }
 
 /* Full-width docs layout: grid uses --fd-layout-width for main column width */
 #nd-docs-layout {
   --fd-sidebar-width: 260px;
   --fd-layout-width: 100vw;
+  /* Keep --fd-docs-height at 100dvh for sticky sidebar math; chrome is outside. */
+  min-height: calc(100dvh - var(--tp-chrome-height, 0px));
   width: 100%;
   max-width: none;
 }

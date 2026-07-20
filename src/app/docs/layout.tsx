@@ -1,14 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react'
-import { SiteHeader } from '@/components/marketing/SiteHeader'
+import type { ReactNode } from 'react'
 
 /**
- * Docs shell layout. DocsLayout is provided by (main)/layout.tsx and api/layout.tsx.
+ * Docs shell layout. Sticky site chrome lives in the root layout.
+ * DocsLayout is provided by (main)/layout.tsx; API docs render under api/.
  */
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <div style={{ '--fd-nav-height': '64px' } as CSSProperties}>
-      <SiteHeader active="docs" />
-      {children}
-    </div>
-  )
+  return children
 }

@@ -41,20 +41,27 @@ const scalarCustomCss = `
     --scalar-border-color: var(--fd-border);
     --scalar-font: var(--font-geist-sans, 'Avenir Next', 'Segoe UI', sans-serif);
     --scalar-font-code: var(--font-geist-mono, ui-monospace, monospace);
+    /* Account for sticky site chrome so the sidebar (incl. MCP) fits the viewport */
+    --scalar-custom-header-height: var(--tp-chrome-height, 0px);
+    --scalar-sidebar-sticky-offset: var(--tp-chrome-height, 0px);
     font-size: clamp(0.9375rem, 1.5vw + 0.75rem, 1rem);
   }
 
-  /* Hide Scalar modern layout header/navigation duplicated by Fumadocs */
+  /* Hide Scalar modern layout header/navigation duplicated by site chrome */
   .scalar-api-reference .t-doc__header { display: none !important; }
   .scalar-api-reference .api-reference-toolbar { display: none !important; }
 
-  /* Reduce top padding and header offset for seamless Fumadocs integration */
+  /* Reduce top padding for seamless site chrome integration */
   .scalar-api-reference,
   .scalar-app {
-    --refs-header-height: 0px;
     padding-top: 0 !important;
     margin-top: 0 !important;
     max-width: var(--fd-layout-width, 97rem);
+  }
+
+  /* Chrome is outside Scalar — don't force an extra 100dvh of page scroll */
+  .scalar-api-reference .references-layout {
+    min-height: calc(100dvh - var(--tp-chrome-height, 0px));
   }
 
   /* Wrapper for Scalar so back link can be positioned over sidebar */

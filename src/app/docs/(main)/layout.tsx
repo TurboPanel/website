@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 
 export default function MainDocsLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <DocsLayoutClient tree={source.getPageTree()} sidebar={{ collapsible: false }}>
+    <DocsLayoutClient
+      tree={source.getPageTree()}
+      sidebar={{ collapsible: false }}
+      themeSwitch={{ enabled: false }}
+    >
       {children}
     </DocsLayoutClient>
   )
