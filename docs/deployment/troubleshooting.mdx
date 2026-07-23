@@ -65,7 +65,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 1. Check Postgres container: `docker ps | grep postgres`
 2. Verify Unix socket under `/var/run/turbopanel/postgres/`
 3. Confirm `TURBOPANEL_DATABASE_URL` in `turbopanel-instance.service` — a full Postgres URL, typically injected by the `instance-launch` role
-4. Socket directory permissions: `/run/turbopanel` should be `2770 turbopanel:turbopanel`
+4. Socket directory permissions: `/run/turbopanel` should be `2770 tp:tp`
 
 ## Install wizard / PAM failures (Deno)
 
@@ -74,7 +74,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 **Solutions:**
 
 1. Install `pamtester` on the host
-2. Confirm `instance` user sudoers allows `pamtester login * authenticate`
+2. Confirm `tpctrl` user sudoers allows `pamtester login * authenticate`
 3. Use a host account in `sudo` / `wheel` / `admin`, or `root`
 
 ## UI Update stuck on "update already in progress"
@@ -84,7 +84,7 @@ PID for a long time. A second update attempt returns `update already in progress
 
 **Cause:** The UI update path uses `run.sh --no-start` (does not stop the daemon
 during reconcile). The daemon then tries to restart itself with plain
-`systemctl enable --now` as the **`turbopanel` user** — that fails silently
+`systemctl enable --now` as the **`tp` user** — that fails silently
 (non-root cannot restart systemd units; `enable --now` also skips restart when
 already active). An in-memory lock then blocks further updates.
 
@@ -109,7 +109,7 @@ Or reconcile by re-running `run.sh` — see [Refresh a stuck daemon](/docs/deplo
 
 **Solutions:**
 
-1. Check daemon logs — on managed hosts Ansible runs as the `turbopanel` user; on co-located dev it runs as the current dev user
+1. Check daemon logs — on managed hosts Ansible runs as the `tp` user; on co-located dev it runs as the current dev user
 2. Dirty git checkouts block upgrade; commit or stash changes in `$HOME` source repos (`~/daemon`, `~/instance`, `~/ui`, `~/website`)
 
 ## General debugging

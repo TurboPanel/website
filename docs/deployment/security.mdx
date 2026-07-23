@@ -113,7 +113,7 @@ Recommended:
 
 ### Service users (self-hosted)
 
-Managed hosts use dedicated users: `turbopanel` (UID 9999, daemon + Ansible) and `instance` (UID 9998, instance + Caddy + UI). Neither should run as root in steady state.
+Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, ClickHouse, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/turbopanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
 ## Daemon Security
 
@@ -136,7 +136,7 @@ Managed hosts use dedicated users: `turbopanel` (UID 9999, daemon + Ansible) and
 
 ### Docker Socket Security
 
-- **User Permissions:** Daemon runs as non-root user (`turbopanel:turbopanel`, UID 9999)
+- **User Permissions:** Daemon runs as non-root user (`tp:tp`, UID 9999)
 - **Socket Binding:** Only bind socket to necessary containers; avoid exposing socket to other services
 
 ### Best Practices

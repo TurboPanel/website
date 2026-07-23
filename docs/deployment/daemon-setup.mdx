@@ -163,7 +163,7 @@ checkout** on a managed server:
 | Logs | `/var/log/turbopanel` |
 | Runtime (sockets, `daemon.lock`) | `/run/turbopanel` |
 
-- User `turbopanel:turbopanel` (UID/GID 9999) with passwordless sudo
+- User `tp:tp` (UID/GID 9999) with passwordless sudo
 - `turbopaneld.service` (systemd, single process via `flock`). The unit runs the
   native binary when `turbopaneld --version` succeeds. On hosts where that probe
   fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size,
@@ -178,9 +178,9 @@ checkout** on a managed server:
   `deno run main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
   and sockets under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`,
   `/var/log/turbopanel`, `/run/turbopanel`); vendored runtimes under
-  `/opt/turbopanel/vendor`. No dedicated `turbopanel` / `turbopaneli` / `turbopanelc`
+  `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache`
   service accounts are created — systemd units and Docker-backed services run as the
-  current dev user. The FHS tree above (including `turbopanel:turbopanel`) applies to
+  current dev user. The FHS tree above (including `tp:tp`) applies to
   managed/production installs only.
 </Callout>
 
@@ -210,7 +210,7 @@ Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/tu
 | Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, firewall, TLS CA trust |
 | TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca` |
 | Unsupported architecture | TurboPanel requires 64-bit `aarch64` or `x86_64`; 32-bit Raspberry Pi OS is not supported |
-| Docker permission errors | Ensure `turbopanel` user is in `docker` group (installer adds this when Docker is installed) |
+| Docker permission errors | Ensure `tp` user is in `docker` group (installer adds this when Docker is installed) |
 
 See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 
