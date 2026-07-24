@@ -7,6 +7,11 @@ node_modules/
 .config/
 logs/
 
+# Python bytecode (ui-ux-pro-max skill scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+
 # env and secret-bearing dotenv variants
 .env
 .env.*
