@@ -18,7 +18,7 @@ const PLATFORM_STATS = [
   {
     label: 'Control plane',
     value: 'Workers + Postgres',
-    hint: 'Hyperdrive-backed API, global edge, no VM to patch for the panel itself.',
+    hint: 'Hyperdrive-backed API, globally distributed, no VM to patch for the panel itself.',
   },
   {
     label: 'Fleet path',
@@ -50,7 +50,7 @@ const CAPABILITIES = [
   },
   {
     mono: 'ha',
-    title: 'High availability by default on Edge',
+    title: 'TurboPanel High Availability by default',
     body: 'We operate the control plane on Cloudflare Workers so your team logs in — you focus on the nodes running your workloads.',
   },
 ] as const
@@ -59,7 +59,7 @@ const OPERATING_PROFILES = [
   {
     stage: 'Production on day one',
     pitch:
-      'Spin up Edge, enroll your first daemon with a registration key, and deploy Compose without standing up Postgres, Caddy, and RabbitMQ for the panel.',
+      'Spin up TurboPanel High Availability, enroll your first daemon with a registration key, and deploy Compose without standing up Postgres, Caddy, and RabbitMQ for the panel.',
   },
   {
     stage: 'Hybrid fleets',
@@ -83,16 +83,16 @@ const PRODUCT_OS_ITEMS = [
 
 const WHY = [
   {
-    title: 'Edge is the default product surface',
-    body: 'Same UI and API as self-hosted, but the control plane runs on our HA stack — you add servers, not another always-on VM pair.',
+    title: 'TurboPanel High Availability is the default product surface',
+    body: 'Same UI and API as self-hosted, but the control plane runs on our hosted stack — you add servers, not another always-on VM pair.',
   },
   {
     title: 'Honest per-server economics',
-    body: 'One included server on Edge, then linear add-ons. No hidden seat math — fleet size maps directly to line items.',
+    body: 'One included server on TurboPanel High Availability, then linear add-ons. No hidden seat math — fleet size maps directly to line items.',
   },
   {
     title: 'Self-hosted when you must',
-    body: 'Open-source path remains available for air-gapped or compliance-bound installs; most teams still start on Edge for speed.',
+    body: 'Open-source path remains available for air-gapped or compliance-bound installs; most teams still start on TurboPanel High Availability for speed.',
   },
   {
     title: 'Docs that match the architecture',
@@ -104,19 +104,19 @@ export default function Home() {
   return (
     <MarketingPageShell active="overview">
       <MarketingHero
-        eyebrow="DevOps control plane · Edge-hosted"
+        eyebrow="DevOps control plane · TurboPanel High Availability"
         title="Run your fleet from a managed Workers control plane."
-        description="TurboPanel is Compose-native infrastructure software: enroll Linux hosts, deploy environments with placement pins, and operate everything through a fast ops console — we host the panel on Cloudflare Edge so you do not babysit it."
+        description="TurboPanel is Compose-native infrastructure software: enroll Linux hosts, deploy environments with placement pins, and operate everything through a fast ops console — we host the panel with TurboPanel High Availability so you do not babysit it."
         showTerminal
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on Edge
+            Start on TurboPanel High Availability
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/getting-started/introduction">
             Read the architecture
           </MarketingSecondaryCta>
-          <MarketingSecondaryCta href="/pricing">Edge pricing</MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/pricing">TurboPanel High Availability pricing</MarketingSecondaryCta>
         </div>
         <p className="mt-6 text-sm text-[var(--tp-text-muted)]">
           Already running the panel yourself?{' '}
@@ -157,7 +157,7 @@ export default function Home() {
 
       <MarketingSection variant="band">
         <MarketingSectionHeader
-          title="Where Edge fits your stack"
+          title="Where TurboPanel High Availability fits your stack"
           description="Most teams want a control plane that is online when they are — not another service to restore during an incident."
         />
         <div className="grid gap-6 md:grid-cols-3 md:gap-8">
@@ -230,7 +230,7 @@ export default function Home() {
           <div className="tp-brand-stripe h-1" aria-hidden />
           <div className="flex flex-col gap-8 p-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
             <div className="max-w-2xl">
-              <p className="tp-eyebrow">Edge pricing</p>
+              <p className="tp-eyebrow">TurboPanel High Availability pricing</p>
               <h2 className="tp-section-title mt-4">
                 Managed control plane from $X/month — first server included.
               </h2>
@@ -241,10 +241,10 @@ export default function Home() {
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">
               <MarketingPrimaryCta href="/pricing" emphasis={false} className="px-5">
-                Compare Edge plans
+                Compare TurboPanel High Availability plans
               </MarketingPrimaryCta>
               <MarketingControlPlaneCta path="/sign-up" variant="secondary" emphasis={false} className="px-5">
-                Create Edge account
+                Create TurboPanel High Availability account
               </MarketingControlPlaneCta>
             </div>
           </div>
@@ -253,8 +253,8 @@ export default function Home() {
 
       <MarketingSection className="pb-20">
         <MarketingSectionHeader
-          title="Why teams standardize on TurboPanel Edge"
-          description="Professional ops tooling with a hosted control plane — so your engineers spend cycles on workloads, not panel HA."
+          title="Why teams standardize on TurboPanel High Availability"
+          description="Professional ops tooling with a hosted control plane — so your engineers spend cycles on workloads, not running the panel themselves."
         />
         <div className="grid gap-6 sm:grid-cols-2">
           {WHY.map((item) => (
@@ -270,7 +270,7 @@ export default function Home() {
         </div>
         <div className="mt-12 flex flex-wrap gap-3 border-t border-[var(--tp-border)] pt-10">
           <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Start on Edge
+            Start on TurboPanel High Availability
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/api">Explore the API</MarketingSecondaryCta>
         </div>

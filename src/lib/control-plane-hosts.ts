@@ -1,5 +1,5 @@
 /**
- * Canonical marketing-host → Edge control-plane mapping.
+ * Canonical marketing-host → TurboPanel High Availability control-plane mapping.
  *
  * Keep `wrangler.jsonc` `vars.API_HOSTNAMES` aligned with
  * {@link WRANGLER_API_HOSTNAMES} (validated by `scripts/check-control-plane-hosts.mjs`).

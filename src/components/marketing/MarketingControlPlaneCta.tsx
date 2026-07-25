@@ -22,8 +22,8 @@ function defaultControlPlaneHref(path: ControlPlanePath): string {
 }
 
 /**
- * Resolves the env-appropriate control-plane URL (Edge or local Caddy) without
- * `/api/config` — same host map as {@link SignInButton}.
+ * Resolves the env-appropriate control-plane URL (TurboPanel High Availability
+ * or local Caddy) without `/api/config` — same host map as {@link SignInButton}.
  */
 export function MarketingControlPlaneCta({
   path = '/sign-in',

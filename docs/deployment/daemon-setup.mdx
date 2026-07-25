@@ -38,13 +38,13 @@ graph TD
 
 ## Deployment models
 
-| Feature | Cloud-hosted instance | Self-hosted instance |
-| ------- | --------------------- | -------------------- |
+| Feature | TurboPanel High Availability | Self-hosted instance |
+| ------- | ---------------------------- | -------------------- |
 | Instance URL | `https://your-worker.workers.dev` | `https://<host>:8443` |
 | Co-located daemon | Optional (dev / socket mode) | Yes on control plane |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
-| Edge coordination | WSS (Durable Objects **not implemented yet**) | WSS |
+| Daemon coordination | WSS (Durable Objects) | WSS (Redis cell) |
 
 ## Installation
 
@@ -66,7 +66,7 @@ Obtain a license from your TurboPanel organization, then run the channel
 installer. Set `TURBOPANEL_LICENSE` to the base64url-encoded
 `licenseId:licenseToken` (the UI copy-paste command includes this).
 
-**Production control plane** (Cloudflare Workers — default host from the channel
+**TurboPanel High Availability** (Cloudflare Workers — default host from the channel
 manifest):
 
 ```bash
@@ -138,7 +138,7 @@ mismatches, missing license files, and self-hosted hosts.
 | Variable / flag | Description |
 | ---- | ----------- |
 | `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
-| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel (`trunk`, `edge`, `canary`, `rc`, `release`). Default: `trunk`. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
+| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |

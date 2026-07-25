@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSignInUrl } from '@/lib/env'
 
 /**
- * Primary nav CTA → Edge (or local) control-plane `/sign-in`.
+ * Primary nav CTA → TurboPanel High Availability (or local) control-plane `/sign-in`.
  * Resolves from the current website host via the static host map in `src/lib/env.ts`
  * (no `/api/config` round-trip — keeps static page loads off the Worker bill).
  */

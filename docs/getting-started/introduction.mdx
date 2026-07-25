@@ -7,21 +7,21 @@ description: TurboPanel overview, deployment models, and key features
 
 TurboPanel is a platform for managing dockerized applications and infrastructure. It provides a centralized control surface for Docker management across multiple servers.
 
-TurboPanel offers a unified interface for managing Docker containers across multiple servers, whether you choose cloud-hosted or self-hosted deployment. Lightweight **daemons** run on managed servers, connect to the **instance** (control plane API) over HTTPS/WebSocket, and execute orchestration locally via Ansible.
+TurboPanel offers a unified interface for managing Docker containers across multiple servers, whether you choose TurboPanel High Availability or self-hosted deployment. Lightweight **daemons** run on managed servers, connect to the **instance** (control plane API) over HTTPS/WebSocket, and execute orchestration locally via Ansible.
 
 ## Deployment models
 
-| Feature | Cloud-hosted (Workers) | Self-hosted (Deno) |
-| ------- | ---------------------- | ------------------ |
+| Feature | TurboPanel High Availability | Self-hosted (Deno) |
+| ------- | ---------------------------- | ------------------ |
 | **Pricing** | Pay per server | Free, unlimited servers |
 | **Control plane** | Cloudflare Workers | Your server (Deno + Caddy) |
 | **Communication** | HTTPS / WebSocket | HTTPS / WebSocket (Caddy) |
 | **Daemon required** | Yes (on each managed server) | Yes on extra servers; co-located on control plane |
-| **Best for** | Managed, global edge | Full control and cost savings |
+| **Best for** | Managed hosted control plane | Full control and cost savings |
 
-### Cloud-hosted (Workers)
+### TurboPanel High Availability
 
-- Instance can run on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy` with `TURBOPANEL_DATABASE_URL` and `CLOUDFLARE_ENV` set)
+- Instance runs on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy` with `TURBOPANEL_DATABASE_URL` and `CLOUDFLARE_ENV` set)
 - Remote daemons connect to your Workers URL over HTTPS/WSS today
 - **Durable Objects** — hibernation-safe SQLite-backed daemon cell per server (`getByName(serverId)`) for live WS presence, outbox delivery, and request correlation; see [Daemon cell architecture](/docs/architecture/daemon-cell)
 
@@ -40,7 +40,7 @@ TurboPanel offers a unified interface for managing Docker containers across mult
 ## Key features
 
 - **Centralized control surface** — Manage servers from a single UI
-- **Dual deployment options** — Cloudflare Workers or self-hosted Deno
+- **Dual deployment options** — TurboPanel High Availability or self-hosted Deno
 - **Daemon-based architecture** — Ansible-driven installs on each node
 - **Cross-platform frontend** — Web, iOS, and Android via Expo / React Native
 - **Multi-repo codebase** — Instance, UI, daemon, website, and dev orchestration are separate Git repositories
@@ -49,7 +49,7 @@ TurboPanel offers a unified interface for managing Docker containers across mult
 
 ```mermaid
 graph TB
-    subgraph "Cloud-hosted"
+    subgraph "TurboPanel High Availability"
         W[Workers instance] --> D1[Daemon server 1]
         W --> D2[Daemon server 2]
     end

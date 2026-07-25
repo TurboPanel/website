@@ -1,11 +1,11 @@
 ---
 title: Control Plane
-description: Install and configure the TurboPanel control plane for self-hosted and cloud-hosted deployment
+description: Install and configure the TurboPanel control plane for self-hosted and TurboPanel High Availability deployment
 ---
 
 # Control Plane Deployment
 
-The TurboPanel **instance** is the control plane API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for cloud-hosted deployments. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
+The TurboPanel **instance** is the control plane API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for TurboPanel High Availability. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
 
 ## Overview
 
@@ -40,10 +40,10 @@ graph TD
 
 ## Deployment models
 
-| Feature | Self-hosted (Deno) | Cloud-hosted (Workers) |
-| ------- | ------------------ | ---------------------- |
+| Feature | Self-hosted (Deno) | TurboPanel High Availability |
+| ------- | ------------------ | ---------------------------- |
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
-| **TLS** | Caddy (platform CA) | Cloudflare edge |
+| **TLS** | Caddy (platform CA) | Cloudflare-managed TLS |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
 | **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
@@ -77,7 +77,7 @@ A hardened production install uses dedicated service users (`tp`, `tpctrl`, `tpc
 
 Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
 
-### Cloud-hosted (Workers)
+### TurboPanel High Availability
 
 From the instance repo:
 
@@ -93,7 +93,7 @@ pnpm deploy
 `pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
 
 <Callout type="info" title="Daemon Cell on Workers">
-  Cloud-hosted coordination uses a **hibernation-safe Durable Object per server**
+  TurboPanel High Availability coordination uses a **hibernation-safe Durable Object per server**
   (`getByName(serverId)`) for live WS presence, outbox delivery, and request
   correlation — same `/api/daemon/v1/*` and `/ws/daemon/v1` paths as self-hosted.
   Self-hosted uses the Redis cell backend instead. UI status reads come from Postgres

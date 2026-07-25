@@ -158,7 +158,7 @@ export function TerminalPreview() {
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-text-muted)]/25" />
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--tp-text-muted)]/25" />
         <span className="ml-2 font-mono text-[11px] text-[var(--tp-text-muted)]">
-          control-plane · workers edge
+          control-plane · high availability
         </span>
       </div>
       <div className="space-y-2.5 bg-[var(--tp-terminal-bg)] p-4 font-mono text-[11px] leading-relaxed sm:text-xs">

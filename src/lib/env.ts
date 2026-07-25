@@ -82,7 +82,7 @@ export function getApiBaseUrl(hostname: string, port = ''): string {
 /**
  * Control-plane origin for the current website environment.
  * Local Next (`localhost` / `turbopanel.app:19820`) → Caddy `:8443`;
- * deployed marketing hosts → matching Edge instance (`turbopanel.app`, etc.).
+ * deployed marketing hosts → matching TurboPanel High Availability instance (`turbopanel.app`, etc.).
  * Optional `apiHostnames` (Wrangler `API_HOSTNAMES`) wins when provided.
  */
 export function getControlPlaneBaseUrl(

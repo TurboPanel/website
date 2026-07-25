@@ -70,12 +70,14 @@ curl -fsSL trbp.nl/run.sh | \
 
 ## Change update channel
 
-Set `TURBOPANEL_UPDATE_CHANNEL` on the same command:
+Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`trunk`,
+`canary`, `rc`, `release`, …) are technical identifiers — not product branding.
+The example below stays on `trunk` (the default):
 
 ```bash
 curl -fsSL trbp.nl/run.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
-  TURBOPANEL_UPDATE_CHANNEL=edge \
+  TURBOPANEL_UPDATE_CHANNEL=trunk \
   sh
 ```
 

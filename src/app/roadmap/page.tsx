@@ -24,9 +24,9 @@ const PHASES: ReadonlyArray<Phase> = [
     title: 'Foundation',
     shortLabel: 'Foundation',
     status: 'Complete',
-    summary: 'Auth, dual control-plane runtimes, and public docs — Edge is the default shipping target.',
+    summary: 'Auth, dual control-plane runtimes, and public docs — TurboPanel High Availability is the default shipping target.',
     focus: [
-      'Email/password auth, sessions, OTP, verification, and password reset on Edge tenants',
+      'Email/password auth, sessions, OTP, verification, and password reset on TurboPanel High Availability tenants',
       'Workers + Deno parity for the instance API (client, daemon, admin surfaces)',
       'Organizations, workspaces, invitations, and access grants',
       'Docs for architecture, deployment, security, and OpenAPI references',
@@ -292,7 +292,7 @@ function StatusAside({
         </div>
       </dl>
       <p className="mt-5 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-        Shipped phases stay in the timeline for auditability. Edge customers get features as they land —
+        Shipped phases stay in the timeline for auditability. TurboPanel High Availability customers get features as they land —
         self-hosted installs follow the same trunk with operator-driven upgrades.
       </p>
     </div>
@@ -310,7 +310,7 @@ export default function RoadmapPage() {
     <MarketingPageShell active="roadmap">
       <MarketingHero
         eyebrow="Product roadmap"
-        title="What we ship on Edge — and what is in flight."
+        title="What we ship on TurboPanel High Availability — and what is in flight."
         description="Foundation and fleet operations are live in production. Apps & deploy is the active phase: deeper Compose workflows, host-native sites, and operator-grade day-two tools."
         aside={
           <StatusAside
@@ -323,7 +323,7 @@ export default function RoadmapPage() {
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on Edge
+            Start on TurboPanel High Availability
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
         </div>
@@ -346,11 +346,11 @@ export default function RoadmapPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <MarketingSectionHeader
             title="Use what is shipped today"
-            description="Edge orgs get foundation + fleet now. Docs cover the command pipeline, daemon cell, and deploy validation rules in depth."
+            description="TurboPanel High Availability orgs get foundation + fleet now. Docs cover the command pipeline, daemon cell, and deploy validation rules in depth."
           />
           <div className="flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Start on Edge
+              Start on TurboPanel High Availability
             </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/docs" className="px-5">
               Go to docs

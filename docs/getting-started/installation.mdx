@@ -41,16 +41,16 @@ In the console, choose **Start dev stack**. This writes developer identity into 
 
 Details: [Control plane](/docs/deployment/control-plane).
 
-## Cloud-hosted (Workers)
+## TurboPanel High Availability
 
-The instance can run on Cloudflare Workers (`pnpm deploy` in the instance repo; requires `TURBOPANEL_DATABASE_URL` for migrations and `CLOUDFLARE_ENV`, e.g. `live` or `testing`, matching `wrangler.jsonc`). Managed edge features such as **Durable Objects** for daemon coordination are **not implemented yet** — remote daemons today connect over HTTPS/WSS to a reachable instance URL. See [Control plane](/docs/deployment/control-plane).
+The instance can run on Cloudflare Workers (`pnpm deploy` in the instance repo; requires `TURBOPANEL_DATABASE_URL` for migrations and `CLOUDFLARE_ENV`, e.g. `live` or `testing`, matching `wrangler.jsonc`). Hosted daemon coordination uses **Durable Objects** — remote daemons connect over HTTPS/WSS to a reachable instance URL. See [Control plane](/docs/deployment/control-plane).
 
 ## Additional managed server daemons
 
 Install the daemon on servers that should be managed remotely (not the co-located
 control plane). Obtain a license from your organization first.
 
-**Production control plane** (Cloudflare Workers):
+**TurboPanel High Availability** (Cloudflare Workers):
 
 ```bash
 curl -fsSL trbp.nl/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
