@@ -15,6 +15,21 @@ export type ApiConfig = {
   signInUrl: string
 }
 
+/**
+ * Public config for external consumers (Scalar embeds, third-party tools).
+ *
+ * The marketing site itself resolves the same values client-side via
+ * `src/lib/env.ts` / `control-plane-hosts.ts` so static pages do not pay for a
+ * Worker invocation on every view.
+ *
+ * Cache policy: responses are environment-stable (host → control-plane map or
+ * Wrangler `API_HOSTNAMES`). CDN/browser may cache for 1 hour; shared caches
+ * (s-maxage) for 24 hours with a week of stale-while-revalidate. Bump deploys
+ * invalidate Workers; no per-user variance.
+ */
+const CONFIG_CACHE_CONTROL =
+  'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800'
+
 export async function GET(request: Request): Promise<Response> {
   const host = request.headers.get('host') || 'turbopanel.app'
   const [hostname, port = ''] = host.split(':')
@@ -49,5 +64,9 @@ export async function GET(request: Request): Promise<Response> {
     controlPlaneUrl,
     signInUrl: getSignInUrl(hostname, port, apiHostnames),
   }
-  return Response.json(body)
+  return Response.json(body, {
+    headers: {
+      'Cache-Control': CONFIG_CACHE_CONTROL,
+    },
+  })
 }

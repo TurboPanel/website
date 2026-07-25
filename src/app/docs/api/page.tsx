@@ -4,7 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
-import { getApiBaseUrl, getScalarDaemonOpenApiUrl, getScalarOpenApiUrl } from '@/lib/env'
+import {
+  getControlPlaneBaseUrl,
+  getScalarDaemonOpenApiUrl,
+  getScalarOpenApiUrl,
+} from '@/lib/env'
 import {
   buildScalarBearerAuthentication,
   buildScalarCookieAuthentication,
@@ -13,17 +17,21 @@ import {
   scalarSessionCookieNameRowCss,
 } from '@/lib/scalar-session-cookie'
 
-type ApiConfig = {
-  servers: { url: string; description: string }[]
-  openApiUrl: string
-  daemonOpenApiUrl: string
-}
-
 /** Non-empty trimmed string URLs only; rejects non-strings and blank values. */
 function normalizeConfigUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+/** Resolve OpenAPI + try-it servers from the static host map (no `/api/config`). */
+function resolveLocalApiDocsConfig(hostname: string, port: string) {
+  const controlPlaneUrl = getControlPlaneBaseUrl(hostname, port)
+  return {
+    openApiUrl: getScalarOpenApiUrl(hostname, port),
+    daemonOpenApiUrl: getScalarDaemonOpenApiUrl(hostname, port),
+    servers: [{ url: controlPlaneUrl, description: 'API Server' }],
+  }
 }
 
 const scalarCustomCss = `
@@ -100,32 +108,11 @@ export default function ApiDocsPage() {
   const [daemonOpenApiUrl, setDaemonOpenApiUrl] = useState<string | null>(null)
   const [servers, setServers] = useState<{ url: string; description: string }[] | null>(null)
   useEffect(() => {
-    let cancelled = false
-    fetch('/api/config')
-      .then((res) =>
-        res.ok ? (res.json() as Promise<ApiConfig>) : Promise.reject(new Error('config failed'))
-      )
-      .then((data) => {
-        const open = normalizeConfigUrl(data.openApiUrl)
-        const daemon = normalizeConfigUrl(data.daemonOpenApiUrl)
-        if (!cancelled && (data.servers?.length ?? 0) > 0 && open) {
-          setOpenApiUrl(open)
-          setDaemonOpenApiUrl(daemon)
-          setServers(data.servers)
-          return
-        }
-        throw new Error('empty config')
-      })
-      .catch(() => {
-        if (cancelled) return
-        const { hostname, port } = globalThis.location
-        setOpenApiUrl(getScalarOpenApiUrl(hostname, port))
-        setDaemonOpenApiUrl(getScalarDaemonOpenApiUrl(hostname, port))
-        setServers(null)
-      })
-    return () => {
-      cancelled = true
-    }
+    const { hostname, port } = globalThis.location
+    const local = resolveLocalApiDocsConfig(hostname, port)
+    setOpenApiUrl(local.openApiUrl)
+    setDaemonOpenApiUrl(local.daemonOpenApiUrl)
+    setServers(local.servers)
   }, [])
 
   let forceDarkModeState: 'dark' | 'light' | undefined
@@ -139,7 +126,7 @@ export default function ApiDocsPage() {
     if (servers?.[0]?.url) return servers[0].url
     if (globalThis.location !== undefined) {
       const { hostname, port } = globalThis.location
-      return getApiBaseUrl(hostname, port)
+      return getControlPlaneBaseUrl(hostname, port)
     }
     return 'https://turbopanel.app'
   }, [servers])

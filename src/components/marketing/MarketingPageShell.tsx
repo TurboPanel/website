@@ -10,7 +10,7 @@ type MarketingPageShellProps = Readonly<{
 
 export function MarketingPageShell({ children }: MarketingPageShellProps) {
   return (
-    <div className="min-h-screen bg-[var(--tp-bg)] text-[var(--tp-text)]">
+    <div className="tp-marketing-canvas min-h-screen text-[var(--tp-text)]">
       <main>{children}</main>
       <SiteFooter />
     </div>

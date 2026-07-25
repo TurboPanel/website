@@ -3,25 +3,10 @@
 import { useEffect, useState } from 'react'
 import { getSignInUrl } from '@/lib/env'
 
-type ApiConfigSignIn = Readonly<{
-  signInUrl?: string
-  servers?: ReadonlyArray<{ url: string }>
-}>
-
-function resolveHrefFromConfig(data: ApiConfigSignIn): string | null {
-  if (typeof data.signInUrl === 'string' && data.signInUrl.length > 0) {
-    return data.signInUrl
-  }
-  const base = data.servers?.[0]?.url
-  if (typeof base === 'string' && base.length > 0) {
-    return `${base}/sign-in`
-  }
-  return null
-}
-
 /**
  * Primary nav CTA → Edge (or local) control-plane `/sign-in`.
- * Resolves from the current website host, then confirms via `/api/config`.
+ * Resolves from the current website host via the static host map in `src/lib/env.ts`
+ * (no `/api/config` round-trip — keeps static page loads off the Worker bill).
  */
 type SignInButtonProps = Readonly<{
   compact?: boolean
@@ -31,25 +16,7 @@ export function SignInButton({ compact = false }: SignInButtonProps) {
   const [href, setHref] = useState('https://turbopanel.app/sign-in')
 
   useEffect(() => {
-    const host = window.location.hostname
-    const port = window.location.port
-    setHref(getSignInUrl(host, port))
-
-    let cancelled = false
-    void fetch('/api/config')
-      .then(async (res) => {
-        if (!res.ok) return
-        const data = (await res.json()) as ApiConfigSignIn
-        const next = resolveHrefFromConfig(data)
-        if (!cancelled && next) setHref(next)
-      })
-      .catch(() => {
-        /* keep host-mapped href */
-      })
-
-    return () => {
-      cancelled = true
-    }
+    setHref(getSignInUrl(window.location.hostname, window.location.port))
   }, [])
 
   return (

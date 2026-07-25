@@ -27,14 +27,21 @@ Marketing and docs **must** match live product pages. Canonical public page: **h
 
 Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only.
 | `pnpm build` | `next build --webpack` |
+| `pnpm check:hosts` | Assert `wrangler.jsonc` `API_HOSTNAMES` match `src/lib/control-plane-hosts.ts` |
+| `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (not only `Loading…`) |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
 | `pnpm cf-typegen` | `wrangler types` → `cloudflare-env.d.ts` |
+
+## Marketing design
+
+Visual source of truth for marketing pages: [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) (ui-ux-pro-max). Page overrides live under `design-system/turbopanel-website/pages/` (e.g. `roadmap.md`). Tokens: `--tp-*` in `src/app/globals.css` — CTA accent is product green `#3dd68c`. Display headings use **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist. **No entrance fade/slide animations** (SSG must paint instantly). At most one pulsing hero CTA per page (`MarketingPrimaryCta` with `emphasis` / class `tp-cta-emphasis`); honor `prefers-reduced-motion`. Shared CTAs: `src/components/marketing/MarketingPrimaryCta.tsx`. Roadmap uses a vertical timeline + featured “now” panel — never a wizard-style horizontal stepper.
 
 ## File layout
 
 ```
 website/
+├── design-system/        # Marketing MASTER (ui-ux-pro-max)
 ├── docs/                 # Fumadocs MDX (canonical)
 ├── src/app/              # App Router
 ├── src/components/       # Shared UI
@@ -59,10 +66,13 @@ website/
 - Extract helpers when **cognitive complexity** exceeds 15 (`typescript:S3776`).
 
 - **Site chrome** (`src/components/StickySiteChrome.tsx`) — sticky banner + `SiteHeader` (Sign in, social icons, theme toggle). On scroll the evolving-fast banner collapses and the nav shrinks; `--tp-chrome-height` (via ResizeObserver) feeds Fumadocs `--fd-banner-height` and Scalar `--scalar-custom-header-height` so docs/API sidebars fill the remaining viewport without a dead scroll strip. Docs sidebar theme switch is disabled (`themeSwitch.enabled: false`) — theme lives only in the site nav.
-- **Control-plane URL for Sign in / API docs:** `getControlPlaneBaseUrl` / `getSignInUrl` in `src/lib/env.ts`. Local website → `https://localhost:8443`; marketing hosts map to Edge (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Wrangler `API_HOSTNAMES` (first entry) wins when present — keep the host map and `wrangler.jsonc` vars aligned. `/api/config` exposes `controlPlaneUrl` + `signInUrl`.
+- **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` + `WRANGLER_API_HOSTNAMES`); helpers in `src/lib/env.ts`. Local website → `https://localhost:8443`; marketing hosts map to Edge (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. Wrangler `API_HOSTNAMES` (first entry) wins on the Worker when present; keep it aligned via `pnpm check:hosts`.
+- **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
+- **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. After `pnpm build`, run `pnpm check:docs-ssr`.
+- **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
 - **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`turbopanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
-- **`getApiBaseUrl`** localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
+- **`getApiBaseUrl`** / control-plane localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
 - **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_UI_CORS_ORIGINS`** on the instance (synced from `dev/.env` via `sync-env.sh`).
 - **Scalar auth is surface-specific:** Client API docs use cookie auth only (`buildScalarCookieAuthentication`); Daemon API docs use Bearer JWT only (`buildScalarBearerAuthentication`). Pass an **array of configs** (one document each) to `ApiReferenceReact` / `Scalar.createApiReference` — do not use a shared `sources` list with both schemes in one `authentication` object (that lets users switch between cookie and Bearer on every surface).
 
@@ -74,9 +84,24 @@ Node.js **runtime** on Workers (not Edge runtime). Size: check Wrangler compress
 
 This site is mostly SSG (marketing pages + Fumadocs with `generateStaticParams`). `open-next.config.ts` uses OpenNext’s **static-assets incremental cache** + **cache interception** so prerendered HTML is served from Workers Static Assets (free/unlimited requests) and cache hits skip loading Next.js page JS. Do **not** add R2 / KV / D1 / Durable Object queue bindings unless we introduce ISR or `revalidateTag` / `revalidatePath`.
 
-`public/_headers` sets immutable caching for `/_next/static/*`. Observability logs are sampled (`head_sampling_rate: 0.1`) to limit Workers Logs volume.
+`public/_headers` sets immutable caching for `/_next/static/*`.
 
 **Cloudflare dashboard:** no extra resources to create for this caching path — only the existing Workers (`website`, `testing-website`, `staging-website`) and custom domains. `IMAGES` is declared for future `next/image` use; unused transforms cost nothing.
+
+### Observability (Workers Logs)
+
+Sampling is **per environment** in `wrangler.jsonc` (named envs do not inherit top-level observability):
+
+| Env | `head_sampling_rate` | `invocation_logs` |
+| --- | --- | --- |
+| development (default) | `0.25` | on |
+| testing | `0.25` | on |
+| staging | `0.1` | on |
+| **live** | `0.01` | **off** |
+
+Live disables routine invocation logs so high traffic does not dominate Workers Logs cost; a 1% head sample still captures explicit `console.*` lines when diagnosis is needed.
+
+**Incident bump (live):** temporarily set `env.live.observability.logs.invocation_logs` to `true` and/or raise `head_sampling_rate` (e.g. `0.1`–`1`), redeploy (`pnpm deploy` / upload with `--env live`), gather logs, then restore the cheap defaults above and redeploy again. Do not leave elevated live sampling after the incident.
 
 ## Related
 

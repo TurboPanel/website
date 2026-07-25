@@ -1,17 +1,53 @@
 'use client'
 
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
+/**
+ * Client-side Mermaid diagrams, lazy-loaded when near the viewport.
+ *
+ * Build-time SVG rendering (e.g. in `source.config.ts`) is not used yet: docs
+ * support light/dark themes via `next-themes`, and a single static SVG cannot
+ * follow theme changes without shipping two renders or a heavy post-process.
+ * Tradeoff: diagram pages still download the Mermaid chunk (~hundreds of KB),
+ * but only after the diagram approaches the viewport — other docs JS stays
+ * smaller and above-the-fold content paints without waiting on Mermaid.
+ */
 export function Mermaid({ chart }: Readonly<{ chart: string }>) {
-  const [mounted, setMounted] = useState(false)
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [nearViewport, setNearViewport] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
+    const el = hostRef.current
+    if (!el) return
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setNearViewport(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNearViewport(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
-  if (!mounted) return null
-  return <MermaidContent chart={chart} />
+  return (
+    <div ref={hostRef}>
+      {nearViewport ? (
+        <MermaidContent chart={chart} />
+      ) : (
+        <div aria-hidden className="my-6 h-48 animate-pulse rounded-lg bg-fd-muted" />
+      )}
+    </div>
+  )
 }
 
 function MermaidContent({ chart }: Readonly<{ chart: string }>) {
@@ -19,8 +55,15 @@ function MermaidContent({ chart }: Readonly<{ chart: string }>) {
   const { resolvedTheme } = useTheme()
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [themeReady, setThemeReady] = useState(false)
 
   useEffect(() => {
+    setThemeReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!themeReady) return
+
     let cancelled = false
 
     async function renderChart() {
@@ -58,7 +101,7 @@ function MermaidContent({ chart }: Readonly<{ chart: string }>) {
     return () => {
       cancelled = true
     }
-  }, [chart, id, resolvedTheme])
+  }, [chart, id, resolvedTheme, themeReady])
 
   if (error) {
     return (

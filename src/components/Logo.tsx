@@ -13,7 +13,7 @@ export function Logo({ compact = false }: LogoProps) {
       aria-hidden
     >
       <span
-        className={`grid place-items-center rounded-md bg-[var(--tp-accent)] font-bold tracking-wide text-[var(--tp-accent-contrast)] transition-[width,height,font-size] duration-200 ease-out motion-reduce:transition-none ${
+        className={`grid place-items-center rounded-lg bg-[var(--tp-accent)] font-bold tracking-wide text-[var(--tp-accent-contrast)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tp-accent)_40%,transparent)] transition-[width,height,font-size] duration-200 ease-out motion-reduce:transition-none ${
           compact ? 'h-5 w-5 text-[9px]' : 'h-7 w-7 text-[11px]'
         }`}
       >

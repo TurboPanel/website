@@ -35,16 +35,16 @@ export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
       aria-hidden={hidden}
     >
       <div className="min-h-0">
-        <div className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500">
+        <div className="w-full border-b border-[var(--tp-border)] bg-[var(--tp-surface-muted)]">
           <div className="flex items-center justify-between gap-4 px-4 py-2.5">
-            <p className="flex-1 text-center text-sm font-medium text-white">
+            <p className="flex-1 text-center text-sm font-medium text-[var(--tp-text)]">
               TurboPanel is evolving fast —{' '}
               <Link
                 href="/roadmap"
-                className="group/roadmap font-semibold text-white transition-colors hover:text-blue-50"
+                className="group/roadmap font-semibold text-[var(--tp-text)] transition-colors hover:text-[var(--tp-accent)]"
                 tabIndex={hidden ? -1 : undefined}
               >
-                <span className="underline decoration-white/55 underline-offset-[3px] transition-[text-decoration-color] group-hover/roadmap:decoration-white">
+                <span className="underline decoration-[var(--tp-accent)]/50 underline-offset-[3px] transition-[text-decoration-color] group-hover/roadmap:decoration-[var(--tp-accent)]">
                   see what&apos;s shipped and what&apos;s up next
                 </span>
                 <span
@@ -58,7 +58,7 @@ export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
             <button
               type="button"
               onClick={handleCollapse}
-              className="shrink-0 rounded p-1 text-lg leading-none text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="shrink-0 cursor-pointer rounded-md p-1.5 text-lg leading-none text-[var(--tp-text-muted)] transition-colors duration-200 hover:bg-[var(--tp-surface)] hover:text-[var(--tp-text)]"
               aria-label="Dismiss banner"
               tabIndex={hidden ? -1 : undefined}
             >

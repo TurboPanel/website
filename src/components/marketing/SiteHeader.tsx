@@ -30,10 +30,14 @@ function navClass(active: boolean, compact: boolean) {
 
 export function SiteHeader({ active, compact = false }: SiteHeaderProps) {
   return (
-    <header className="bg-transparent">
+    <header className="relative bg-transparent">
+      <div
+        className={`tp-brand-stripe absolute inset-x-0 top-0 h-[2px] opacity-90 ${compact ? 'opacity-70' : ''}`}
+        aria-hidden
+      />
       <div
         className={`mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 transition-[padding,gap] duration-200 ease-out motion-reduce:transition-none sm:gap-3 sm:px-6 ${
-          compact ? 'py-1.5' : 'py-4'
+          compact ? 'py-2' : 'py-4'
         }`}
       >
         <Link href="/" className="flex items-center" aria-label="TurboPanel Home">

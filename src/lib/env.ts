@@ -4,7 +4,14 @@
  * When using turbopanel.app in /etc/hosts for local dev, hostname alone is not enough—
  * we must also check the port (WEBSITE_PORT from dev/.env, default 19820). Local API calls
  * target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
+ *
+ * Host → control-plane mapping lives in {@link ./control-plane-hosts.ts}; keep
+ * `wrangler.jsonc` `API_HOSTNAMES` in sync (`pnpm check:hosts`).
  */
+
+import {
+  WEBSITE_HOST_TO_CONTROL_PLANE,
+} from '@/lib/control-plane-hosts'
 
 const DEFAULT_DEV_WEBSITE_PORT = '19820'
 const DEFAULT_DEV_CADDY_PORT = '8443'
@@ -52,26 +59,24 @@ function schemeForApiHost(hostnameWithOptionalPort: string): string {
   return 'https://'
 }
 
-export function getApiBaseUrl(hostname: string, port = ''): string {
-  const normalized = hostname.split(':')[0].toLowerCase()
-  if (normalized === 'localhost' || normalized === '127.0.0.1') {
+/** Resolve control-plane origin from hostname (+ optional local-dev port). */
+function resolveLocalOrMappedBase(hostname: string, port = ''): string {
+  if (isLocalDevWebsiteHost(hostname, port)) {
     return localDevApiBaseUrl()
   }
-  if (normalized === 'turbopanel.app' && port === getDevWebsitePort()) {
-    return localDevApiBaseUrl()
-  }
+
+  const mapped = WEBSITE_HOST_TO_CONTROL_PLANE[hostname.split(':')[0].toLowerCase()]
+  if (mapped) return mapped
+
   return 'https://turbopanel.app'
 }
 
 /**
- * Marketing-site host → Edge control plane origin.
- * Keep in sync with `API_HOSTNAMES` in `wrangler.jsonc` (testing / staging / live).
+ * API / OpenAPI base URL for the current website host.
+ * Same static map as {@link getControlPlaneBaseUrl} (without Wrangler override).
  */
-const WEBSITE_HOST_TO_CONTROL_PLANE: Readonly<Record<string, string>> = {
-  'turbopanel.io': 'https://turbopanel.app',
-  'www.turbopanel.io': 'https://turbopanel.app',
-  'testing.turbopanel.io': 'https://testing.turbopanel.dev',
-  'staging.turbopanel.io': 'https://staging.turbopanel.dev',
+export function getApiBaseUrl(hostname: string, port = ''): string {
+  return resolveLocalOrMappedBase(hostname, port)
 }
 
 /**
@@ -91,14 +96,7 @@ export function getControlPlaneBaseUrl(
     if (fromEnv) return fromEnv
   }
 
-  if (isLocalDevWebsiteHost(hostname, port)) {
-    return localDevApiBaseUrl()
-  }
-
-  const mapped = WEBSITE_HOST_TO_CONTROL_PLANE[hostname.split(':')[0].toLowerCase()]
-  if (mapped) return mapped
-
-  return getApiBaseUrl(hostname, port)
+  return resolveLocalOrMappedBase(hostname, port)
 }
 
 /** Sign-in page on the env-appropriate control plane. */
@@ -111,11 +109,11 @@ export function getSignInUrl(
 }
 
 export function getScalarOpenApiUrl(hostname: string, port = ''): string {
-  return `${getApiBaseUrl(hostname, port)}/api/client/v1/openapi.json`
+  return `${getControlPlaneBaseUrl(hostname, port)}/api/client/v1/openapi.json`
 }
 
 export function getScalarDaemonOpenApiUrl(hostname: string, port = ''): string {
-  return `${getApiBaseUrl(hostname, port)}/api/daemon/v1/openapi.json`
+  return `${getControlPlaneBaseUrl(hostname, port)}/api/daemon/v1/openapi.json`
 }
 
 /**

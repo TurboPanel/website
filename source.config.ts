@@ -38,6 +38,15 @@ interface RemarkNode {
   children?: RemarkNode[]
 }
 
+/**
+ * Transform ```mermaid fences into the client `<Mermaid>` component.
+ *
+ * Build-time SVG (rehype-mermaid / mermaid CLI) is deferred: light/dark theme
+ * switching needs either dual SVGs or a runtime re-render, which complicates
+ * the MDX pipeline for little gain while diagrams are sparse. The client
+ * component lazy-loads the Mermaid runtime only when a diagram nears the
+ * viewport — see `src/components/mdx/Mermaid.tsx` and AGENTS.md.
+ */
 function toMermaidMdx(code: string) {
   const chart = code.trim()
   return {

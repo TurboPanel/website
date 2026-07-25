@@ -11,16 +11,19 @@
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "development-website" },
   ],
-  // Sample logs to keep Workers Logs cheap on a high-traffic marketing site.
+  // Dev / default Worker — keep moderate sampling while iterating.
+  // Named envs override below (Wrangler does not inherit top-level observability).
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1,
+    "head_sampling_rate": 0.25,
     "logs": {
       "enabled": true,
       "invocation_logs": true,
-      "head_sampling_rate": 0.1,
+      "head_sampling_rate": 0.25,
     },
   },
+  // Keep in sync with WRANGLER_API_HOSTNAMES in src/lib/control-plane-hosts.ts
+  // (pnpm check:hosts).
   "vars": {
     "API_HOSTNAMES": "localhost:8443,Local Dev",
   },
@@ -36,6 +39,15 @@
       ],
       "route": { "pattern": "testing.turbopanel.io", "custom_domain": true },
       "vars": { "API_HOSTNAMES": "testing.turbopanel.dev,Testing API" },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 0.25,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": true,
+          "head_sampling_rate": 0.25,
+        },
+      },
     },
     "staging": {
       "name": "staging-website",
@@ -46,6 +58,15 @@
       ],
       "route": { "pattern": "staging.turbopanel.io", "custom_domain": true },
       "vars": { "API_HOSTNAMES": "staging.turbopanel.dev,Staging API" },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 0.1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": true,
+          "head_sampling_rate": 0.1,
+        },
+      },
     },
     "live": {
       "name": "website",
@@ -59,6 +80,17 @@
         "custom_domain": true,
       },
       "vars": { "API_HOSTNAMES": "turbopanel.app,Production API" },
+      // Cheap default: no routine invocation logs; 1% head sample for explicit
+      // console.* lines. Raise temporarily during incidents (see AGENTS.md).
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 0.01,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": false,
+          "head_sampling_rate": 0.01,
+        },
+      },
     },
   },
 }

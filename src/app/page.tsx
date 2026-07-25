@@ -1,226 +1,280 @@
-import Link from 'next/link'
+import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
+import {
+  MarketingPrimaryCta,
+  MarketingSecondaryCta,
+} from '@/components/marketing/MarketingPrimaryCta'
+import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
+import {
+  FeatureList,
+  MarketingCard,
+  MarketingInlineLink,
+  MarketingMetricStrip,
+  MarketingSection,
+  MarketingSectionHeader,
+} from '@/components/marketing/marketing-primitives'
 
-const STAGE_SOLUTIONS = [
+const PLATFORM_STATS = [
   {
-    stage: 'Just getting started',
-    pitch: 'Launch your first apps without learning five different tools first.',
+    label: 'Control plane',
+    value: 'Workers + Postgres',
+    hint: 'Hyperdrive-backed API, global edge, no VM to patch for the panel itself.',
   },
   {
-    stage: 'Growing team',
-    pitch: 'Keep everyone on the same page with one place to manage servers and apps.',
+    label: 'Fleet path',
+    value: 'Daemon WSS',
+    hint: 'Ed25519 JWT auth, correlated commands, Postgres-projected presence — not per-host polling.',
   },
   {
-    stage: 'Busy setup',
-    pitch: 'Handle more apps and more servers without turning daily ops into a fire drill.',
+    label: 'Deploy unit',
+    value: 'Compose-native',
+    hint: 'Environment overlays, placement pins, linted YAML — one click when the target server is set.',
+  },
+] as const
+
+const CAPABILITIES = [
+  {
+    mono: 'deploy',
+    title: 'Environment-scoped Compose',
+    body: 'Merge project base + environment overlay, validate before enqueue, and ship to the pinned server with daemon-side Traefik ingress.',
+  },
+  {
+    mono: 'fleet',
+    title: 'O(1) status at scale',
+    body: 'Fleet tables read from Postgres projections — online state, metrics series, and command lifecycle without opening a tab per host.',
+  },
+  {
+    mono: 'net',
+    title: 'Datacenter-aware networking',
+    body: 'Org VPC meshes, IP pools, and bind modes (public / datacenter / local) for hostings that need more than a single public interface.',
+  },
+  {
+    mono: 'ha',
+    title: 'High availability by default on Edge',
+    body: 'We operate the control plane on Cloudflare Workers so your team logs in — you focus on the nodes running your workloads.',
+  },
+] as const
+
+const OPERATING_PROFILES = [
+  {
+    stage: 'Production on day one',
+    pitch:
+      'Spin up Edge, enroll your first daemon with a registration key, and deploy Compose without standing up Postgres, Caddy, and RabbitMQ for the panel.',
+  },
+  {
+    stage: 'Hybrid fleets',
+    pitch:
+      'Pin environments to specific servers — cloud VMs, colo metal, or Raspberry Pi at the edge — from one API and one console.',
+  },
+  {
+    stage: 'Platform engineering',
+    pitch:
+      'Variables, access grants, OpenAPI surfaces, and command polling hooks that fit CI/CD once the basics are stable.',
   },
 ] as const
 
 const PRODUCT_OS_ITEMS = [
-  'Start, stop, and restart apps',
-  'Watch logs in real time',
-  'Add new servers in minutes',
-  'Manage team access safely',
-  'Use the API when you want automation',
+  'Compose editor + visual service kinds (container / traditional-web)',
+  'Deploy, stop, and container status from Postgres — not live DO reads',
+  'Host metrics (CPU, memory, disk, network) with gap-aware charts',
+  'Server commands: ping, hostname, reboot, timezone, NTP, trunk update',
+  'Client + daemon OpenAPI — cookie session and bearer JWT respectively',
 ] as const
 
-const DATA_CONTEXT_ITEMS = [
-  'What is running right now',
-  'Which server needs attention',
-  'Recent changes and activity',
+const WHY = [
+  {
+    title: 'Edge is the default product surface',
+    body: 'Same UI and API as self-hosted, but the control plane runs on our HA stack — you add servers, not another always-on VM pair.',
+  },
+  {
+    title: 'Honest per-server economics',
+    body: 'One included server on Edge, then linear add-ons. No hidden seat math — fleet size maps directly to line items.',
+  },
+  {
+    title: 'Self-hosted when you must',
+    body: 'Open-source path remains available for air-gapped or compliance-bound installs; most teams still start on Edge for speed.',
+  },
+  {
+    title: 'Docs that match the architecture',
+    body: 'Dual-runtime instance, daemon cell, command pipeline, and deployment guides — written for operators who read RFCs.',
+  },
 ] as const
-
-const WHY_TURBOPANEL = [
-  'Easy enough for small projects, solid enough for bigger teams',
-  'Self-hosted is free, so you can start without budget drama',
-  'Edge-hosted is available if you want managed high availability',
-  'Docs are written to be useful, not impressive',
-] as const
-
-function HeroSection() {
-  return (
-    <section className="relative overflow-hidden px-4 pb-14 pt-20 sm:px-6 sm:pt-24">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(880px_circle_at_16%_-10%,var(--tp-hero-a),transparent_55%),radial-gradient(640px_circle_at_90%_8%,var(--tp-hero-b),transparent_58%)]" />
-      <div className="mx-auto max-w-6xl">
-        <div className="max-w-4xl tp-fade-up">
-          <p className="inline-flex rounded-full border border-[var(--tp-border)] bg-[var(--tp-surface)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tp-text-muted)]">
-            Website and container management
-          </p>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.05em] text-[var(--tp-text)] sm:text-6xl">
-            Host in the cloud, in your datacenter, or a mix of both.
-          </h1>
-          <p className="mt-5 text-lg leading-relaxed text-[var(--tp-text-muted)] sm:text-xl">
-            Deploy your apps, blogs, databases, or any of our [X+] application templates, anywhere.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/docs/getting-started/introduction"
-              className="rounded-lg bg-[var(--tp-accent)] px-6 py-3 text-sm font-semibold text-[var(--tp-accent-contrast)] transition-opacity hover:opacity-90"
-            >
-              Start with docs
-            </Link>
-            <Link
-              href="/pricing"
-              className="rounded-lg border border-[var(--tp-border)] bg-[var(--tp-surface)] px-6 py-3 text-sm font-semibold text-[var(--tp-text)] transition-colors hover:bg-[var(--tp-surface-muted)]"
-            >
-              See pricing
-            </Link>
-          </div>
-          <p className="mt-4 text-sm text-[var(--tp-text-muted)]">
-            Questions?{' '}
-            <Link href="/docs" className="underline">
-              Read the docs
-            </Link>{' '}
-            or{' '}
-            <Link href="/roadmap" className="underline">
-              see what&apos;s coming next
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StageSection() {
-  return (
-    <section className="px-4 py-10 sm:px-6">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-6 tp-fade-up">
-          <h2 className="text-3xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-4xl">
-            Pick what sounds like you
-          </h2>
-          <p className="mt-2 text-base text-[var(--tp-text-muted)]">
-            TurboPanel works whether you are solo or running a larger setup.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {STAGE_SOLUTIONS.map((item, index) => (
-            <article
-              key={item.stage}
-              className="tp-fade-up rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.35)]"
-              style={{ animationDelay: `${index * 90}ms` }}
-            >
-              <h3 className="text-lg font-semibold text-[var(--tp-text)]">{item.stage}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-                {item.pitch}
-              </p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function ProductOsSection() {
-  return (
-    <section className="border-y border-[var(--tp-border)] bg-[var(--tp-surface)] px-4 py-14 sm:px-6">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-2">
-        <div className="tp-fade-up">
-          <h2 className="text-3xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-4xl">
-            One place, not ten tabs
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-[var(--tp-text-muted)]">
-            Start with the basics today, then grow into advanced workflows later. You don&apos;t
-            need to be an infrastructure expert to get value.
-          </p>
-          <ul className="mt-5 space-y-2 text-sm text-[var(--tp-text-muted)]">
-            {PRODUCT_OS_ITEMS.map((item) => (
-              <li key={item} className="flex gap-2.5">
-                <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-text-muted)]/60" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div
-          className="tp-fade-up rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface-muted)] p-6"
-          style={{ animationDelay: '120ms' }}
-        >
-          <h3 className="text-xl font-semibold text-[var(--tp-text)]">See what matters fast</h3>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-            You can quickly spot problems and fix them before they become "why is the site down?"
-            messages.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--tp-text-muted)]">
-            {DATA_CONTEXT_ITEMS.map((item) => (
-              <li key={item} className="flex gap-2.5">
-                <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-text-muted)]/60" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function PricingStrip() {
-  return (
-    <section className="px-4 py-14 sm:px-6">
-      <div className="mx-auto w-full max-w-6xl tp-fade-up rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-8 sm:p-10">
-        <p className="text-sm uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
-          Simple pricing
-        </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-4xl">
-          Self-hosted is free. Edge-hosted starts at $X/month.
-        </h2>
-        <p className="mt-3 max-w-2xl text-base text-[var(--tp-text-muted)]">
-          Edge-hosted includes one server for $X/month, then $X/month for each extra server. Annual
-          billing gives you X months for the price of X.
-        </p>
-        <div className="mt-6">
-          <Link
-            href="/pricing"
-            className="rounded-lg bg-[var(--tp-accent)] px-5 py-3 text-sm font-semibold text-[var(--tp-accent-contrast)] transition-opacity hover:opacity-90"
-          >
-            Open pricing
-          </Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function WhySection() {
-  return (
-    <section className="px-4 pb-16 sm:px-6">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-6 tp-fade-up">
-          <h2 className="text-3xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-4xl">
-            Why people choose TurboPanel
-          </h2>
-          <p className="mt-2 text-base text-[var(--tp-text-muted)]">
-            It keeps day-to-day server work simple.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {WHY_TURBOPANEL.map((item, index) => (
-            <article
-              key={item}
-              className="tp-fade-up rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-5"
-              style={{ animationDelay: `${index * 75}ms` }}
-            >
-              <p className="text-sm leading-relaxed text-[var(--tp-text-muted)]">{item}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
 
 export default function Home() {
   return (
     <MarketingPageShell active="overview">
-      <HeroSection />
-      <StageSection />
-      <ProductOsSection />
-      <PricingStrip />
-      <WhySection />
+      <MarketingHero
+        eyebrow="DevOps control plane · Edge-hosted"
+        title="Run your fleet from a managed Workers control plane."
+        description="TurboPanel is Compose-native infrastructure software: enroll Linux hosts, deploy environments with placement pins, and operate everything through a fast ops console — we host the panel on Cloudflare Edge so you do not babysit it."
+        showTerminal
+      >
+        <div className="mt-8 flex flex-wrap gap-3">
+          <MarketingControlPlaneCta path="/sign-up" emphasis>
+            Start on Edge
+          </MarketingControlPlaneCta>
+          <MarketingSecondaryCta href="/docs/getting-started/introduction">
+            Read the architecture
+          </MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/pricing">Edge pricing</MarketingSecondaryCta>
+        </div>
+        <p className="mt-6 text-sm text-[var(--tp-text-muted)]">
+          Already running the panel yourself?{' '}
+          <MarketingInlineLink href="/docs/deployment/control-plane">
+            Self-hosted install
+          </MarketingInlineLink>{' '}
+          ·{' '}
+          <MarketingInlineLink href="/roadmap">Roadmap</MarketingInlineLink>
+        </p>
+      </MarketingHero>
+
+      <MarketingSection className="pt-0 sm:pt-2">
+        <MarketingMetricStrip items={PLATFORM_STATS} />
+      </MarketingSection>
+
+      <MarketingSection>
+        <MarketingSectionHeader
+          eyebrow="Platform"
+          title="Built for operators who ship Compose every week"
+          description="Modular client API, daemon WebSocket cell, and Ansible-driven node agents — one product surface whether you connect one server or fifty."
+        />
+        <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-border)] sm:grid-cols-2">
+          {CAPABILITIES.map((item) => (
+            <div key={item.title} className="bg-[var(--tp-surface)] p-6 sm:p-7">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--tp-accent)]">
+                {item.mono}
+              </p>
+              <h3 className="tp-display mt-2 text-lg font-semibold tracking-tight text-[var(--tp-text)]">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection variant="band">
+        <MarketingSectionHeader
+          title="Where Edge fits your stack"
+          description="Most teams want a control plane that is online when they are — not another service to restore during an incident."
+        />
+        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+          {OPERATING_PROFILES.map((item, index) => (
+            <div key={item.stage} className="relative border-t border-[var(--tp-border)] pt-6 md:border-t-0 md:pt-0">
+              <p className="font-mono text-xs font-medium text-[var(--tp-accent)]">
+                {String(index + 1).padStart(2, '0')}
+              </p>
+              <h3 className="tp-display mt-3 text-lg font-semibold tracking-tight text-[var(--tp-text)]">
+                {item.stage}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
+                {item.pitch}
+              </p>
+            </div>
+          ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection>
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-14">
+          <div>
+            <MarketingSectionHeader
+              eyebrow="Console"
+              title="One API for fleet, deploy, and access"
+              description="The org console is dense on purpose: fewer clicks from compose edit to live containers, with permissions that mirror the authz catalog on the wire."
+            />
+            <FeatureList items={PRODUCT_OS_ITEMS} />
+          </div>
+          <MarketingCard className="bg-[var(--tp-surface-muted)]/50" accent>
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text-muted)]">
+              incident-ready
+            </p>
+            <h3 className="tp-display mt-3 text-xl font-semibold tracking-tight text-[var(--tp-text)]">
+              See signal, not noise
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)]">
+              Postgres-backed presence and metrics mean the overview stays fast while daemons reconnect
+              behind Caddy or Cloudflare.
+            </p>
+            <ul className="mt-5 space-y-3 text-sm text-[var(--tp-text)]">
+              <li className="flex gap-2.5">
+                <span
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
+                  aria-hidden
+                />
+                <span>Which hosts are connected vs stale</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
+                  aria-hidden
+                />
+                <span>Command latency segments on ping</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
+                  aria-hidden
+                />
+                <span>Deploy validation errors before queue time</span>
+              </li>
+            </ul>
+          </MarketingCard>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection variant="muted">
+        <div className="overflow-hidden rounded-2xl border border-[var(--tp-accent)]/35 bg-[var(--tp-surface)] shadow-[var(--tp-shadow-card)]">
+          <div className="tp-brand-stripe h-1" aria-hidden />
+          <div className="flex flex-col gap-8 p-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
+            <div className="max-w-2xl">
+              <p className="tp-eyebrow">Edge pricing</p>
+              <h2 className="tp-section-title mt-4">
+                Managed control plane from $X/month — first server included.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
+                Per-server add-ons stay predictable. Annual billing is pay X months, get X months —
+                self-hosted remains $0 if you truly need to run the panel yourself.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+              <MarketingPrimaryCta href="/pricing" emphasis={false} className="px-5">
+                Compare Edge plans
+              </MarketingPrimaryCta>
+              <MarketingControlPlaneCta path="/sign-up" variant="secondary" emphasis={false} className="px-5">
+                Create Edge account
+              </MarketingControlPlaneCta>
+            </div>
+          </div>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection className="pb-20">
+        <MarketingSectionHeader
+          title="Why teams standardize on TurboPanel Edge"
+          description="Professional ops tooling with a hosted control plane — so your engineers spend cycles on workloads, not panel HA."
+        />
+        <div className="grid gap-6 sm:grid-cols-2">
+          {WHY.map((item) => (
+            <div key={item.title} className="border-t border-[var(--tp-border)] pt-5">
+              <h3 className="tp-display text-base font-semibold tracking-tight text-[var(--tp-text)]">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-12 flex flex-wrap gap-3 border-t border-[var(--tp-border)] pt-10">
+          <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
+            Start on Edge
+          </MarketingControlPlaneCta>
+          <MarketingSecondaryCta href="/docs/api">Explore the API</MarketingSecondaryCta>
+        </div>
+      </MarketingSection>
     </MarketingPageShell>
   )
 }
