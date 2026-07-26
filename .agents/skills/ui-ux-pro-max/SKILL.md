@@ -15,7 +15,7 @@ Skip it for pure backend logic, API/database design, non-visual performance work
 
 ### TurboPanel Website (this repo)
 
-Project-specific contract for **when/how/what to read** lives in [`AGENTS.md`](../../../AGENTS.md) → **Marketing & docs UI design (ui-ux-pro-max)**. Persisted SoT: [`design-system/turbopanel-website/MASTER.md`](../../../design-system/turbopanel-website/MASTER.md) + optional `pages/`. Do not confuse with the product console in `~/ui` (different Master, dark-first OLED). Prefer that AGENTS section over improvising a new design system for this site.
+Project-specific contract for **when/how/what to read** lives in [`AGENTS.md`](../../../AGENTS.md) → **Marketing & docs UI design (ui-ux-pro-max)** and [`.cursor/rules/ui-ux-pro-max.mdc`](../../../.cursor/rules/ui-ux-pro-max.mdc). Persisted SoT: [`design-system/turbopanel-website/MASTER.md`](../../../design-system/turbopanel-website/MASTER.md) + optional `pages/`. Run search from `.agents/skills/ui-ux-pro-max/scripts/search.py` only. Do not confuse with the product console in `~/ui` (different Master, dark-first OLED). Prefer that AGENTS section over improvising a new design system for this site.
 
 ## Rule Categories by Priority
 

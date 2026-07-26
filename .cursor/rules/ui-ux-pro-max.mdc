@@ -1,0 +1,43 @@
+---
+description: How to use the ui-ux-pro-max skill for TurboPanel marketing/docs visual work
+alwaysApply: true
+---
+
+# UI/UX skill (marketing + docs site)
+
+This repo is the **public marketing + docs site** (Next.js / Fumadocs). Visual work must follow **ui-ux-pro-max** plus the persisted website design system — never invent a parallel look or copy `~/ui` OLED console patterns.
+
+## Canonical skill path (only this one)
+
+| What | Path |
+| --- | --- |
+| Skill | `.agents/skills/ui-ux-pro-max/SKILL.md` |
+| Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
+| Master | `design-system/turbopanel-website/MASTER.md` |
+| Page overrides | `design-system/turbopanel-website/pages/<page>.md` (wins over Master) |
+| Tokens | `src/app/globals.css` (`--tp-*`) |
+
+Do **not** add a second copy under `.cursor/skills/`. Skills for this site live under `.agents/skills/` only.
+
+## When to use
+
+**Before** marketing pages, heroes, docs chrome/layout theming, typography/color/spacing/motion/CTA work, new marketing components, or visual consistency reviews. Skip pure MDX/content, API/config, or non-visual refactors unless appearance changes.
+
+## Mandatory first steps
+
+From the **website repo root**:
+
+1. Read `design-system/turbopanel-website/MASTER.md`, then `pages/<page>.md` if present (Master/pages win over skill search)
+2. Read `.agents/skills/ui-ux-pro-max/SKILL.md`
+3. Search only as a supplemental aid (prefer `python3`):
+
+```bash
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py \
+  "developer tool devops control plane B2B" --design-system -p "TurboPanel Website"
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain style
+python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --stack nextjs
+```
+
+4. Reuse marketing primitives (`MarketingPrimaryCta`, `MarketingPageShell`, …); implement with `--tp-*` tokens only
+
+Full contract: `AGENTS.md` → **Marketing & docs UI design (ui-ux-pro-max)**. Do not `--persist --force` Master unless an explicit redesign was requested.

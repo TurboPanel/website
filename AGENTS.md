@@ -44,7 +44,7 @@ This repo is the **public marketing + docs site**, not the signed-in product con
 | Surface | Marketing pages, landing/heroes, docs chrome, pricing/roadmap | Org console, admin, install/sign-in product UI |
 | North star | Fast, trustworthy, **light-first** marketing + readable docs; dark mode supported | Dark-first OLED ops console, dense tables |
 | Design system | `design-system/turbopanel-website/` | `design-system/turbopanel/` |
-| Skill path | `.agents/skills/ui-ux-pro-max/` | `.agents/skills/ui-ux-pro-max/` (canonical; `.cursor/skills/` may lag) |
+| Skill path | `.agents/skills/ui-ux-pro-max/` | `.agents/skills/ui-ux-pro-max/` |
 | Tokens | `--tp-*` in `src/app/globals.css` | `src/lib/theme.ts` (Tamagui) |
 | Stack search | `--stack nextjs` (also `react` / `html-tailwind` as needed) | `--stack react-native` |
 
@@ -68,6 +68,7 @@ Skip the skill for pure content/MDX copy, API/config wiring, Workers/deploy scri
 | --- | --- |
 | Skill (read first) | [`.agents/skills/ui-ux-pro-max/SKILL.md`](.agents/skills/ui-ux-pro-max/SKILL.md) |
 | Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
+| Cursor rule | [`.cursor/rules/ui-ux-pro-max.mdc`](.cursor/rules/ui-ux-pro-max.mdc) |
 | Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) |
 | Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `roadmap.md`; page wins over Master) |
 | CSS tokens | `src/app/globals.css` (`--tp-*`, `--font-display`) |
