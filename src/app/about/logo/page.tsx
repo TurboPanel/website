@@ -1,28 +1,28 @@
-import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
-import Link from 'next/link'
-import { MarketingHero } from '@/components/marketing/MarketingHero'
-import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { MarketingHero } from "@/components/marketing/MarketingHero";
+import { MarketingPageShell } from "@/components/marketing/MarketingPageShell";
 import {
   MarketingSection,
   MarketingSectionHeader,
-} from '@/components/marketing/marketing-primitives'
-import { BRAND_COLORS, BRAND_LOGO_VARIANTS } from '@/lib/brand-assets'
+} from "@/components/marketing/marketing-primitives";
+import { BRAND_COLORS, BRAND_LOGO_VARIANTS } from "@/lib/brand-assets";
 
 export const metadata: Metadata = {
-  title: 'TurboPanel logo',
+  title: "TurboPanel logo",
   description:
-    'Official TurboPanel logo downloads and usage guidelines for websites, publications, and product UI.',
-}
+    "Official TurboPanel logo downloads and usage guidelines for websites, publications, and product UI.",
+};
 
 const DO_NOT = [
-  'Do not stretch, skew, or rotate the mark.',
-  'Do not recolor the dual-brand mark except by using the provided white or mono variants.',
-  'Do not add outlines, drop shadows, gradients, or glow effects to the mark.',
-  'Do not place the color mark on busy photography without a clear solid or soft backing.',
-  'Do not lock up the mark with other logos closer than the clear-space rule below.',
-  'Do not use outdated “TP” letter tiles as the product logo.',
-] as const
+  "Do not stretch, skew, or rotate the mark.",
+  "Do not recolor the dual-brand mark except by using the provided white or mono variants.",
+  "Do not add outlines, drop shadows, gradients, or glow effects to the mark.",
+  "Do not place the color mark on busy photography without a clear solid or soft backing.",
+  "Do not lock up the mark with other logos closer than the clear-space rule below.",
+  "Do not use outdated “TP” letter tiles as the product logo.",
+] as const;
 
 function DownloadLink({
   href,
@@ -36,16 +36,16 @@ function DownloadLink({
     >
       {children}
     </Link>
-  )
+  );
 }
 
 function LogoVariantBlock({
   variant,
 }: Readonly<{ variant: (typeof BRAND_LOGO_VARIANTS)[number] }>) {
   const previewBox =
-    variant.previewAspect === 'square'
-      ? 'aspect-square max-w-[200px]'
-      : 'aspect-[680/520] max-w-[280px]'
+    variant.previewAspect === "square"
+      ? "aspect-square max-w-[200px]"
+      : "aspect-[680/520] max-w-[280px]";
 
   return (
     <article
@@ -83,9 +83,9 @@ function LogoVariantBlock({
           >
             <img
               src={
-                variant.id === 'square'
-                  ? '/brand/turbopanel-logo-square-white.svg'
-                  : '/brand/turbopanel-logo-white.svg'
+                variant.id === "square"
+                  ? "/brand/turbopanel-logo-square-white.svg"
+                  : "/brand/turbopanel-logo-white.svg"
               }
               alt=""
               className="h-full w-full object-contain"
@@ -94,7 +94,7 @@ function LogoVariantBlock({
         </div>
       </div>
     </article>
-  )
+  );
 }
 
 export default function AboutLogoPage() {
@@ -137,7 +137,9 @@ export default function AboutLogoPage() {
                 aria-hidden
               />
               <div>
-                <p className="font-semibold text-[var(--tp-text)]">{color.name}</p>
+                <p className="font-semibold text-[var(--tp-text)]">
+                  {color.name}
+                </p>
                 <p className="mt-0.5 font-mono text-sm text-[var(--tp-text-muted)]">
                   {color.hex}
                 </p>
@@ -161,34 +163,48 @@ export default function AboutLogoPage() {
         />
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
-            <h3 className="text-base font-semibold text-[var(--tp-text)]">Clear space</h3>
+            <h3 className="text-base font-semibold text-[var(--tp-text)]">
+              Clear space
+            </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              Keep empty space around the mark at least as tall as the green acceleration bars.
-              Do not let other logos, type, or UI chrome collide with that margin.
+              Keep empty space around the mark at least as tall as the green
+              acceleration bars. Do not let other logos, type, or UI chrome
+              collide with that margin.
             </p>
           </div>
           <div>
-            <h3 className="text-base font-semibold text-[var(--tp-text)]">Minimum size</h3>
+            <h3 className="text-base font-semibold text-[var(--tp-text)]">
+              Minimum size
+            </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              Standard mark: at least <span className="font-mono">24px</span> tall on screen,{' '}
-              <span className="font-mono">0.5&quot;</span> in print. Square mark: at least{' '}
-              <span className="font-mono">24×24px</span> on screen. Prefer SVG whenever possible.
+              Standard mark: at least <span className="font-mono">24px</span>{" "}
+              tall on screen, <span className="font-mono">0.5&quot;</span> in
+              print. Square mark: at least{" "}
+              <span className="font-mono">24×24px</span> on screen. Prefer SVG
+              whenever possible.
             </p>
           </div>
         </div>
         <div className="mt-10">
-          <h3 className="text-base font-semibold text-[var(--tp-text)]">Wordmark</h3>
+          <h3 className="text-base font-semibold text-[var(--tp-text)]">
+            Wordmark
+          </h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-            In prose the product name is one word with a capital T and P:{' '}
-            <strong className="font-semibold text-[var(--tp-text)]">TurboPanel</strong>
-            — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In product chrome, the T mark
-            locks up with an extrabold italic{' '}
+            In prose the product name is one word with a capital T and P:{" "}
+            <strong className="font-semibold text-[var(--tp-text)]">
+              TurboPanel
+            </strong>
+            — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In product
+            chrome, the T mark locks up with an extrabold italic{" "}
             <span className="tp-display italic font-extrabold text-[var(--tp-text)]">
               urboPanel
-            </span>{' '}
-            wordmark in <strong className="font-semibold text-[var(--tp-text)]">Plus Jakarta Sans</strong>
-            , tucked under the blue crossbar (the mark supplies the T). The mark may appear alone
-            when space is tight.
+            </span>{" "}
+            wordmark in{" "}
+            <strong className="font-semibold text-[var(--tp-text)]">
+              Plus Jakarta Sans
+            </strong>
+            , tucked under the blue crossbar (the mark supplies the T). The mark
+            may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>
@@ -217,12 +233,13 @@ export default function AboutLogoPage() {
 
       <MarketingSection>
         <p className="max-w-2xl text-sm leading-relaxed text-[var(--tp-text-muted)]">
-          Questions about trademark use or partnership lockups can go through the usual TurboPanel
-          contact channels. Product UI tokens stay in{' '}
-          <span className="font-mono">ui/src/lib/theme.ts</span>; marketing tokens in{' '}
+          Questions about trademark use or partnership lockups can go through
+          the usual TurboPanel contact channels. Product UI tokens stay in{" "}
+          <span className="font-mono">ui/src/lib/theme.ts</span>; marketing
+          tokens in{" "}
           <span className="font-mono">website/src/app/globals.css</span>.
         </p>
       </MarketingSection>
     </MarketingPageShell>
-  )
+  );
 }
