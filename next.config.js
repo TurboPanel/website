@@ -17,14 +17,24 @@ const { createMDX } = require('fumadocs-mdx/next')
  */
 function createNextConfig(phase, { defaultConfig }) {
   const { experimental, logging, ...restDefaultConfig } = defaultConfig
-  const { browserDebugInfoInTerminal, ...experimentalConfig } = experimental ?? {}
+  // Strip deprecated experimental.browserDebugInfoInTerminal (use logging.browserToTerminal).
+  const experimentalConfig = { ...(experimental ?? {}) }
+  Reflect.deleteProperty(experimentalConfig, 'browserDebugInfoInTerminal')
 
   const config = {
     ...restDefaultConfig,
     experimental: experimentalConfig,
     logging: {
       ...logging,
-      browserToTerminal: logging?.browserToTerminal ?? browserDebugInfoInTerminal,
+    },
+    async redirects() {
+      return [
+        {
+          source: '/discord',
+          destination: 'https://discord.com/invite/vGDQaTXPQw',
+          permanent: false,
+        },
+      ]
     },
     // Next.js 16: Turbopack is the default bundler. Aliases must be in turbopack for dev + default build.
     turbopack: {
