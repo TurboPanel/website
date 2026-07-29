@@ -118,7 +118,7 @@ Apply in this order (later steps only fill gaps; they do not override earlier pr
 
 These are non-negotiable for this site (detail + checklist live in Master):
 
-- Tokens: `--tp-*` in `globals.css`; CTA accent `#3dd68c` (`--tp-accent`) with dark on-accent text
+- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-green` `#3dd68c` + `--tp-blue` `#3366cc` (CTA stays green via `--tp-accent`); brand stripe green→blue
 - Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist
 - **No entrance fade/slide animations** — SSG content must paint instantly
 - At most **one** pulsing hero CTA per page (`MarketingPrimaryCta` `emphasis` / `tp-cta-emphasis`); honor `prefers-reduced-motion`

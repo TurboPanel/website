@@ -156,8 +156,8 @@ export default function PricingPage() {
             </div>
           </article>
 
-          <article className="order-2 rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]/90 p-6 sm:p-8">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
+          <article className="order-2 rounded-2xl border border-[var(--tp-blue)]/40 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--tp-blue)_8%,var(--tp-surface))_0%,var(--tp-surface)_55%)] p-6 sm:p-8">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-blue)]">
               self-hosted
             </p>
             <p className="tp-display mt-4 text-4xl font-semibold tracking-tight text-[var(--tp-text)]">

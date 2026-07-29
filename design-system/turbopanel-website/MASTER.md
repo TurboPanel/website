@@ -16,7 +16,7 @@
 
 ## North Star
 
-TurboPanel marketing should feel **fast and trustworthy** — SSG content paints instantly, one green CTA draws the eye, no decorative entrance choreography. Align CTA green with the product console (`ui/design-system/turbopanel/MASTER.md`); marketing stays **light-first** for docs readability while dark mode remains fully supported.
+TurboPanel marketing should feel **fast and trustworthy** — SSG content paints instantly, one green CTA draws the eye, no decorative entrance choreography. Dual brand with the product console (`ui/design-system/turbopanel/MASTER.md`): **green** (HA / run) + **blue `#3366cc`** (self-hosted). Marketing stays **light-first** for docs readability while dark mode remains fully supported.
 
 **Style blend:** Trust & Authority + Soft UI Evolution — not cyberpunk neon, not AI purple gradients, not wizard-stepper chrome.
 
@@ -34,11 +34,13 @@ Canonical marketing tokens live in `src/app/globals.css` (`--tp-*`). Do not inve
 | Surface | `#ffffff` / `#111a2b` | `--tp-surface` (light / dark) |
 | Text primary | `#0f172a` / `#e2e8f0` | `--tp-text` |
 | Text muted | `#475569` / `#a8b5cc` | `--tp-text-muted` |
-| Accent / CTA | `#3dd68c` | `--tp-accent` — product “run green” |
-| On accent | `#0b1220` | `--tp-accent-contrast` (≥ 4.5:1 on green) |
-| Hero glow A/B | green-tinted rgba | `--tp-hero-a` / `--tp-hero-b` |
+| Green (HA / CTA) | `#3dd68c` | `--tp-green` / `--tp-accent` — primary CTA + HA cards |
+| Blue (self-hosted) | `#3366cc` | `--tp-blue` — self-hosted cards, brand stripe end |
+| On green | `#0b1220` | `--tp-accent-contrast` (≥ 4.5:1 on green) |
+| On blue | `#ffffff` | `--tp-blue-contrast` |
+| Hero glow A/B | green + blue rgba | `--tp-hero-a` (green) / `--tp-hero-b` (blue) |
 
-**Color notes:** Code dark + run green. No blue-heavy hero washes. Status/CTA never rely on color alone when paired with labels.
+**Color notes:** Dual brand green + `#3366cc`. Primary CTAs stay green (HA-forward); self-hosted surfaces use blue. Brand stripe is green→blue. Align hex with `ui/src/lib/theme.ts`. Status/CTA never rely on color alone when paired with labels.
 
 ### Typography
 

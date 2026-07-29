@@ -14,11 +14,15 @@
   --tp-text: #0f172a;
   --tp-text-muted: #475569;
   --tp-border: rgba(15, 23, 42, 0.14);
-  --tp-accent: #3dd68c;
+  /* Dual brand — keep in step with ui `src/lib/theme.ts` */
+  --tp-green: #3dd68c;
+  --tp-blue: #3366cc;
+  --tp-accent: var(--tp-green);
   --tp-accent-contrast: #0b1220;
+  --tp-blue-contrast: #ffffff;
   --tp-ring: rgba(61, 214, 140, 0.4);
   --tp-hero-a: rgba(61, 214, 140, 0.18);
-  --tp-hero-b: rgba(61, 214, 140, 0.1);
+  --tp-hero-b: rgba(51, 102, 204, 0.12);
   --tp-terminal-bg: #0f172a;
   --tp-shadow-card: 0 16px 48px -32px rgba(15, 23, 42, 0.35);
   --tp-grid: rgba(15, 23, 42, 0.04);
@@ -45,11 +49,14 @@
   --tp-text: #e2e8f0;
   --tp-text-muted: #a8b5cc;
   --tp-border: rgba(148, 163, 184, 0.3);
-  --tp-accent: #3dd68c;
+  --tp-green: #3dd68c;
+  --tp-blue: #3366cc;
+  --tp-accent: var(--tp-green);
   --tp-accent-contrast: #0b1220;
+  --tp-blue-contrast: #ffffff;
   --tp-ring: rgba(61, 214, 140, 0.45);
   --tp-hero-a: rgba(61, 214, 140, 0.22);
-  --tp-hero-b: rgba(61, 214, 140, 0.12);
+  --tp-hero-b: rgba(51, 102, 204, 0.16);
   --tp-terminal-bg: #060a12;
   --tp-shadow-card: 0 20px 56px -36px rgba(0, 0, 0, 0.65);
   --tp-grid: rgba(148, 163, 184, 0.05);
@@ -246,8 +253,9 @@ body {
 .tp-brand-stripe {
   background: linear-gradient(
     90deg,
-    var(--tp-accent) 0%,
-    color-mix(in srgb, var(--tp-accent) 55%, transparent) 100%
+    var(--tp-green) 0%,
+    var(--tp-blue) 55%,
+    color-mix(in srgb, var(--tp-blue) 40%, transparent) 100%
   );
 }
 
