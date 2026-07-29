@@ -18,12 +18,17 @@ const geistMono = Geist_Mono({
 const display = Plus_Jakarta_Sans({
   variable: '--font-display',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['500', '600', '700', '800'],
+  style: ['normal', 'italic'],
 })
 
 export const metadata: Metadata = {
   title: 'TurboPanel',
   description: 'Web Hosting Control Panel',
+  icons: {
+    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/brand/turbopanel-logo-square-192.png', sizes: '192x192' }],
+  },
 }
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 const FOOTER_LINKS = [
   { href: '/', label: 'Overview' },
@@ -6,6 +7,7 @@ const FOOTER_LINKS = [
   { href: '/roadmap', label: 'Roadmap' },
   { href: '/docs', label: 'Docs' },
   { href: '/docs/api', label: 'API reference' },
+  { href: '/about/logo', label: 'Logo & brand' },
 ] as const
 
 export function SiteFooter() {
@@ -13,7 +15,7 @@ export function SiteFooter() {
     <footer className="border-t border-[var(--tp-border)] bg-[var(--tp-surface)]/40 px-4 py-12 sm:px-6">
       <div className="mx-auto grid w-full max-w-6xl gap-10 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="text-lg font-semibold tracking-tight text-[var(--tp-text)]">TurboPanel</p>
+          <Logo compact />
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--tp-text-muted)]">
             Host in the cloud, in your datacenter, or both — one control plane for servers, apps, and
             teams.

@@ -100,6 +100,13 @@ Content max width: `max-w-6xl` on marketing pages.
 - Hover: opacity ~90% (primary) or muted surface (secondary); `active:scale-[0.98]` ok with reduced-motion guard  
 - Focus: visible ring via `--tp-ring`
 
+### Logo / brand mark
+
+- Official files under **`public/brand/`** (`turbopanel-logo.svg`, square + white/mono variants, PNGs)
+- Site header uses `src/components/Logo.tsx` — T mark + Plus Jakarta Sans extrabold italic “urboPanel” tucked under the blue crossbar
+- Public kit + usage rules: **`/about/logo`** (see `pages/about-logo.md`)
+- Favicon is the square mark (`public/favicon.svg`)
+
 ### Marketing hero
 
 - Eyebrow chip (`tp-eyebrow` with live green dot) → H1 → description → optional primary/secondary actions  
