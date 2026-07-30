@@ -18,12 +18,12 @@
 
 - Canonical static files live under **`public/brand/`** (`turbopanel-logo*`)
 - Catalog for the page: `src/lib/brand-assets.ts`
-- Site chrome: `src/components/Logo.tsx` → T mark + Plus Jakarta Sans extrabold italic `urboPanel` under the blue bar
+- Site chrome: `src/components/Logo.tsx` → T mark + upright Plus Jakarta Sans `TurboPanel` (horizontal lockup)
 - Favicon: `public/favicon.svg` (square mark)
 
 ## Style
 
-- Light-first marketing tokens (`--tp-*`); dual brand green `#3dd68c` + blue `#3366cc` documented as swatches
+- Light-first marketing tokens (`--tp-*`); dual brand blue `#3366cc` (primary) + green `#3dd68c` (secondary) documented as swatches
 - Instant paint; no entrance motion
 - Download chips: bordered surface, hover border toward accent — interaction containers only
 

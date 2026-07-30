@@ -3,6 +3,7 @@ import { Logo } from '@/components/Logo'
 
 const FOOTER_LINKS = [
   { href: '/', label: 'Overview' },
+  { href: '/setups', label: 'Suggested setups' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/roadmap', label: 'Roadmap' },
   { href: '/docs', label: 'Docs' },
@@ -12,13 +13,12 @@ const FOOTER_LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-[var(--tp-border)] bg-[var(--tp-surface)]/40 px-4 py-12 sm:px-6">
+    <footer className="tp-glass border-x-0 border-b-0 rounded-none border-t border-[var(--tp-glass-border)] px-4 py-12 sm:px-6">
       <div className="mx-auto grid w-full max-w-6xl gap-10 md:grid-cols-[1.2fr_1fr]">
         <div>
           <Logo compact />
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--tp-text-muted)]">
-            Host in the cloud, in your datacenter, or both — one control plane for servers, apps, and
-            teams.
+            One fast, always-on control plane for every server, app, and team.
           </p>
         </div>
         <nav
@@ -38,7 +38,7 @@ export function SiteFooter() {
       </div>
       <div className="mx-auto mt-10 flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-[var(--tp-border)] pt-6 text-xs text-[var(--tp-text-muted)]">
         <p>© {new Date().getFullYear()} TurboPanel</p>
-        <p>Built for operators who want clarity, not clutter.</p>
+        <p>Connect a server. Ship something great.</p>
       </div>
     </footer>
   )

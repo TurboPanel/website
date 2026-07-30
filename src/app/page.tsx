@@ -9,94 +9,81 @@ import {
   FeatureList,
   MarketingCard,
   MarketingInlineLink,
-  MarketingMetricStrip,
   MarketingSection,
   MarketingSectionHeader,
 } from '@/components/marketing/marketing-primitives'
 
-const PLATFORM_STATS = [
-  {
-    label: 'Control plane',
-    value: 'Workers + Postgres',
-    hint: 'Hyperdrive-backed API, globally distributed, no VM to patch for the panel itself.',
-  },
-  {
-    label: 'Fleet path',
-    value: 'Daemon WSS',
-    hint: 'Ed25519 JWT auth, correlated commands, Postgres-projected presence — not per-host polling.',
-  },
-  {
-    label: 'Deploy unit',
-    value: 'Compose-native',
-    hint: 'Environment overlays, placement pins, linted YAML — one click when the target server is set.',
-  },
+const HERO_BENEFITS = [
+  'Fast, always-on control plane',
+  'One place for every server and app',
+  'First server included',
 ] as const
 
 const CAPABILITIES = [
   {
-    mono: 'deploy',
-    title: 'Environment-scoped Compose',
-    body: 'Merge project base + environment overlay, validate before enqueue, and ship to the pinned server with daemon-side Traefik ingress.',
+    mono: 'Deploy',
+    title: 'Deploy without the busywork',
+    body: 'Pick a server, choose staging or production, and ship. Websites, containers, and databases all live in one simple flow.',
   },
   {
-    mono: 'fleet',
-    title: 'O(1) status at scale',
-    body: 'Fleet tables read from Postgres projections — online state, metrics series, and command lifecycle without opening a tab per host.',
+    mono: 'Fleet',
+    title: 'Know what is happening',
+    body: 'See what is online, what needs attention, and what is using your resources — without opening a pile of terminals.',
   },
   {
-    mono: 'net',
-    title: 'Datacenter-aware networking',
-    body: 'Org VPC meshes, IP pools, and bind modes (public / datacenter / local) for hostings that need more than a single public interface.',
+    mono: 'Network',
+    title: 'Connect everything safely',
+    body: 'Link cloud, office, and datacenter servers over private networks. Keep private services private and publish only what should be public.',
   },
   {
-    mono: 'ha',
-    title: 'TurboPanel High Availability by default',
-    body: 'We operate the control plane on Cloudflare Workers so your team logs in — you focus on the nodes running your workloads.',
+    mono: 'Always on',
+    title: 'Fast for teams everywhere',
+    body: 'TurboPanel High Availability keeps your control plane close, quick, and online around the world. Nothing extra for you to run.',
   },
 ] as const
 
-const OPERATING_PROFILES = [
+const SUGGESTED_SETUPS = [
   {
-    stage: 'Production on day one',
+    stage: 'TurboPanel High Availability',
     pitch:
-      'Spin up TurboPanel High Availability, enroll your first daemon with a registration key, and deploy Compose without standing up Postgres, Caddy, and RabbitMQ for the panel.',
+      'The easy choice. Create an account, connect a server, and deploy. We handle the control plane, updates, security, and uptime.',
   },
   {
-    stage: 'Hybrid fleets',
+    stage: 'Site-to-site VPN',
     pitch:
-      'Pin environments to specific servers — cloud VMs, colo metal, or Raspberry Pi at the edge — from one API and one console.',
+      'Connect cloud, datacenter, and office servers on one private network, then manage the whole fleet from anywhere.',
   },
   {
-    stage: 'Platform engineering',
+    stage: 'Tunnels and edge',
     pitch:
-      'Variables, access grants, OpenAPI surfaces, and command polling hooks that fit CI/CD once the basics are stable.',
+      'Put a fast public front door in front of private infrastructure. Your apps stay where they belong while users get a quick experience.',
   },
 ] as const
 
 const PRODUCT_OS_ITEMS = [
-  'Compose editor + visual service kinds (container / traditional-web)',
-  'Deploy, stop, and container status from Postgres — not live DO reads',
-  'Host metrics (CPU, memory, disk, network) with gap-aware charts',
-  'Server commands: ping, hostname, reboot, timezone, NTP, trunk update',
-  'Client + daemon OpenAPI — cookie session and bearer JWT respectively',
+  'Visual setup for websites, containers, and managed services',
+  'One-click deploy, stop, restart, and update actions',
+  'Clear CPU, memory, disk, and network charts',
+  'Live server health and container status',
+  'A complete API when you are ready to automate',
 ] as const
 
 const WHY = [
   {
-    title: 'TurboPanel High Availability is the default product surface',
-    body: 'Same UI and API as self-hosted, but the control plane runs on our hosted stack — you add servers, not another always-on VM pair.',
+    title: 'Ready in minutes',
+    body: 'Create an account, connect your first server, and start deploying. There is no control-plane infrastructure to design first.',
   },
   {
-    title: 'Honest per-server economics',
-    body: 'One included server on TurboPanel High Availability, then linear add-ons. No hidden seat math — fleet size maps directly to line items.',
+    title: 'Pricing that stays simple',
+    body: 'Your first server is included. Add more for one clear price each, with no confusing bundles or surprise platform bill.',
   },
   {
-    title: 'Self-hosted when you must',
-    body: 'Open-source path remains available for air-gapped or compliance-bound installs; most teams still start on TurboPanel High Availability for speed.',
+    title: 'Fast wherever your team works',
+    body: 'A responsive worldwide control plane keeps everyday actions quick, whether your team is across town or across the globe.',
   },
   {
-    title: 'Docs that match the architecture',
-    body: 'Dual-runtime instance, daemon cell, command pipeline, and deployment guides — written for operators who read RFCs.',
+    title: 'Power without the clutter',
+    body: 'Start with simple defaults, then go deeper when you need to. The full API and clear docs are there for serious automation.',
   },
 ] as const
 
@@ -104,44 +91,31 @@ export default function Home() {
   return (
     <MarketingPageShell active="overview">
       <MarketingHero
-        eyebrow="DevOps control plane · TurboPanel High Availability"
-        title="Run your fleet from a managed Workers control plane."
-        description="TurboPanel is Compose-native infrastructure software: enroll Linux hosts, deploy environments with placement pins, and operate everything through a fast ops console — we host the panel with TurboPanel High Availability so you do not babysit it."
-        showTerminal
+        eyebrow="TurboPanel"
+        title="Your servers. One fast control plane."
+        description="Connect a server and start shipping. TurboPanel High Availability gives you a quick, always-on control plane worldwide for websites, containers, databases, and day-to-day ops."
+        plainBackground
+        benefits={HERO_BENEFITS}
+        priceLine="Starts at only $X.xx/month"
       >
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on TurboPanel High Availability
+            Get started now
           </MarketingControlPlaneCta>
-          <MarketingSecondaryCta href="/docs/getting-started/introduction">
-            Read the architecture
-          </MarketingSecondaryCta>
-          <MarketingSecondaryCta href="/pricing">TurboPanel High Availability pricing</MarketingSecondaryCta>
+          <MarketingInlineLink href="/pricing">See pricing</MarketingInlineLink>
         </div>
-        <p className="mt-6 text-sm text-[var(--tp-text-muted)]">
-          Already running the panel yourself?{' '}
-          <MarketingInlineLink href="/docs/deployment/control-plane">
-            Self-hosted install
-          </MarketingInlineLink>{' '}
-          ·{' '}
-          <MarketingInlineLink href="/roadmap">Roadmap</MarketingInlineLink>
-        </p>
       </MarketingHero>
-
-      <MarketingSection className="pt-0 sm:pt-2">
-        <MarketingMetricStrip items={PLATFORM_STATS} />
-      </MarketingSection>
 
       <MarketingSection>
         <MarketingSectionHeader
-          eyebrow="Platform"
-          title="Built for operators who ship Compose every week"
-          description="Modular client API, daemon WebSocket cell, and Ansible-driven node agents — one product surface whether you connect one server or fifty."
+          eyebrow="What you get"
+          title="Everything you need. Nothing you have to babysit."
+          description="Deploy apps, watch your fleet, connect private networks, and manage daily operations from one clean control plane."
         />
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-border)] sm:grid-cols-2">
+        <div className="grid gap-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-9">
           {CAPABILITIES.map((item) => (
-            <div key={item.title} className="bg-[var(--tp-surface)] p-6 sm:p-7">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--tp-accent)]">
+            <div key={item.title}>
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--tp-accent)]">
                 {item.mono}
               </p>
               <h3 className="tp-display mt-2 text-lg font-semibold tracking-tight text-[var(--tp-text)]">
@@ -157,11 +131,11 @@ export default function Home() {
 
       <MarketingSection variant="band">
         <MarketingSectionHeader
-          title="Where TurboPanel High Availability fits your stack"
-          description="Most teams want a control plane that is online when they are — not another service to restore during an incident."
+          title="Start simple. Grow into anything."
+          description="Begin with TurboPanel High Availability, then add private networking and custom traffic paths only when you need them."
         />
         <div className="grid gap-6 md:grid-cols-3 md:gap-8">
-          {OPERATING_PROFILES.map((item, index) => (
+          {SUGGESTED_SETUPS.map((item, index) => (
             <div key={item.stage} className="relative border-t border-[var(--tp-border)] pt-6 md:border-t-0 md:pt-0">
               <p className="font-mono text-xs font-medium text-[var(--tp-accent)]">
                 {String(index + 1).padStart(2, '0')}
@@ -175,28 +149,31 @@ export default function Home() {
             </div>
           ))}
         </div>
+        <div className="mt-10">
+          <MarketingInlineLink href="/setups">Explore all suggested setups</MarketingInlineLink>
+        </div>
       </MarketingSection>
 
       <MarketingSection>
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-14">
           <div>
             <MarketingSectionHeader
-              eyebrow="Console"
-              title="One API for fleet, deploy, and access"
-              description="The org console is dense on purpose: fewer clicks from compose edit to live containers, with permissions that mirror the authz catalog on the wire."
+              eyebrow="One console"
+              title="From idea to running app, faster"
+              description="TurboPanel keeps the important work close: configure, deploy, monitor, and fix without bouncing between disconnected tools."
             />
             <FeatureList items={PRODUCT_OS_ITEMS} />
           </div>
           <MarketingCard className="bg-[var(--tp-surface-muted)]/50" accent>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--tp-text-muted)]">
-              incident-ready
+              built for real life
             </p>
             <h3 className="tp-display mt-3 text-xl font-semibold tracking-tight text-[var(--tp-text)]">
-              See signal, not noise
+              Find the problem fast
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-              Postgres-backed presence and metrics mean the overview stays fast while daemons reconnect
-              behind Caddy or Cloudflare.
+              Your dashboard stays quick and useful while servers reconnect, workloads change, and the
+              pressure is on.
             </p>
             <ul className="mt-5 space-y-3 text-sm text-[var(--tp-text)]">
               <li className="flex gap-2.5">
@@ -204,21 +181,21 @@ export default function Home() {
                   className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
                   aria-hidden
                 />
-                <span>Which hosts are connected vs stale</span>
+                <span>See which servers are healthy right now</span>
               </li>
               <li className="flex gap-2.5">
                 <span
                   className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
                   aria-hidden
                 />
-                <span>Command latency segments on ping</span>
+                <span>Track performance without digging through logs</span>
               </li>
               <li className="flex gap-2.5">
                 <span
                   className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tp-accent)]"
                   aria-hidden
                 />
-                <span>Deploy validation errors before queue time</span>
+                <span>Catch deploy problems before they become outages</span>
               </li>
             </ul>
           </MarketingCard>
@@ -232,19 +209,19 @@ export default function Home() {
             <div className="max-w-2xl">
               <p className="tp-eyebrow">TurboPanel High Availability pricing</p>
               <h2 className="tp-section-title mt-4">
-                Managed control plane from $X/month — first server included.
+                A fast, always-on control plane from $X.xx/month.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
-                Per-server add-ons stay predictable. Annual billing is pay X months, get X months —
-                self-hosted remains $0 if you truly need to run the panel yourself.
+                Your first server is included. Add more for one predictable price each, and save more
+                with annual billing.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">
               <MarketingPrimaryCta href="/pricing" emphasis={false} className="px-5">
-                Compare TurboPanel High Availability plans
+                See simple pricing
               </MarketingPrimaryCta>
               <MarketingControlPlaneCta path="/sign-up" variant="secondary" emphasis={false} className="px-5">
-                Create TurboPanel High Availability account
+                Start now
               </MarketingControlPlaneCta>
             </div>
           </div>
@@ -253,8 +230,8 @@ export default function Home() {
 
       <MarketingSection className="pb-20">
         <MarketingSectionHeader
-          title="Why teams standardize on TurboPanel High Availability"
-          description="Professional ops tooling with a hosted control plane — so your engineers spend cycles on workloads, not running the panel themselves."
+          title="The control plane your team will actually enjoy using"
+          description="TurboPanel High Availability is fast, affordable, and ready when you are. Spend time on your apps and customers—not on the panel behind them."
         />
         <div className="grid gap-6 sm:grid-cols-2">
           {WHY.map((item) => (
@@ -270,7 +247,7 @@ export default function Home() {
         </div>
         <div className="mt-12 flex flex-wrap gap-3 border-t border-[var(--tp-border)] pt-10">
           <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Start on TurboPanel High Availability
+            Get started
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/api">Explore the API</MarketingSecondaryCta>
         </div>

@@ -17,15 +17,25 @@
   /* Dual brand — keep in step with ui `src/lib/theme.ts` */
   --tp-green: #3dd68c;
   --tp-blue: #3366cc;
-  --tp-accent: var(--tp-green);
-  --tp-accent-contrast: #0b1220;
+  /* Primary chrome / links / CTAs = blue; green is secondary (HA / live). */
+  --tp-accent: var(--tp-blue);
+  --tp-accent-contrast: #ffffff;
   --tp-blue-contrast: #ffffff;
-  --tp-ring: rgba(61, 214, 140, 0.4);
-  --tp-hero-a: rgba(61, 214, 140, 0.18);
-  --tp-hero-b: rgba(51, 102, 204, 0.12);
+  --tp-green-contrast: #0b1220;
+  --tp-ring: rgba(51, 102, 204, 0.4);
+  --tp-hero-a: rgba(51, 102, 204, 0.16);
+  --tp-hero-b: rgba(61, 214, 140, 0.14);
   --tp-terminal-bg: #0f172a;
   --tp-shadow-card: 0 16px 48px -32px rgba(15, 23, 42, 0.35);
   --tp-grid: rgba(15, 23, 42, 0.04);
+  /* Liquid glass (ui-ux-pro-max) — frosted fill + blur; keep in step with ui `src/lib/glass.ts` */
+  --tp-glass-fill: rgba(255, 255, 255, 0.62);
+  --tp-glass-fill-strong: rgba(245, 247, 250, 0.78);
+  --tp-glass-border: rgba(15, 23, 42, 0.12);
+  --tp-glass-specular: rgba(255, 255, 255, 0.55);
+  --tp-glass-blur: 16px;
+  --tp-glass-saturate: 160%;
+  --tp-glass-shadow: 0 12px 40px -24px rgba(15, 23, 42, 0.28);
 
   --fd-background: var(--tp-bg);
   --fd-foreground: var(--tp-text);
@@ -33,6 +43,21 @@
   --fd-accent: var(--color-fd-accent, rgba(71, 85, 105, 0.25));
   --fd-layout-width: 100vw;
   --fd-sidebar-width: 260px;
+  /* Align Fumadocs theme tokens with marketing --tp-* (docs chrome). */
+  --color-fd-background: var(--tp-bg);
+  --color-fd-foreground: var(--tp-text);
+  --color-fd-muted: var(--tp-surface-muted);
+  --color-fd-muted-foreground: var(--tp-text-muted);
+  --color-fd-card: var(--tp-surface);
+  --color-fd-card-foreground: var(--tp-text);
+  --color-fd-border: var(--tp-border);
+  --color-fd-primary: var(--tp-blue);
+  --color-fd-primary-foreground: var(--tp-accent-contrast);
+  --color-fd-secondary: var(--tp-surface-muted);
+  --color-fd-secondary-foreground: var(--tp-text);
+  --color-fd-accent: color-mix(in srgb, var(--tp-blue) 12%, var(--tp-surface));
+  --color-fd-accent-foreground: var(--tp-text);
+  --color-fd-ring: var(--tp-ring);
   /* Sticky site chrome height; ResizeObserver keeps this current. */
   --tp-chrome-height: 0px;
   --fd-banner-height: var(--tp-chrome-height);
@@ -51,20 +76,42 @@
   --tp-border: rgba(148, 163, 184, 0.3);
   --tp-green: #3dd68c;
   --tp-blue: #3366cc;
-  --tp-accent: var(--tp-green);
-  --tp-accent-contrast: #0b1220;
+  --tp-accent: var(--tp-blue);
+  --tp-accent-contrast: #ffffff;
   --tp-blue-contrast: #ffffff;
-  --tp-ring: rgba(61, 214, 140, 0.45);
-  --tp-hero-a: rgba(61, 214, 140, 0.22);
-  --tp-hero-b: rgba(51, 102, 204, 0.16);
+  --tp-green-contrast: #0b1220;
+  --tp-ring: rgba(51, 102, 204, 0.5);
+  --tp-hero-a: rgba(51, 102, 204, 0.2);
+  --tp-hero-b: rgba(61, 214, 140, 0.18);
   --tp-terminal-bg: #060a12;
   --tp-shadow-card: 0 20px 56px -36px rgba(0, 0, 0, 0.65);
   --tp-grid: rgba(148, 163, 184, 0.05);
+  --tp-glass-fill: rgba(17, 26, 43, 0.72);
+  --tp-glass-fill-strong: rgba(11, 18, 32, 0.84);
+  --tp-glass-border: rgba(255, 255, 255, 0.12);
+  --tp-glass-specular: rgba(255, 255, 255, 0.1);
+  --tp-glass-blur: 16px;
+  --tp-glass-saturate: 160%;
+  --tp-glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 
   --fd-background: var(--tp-bg);
   --fd-foreground: var(--tp-text);
   --fd-border: var(--tp-border);
   --fd-accent: var(--color-fd-accent, rgba(148, 163, 184, 0.28));
+  --color-fd-background: var(--tp-bg);
+  --color-fd-foreground: var(--tp-text);
+  --color-fd-muted: var(--tp-surface-muted);
+  --color-fd-muted-foreground: var(--tp-text-muted);
+  --color-fd-card: var(--tp-surface);
+  --color-fd-card-foreground: var(--tp-text);
+  --color-fd-border: var(--tp-border);
+  --color-fd-primary: var(--tp-blue);
+  --color-fd-primary-foreground: var(--tp-accent-contrast);
+  --color-fd-secondary: var(--tp-surface-muted);
+  --color-fd-secondary-foreground: var(--tp-text);
+  --color-fd-accent: color-mix(in srgb, var(--tp-blue) 14%, var(--tp-surface));
+  --color-fd-accent-foreground: var(--tp-text);
+  --color-fd-ring: var(--tp-ring);
   --fd-banner-height: var(--tp-chrome-height);
 }
 
@@ -80,6 +127,90 @@
 
 #nd-page {
   padding-inline: 1rem;
+}
+
+/* Docs article: display H1 + muted lead (matches marketing typography). */
+#nd-page article h1 {
+  font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+#nd-page article > p:first-of-type {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--tp-text-muted);
+}
+
+/* Path cards: hairline surface + accent hover (no scale / entrance motion). */
+#nd-page article [data-card] {
+  background: var(--tp-surface);
+  border-color: var(--tp-border);
+  box-shadow: none;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+#nd-page article a[data-card] {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  #nd-page article a[data-card]:hover {
+    border-color: color-mix(in srgb, var(--tp-accent) 40%, var(--tp-border));
+    background: color-mix(in srgb, var(--tp-accent) 6%, var(--tp-surface));
+  }
+}
+
+#nd-page article a[data-card]:focus-visible {
+  outline: 2px solid var(--tp-ring);
+  outline-offset: 2px;
+}
+
+/* Docs tables: bordered surface rows, not grey highlight soup. */
+#nd-page article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+#nd-page article thead th {
+  background: var(--tp-surface-muted);
+  color: var(--tp-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+#nd-page article th,
+#nd-page article td {
+  border: 1px solid var(--tp-border);
+  padding: 0.65rem 0.85rem;
+  vertical-align: top;
+  background: var(--tp-surface);
+}
+
+#nd-page article tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--tp-surface-muted) 55%, var(--tp-surface));
+}
+
+#nd-page article th code,
+#nd-page article td code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Inline prose links lean brand blue; skip path cards and code. */
+#nd-page article :not(pre):not(code) > a:not(.block) {
+  color: color-mix(in srgb, var(--tp-blue) 78%, var(--tp-text));
+  text-underline-offset: 0.15em;
+  transition: color 150ms ease;
+}
+
+#nd-page article :not(pre):not(code) > a:not(.block):hover {
+  color: var(--tp-blue);
 }
 
 /* fd-step badges anchor to each step row (fumadocs utility only styles ::before). */
@@ -140,13 +271,13 @@ body {
   0%,
   100% {
     box-shadow:
-      0 0 0 0 rgba(61, 214, 140, 0.35),
+      0 0 0 0 rgba(51, 102, 204, 0.4),
       0 1px 2px rgba(15, 23, 42, 0.08);
   }
 
   50% {
     box-shadow:
-      0 0 0 6px rgba(61, 214, 140, 0),
+      0 0 0 6px rgba(51, 102, 204, 0),
       0 1px 2px rgba(15, 23, 42, 0.08);
   }
 }
@@ -174,10 +305,11 @@ body {
 .tp-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   border-radius: 9999px;
-  border: 1px solid var(--tp-border);
-  background: var(--tp-surface);
+  border: 1px solid var(--tp-glass-border);
+  background: var(--tp-glass-fill);
+  -webkit-backdrop-filter: blur(12px) saturate(var(--tp-glass-saturate));
+  backdrop-filter: blur(12px) saturate(var(--tp-glass-saturate));
   padding: 0.25rem 0.75rem;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -186,13 +318,34 @@ body {
   color: var(--tp-text-muted);
 }
 
-.tp-eyebrow::before {
-  content: '';
-  height: 6px;
-  width: 6px;
-  border-radius: 9999px;
-  background: var(--tp-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tp-accent) 25%, transparent);
+/**
+ * Liquid-glass surface — frosted fill + saturate blur + hairline rim.
+ * Use on sticky chrome, interactive cards, chips — not dense tables.
+ */
+.tp-glass {
+  background: var(--tp-glass-fill);
+  border: 1px solid var(--tp-glass-border);
+  -webkit-backdrop-filter: blur(var(--tp-glass-blur)) saturate(var(--tp-glass-saturate));
+  backdrop-filter: blur(var(--tp-glass-blur)) saturate(var(--tp-glass-saturate));
+  box-shadow: var(--tp-glass-shadow);
+}
+
+.tp-glass-strong {
+  background: var(--tp-glass-fill-strong);
+  border-color: var(--tp-glass-border);
+  -webkit-backdrop-filter: blur(20px) saturate(var(--tp-glass-saturate));
+  backdrop-filter: blur(20px) saturate(var(--tp-glass-saturate));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .tp-glass,
+  .tp-glass-strong,
+  .tp-eyebrow,
+  .tp-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--tp-surface);
+  }
 }
 
 .tp-display {
@@ -210,13 +363,16 @@ body {
 
 .tp-card {
   border-radius: 1rem;
-  border: 1px solid var(--tp-border);
-  background: var(--tp-surface);
+  border: 1px solid var(--tp-glass-border);
+  background: var(--tp-glass-fill);
+  -webkit-backdrop-filter: blur(14px) saturate(var(--tp-glass-saturate));
+  backdrop-filter: blur(14px) saturate(var(--tp-glass-saturate));
   padding: 1.5rem;
-  box-shadow: var(--tp-shadow-card);
+  box-shadow: var(--tp-glass-shadow);
   transition:
     border-color 200ms ease,
-    background-color 200ms ease;
+    background-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .tp-metric {
@@ -242,20 +398,22 @@ body {
 }
 
 .tp-card-accent {
-  border-color: color-mix(in srgb, var(--tp-accent) 45%, var(--tp-border));
+  border-color: color-mix(in srgb, var(--tp-accent) 45%, var(--tp-glass-border));
   background: linear-gradient(
     165deg,
-    color-mix(in srgb, var(--tp-accent) 8%, var(--tp-surface)) 0%,
-    var(--tp-surface) 55%
+    color-mix(in srgb, var(--tp-accent) 12%, var(--tp-glass-fill)) 0%,
+    var(--tp-glass-fill) 55%
   );
+  -webkit-backdrop-filter: blur(14px) saturate(var(--tp-glass-saturate));
+  backdrop-filter: blur(14px) saturate(var(--tp-glass-saturate));
 }
 
 .tp-brand-stripe {
   background: linear-gradient(
     90deg,
-    var(--tp-green) 0%,
-    var(--tp-blue) 55%,
-    color-mix(in srgb, var(--tp-blue) 40%, transparent) 100%
+    var(--tp-blue) 0%,
+    var(--tp-green) 55%,
+    color-mix(in srgb, var(--tp-green) 40%, transparent) 100%
   );
 }
 

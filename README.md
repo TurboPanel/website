@@ -1,32 +1,35 @@
 # TurboPanel Website
 
-Next.js 16 marketing site and Fumadocs documentation for [TurboPanel](https://turbopanel.io).
+Marketing site and documentation for [TurboPanel](https://turbopanel.io) — Next.js 16 + Fumadocs, deployed to Cloudflare Workers via OpenNext.
 
-## Stack
+GitHub: [turbopanel/website](https://github.com/turbopanel/website). Local checkout: `~/website` (or `${TURBOPANEL_WEBSITE_REPO}`).
 
-- **Next.js 16** (App Router, Turbopack for dev)
-- **OpenNext Cloudflare** — production adapter (`open-next.config.ts`, `wrangler.jsonc`)
-- **Fumadocs MDX** — docs under `docs/`
-- **Tailwind CSS v4**
+## Development
 
-## Scripts
+Do **not** bootstrap this repo on its own. The co-located stack is owned by **[turbopanel/dev](https://github.com/turbopanel/dev)**.
 
-| Script | Purpose |
-| --- | --- |
-| `pnpm dev` | `next dev --port 19820` |
-| `pnpm build` | `next build --webpack` |
-| `pnpm preview` | OpenNext build + Wrangler preview |
-| `pnpm deploy` | OpenNext build + Cloudflare deploy |
-| `pnpm upload` | OpenNext build + Cloudflare upload |
-| `pnpm cf-typegen` | Regenerate `cloudflare-env.d.ts` from Wrangler |
-
-## Getting started
-
-```bash
-pnpm install
-pnpm dev
+```sh
+curl -fsSL trbp.nl/develop.sh | sh
 ```
 
-Open [http://localhost:19820](http://localhost:19820).
+That installs/updates `~/dev`, launches the developer console, and (after **Converge**) brings up the full environment — including this site as `turbopanel-website.service` (dev server on port **19820**).
 
-For agent-specific conventions and file layout, see [AGENTS.md](./AGENTS.md).
+Typical layout after converge:
+
+| Path | Repo |
+| --- | --- |
+| `~/dev` | [turbopanel/dev](https://github.com/turbopanel/dev) — console + Ansible overlay |
+| `~/daemon` | daemon |
+| `~/instance` | control plane |
+| `~/ui` | product console |
+| `~/website` | this repo |
+
+Edit sources in place under `$HOME`. Re-converge from the console when the stack needs refresh. Details: [dev README](https://github.com/turbopanel/dev#readme) and [Local development](https://turbopanel.io/docs/getting-started/development).
+
+## What runs here
+
+- **Marketing** — App Router pages under `src/app/`
+- **Docs** — Fumadocs MDX under `docs/`
+- **Production** — OpenNext → Cloudflare Workers (`pnpm deploy` / `pnpm upload`)
+
+Agent conventions and file layout: [AGENTS.md](./AGENTS.md).

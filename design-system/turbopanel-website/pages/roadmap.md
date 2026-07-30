@@ -37,7 +37,7 @@ Status always pairs color with a text label (never color alone).
 
 - Hero title: display font, tight tracking
 - Phase titles: display / semibold
-- Focus bullets: body muted, checkmarks in accent green
+- Focus bullets: body muted, checkmarks in primary accent blue
 
 ## Anti-patterns (page)
 

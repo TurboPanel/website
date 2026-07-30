@@ -48,13 +48,13 @@ This repo is the **public marketing + docs site**, not the signed-in product con
 | Tokens | `--tp-*` in `src/app/globals.css` | `src/lib/theme.ts` (Tamagui) |
 | Stack search | `--stack nextjs` (also `react` / `html-tailwind` as needed) | `--stack react-native` |
 
-Shared brand cue only: CTA / accent green `#3dd68c`. Do **not** copy OLED console density, Tamagui patterns, or console page overrides into this site — and do not apply this site’s spacious marketing layout to the console.
+Shared brand cues: primary blue `#3366cc`, secondary green `#3dd68c`. Do **not** copy OLED console density, Tamagui patterns, or console page overrides into this site — and do not apply this site’s spacious marketing layout to the console.
 
 ### When to use (mandatory)
 
 Invoke the skill **before designing or changing visuals** when the task touches any of:
 
-- Marketing pages (`src/app/page.tsx`, `/pricing`, `/roadmap`, heroes, landing sections)
+- Marketing pages (`src/app/page.tsx`, `/setups`, `/pricing`, `/roadmap`, heroes, landing sections)
 - Docs chrome / layout visuals (site header, sticky chrome, Fumadocs shell theming, sidebar chrome — not pure MDX prose edits)
 - Typography, color, spacing, elevation, motion, or CTA treatment
 - New or refactored marketing components under `src/components/marketing/`
@@ -70,8 +70,8 @@ Skip the skill for pure content/MDX copy, API/config wiring, Workers/deploy scri
 | Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
 | Cursor rule | [`.cursor/rules/ui-ux-pro-max.mdc`](.cursor/rules/ui-ux-pro-max.mdc) |
 | Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) |
-| Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `roadmap.md`, `about-logo.md`; page wins over Master) |
-| CSS tokens | `src/app/globals.css` (`--tp-*`, `--font-display`) |
+| Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `home.md`, `setups.md`, `roadmap.md`, `about-logo.md`, `docs.md`; page wins over Master) |
+| CSS tokens | `src/app/globals.css` (`--tp-*`, `--tp-glass-*`, `--font-display`) |
 | Shared CTAs | `src/components/marketing/MarketingPrimaryCta.tsx` (+ secondary / primitives nearby) |
 
 ### Mandatory first steps
@@ -118,7 +118,7 @@ Apply in this order (later steps only fill gaps; they do not override earlier pr
 
 These are non-negotiable for this site (detail + checklist live in Master):
 
-- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-green` `#3dd68c` + `--tp-blue` `#3366cc` (CTA stays green via `--tp-accent`); brand stripe green→blue
+- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-blue` `#3366cc` (primary via `--tp-accent` — links, CTAs, docs) + `--tp-green` `#3dd68c` (secondary HA / live); brand stripe blue→green; restrained **liquid glass** via `--tp-glass-*` / `.tp-glass` (sticky chrome, cards — not dense docs tables)
 - Logo kit: static files in `public/brand/` (`turbopanel-logo*`); site chrome via `src/components/Logo.tsx`; public guidelines at **`/about/logo`**
 - Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist
 - **No entrance fade/slide animations** — SSG content must paint instantly

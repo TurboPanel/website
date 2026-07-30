@@ -1,65 +1,43 @@
 ---
 title: Documentation
-description: Welcome to TurboPanel documentation - self-hosted control plane for managing applications and infrastructure
+description: Connect your servers and deploy websites, applications, and databases from one fast control plane.
 ---
 
-# Welcome to TurboPanel
+# Documentation
 
-TurboPanel is a self-hosted control plane for managing applications and infrastructure. It provides a centralized control surface for Docker management across multiple servers, with flexible deployment options to suit different use cases.
+TurboPanel gives you one simple place to connect servers, deploy websites and applications, run databases, and handle daily operations. Start in minutes with TurboPanel High Availability.
 
 <Cards>
   <Card
-    title="Getting Started"
-    description="Introduction and quick start guide"
+    title="Get started"
+    description="What TurboPanel is, how it fits together, and how to install"
     href="/docs/getting-started/introduction"
   />
   <Card
-    title="Develop on TurboPanel"
-    description="Prerequisites and tooling for the multi-repo dev environment"
+    title="Develop"
+    description="Prerequisites and tooling for the multi-repo local environment"
     href="/docs/development/prerequisites"
   />
   <Card
-    title="Deployment"
-    description="Control plane and daemon setup"
+    title="Deploy"
+    description="Control plane layout, daemons, and production setup"
     href="/docs/deployment/control-plane"
   />
-  <Card title="API Reference" description="Interactive REST API documentation" href="/docs/api" />
   <Card
-    title="Password Safety"
-    description="How TurboPanel protects you from compromised passwords"
-    href="/docs/security/password-safety"
+    title="API reference"
+    description="Interactive Client and Daemon REST docs"
+    href="/docs/api"
   />
 </Cards>
 
-## Deployment Models
+## Control plane
 
-| Feature           | TurboPanel High Availability | Self-Hosted                   |
-| ----------------- | ---------------------------- | ----------------------------- |
-| **Pricing**       | Pay per server               | Free, unlimited servers       |
-| **Control Plane** | Cloudflare Workers           | Your infrastructure (Deno)  |
-| **Communication** | HTTPS / WebSocket            | HTTPS / WebSocket (via Caddy) |
-| **Best For**      | Managed hosted control plane | Full control and cost savings |
+TurboPanel High Availability is the easy choice: fast worldwide, always on, and ready without another stack to operate. Self-hosting is available for teams with strict infrastructure requirements.
 
-## Key Features
+<ControlPlaneOptions />
 
-- **Self-hosted**: Run the entire control plane on your own infrastructure
-- **Docker-native**: Built for managing Docker containers and services
-- **Multi-server**: Manage multiple servers from a single control surface
-- **Daemon-based**: Lightweight daemons run on managed servers for remote execution
+Details live in the [introduction](/docs/getting-started/introduction). For list prices, see [pricing](/pricing).
 
-## Repositories
+## Source
 
-TurboPanel is split across sibling Git repositories (not a monorepo). The [dev](https://github.com/turbopanel/dev) repo bootstraps the rest (local checkout: `~/dev`):
-
-| Repository | Purpose |
-| ---------- | ------- |
-| [dev](https://github.com/turbopanel/dev) | Dev console (`./console`), bootstrap installer, shared orchestration |
-| [turbopanel](https://github.com/turbopanel/turbopanel) | Hono API (Workers + Deno) |
-| [ui](https://github.com/turbopanel/ui) | Expo web / native UI |
-| [turbopaneld](https://github.com/turbopanel/turbopaneld) | Remote daemon (Ansible orchestration) |
-| [website](https://github.com/turbopanel/website) | Marketing site and these docs |
-
-## External Resources
-
-- [Instance repository](https://github.com/turbopanel/turbopanel) — API and control plane source (clone under `$HOME`, e.g. `~/instance`)
-- [Issue tracker](https://github.com/turbopanel/turbopanel/issues) — Report bugs and request features
+Five sibling Git repositories (not a monorepo), bootstrapped by [dev](https://github.com/turbopanel/dev). Local checkouts sit under `$HOME`. How they fit together is in [development architecture](/docs/architecture/development-architecture); bugs go to the [issue tracker](https://github.com/turbopanel/turbopanel/issues).

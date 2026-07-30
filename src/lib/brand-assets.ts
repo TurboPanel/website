@@ -69,16 +69,16 @@ export const BRAND_LOGO_VARIANTS: ReadonlyArray<BrandLogoVariant> = [
 
 export const BRAND_COLORS = [
   {
-    name: 'Green',
-    hex: '#3DD68C',
-    role: 'Acceleration bars, HA / run accent, primary CTAs',
-    token: '--tp-green / colors.green',
-  },
-  {
     name: 'Blue',
     hex: '#3366CC',
-    role: 'T stem and bar, self-hosted / HA chrome pairing',
-    token: '--tp-blue / colors.blue',
+    role: 'Primary brand — links, CTAs, docs chrome, T stem and bar',
+    token: '--tp-blue / --tp-accent / colors.blue',
+  },
+  {
+    name: 'Green',
+    hex: '#3DD68C',
+    role: 'Secondary accent — HA / live / acceleration bars',
+    token: '--tp-green / colors.green',
   },
   {
     name: 'Slate (mono)',

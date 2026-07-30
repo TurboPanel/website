@@ -16,9 +16,9 @@
 
 ## North Star
 
-TurboPanel marketing should feel **fast and trustworthy** — SSG content paints instantly, one green CTA draws the eye, no decorative entrance choreography. Dual brand with the product console (`ui/design-system/turbopanel/MASTER.md`): **green** (HA / run) + **blue `#3366cc`** (self-hosted). Marketing stays **light-first** for docs readability while dark mode remains fully supported.
+TurboPanel marketing should feel **fast and trustworthy** — SSG content paints instantly, one blue CTA draws the eye, no decorative entrance choreography. Dual brand with the product console (`ui/design-system/turbopanel/MASTER.md`): **blue `#3366cc`** (primary chrome / links / CTAs) + **green** (HA / live secondary). Marketing stays **light-first** for docs readability while dark mode remains fully supported.
 
-**Style blend:** Trust & Authority + Soft UI Evolution — not cyberpunk neon, not AI purple gradients, not wizard-stepper chrome.
+**Style blend:** Trust & Authority + Soft UI Evolution + **Liquid glass** (restrained frosted chrome) — not cyberpunk neon, not AI purple gradients, not wizard-stepper chrome, not iridescent chromatic aberration.
 
 ---
 
@@ -34,13 +34,13 @@ Canonical marketing tokens live in `src/app/globals.css` (`--tp-*`). Do not inve
 | Surface | `#ffffff` / `#111a2b` | `--tp-surface` (light / dark) |
 | Text primary | `#0f172a` / `#e2e8f0` | `--tp-text` |
 | Text muted | `#475569` / `#a8b5cc` | `--tp-text-muted` |
-| Green (HA / CTA) | `#3dd68c` | `--tp-green` / `--tp-accent` — primary CTA + HA cards |
-| Blue (self-hosted) | `#3366cc` | `--tp-blue` — self-hosted cards, brand stripe end |
-| On green | `#0b1220` | `--tp-accent-contrast` (≥ 4.5:1 on green) |
-| On blue | `#ffffff` | `--tp-blue-contrast` |
-| Hero glow A/B | green + blue rgba | `--tp-hero-a` (green) / `--tp-hero-b` (blue) |
+| Blue (primary) | `#3366cc` | `--tp-blue` / `--tp-accent` — links, CTAs, docs primary, chrome |
+| Green (secondary) | `#3dd68c` | `--tp-green` — HA cards, live / run accents |
+| On blue | `#ffffff` | `--tp-accent-contrast` / `--tp-blue-contrast` (≥ 4.5:1 on blue) |
+| On green | `#0b1220` | `--tp-green-contrast` (≥ 4.5:1 on green) |
+| Hero glow A/B | blue + green rgba | `--tp-hero-a` (blue) / `--tp-hero-b` (green) |
 
-**Color notes:** Dual brand green + `#3366cc`. Primary CTAs stay green (HA-forward); self-hosted surfaces use blue. Brand stripe is green→blue. Align hex with `ui/src/lib/theme.ts`. Status/CTA never rely on color alone when paired with labels.
+**Color notes:** Dual brand `#3366cc` + green. Primary chrome, links, and CTAs are blue; green is secondary (HA / live). Brand stripe is blue→green. Align hex with `ui/src/lib/theme.ts`. Status/CTA never rely on color alone when paired with labels.
 
 ### Typography
 
@@ -75,6 +75,21 @@ Content max width: `max-w-6xl` on marketing pages.
 - Soft card shadow only when already present — do not add decorative lift animations  
 - Prefer **sections and lists** over card grids when content is sequential (roadmap, FAQ)
 
+### Liquid glass (secondary polish)
+
+Canonical tokens in `src/app/globals.css` (`--tp-glass-*`). Utility classes: `.tp-glass`, `.tp-glass-strong`. Align with console `ui/src/lib/glass.ts`.
+
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `--tp-glass-fill` | white ~62% | navy ~72% | Cards, chips |
+| `--tp-glass-fill-strong` | bg ~78% | navy ~84% | Sticky site chrome |
+| `--tp-glass-border` | slate 12% | white 12% | Glass rim |
+| `--tp-glass-blur` / saturate | `16px` / `160%` | same | `backdrop-filter` |
+
+**Where to use:** sticky site chrome, `.tp-card` / `.tp-eyebrow`, interactive marketing surfaces over the grid canvas.  
+**Where not:** dense docs tables, code blocks, every nested inset.  
+**A11y:** `@media (prefers-reduced-transparency: reduce)` falls back to solid `--tp-surface`. Keep text contrast ≥ 4.5:1.
+
 ---
 
 ## Motion Policy (marketing)
@@ -103,17 +118,19 @@ Content max width: `max-w-6xl` on marketing pages.
 ### Logo / brand mark
 
 - Official files under **`public/brand/`** (`turbopanel-logo.svg`, square + white/mono variants, PNGs)
-- Site header uses `src/components/Logo.tsx` — T mark + Plus Jakarta Sans extrabold italic “urboPanel” tucked under the blue crossbar
+- Site header uses `src/components/Logo.tsx` — T mark + upright Plus Jakarta Sans “TurboPanel” wordmark (horizontal lockup; crops mark clear-space so ink aligns with page content)
 - Public kit + usage rules: **`/about/logo`** (see `pages/about-logo.md`)
 - Favicon is the square mark (`public/favicon.svg`)
 
 ### Marketing hero
 
-- Eyebrow chip (`tp-eyebrow` with live green dot) → H1 → description → optional primary/secondary actions  
-- Optional `aside` or `TerminalPreview` on home (lg+); static fleet mock, monospace  
-- Page canvas: subtle grid (`tp-marketing-canvas`)  
+- Eyebrow chip (`tp-eyebrow`) → H1 → description → optional benefits / price → CTA  
+- Home hero: **plain background** (`plainBackground`) so the canvas grid does **not** show in the first viewport — see `pages/home.md`  
+- Optional `aside` or `TerminalPreview` on inner pages (lg+); home stays copy-first (no terminal)  
+- Page canvas: subtle grid (`tp-marketing-canvas`) below / outside the home hero  
 - Instant paint; no opacity:0 defaults  
-- Brand name / product signal must remain strong in the first viewport
+- Brand name / product signal must remain strong in the first viewport  
+- Commercial pages: at most **one** primary CTA in the hero; prefer a text link for secondary paths
 
 ### Cards & lists
 
@@ -126,16 +143,19 @@ Content max width: `max-w-6xl` on marketing pages.
 ## Style Guidelines
 
 **Primary style:** Trust & Authority + Soft UI Evolution  
-**Keywords:** professional, fast, ops, green live, hairline borders, transparent pricing, editorial timeline  
+**Secondary polish:** Liquid glass (frosted sticky chrome + cards)  
+**Keywords:** professional, fast, ops, blue primary, green live accent, hairline borders, frosted glass, transparent pricing, editorial timeline  
 
 **Anti-patterns:**
 - ❌ Entrance fade / slide animations
 - ❌ AI purple/pink gradients
+- ❌ Full iridescent / chromatic-aberration liquid-glass excess
 - ❌ Playful / emoji-as-icon UI
 - ❌ Multiple pulsing CTAs on one page
 - ❌ Layout-shifting hover scales on cards
 - ❌ Wizard progress steppers for roadmap / narrative pages
 - ❌ Identical card soup for every section
+- ❌ Glass blur on dense docs tables / code blocks
 
 ---
 
@@ -144,7 +164,7 @@ Content max width: `max-w-6xl` on marketing pages.
 - [ ] No entrance animations on marketing pages
 - [ ] At most one `tp-cta-emphasis` CTA per page
 - [ ] `prefers-reduced-motion` disables CTA pulse
-- [ ] Accent is `#3dd68c` with dark contrast text
+- [ ] Accent / primary is `#3366cc` with white contrast text; green reserved for HA / live
 - [ ] `cursor-pointer` on clickable elements
 - [ ] Hover/focus transitions 150–300ms
 - [ ] Light mode contrast ≥ 4.5:1

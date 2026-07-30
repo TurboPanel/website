@@ -10,18 +10,17 @@ import {
 } from '@/components/marketing/marketing-primitives'
 
 const HIGH_AVAILABILITY_FEATURES = [
-  'Managed control plane on Cloudflare Workers (TurboPanel High Availability)',
-  'Hyperdrive-backed Postgres — no self-managed panel database',
-  'First enrolled server included in the base plan',
-  'Same client API, daemon JWT, and compose deploy pipeline as self-hosted',
-  'Email delivery and sign-up flows wired for TurboPanel High Availability tenants',
+  'Fast, always-on control plane with worldwide reach',
+  'No panel infrastructure, upgrades, backups, or TLS to manage',
+  'First connected server included',
+  'Add servers for one clear price each',
+  'Accounts, email, and team invites ready from day one',
 ] as const
 
 const SELF_HOSTED = [
-  'Run the instance on your own Linux host (Deno + Caddy + Docker stack)',
-  'Unlimited enrolled servers — you supply compute and backups',
-  'Full data residency for the control-plane database',
-  'Identical product UI — you operate upgrades and TLS',
+  'For strict residency, offline, or air-gapped environments',
+  'Run the control plane on your own infrastructure',
+  'Same product experience with operator-managed uptime',
 ] as const
 
 const HIGH_AVAILABILITY_PRICE_ROWS = [
@@ -41,34 +40,34 @@ const HIGH_AVAILABILITY_PRICE_ROWS = [
 
 const COST_OF_OWN = [
   {
-    label: 'Control-plane uptime',
-    highAvailability: 'Included',
-    self: 'You design it',
+    label: 'Fast worldwide control plane',
+    highAvailability: 'Ready by default',
+    self: 'You build it',
   },
   {
-    label: 'Postgres + migrations',
-    highAvailability: 'Operated',
+    label: 'Database backups & upgrades',
+    highAvailability: 'Handled for you',
     self: 'Your runbook',
   },
   {
-    label: 'TLS + public URLs',
-    highAvailability: 'Managed SAN flow',
-    self: 'Cert apply on host',
+    label: 'HTTPS & public access',
+    highAvailability: 'Managed for you',
+    self: 'You configure it',
   },
 ] as const
 
 const FAQ = [
   {
     q: 'What am I paying for on TurboPanel High Availability?',
-    a: 'The always-on control plane — API, sessions, command queue, and hosted Workers runtime — plus the first server seat. Workload hosts remain yours; you still install turbopaneld on each machine.',
+    a: 'A fast, always-on control plane, accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
   },
   {
     q: 'When does self-hosted still make sense?',
-    a: 'Strict air-gap, custom compliance, or you already run a 24/7 ops stack and want the panel colocated with it. Everyone else usually moves faster starting on TurboPanel High Availability.',
+    a: 'Mainly for strict air-gap, residency, or custom compliance requirements. Most teams get to production faster with TurboPanel High Availability.',
   },
   {
     q: 'Is pricing actually linear?',
-    a: 'Yes. $X/month covers the panel and one server, then $X/month per additional enrolled server. Annual prepay uses pay-X-get-X months.',
+    a: 'Yes. $X/month covers the control plane and your first server, then $X/month for each additional server. Annual billing uses pay-X-get-X months.',
   },
 ] as const
 
@@ -92,15 +91,14 @@ export default function PricingPage() {
     <MarketingPageShell active="pricing">
       <MarketingHero
         eyebrow="TurboPanel High Availability"
-        title="Host the control plane with us. Enroll your servers."
-        description="TurboPanel High Availability is the production default: managed Workers runtime, operated Postgres, and predictable per-server pricing. Self-hosted stays available at $0 when you need full panel custody."
-        secondaryAction={{ href: '/docs/deployment/control-plane', label: 'Self-hosted reference' }}
+        title="Fast everywhere. Online when it matters. Surprisingly affordable."
+        description="Start in minutes with a worldwide control plane and simple per-server pricing. We run the panel. You connect servers and ship."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on TurboPanel High Availability
+            Get started
           </MarketingControlPlaneCta>
-          <MarketingSecondaryCta href="/docs/getting-started/introduction">Technical overview</MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/docs/getting-started/introduction">How it works</MarketingSecondaryCta>
         </div>
       </MarketingHero>
 
@@ -110,17 +108,17 @@ export default function PricingPage() {
             {
               label: 'Base plan',
               value: '$X / mo',
-              hint: 'Includes one enrolled server and the managed control plane.',
+              hint: 'Includes one server and the complete control plane.',
             },
             {
               label: 'Add-on server',
               value: '+ $X / mo',
-              hint: 'Each additional daemon license maps to one line item.',
+              hint: 'One clear price for every additional server.',
             },
             {
-              label: 'Self-hosted',
-              value: '$0',
-              hint: 'You operate the instance stack — TurboPanel High Availability is still the faster path to prod.',
+              label: 'Worldwide',
+              value: 'Fast',
+              hint: 'A responsive control plane for teams and servers around the globe.',
             },
           ]}
         />
@@ -128,12 +126,12 @@ export default function PricingPage() {
 
       <MarketingSection className="py-6 sm:py-8">
         <div className="grid gap-5 lg:grid-cols-2">
-          <article className="order-1 rounded-2xl border border-[var(--tp-accent)]/40 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--tp-accent)_10%,var(--tp-surface))_0%,var(--tp-surface)_55%)] p-6 shadow-[var(--tp-shadow-card)] sm:p-8">
+          <article className="order-1 rounded-2xl border border-[var(--tp-green)]/40 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--tp-green)_10%,var(--tp-surface))_0%,var(--tp-surface)_55%)] p-6 shadow-[var(--tp-shadow-card)] sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
                 turbopanel high availability
               </p>
-              <span className="rounded-full border border-[var(--tp-accent)]/40 bg-[var(--tp-accent)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text)]">
+              <span className="rounded-full border border-[var(--tp-green)]/40 bg-[var(--tp-green)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text)]">
                 Recommended
               </span>
             </div>
@@ -142,13 +140,13 @@ export default function PricingPage() {
             </p>
             <p className="mt-1 font-mono text-sm text-[var(--tp-text-muted)]">+ $X / server · annual pay-X-get-X</p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              Production teams use TurboPanel High Availability so the panel survives the same incidents they are trying to fix. You
-              connect daemons; we run the API.
+              The easiest way to run TurboPanel. Connect your servers to a fast worldwide control plane
+              while we handle uptime, updates, security, and the infrastructure behind it.
             </p>
             <PlanFeatureList items={HIGH_AVAILABILITY_FEATURES} />
             <div className="mt-8 flex flex-wrap gap-3">
               <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-                Create TurboPanel High Availability account
+                Start now
               </MarketingControlPlaneCta>
               <MarketingSecondaryCta href="/docs/api" className="px-5">
                 API reference
@@ -158,15 +156,15 @@ export default function PricingPage() {
 
           <article className="order-2 rounded-2xl border border-[var(--tp-blue)]/40 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--tp-blue)_8%,var(--tp-surface))_0%,var(--tp-surface)_55%)] p-6 sm:p-8">
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-blue)]">
-              self-hosted
+              self-hosted option
             </p>
             <p className="tp-display mt-4 text-4xl font-semibold tracking-tight text-[var(--tp-text)]">
-              $0
+              Available
             </p>
-            <p className="mt-1 text-sm text-[var(--tp-text-muted)]">Platform subscription · you operate the stack</p>
+            <p className="mt-1 text-sm text-[var(--tp-text-muted)]">For teams with special infrastructure requirements</p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              Bring-your-own control plane for regulated or offline environments. Same compose deploy semantics
-              — different ops burden.
+              Need strict data residency or an air-gapped environment? Run TurboPanel on your own
+              infrastructure and manage the control plane yourself.
             </p>
             <PlanFeatureList items={SELF_HOSTED} />
             <div className="mt-8">
@@ -181,7 +179,7 @@ export default function PricingPage() {
       <MarketingSection variant="band" className="py-10 sm:py-12">
         <MarketingSectionHeader
           eyebrow="TurboPanel High Availability breakdown"
-          title="Line items you can paste into a finance ticket"
+          title="Simple enough to explain in one minute"
         />
         <div className="overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
           <table className="w-full border-collapse text-left text-sm">
@@ -206,8 +204,8 @@ export default function PricingPage() {
       <MarketingSection>
         <MarketingSectionHeader
           eyebrow="Total cost of ownership"
-          title="What TurboPanel High Availability removes from your runbook"
-          description="Self-hosted is free to license — not free to operate at 3 a.m."
+          title="All the control plane. None of the control-plane chores."
+          description="We handle the infrastructure behind TurboPanel so your team can stay focused on shipping."
         />
         <div className="overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
           <table className="w-full border-collapse text-left text-sm">
@@ -222,7 +220,7 @@ export default function PricingPage() {
               {COST_OF_OWN.map((row) => (
                 <tr key={row.label} className="border-t border-[var(--tp-border)]">
                   <td className="px-5 py-4 text-[var(--tp-text)]">{row.label}</td>
-                  <td className="px-5 py-4 font-medium text-[var(--tp-accent)]">{row.highAvailability}</td>
+                  <td className="px-5 py-4 font-medium text-[var(--tp-green)]">{row.highAvailability}</td>
                   <td className="px-5 py-4 text-[var(--tp-text-muted)]">{row.self}</td>
                 </tr>
               ))}
@@ -235,15 +233,15 @@ export default function PricingPage() {
         <div className="rounded-2xl border border-[var(--tp-accent)]/30 bg-[var(--tp-surface)] px-6 py-8 sm:px-10 sm:py-10">
           <p className="tp-eyebrow">Default to TurboPanel High Availability</p>
           <h2 className="tp-section-title mt-4 max-w-2xl">
-            Ship this quarter — defer building panel uptime yourself until it is actually your differentiator.
+            Stop planning the panel. Start shipping with it.
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--tp-text-muted)]">
-            Create a TurboPanel High Availability org, enroll a daemon with a registration key, and deploy a Compose environment.
-            Migrate to self-hosted later if policy requires it — the API contract stays the same.
+            Create an account, connect your first server, and deploy in minutes. It is fast worldwide,
+            ready every day, and inexpensive enough to be the easy decision.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Start on TurboPanel High Availability
+              Get started
             </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/roadmap" className="px-5">
               See the roadmap

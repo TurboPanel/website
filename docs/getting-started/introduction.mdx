@@ -1,65 +1,55 @@
 ---
 title: Introduction
-description: TurboPanel overview, deployment models, and key features
+description: What TurboPanel is, how the control plane and daemons fit together, and which deployment model to pick
 ---
 
 # Introduction
 
-TurboPanel is a platform for managing dockerized applications and infrastructure. It provides a centralized control surface for Docker management across multiple servers.
+TurboPanel gives you one simple place to deploy websites, applications, and databases across all your infrastructure. Connect a server, choose where your project should run, and ship.
 
-TurboPanel offers a unified interface for managing Docker containers across multiple servers, whether you choose TurboPanel High Availability or self-hosted deployment. Lightweight **daemons** run on managed servers, connect to the **instance** (control plane API) over HTTPS/WebSocket, and execute orchestration locally via Ansible.
+A lightweight TurboPanel agent on each server connects it to your control plane and runs approved operations locally. Your workloads stay on your servers.
 
 ## Deployment models
 
-| Feature | TurboPanel High Availability | Self-hosted (Deno) |
-| ------- | ---------------------------- | ------------------ |
-| **Pricing** | Pay per server | Free, unlimited servers |
-| **Control plane** | Cloudflare Workers | Your server (Deno + Caddy) |
-| **Communication** | HTTPS / WebSocket | HTTPS / WebSocket (Caddy) |
-| **Daemon required** | Yes (on each managed server) | Yes on extra servers; co-located on control plane |
-| **Best for** | Managed hosted control plane | Full control and cost savings |
+<ControlPlaneOptions />
 
 ### TurboPanel High Availability
 
-- Instance runs on Cloudflare Workers with Hyperdrive to Postgres (`pnpm deploy` with `TURBOPANEL_DATABASE_URL` and `CLOUDFLARE_ENV` set)
-- Remote daemons connect to your Workers URL over HTTPS/WSS today
-- **Durable Objects** — hibernation-safe SQLite-backed daemon cell per server (`getByName(serverId)`) for live WS presence, outbox delivery, and request correlation; see [Daemon cell architecture](/docs/architecture/daemon-cell)
+- Fast, always-on control plane with worldwide reach
+- No control-plane infrastructure, upgrades, backups, or public TLS for you to manage
+- Simple per-server pricing with your first server included
 
-### Self-hosted (Deno)
+### Self-hosted
 
-- Instance runs as Deno on a Unix socket; **Caddy** terminates TLS (default **`:8443`**) and proxies `/api/*` and `/ws/*`
-- Co-located **daemon** on the control plane host installs and updates the stack via Ansible
-- Additional servers use the [CDN node installer](/docs/deployment/daemon-setup)
+- Run the control plane on infrastructure you operate
+- Intended for strict residency, offline, or air-gapped requirements
+- You are responsible for control-plane uptime, upgrades, backups, and public access
 
-<Callout type="info" title="Co-located daemon">
-  On the control plane server, a co-located daemon connects to the local instance socket (or through
-  Caddy) and runs Ansible to manage the instance, UI, Caddy, and Postgres. You do not need a
-  separate remote daemon on the same machine.
+<Callout type="info" title="Not sure which to choose?">
+  Start with TurboPanel High Availability. It is the fastest way to get running and removes the
+  control-plane work. Choose self-hosted only when your infrastructure policy requires it.
 </Callout>
 
-## Key features
+## What you get
 
-- **Centralized control surface** — Manage servers from a single UI
-- **Dual deployment options** — TurboPanel High Availability or self-hosted Deno
-- **Daemon-based architecture** — Ansible-driven installs on each node
-- **Cross-platform frontend** — Web, iOS, and Android via Expo / React Native
-- **Multi-repo codebase** — Instance, UI, daemon, website, and dev orchestration are separate Git repositories
+- **One console** — servers, deploys, networks, and access in a single UI
+- **Fast worldwide access** — a responsive control plane for distributed teams
+- **Simple server setup** — connect a host with one install command
+- **Private networking** — securely link cloud, datacenter, and office infrastructure
+- **Automation when you need it** — use the API to plug TurboPanel into your workflow
 
 ## Architecture overview
 
 ```mermaid
 graph TB
     subgraph "TurboPanel High Availability"
-        W[Workers instance] --> D1[Daemon server 1]
-        W --> D2[Daemon server 2]
+        H[Hosted control plane] --> D1[Server 1]
+        H --> D2[Server 2]
     end
 
     subgraph "Self-hosted"
-        C[Caddy :8443] --> I[Deno instance socket]
-        I --> CD[Co-located daemon]
-        I --> D3[Remote daemon]
-        CD --> Docker1[Local Docker]
-        D3 --> Docker2[Remote Docker]
+        S[Your control plane] --> D3[Server 1]
+        S --> D4[Server 2]
     end
 ```
 

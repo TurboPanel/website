@@ -24,12 +24,12 @@ const PHASES: ReadonlyArray<Phase> = [
     title: 'Foundation',
     shortLabel: 'Foundation',
     status: 'Complete',
-    summary: 'Auth, dual control-plane runtimes, and public docs — TurboPanel High Availability is the default shipping target.',
+    summary: 'The secure foundation for accounts, teams, and one reliable control plane.',
     focus: [
-      'Email/password auth, sessions, OTP, verification, and password reset on TurboPanel High Availability tenants',
-      'Workers + Deno parity for the instance API (client, daemon, admin surfaces)',
-      'Organizations, workspaces, invitations, and access grants',
-      'Docs for architecture, deployment, security, and OpenAPI references',
+      'Secure sign-in, verification, recovery, and team invitations',
+      'The same product experience across High Availability and self-hosted',
+      'Organizations, workspaces, invitations, and flexible access',
+      'Clear guides for setup, security, deployment, and automation',
     ],
   },
   {
@@ -40,19 +40,19 @@ const PHASES: ReadonlyArray<Phase> = [
     focus: [
       'Multi-server dashboard with live status, OS, and connection details',
       'Host metrics charts for CPU, memory, disk, network, and more',
-      'Daemon connect, reconnect, ping, hostname, reboot, and trunk updates',
-      'Add-server flow with registration keys (licenses)',
+      'Server connect, reconnect, ping, hostname, reboot, and updates',
+      'A quick add-server flow that gets a host online in minutes',
     ],
   },
   {
     title: 'Apps and Deploy',
     shortLabel: 'Apps & deploy',
     status: 'In Progress',
-    summary: 'Ship Docker Compose apps today; deepen everyday website hosting next.',
+    summary: 'Deploy container apps today, with an even easier website experience on the way.',
     focus: [
-      'Projects, environments, compose editing, and one-click deploy (shipped)',
+      'Projects, environments, visual editing, and one-click deploy (shipped)',
       'Secrets and environment variables, plus starter catalog templates (shipped)',
-      'Richer WordPress / PHP workflows and clearer domain + TLS setup',
+      'Faster WordPress and PHP setup, plus simpler domains and TLS',
       'Database helpers, scheduled tasks, and better container day-to-day views',
     ],
   },
@@ -292,8 +292,8 @@ function StatusAside({
         </div>
       </dl>
       <p className="mt-5 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-        Shipped phases stay in the timeline for auditability. TurboPanel High Availability customers get features as they land —
-        self-hosted installs follow the same trunk with operator-driven upgrades.
+        TurboPanel High Availability customers get new features as they land, without another update
+        process to manage.
       </p>
     </div>
   )
@@ -310,8 +310,8 @@ export default function RoadmapPage() {
     <MarketingPageShell active="roadmap">
       <MarketingHero
         eyebrow="Product roadmap"
-        title="What we ship on TurboPanel High Availability — and what is in flight."
-        description="Foundation and fleet operations are live in production. Apps & deploy is the active phase: deeper Compose workflows, host-native sites, and operator-grade day-two tools."
+        title="Already useful. Getting better fast."
+        description="Server management and core deploys are live today. We are now making websites, apps, databases, and everyday operations even faster and easier."
         aside={
           <StatusAside
             shipped={shipped}
@@ -345,8 +345,8 @@ export default function RoadmapPage() {
       <MarketingSection variant="band">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <MarketingSectionHeader
-            title="Use what is shipped today"
-            description="TurboPanel High Availability orgs get foundation + fleet now. Docs cover the command pipeline, daemon cell, and deploy validation rules in depth."
+            title="Start with what is ready today"
+            description="TurboPanel High Availability already gives you accounts, fleet management, metrics, deploys, and private networking from one fast control plane."
           />
           <div className="flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">

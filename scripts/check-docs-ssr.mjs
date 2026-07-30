@@ -24,7 +24,7 @@ if (!existsSync(htmlPath)) {
 
 const html = readFileSync(htmlPath, 'utf8')
 const contentSnippet =
-  'TurboPanel is a platform for managing dockerized applications and infrastructure'
+  'TurboPanel helps you rapidly and securely deploy applications, websites, and databases'
 
 if (!html.includes(contentSnippet)) {
   console.error(

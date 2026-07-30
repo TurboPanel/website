@@ -23,8 +23,9 @@ const display = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'TurboPanel',
-  description: 'Web Hosting Control Panel',
+  title: 'TurboPanel — One fast control plane for every server',
+  description:
+    'Deploy websites, containers, and databases from a fast, affordable, always-on control plane built for teams and servers worldwide.',
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/brand/turbopanel-logo-square-192.png', sizes: '192x192' }],

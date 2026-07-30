@@ -93,16 +93,41 @@ Order is fixed — positional AE doubles and ClickHouse columns depend on it (`H
 | Slot | Content |
 | ---- | ------- |
 | `indexes[0]` / `index1` | Authenticated `serverId` UUID only — never org, account, hostname, or metric name |
-| `double1` … `double20` | Metrics 1–20 in table order above |
-| `blob1` | Event type `"host"` |
+| `double1` … `double20` | Host rows (`blob1 = "host"`): metrics 1–20 in table order above |
+| `blob1` | Event type discriminator — `"host"` (metrics sample) or `"status"` (connection-status transition; see below) |
 | `blob2` | Schema version (`"1"`) |
-| `blob3` | `daemonVersion` |
-| `blob4` | Operating system |
-| `blob5` | Architecture |
-| `blob6` | Kernel release |
-| `blob7` … `blob20` | Reserved empty strings until schema v2 |
+| `blob3` | Host rows only: `daemonVersion` |
+| `blob4` | Host rows only: operating system |
+| `blob5` | Host rows only: architecture |
+| `blob6` | Host rows only: kernel release |
+| `blob7` … `blob20` | Reserved empty strings on host rows; `blob7` carries the transition reason on status rows |
 
 AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -1e308`** — never `0`. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`** (scientific-notation literals and `NULLIF` are not documented for AE SQL).
+
+### Connection-status event stream (`blob1 = "status"`)
+
+Every genuine online/offline transition on a `server` row (not a heartbeat or identity-only touch) also writes **one row** into this same dataset/table, discriminated from host samples by `blob1`:
+
+| Slot | Content |
+| ---- | ------- |
+| `blob1` | `"status"` |
+| `blob2` | Schema version (same slot as host rows) |
+| `blob7` | Transition reason — `"connect"` \| `"disconnect"` \| `"sweep_stale"` \| `"self_heal"` (closed set) |
+| `double1` | `1` (connected) or `0` (disconnected) |
+| all other doubles/blobs | Missing-metric sentinel / empty string — a status row carries no host metrics |
+
+AE stamps its own ingestion `timestamp` for status rows; ClickHouse stores the event's own timestamp directly (the same host-vs-ClickHouse asymmetry host samples already have). Both backends expose this via `GET /api/client/v1/servers/:id/metrics/connection`, which resolves prior state before the range plus in-range transitions into shared uptime/downtime math so AE and ClickHouse report identical numbers for the same query.
+
+**Volume impact is negligible against the write-volume formulas below** — status rows are written only on a state flip (at most a handful per server per day in normal operation), not once per sampling interval like host rows, so they do not materially change the write-volume math in this doc.
+
+<Callout type="warn" title="History-only — never authoritative for liveness">
+  This event stream (and the `/metrics/connection` endpoint built on it) exists purely for
+  historical uptime/downtime reporting. It is asynchronous, best-effort, and sampled/disposable like
+  all server metrics. The Postgres `server.connected` / `server.status_changed_at` columns (see
+  [Daemon cell architecture](/docs/architecture/daemon-cell)) are the sole source of truth for
+  whether a server is online **right now** — never gate a current-liveness decision on Analytics
+  Engine or ClickHouse status history.
+</Callout>
 
 **Query aggregation** (SQL API): filter `blob1 = 'host'` and supported `blob2`; rows under `result.data` (Cloudflare v4 envelope). Weighted average per bucket:
 
@@ -133,6 +158,7 @@ ClickHouse stores the **same positional column layout as Analytics Engine** — 
 | -------- | ------- |
 | `GET /api/client/v1/servers/:id/metrics/series` | Time-series buckets for selected metrics |
 | `GET /api/client/v1/servers/:id/metrics/summary` | Aggregated summary for a range |
+| `GET /api/client/v1/servers/:id/metrics/connection` | Uptime/downtime history from the `blob1 = "status"` event stream (history-only — see above) |
 
 Session + server read grant required. **One combined backend query** per `(server, range)` — not per metric or chart.
 

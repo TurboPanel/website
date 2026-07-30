@@ -12,6 +12,7 @@ function resolveActive(pathname: string): ActivePage | undefined {
   if (pathname.startsWith('/docs')) return 'docs'
   if (pathname.startsWith('/pricing')) return 'pricing'
   if (pathname.startsWith('/roadmap')) return 'roadmap'
+  if (pathname.startsWith('/setups')) return 'setups'
   if (pathname === '/') return 'overview'
   return undefined
 }
@@ -108,7 +109,7 @@ export function StickySiteChrome() {
   return (
     <div
       ref={chromeRef}
-      className="sticky top-0 z-50 border-b border-[var(--tp-border)] bg-[var(--tp-bg)]/95 backdrop-blur-md"
+      className="tp-glass tp-glass-strong sticky top-0 z-50 rounded-none border-x-0 border-t-0"
       data-compact={scrolled ? '' : undefined}
     >
       <PreDevBanner scrollHidden={scrolled} />

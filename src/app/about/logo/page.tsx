@@ -194,17 +194,16 @@ export default function AboutLogoPage() {
             <strong className="font-semibold text-[var(--tp-text)]">
               TurboPanel
             </strong>
-            — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In product
-            chrome, the T mark locks up with an extrabold italic{" "}
-            <span className="tp-display italic font-extrabold text-[var(--tp-text)]">
-              urboPanel
+            — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
+            the T mark locks up horizontally with an upright{" "}
+            <span className="tp-display font-semibold tracking-tight text-[var(--tp-text)]">
+              TurboPanel
             </span>{" "}
             wordmark in{" "}
             <strong className="font-semibold text-[var(--tp-text)]">
               Plus Jakarta Sans
             </strong>
-            , tucked under the blue crossbar (the mark supplies the T). The mark
-            may appear alone when space is tight.
+            {"."} The mark may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>

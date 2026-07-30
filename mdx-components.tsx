@@ -5,6 +5,7 @@ import { Callout } from 'fumadocs-ui/components/callout'
 import { Card, Cards } from 'fumadocs-ui/components/card'
 import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { CodeGroup } from '@/components/mdx/CodeGroup'
+import { ControlPlaneOptions } from '@/components/mdx/ControlPlaneOptions'
 import { File } from '@/components/mdx/File'
 import { Mermaid } from '@/components/mdx/Mermaid'
 import type { MDXComponents } from 'mdx/types'
@@ -20,6 +21,7 @@ function baseComponents(): MDXComponents {
     Steps,
     Step,
     CodeGroup,
+    ControlPlaneOptions,
     File,
     Mermaid,
   }
