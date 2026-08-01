@@ -9,7 +9,7 @@ GitHub: [turbopanel/website](https://github.com/turbopanel/website). Local check
 Do **not** bootstrap this repo on its own. The co-located stack is owned by **[turbopanel/dev](https://github.com/turbopanel/dev)**.
 
 ```sh
-curl -fsSL trbp.nl/develop.sh | sh
+curl -fsSL dev.turbopanel.sh/develop.sh | sh
 ```
 
 That installs/updates `~/dev`, launches the developer console, and (after **Converge**) brings up the full environment — including this site as `turbopanel-website.service` (dev server on port **19820**).

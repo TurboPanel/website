@@ -70,13 +70,13 @@ installer. Set `TURBOPANEL_LICENSE` to the base64url-encoded
 manifest):
 
 ```bash
-curl -fsSL trbp.nl/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL turbopanel.sh/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
 **Self-hosted instance** (pass `TURBOPANEL_HOST` with the full instance URL):
 
 ```bash
-curl -fsSL trbp.nl/run.sh | \
+curl -fsSL turbopanel.sh/run.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
@@ -119,7 +119,7 @@ tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
-curl -fsSL trbp.nl/run.sh | \
+curl -fsSL turbopanel.sh/run.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_UPDATE_CHANNEL=trunk \
   sh
