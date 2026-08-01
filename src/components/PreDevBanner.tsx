@@ -1,7 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
+import {
+  persistPreDevBannerDismissed,
+  preDevBannerDismissedStore,
+} from '@/lib/predev-banner-dismissed'
+import { useClientMounted } from '@/lib/use-client-mounted'
 
 type PreDevBannerProps = Readonly<{
   /** Collapse while the sticky chrome is in compact (scrolled) mode. */
@@ -9,18 +14,15 @@ type PreDevBannerProps = Readonly<{
 }>
 
 export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
-  const [mounted, setMounted] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('predev-banner-dismissed')
-    setDismissed(stored === 'true')
-    setMounted(true)
-  }, [])
+  const mounted = useClientMounted()
+  const dismissed = useSyncExternalStore(
+    preDevBannerDismissedStore.subscribe,
+    preDevBannerDismissedStore.getSnapshot,
+    preDevBannerDismissedStore.getServerSnapshot,
+  )
 
   const handleCollapse = () => {
-    setDismissed(true)
-    localStorage.setItem('predev-banner-dismissed', 'true')
+    persistPreDevBannerDismissed()
   }
 
   if (!mounted) return null

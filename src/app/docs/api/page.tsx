@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
@@ -102,18 +102,25 @@ const scalarCustomCss = `
   ${scalarSessionCookieNameRowCss}
 `
 
+function subscribeClientApiDocsConfig(): () => void {
+  return () => {}
+}
+
+function getClientApiDocsConfigSnapshot() {
+  const { hostname, port } = globalThis.location
+  return resolveLocalApiDocsConfig(hostname, port)
+}
+
 export default function ApiDocsPage() {
   const { resolvedTheme } = useTheme()
-  const [openApiUrl, setOpenApiUrl] = useState<string | null>(null)
-  const [daemonOpenApiUrl, setDaemonOpenApiUrl] = useState<string | null>(null)
-  const [servers, setServers] = useState<{ url: string; description: string }[] | null>(null)
-  useEffect(() => {
-    const { hostname, port } = globalThis.location
-    const local = resolveLocalApiDocsConfig(hostname, port)
-    setOpenApiUrl(local.openApiUrl)
-    setDaemonOpenApiUrl(local.daemonOpenApiUrl)
-    setServers(local.servers)
-  }, [])
+  const apiDocsConfig = useSyncExternalStore(
+    subscribeClientApiDocsConfig,
+    getClientApiDocsConfigSnapshot,
+    () => null,
+  )
+  const openApiUrl = apiDocsConfig?.openApiUrl ?? null
+  const daemonOpenApiUrl = apiDocsConfig?.daemonOpenApiUrl ?? null
+  const servers = apiDocsConfig?.servers ?? null
 
   let forceDarkModeState: 'dark' | 'light' | undefined
   if (resolvedTheme === 'dark') forceDarkModeState = 'dark'

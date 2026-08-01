@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { getSignInUrl } from '@/lib/env'
 
 /**
@@ -13,11 +13,11 @@ type SignInButtonProps = Readonly<{
 }>
 
 export function SignInButton({ compact = false }: SignInButtonProps) {
-  const [href, setHref] = useState('https://turbopanel.app/sign-in')
-
-  useEffect(() => {
-    setHref(getSignInUrl(window.location.hostname, window.location.port))
-  }, [])
+  const href = useSyncExternalStore(
+    () => () => {},
+    () => getSignInUrl(window.location.hostname, window.location.port),
+    () => 'https://turbopanel.app/sign-in',
+  )
 
   return (
     <a

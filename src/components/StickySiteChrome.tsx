@@ -55,16 +55,16 @@ export function StickySiteChrome() {
   useLayoutEffect(() => {
     if (window.location.hash) {
       historyTraversalRef.current = false
-      setScrolled(readScrollY() > SCROLL_COMPACT_PX)
+      queueMicrotask(() => setScrolled(readScrollY() > SCROLL_COMPACT_PX))
       return
     }
     if (historyTraversalRef.current) {
       historyTraversalRef.current = false
-      setScrolled(readScrollY() > SCROLL_COMPACT_PX)
+      queueMicrotask(() => setScrolled(readScrollY() > SCROLL_COMPACT_PX))
       return
     }
     scrollWindowToTop()
-    setScrolled(false)
+    queueMicrotask(() => setScrolled(false))
   }, [pathname])
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export function StickySiteChrome() {
       const nestedY = target instanceof HTMLElement ? target.scrollTop : 0
       syncScrolled(nestedY)
     }
-    syncScrolled()
+    queueMicrotask(() => syncScrolled())
     // Capture so nested scrollers (Scalar main pane, etc.) still flip compact mode.
     window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     document.addEventListener('scroll', onScroll, { passive: true, capture: true })

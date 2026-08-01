@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { MoonIcon, SunIcon } from '@/components/icons'
+import { useClientMounted } from '@/lib/use-client-mounted'
 
 type ThemeToggleButtonProps = Readonly<{
   compact?: boolean
@@ -15,12 +15,8 @@ function thumbTranslateClass(isDark: boolean, compact: boolean) {
 }
 
 export function ThemeToggleButton({ compact = false }: ThemeToggleButtonProps) {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useClientMounted()
   const { resolvedTheme, setTheme } = useTheme()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
   const iconClass = compact ? 'h-3 w-3' : 'h-3.5 w-3.5'

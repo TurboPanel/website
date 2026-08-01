@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { useClientMounted } from '@/lib/use-client-mounted'
 
 /**
  * Client-side Mermaid diagrams, lazy-loaded when near the viewport.
@@ -22,7 +23,7 @@ export function Mermaid({ chart }: Readonly<{ chart: string }>) {
     if (!el) return
 
     if (typeof IntersectionObserver === 'undefined') {
-      setNearViewport(true)
+      queueMicrotask(() => setNearViewport(true))
       return
     }
 
@@ -55,11 +56,7 @@ function MermaidContent({ chart }: Readonly<{ chart: string }>) {
   const { resolvedTheme } = useTheme()
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [themeReady, setThemeReady] = useState(false)
-
-  useEffect(() => {
-    setThemeReady(true)
-  }, [])
+  const themeReady = useClientMounted()
 
   useEffect(() => {
     if (!themeReady) return

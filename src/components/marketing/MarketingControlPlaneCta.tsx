@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { getControlPlaneBaseUrl } from '@/lib/env'
 import {
   MarketingPrimaryCta,
@@ -32,12 +32,12 @@ export function MarketingControlPlaneCta({
   className = '',
   children,
 }: MarketingControlPlaneCtaProps) {
-  const [href, setHref] = useState(() => defaultControlPlaneHref(path))
-
-  useEffect(() => {
-    const base = getControlPlaneBaseUrl(window.location.hostname, window.location.port)
-    setHref(`${base}${path}`)
-  }, [path])
+  const href = useSyncExternalStore(
+    () => () => {},
+    () =>
+      `${getControlPlaneBaseUrl(window.location.hostname, window.location.port)}${path}`,
+    () => defaultControlPlaneHref(path),
+  )
 
   if (variant === 'secondary') {
     return (
