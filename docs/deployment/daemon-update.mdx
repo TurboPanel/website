@@ -39,7 +39,7 @@ tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
-curl -fsSL turbopanel.sh/run.sh | \
+curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_UPDATE_CHANNEL=trunk \
   sh
@@ -62,7 +62,7 @@ The installer:
 Add `TURBOPANEL_HOST` when the instance is not production Cloudflare:
 
 ```bash
-curl -fsSL turbopanel.sh/run.sh | \
+curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
@@ -75,7 +75,7 @@ Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`trunk`,
 The example below stays on `trunk` (the default):
 
 ```bash
-curl -fsSL turbopanel.sh/run.sh | \
+curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_UPDATE_CHANNEL=trunk \
   sh
@@ -109,5 +109,5 @@ In the UI, refresh the servers page — the node should show **Online** with a c
 
 ## Related
 
-- [Daemon setup](/docs/deployment/daemon-setup) — First-time install (`turbopanel.sh/run.sh`)
+- [Daemon setup](/docs/deployment/daemon-setup) — First-time install (`turbopanel.sh`)
 - [Deployment troubleshooting](/docs/deployment/troubleshooting) — TLS, Postgres, connectivity

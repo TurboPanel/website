@@ -12,7 +12,7 @@ TurboPanel is split across multiple repositories. Installation paths depend on w
 Bootstrap the dev console from [dev](https://github.com/turbopanel/dev):
 
 ```bash
-curl -fsSL dev.turbopanel.sh/develop.sh | sh
+curl -fsSL dev.turbopanel.sh | sh
 ```
 
 The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console` automatically. `./console` installs the pinned Node runtime (sudo on first run), runs `pnpm install`, and starts the Ink dev console. From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd. To run the console again later: `cd ~/dev && ./console`.
@@ -24,13 +24,13 @@ See [Local development](/docs/getting-started/development) for console areas, UR
 <Callout type="info" title="Control plane install path">
   Self-hosted **control planes** use the [dev](https://github.com/turbopanel/dev)
   console on a VM (**Start dev stack**). Additional **managed server daemons** use the
-  public `run.sh` installer documented below.
+  public installer documented below.
 </Callout>
 
 On a fresh Debian or Ubuntu host:
 
 ```bash
-curl -fsSL dev.turbopanel.sh/develop.sh | sh
+curl -fsSL dev.turbopanel.sh | sh
 ```
 
 In the console, choose **Start dev stack**. This writes developer identity into `/etc/turbopanel/daemon.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres: source repos under `$HOME` (`~/daemon`, `~/instance`, `~/ui`, `~/website`), mutable state under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`), and vendored runtimes under `/opt/turbopanel/vendor`.
@@ -53,13 +53,13 @@ control plane). Obtain a license from your organization first.
 **TurboPanel High Availability** (Cloudflare Workers):
 
 ```bash
-curl -fsSL turbopanel.sh/run.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
 **Self-hosted instance** (pass `TURBOPANEL_HOST`):
 
 ```bash
-curl -fsSL turbopanel.sh/run.sh | \
+curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
