@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="TurboPanel Development Environment">
+  <rect width="1280" height="640" fill="#111827"/>
+  <rect width="1280" height="6" fill="#3366cc"/>
+  <text x="80" y="280" fill="#ffffff" font-family="system-ui,sans-serif" font-size="56" font-weight="700">TurboPanel Dev Environment</text>
+  <text x="80" y="340" fill="#9aa4b2" font-family="system-ui,sans-serif" font-size="32">Contributor tooling · turbopanel/dev</text>
+</svg>

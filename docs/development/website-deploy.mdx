@@ -1,0 +1,53 @@
+---
+title: Website deployment
+description: Build and deploy the TurboPanel marketing site and docs to Cloudflare Workers
+---
+
+# Website deployment
+
+Contributor reference for [turbopanel/website](https://github.com/turbopanel/website). Production traffic is served from Cloudflare Workers via OpenNext.
+
+## Prerequisites
+
+- Node.js and `pnpm` (see `packageManager` in `package.json`)
+- Cloudflare account with Workers deploy access
+- `wrangler` authenticated (`pnpm cf-typegen` after binding changes)
+
+## Local preview
+
+```bash
+cd ~/website
+pnpm install
+pnpm dev    # http://localhost:19820
+```
+
+Co-located dev: `turbopanel-website.service` runs the same dev server; logs under `/var/log/turbopanel/website/`.
+
+## Production build
+
+```bash
+pnpm build
+pnpm check:docs-ssr
+pnpm check:hosts
+```
+
+`pnpm build` uses `next build --webpack` for OpenNext compatibility.
+
+## Deploy
+
+```bash
+pnpm deploy    # or pnpm upload for asset-only upload flows
+```
+
+Configuration: `open-next.config.ts`, `wrangler.jsonc`. Hostname allowlist is enforced by `pnpm check:hosts` against `src/lib/control-plane-hosts.ts`.
+
+## Docs content
+
+- MDX under `docs/` — Fumadocs (`source.config.ts`)
+- Edit links resolve via `src/lib/docs-github.ts` (`turbopanel/website`, branch `trunk`)
+- Navigation: per-folder `meta.json`
+
+## Related
+
+- [Website README](https://github.com/turbopanel/website#readme)
+- [Contributing](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md)

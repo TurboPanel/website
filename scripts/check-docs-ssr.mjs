@@ -24,7 +24,7 @@ if (!existsSync(htmlPath)) {
 
 const html = readFileSync(htmlPath, 'utf8')
 const contentSnippet =
-  'TurboPanel helps you rapidly and securely deploy applications, websites, and databases'
+  'TurboPanel gives you one simple place to deploy websites, applications, and databases'
 
 if (!html.includes(contentSnippet)) {
   console.error(

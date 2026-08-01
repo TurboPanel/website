@@ -1,0 +1,44 @@
+---
+title: Vulnerability reporting
+description: How to report security issues in TurboPanel privately
+---
+
+# Vulnerability reporting
+
+## Do not use public issues
+
+Security vulnerabilities must **not** be filed as public GitHub issues or discussed in Discord before coordination.
+
+## Report privately
+
+1. **[GitHub private vulnerability reporting](https://github.com/turbopanel/turbopanel/security/advisories/new)** on the affected repository:
+   - [turbopanel](https://github.com/turbopanel/turbopanel) — control plane
+   - [turbopaneld](https://github.com/turbopanel/turbopaneld) — daemon
+   - [ui](https://github.com/turbopanel/ui) — console
+   - [website](https://github.com/turbopanel/website) — docs site
+   - [dev](https://github.com/turbopanel/dev) — contributor tooling
+
+2. Email **security@turbopanel.io** if GitHub private reporting is unavailable.
+
+Marketing summary: [turbopanel.io/security](/security).
+
+## Include
+
+- Component and deployment type (TurboPanel High Availability vs self-hosted)
+- Version, OS, architecture
+- Reproduction steps and impact
+- Minimal proof-of-concept when possible
+
+## Our process
+
+| Stage | Target |
+| --- | --- |
+| Acknowledgement | 3 business days |
+| Initial assessment | 10 business days |
+| Fix / mitigation | Severity-dependent |
+
+We publish advisories on GitHub Security Advisories after a fix or mitigation is available. Reporters are credited unless they request anonymity.
+
+## Supported versions
+
+Security fixes target the current `release` channel. See [Security](/security) for the support table.

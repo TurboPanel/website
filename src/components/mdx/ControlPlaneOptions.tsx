@@ -18,8 +18,8 @@ export function ControlPlaneOptions() {
           Self-hosted
         </p>
         <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-          Run the control plane on your own infrastructure when strict residency, offline access, or
-          full custody is required.
+          Run the control plane on infrastructure you operate and maintain. Same product experience —
+          your team owns uptime, upgrades, backups, and public access.
         </p>
       </div>
     </div>

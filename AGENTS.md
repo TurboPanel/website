@@ -2,15 +2,42 @@
 
 **Package:** `@turbopanel/website` — Next.js 16 marketing + Fumadocs docs.
 
+**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** AGPL-3.0-only. **Maturity:** **Public beta**. README is product-facing; AGENTS.md is maintainer-facing.
+
 **Default branch:** `trunk`
 
 **Docs content:** MDX under `docs/` (Fumadocs; `source.config.ts` → `dir: 'docs'`). Daemon-cell / Durable Object architecture docs must use the **SQLite-backed** Durable Object pricing model (rows read/written, `setAlarm()` = 1 row written, deletes = writes, KV-style methods billed as rows; compute requests incl. WS connect + 20:1 incoming-WS-message ratio + alarm invocations; 128 MB duration; hibernation) — **never legacy KV-backed DO pricing** — and the canonical source is `~/instance/AGENTS.md` (Daemon Cell). (Leave the actual docs/diagrams to the website-docs phase.)
 
 ## Pricing (copy source of truth)
 
-Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing** (TurboPanel High Availability tiers: base **$X**/mo including first server, **$X**/mo per additional server, annual **pay X get X**; self-hosted control plane **free**, unlimited servers subject to customer infra). Dollar amounts on marketing surfaces are placeholders (`X`) until final pricing ships.
+**Maturity label:** **Public beta** — use this exact term on README status callouts, `PreDevBanner`, roadmap eyebrow, and release notes.
+
+Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing**.
+
+| Surface | Presentation |
+| --- | --- |
+| **TurboPanel High Availability** | **Private early access** — no dollar figures on marketing pages; single CTA to request access (`/sign-up`) |
+| **Self-hosted control plane** | **Free, unlimited servers** — operator provides infrastructure; link `/docs/deployment/self-hosted` |
+
+Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`.
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
+
+## Marketing routes (App Router)
+
+| Route | File | Purpose |
+| --- | --- | --- |
+| `/` | `src/app/page.tsx` | Home |
+| `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning |
+| `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
+| `/open-source` | `src/app/open-source/page.tsx` | License table, repo map, AGPL FAQ |
+| `/security` | `src/app/security/page.tsx` | Supported versions, private reporting |
+| `/changelog` | `src/app/changelog/page.tsx` | Human-written release highlights |
+| `/about/logo` | `src/app/about/logo/page.tsx` | Brand guidelines |
+
+Register new marketing routes in `SiteHeader` (`ActivePage` + `LINKS` when nav-visible), `SiteFooter` (`FOOTER_LINKS`), and `src/app/sitemap.ts`.
+
+Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/`.
 
 ## Stack
 

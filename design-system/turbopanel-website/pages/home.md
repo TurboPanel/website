@@ -23,7 +23,7 @@
 | Headline | The outcome in plain English — one fast control plane for every server |
 | Support | One short sentence: fast worldwide, always on, websites + apps + databases |
 | Benefits | ≤3 check lines; operator outcomes, not Workers / JWT / Compose jargon |
-| Price | **Above the fold** — `Starts at only $X.xx/month` (mono, accent) |
+| Price | **Above the fold** — omit dollar amounts during private early access; link `/pricing` |
 | CTA | **One** primary close (`Get started now` → sign-up) + optional text link to pricing |
 | Aside | No terminal / API mock on home — too techy for the first sell |
 
@@ -36,4 +36,4 @@
 
 ## Copy north star
 
-Sell three promises repeatedly: **simple to start**, **fast worldwide**, and **affordable to grow**. TurboPanel High Availability is the default path; self-hosted is only a secondary option for strict infrastructure requirements. Price and a single close belong in the first viewport. Never name the hosted or self-hosted runtime vendors on the home page.
+Sell three promises repeatedly: **simple to start**, **fast worldwide**, and **affordable to grow**. TurboPanel High Availability is the default convenience path; **self-hosted is a first-class open-source option** with the same product — operators own infrastructure, uptime, and upgrades. Price and a single close belong in the first viewport. Never name the hosted or self-hosted runtime vendors on the home page.

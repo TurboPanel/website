@@ -1,35 +1,76 @@
-# TurboPanel Website
+# TurboPanel Website & Docs
 
-Marketing site and documentation for [TurboPanel](https://turbopanel.io) — Next.js 16 + Fumadocs, deployed to Cloudflare Workers via OpenNext.
+**Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io) — Next.js 16, Fumadocs MDX, deployed to Cloudflare Workers via OpenNext.
 
-GitHub: [turbopanel/website](https://github.com/turbopanel/website). Local checkout: `~/website` (or `${TURBOPANEL_WEBSITE_REPO}`).
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](./LICENSE)
+[![Docs](https://img.shields.io/badge/live-turbopanel.io%2Fdocs-3366cc)](https://turbopanel.io/docs)
+[![Status: Public beta](https://img.shields.io/badge/status-public%20beta-3dd68c)](https://turbopanel.io/roadmap)
 
-## Development
+GitHub: [turbopanel/website](https://github.com/turbopanel/website)
 
-Do **not** bootstrap this repo on its own. The co-located stack is owned by **[turbopanel/dev](https://github.com/turbopanel/dev)**.
+## Easiest first contribution
+
+Documentation fixes and copy improvements are high-impact and review quickly. Most pages are MDX under `docs/` — no control-plane checkout required.
+
+| Content | Location |
+| --- | --- |
+| **Documentation (canonical)** | `docs/**/*.mdx` + `meta.json` navigation |
+| **Marketing pages** | `src/app/` (home, pricing, roadmap, open-source, security, …) |
+| **Shared marketing components** | `src/components/marketing/` |
+| **Design system** | `design-system/turbopanel-website/` |
+
+Live site: **[turbopanel.io](https://turbopanel.io)** · **[turbopanel.io/docs](https://turbopanel.io/docs)**
+
+## Fix a documentation page
+
+1. Edit the MDX file under `docs/` (frontmatter `title` / `description` required).
+2. Update the parent `meta.json` if you add or rename a page.
+3. Terminology: public name is **TurboPanel Control Plane** ([turbopanel/turbopanel](https://github.com/turbopanel/turbopanel)); keep `instance` for internal/runtime references only.
+4. **Edit on GitHub** links and the MDX `<File>` chip resolve via [`src/lib/docs-github.ts`](./src/lib/docs-github.ts) (`turbopanel/website`, branch `trunk`).
+
+Preview locally:
+
+```sh
+pnpm install
+pnpm dev   # http://localhost:19820
+```
+
+Production build checks:
+
+```sh
+pnpm build
+pnpm check:docs-ssr
+pnpm check:hosts
+```
+
+## Marketing accuracy
+
+Claims on `src/app/**` must match shipped product behavior. Check the [roadmap](https://turbopanel.io/roadmap) and sibling repo READMEs before asserting features. Pricing copy follows [AGENTS.md](./AGENTS.md) — coordinate with `/pricing` when changing commercial messaging.
+
+Larger information-architecture changes: open a Discussion or issue first with the proposed nav / page split.
+
+## Deployment (contributors)
+
+Production deploy uses OpenNext + Wrangler — detail in [docs/development/website-deploy.mdx](https://turbopanel.io/docs/development/website-deploy) (contributor doc). Co-located dev runs `turbopanel-website.service` on port **19820**.
+
+## Full stack development
+
+For API-integrated work, use the [TurboPanel Development Environment](https://github.com/turbopanel/dev):
 
 ```sh
 curl -fsSL dev.turbopanel.sh | sh
 ```
 
-That installs/updates `~/dev`, launches the developer console, and (after **Converge**) brings up the full environment — including this site as `turbopanel-website.service` (dev server on port **19820**).
+That converges `~/website` alongside the control plane, daemon, and UI.
 
-Typical layout after converge:
+## Contributing
 
-| Path | Repo |
-| --- | --- |
-| `~/dev` | [turbopanel/dev](https://github.com/turbopanel/dev) — console + Ansible overlay |
-| `~/daemon` | daemon |
-| `~/instance` | control plane |
-| `~/ui` | product console |
-| `~/website` | this repo |
+[Routing guide](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md) · [Documentation issue template](https://github.com/turbopanel/website/issues/new?template=documentation.yml)
 
-Edit sources in place under `$HOME`. Re-converge from the console when the stack needs refresh. Details: [dev README](https://github.com/turbopanel/dev#readme) and [Local development](https://turbopanel.io/docs/getting-started/development).
+Agent conventions, design system workflow, and file layout: [AGENTS.md](./AGENTS.md).
 
-## What runs here
+## License
 
-- **Marketing** — App Router pages under `src/app/`
-- **Docs** — Fumadocs MDX under `docs/`
-- **Production** — OpenNext → Cloudflare Workers (`pnpm deploy` / `pnpm upload`)
+TurboPanel Website is licensed under the [GNU Affero General Public License v3.0 only (AGPL-3.0-only)](./LICENSE).
 
-Agent conventions and file layout: [AGENTS.md](./AGENTS.md).
+Copyright (C) 2025 TurboPanel contributors

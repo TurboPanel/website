@@ -1,4 +1,15 @@
 {
   "title": "Deployment",
-  "pages": ["control-plane", "daemon-setup", "daemon-update", "metrics", "security", "troubleshooting"]
+  "pages": [
+    "self-hosted",
+    "control-plane",
+    "daemon-setup",
+    "daemon-update",
+    "compatibility",
+    "upgrade",
+    "uninstall",
+    "metrics",
+    "security",
+    "troubleshooting"
+  ]
 }

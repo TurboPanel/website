@@ -4,7 +4,7 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { SignInButton } from '@/components/marketing/SignInButton'
 import { SocialNavLinks } from '@/components/marketing/SocialNavLinks'
 
-export type ActivePage = 'overview' | 'setups' | 'roadmap' | 'pricing' | 'docs'
+export type ActivePage = 'overview' | 'setups' | 'roadmap' | 'pricing' | 'docs' | 'open-source' | 'security' | 'changelog'
 
 type SiteHeaderProps = Readonly<{
   active?: ActivePage

@@ -1,4 +1,4 @@
 {
   "title": "Development",
-  "pages": ["prerequisites", "[Local development](/docs/getting-started/development)"]
+  "pages": ["prerequisites", "website-deploy", "[Local development](/docs/getting-started/development)"]
 }

@@ -40,7 +40,8 @@ export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
         <div className="w-full border-b border-[var(--tp-border)] bg-[var(--tp-surface-muted)]">
           <div className="flex items-center justify-between gap-4 px-4 py-2.5">
             <p className="flex-1 text-center text-sm font-medium text-[var(--tp-text)]">
-              TurboPanel is evolving fast —{' '}
+              <span className="font-semibold text-[var(--tp-accent)]">Public beta</span>
+              {' — TurboPanel is evolving fast. '}
               <Link
                 href="/roadmap"
                 className="group/roadmap font-semibold text-[var(--tp-text)] transition-colors hover:text-[var(--tp-accent)]"

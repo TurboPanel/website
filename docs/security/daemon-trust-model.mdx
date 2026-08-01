@@ -1,0 +1,83 @@
+---
+title: Daemon trust model
+description: Enrollment, connectivity, commands, secrets, updates, and data sent to the control plane
+---
+
+# Daemon trust model
+
+The TurboPanel daemon (`turbopaneld`) is a **high-privilege** agent on every managed server. This page describes what it can do, what it sends upstream, and how to revoke access.
+
+## Enrollment
+
+1. Operator creates a **one-shot license** in the console.
+2. Installer runs `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`.
+3. Daemon proves possession of a generated Ed25519 key via challenge/response (`turbopanel-daemon-enroll-v1`).
+4. Control plane attaches daemon identity to a `server` row; license is consumed.
+
+Re-enrollment requires the persisted `serverId` or a fresh license.
+
+## Connectivity
+
+| Path | Detail |
+| --- | --- |
+| Transport | TLS + WebSocket `/ws/daemon/v1` |
+| Session | 15-minute daemon JWT (EdDSA), refreshed via auth challenge |
+| Trust | Platform CA (self-hosted) or system roots (public TLS) — **no skip-verify mode** |
+| Presence | Heartbeats project `timeSync`, addresses, and online state to Postgres |
+
+Co-located dev may dial a Unix socket when configured; remote nodes always use WSS to the public URL.
+
+## Commands the daemon can run
+
+Approved command types include deploy/stop, ping, hostname/reboot, timezone/NTP, WireGuard apply, managed engine lifecycle, and orchestration playbooks invoked through Ansible.
+
+Commands are **queued in Postgres**, dispatched over the cell, and correlated by `commandId`. The daemon executes only handlers registered in its command pipeline.
+
+## Files and privileges
+
+| Area | Path / privilege |
+| --- | --- |
+| State | `/var/lib/turbopanel` (keys, license, wireguard material mode `0600`) |
+| Config | `/etc/turbopanel/daemon.env` |
+| Logs | `/var/log/turbopanel/daemon.log` |
+| Production user | `tp:tp` with passwordless sudo for Ansible |
+| Orchestration | `/opt/turbopanel/share/orchestration` playbooks and roles |
+
+WireGuard PSK files are deleted after apply; they never appear in Ansible extra-vars.
+
+## Secrets
+
+- License token on disk until enrollment completes
+- WireGuard private keys under `/var/lib/turbopanel/wireguard/`
+- No workload application secrets are stored in daemon state by default — compose injection comes from control plane at deploy time
+
+## Updates
+
+Channel manifest from CDN → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS** from the published CDN origin; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. There is no separate cryptographic signature on manifests or artifacts today — treat TLS to the CDN plus checksum verification as the current trust boundary. Artifact signing may be added in a future release.
+
+## Data sent to the control plane
+
+| Data | Purpose |
+| --- | --- |
+| Hostname, OS, addresses, time sync | Fleet UI and automation |
+| Host metrics samples | Charts and alerting (see [server metrics](/docs/architecture/server-metrics)) |
+| Command results / logs (on demand) | Operator actions |
+| Public daemon key fingerprint | Authentication |
+
+Daemons do **not** upload arbitrary filesystem contents unless a specific command requests it (e.g. managed logs tail).
+
+## Revocation
+
+1. Delete or revoke the server in the org console.
+2. Remove `turbopaneld` and state on the host ([uninstall](/docs/deployment/uninstall)).
+3. Rotate org secrets if you suspect key compromise.
+
+## Managed vs self-hosted
+
+The daemon trust model is **identical** — only the control plane URL and TLS trust roots differ (Workers edge vs self-signed platform CA).
+
+## Related
+
+- [Daemon setup](/docs/deployment/daemon-setup)
+- [Deployment security](/docs/deployment/security)
+- [Vulnerability reporting](/docs/security/reporting)

@@ -20,7 +20,7 @@ type MarketingHeroProps = Readonly<{
    * does not show through the first viewport.
    */
   plainBackground?: boolean
-  /** Commercial price line shown above the CTA (e.g. “Starts at only $X.xx/month”). */
+  /** Optional commercial line above the CTA (omit during private early access). */
   priceLine?: string
   /** Up to three short benefit lines — keep plain-language, not jargon. */
   benefits?: ReadonlyArray<string>

@@ -1,0 +1,48 @@
+---
+title: Self-hosted overview
+description: Canonical entry for running TurboPanel on infrastructure you operate
+---
+
+# Self-hosted overview
+
+Self-hosted TurboPanel delivers the **same product** as TurboPanel High Availability. You operate the control plane — uptime, upgrades, backups, and public access are your responsibility. Workload servers and daemons remain yours.
+
+## When to choose self-hosted
+
+| You want… | Self-hosted fits when… |
+| --- | --- |
+| Full operational custody | Your team runs the control plane stack (Deno, Postgres, Caddy, UI export) |
+| Data residency you control | Panel data stays on infrastructure you provision |
+| Predictable infra cost | Control plane is **free, unlimited servers** — you pay for VMs and ops time |
+
+TurboPanel High Availability is the default when you prefer TurboPanel to operate the panel.
+
+## What you run
+
+| Component | Role |
+| --- | --- |
+| **Control plane** | Hono API on Deno (Unix socket) + Postgres + Caddy TLS |
+| **UI** | Static export at `/opt/turbopanel/share/ui` (or Expo dev proxy during development) |
+| **Daemon** | `turbopaneld` on every managed server, including the control-plane host (co-located) |
+
+## Install path
+
+1. **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel (contributor dev console today; production FHS install converges via daemon Ansible roles).
+2. **[Daemon setup](/docs/deployment/daemon-setup)** — enroll each server with the `turbopanel.sh` installer.
+3. **[Compatibility](/docs/deployment/compatibility)** — pair control plane and daemon channel versions before upgrades.
+
+<Callout type="info" title="Not the contributor dev console">
+  `curl -fsSL dev.turbopanel.sh | sh` is for **contributors** only. It is documented in
+  [Local development](/docs/getting-started/development), not as the production self-hosted path.
+</Callout>
+
+## Pricing
+
+Self-hosted control plane: **free, unlimited servers** (you provide infrastructure). See [Pricing](/pricing) for TurboPanel High Availability (private early access).
+
+## Next steps
+
+- [Upgrade & rollback](/docs/deployment/upgrade)
+- [Uninstall & data export](/docs/deployment/uninstall)
+- [Daemon trust model](/docs/security/daemon-trust-model)
+- [Open source](/open-source)

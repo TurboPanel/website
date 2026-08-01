@@ -75,7 +75,7 @@ const WHY = [
   },
   {
     title: 'Pricing that stays simple',
-    body: 'Your first server is included. Add more for one clear price each, with no confusing bundles or surprise platform bill.',
+    body: 'TurboPanel High Availability is in private early access. Self-hosted is free — you operate the control plane on your infrastructure.',
   },
   {
     title: 'Fast wherever your team works',
@@ -96,7 +96,6 @@ export default function Home() {
         description="Connect a server and start shipping. TurboPanel High Availability gives you a quick, always-on control plane worldwide for websites, containers, databases, and day-to-day ops."
         plainBackground
         benefits={HERO_BENEFITS}
-        priceLine="Starts at only $X.xx/month"
       >
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
@@ -207,13 +206,13 @@ export default function Home() {
           <div className="tp-brand-stripe h-1" aria-hidden />
           <div className="flex flex-col gap-8 p-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
             <div className="max-w-2xl">
-              <p className="tp-eyebrow">TurboPanel High Availability pricing</p>
+              <p className="tp-eyebrow">TurboPanel High Availability</p>
               <h2 className="tp-section-title mt-4">
-                A fast, always-on control plane from $X.xx/month.
+                Private early access — request an account today.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
-                Your first server is included. Add more for one predictable price each, and save more
-                with annual billing.
+                Prefer to operate the control plane yourself? Self-hosted is free with unlimited servers.
+                Same product, your infrastructure.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">

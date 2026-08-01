@@ -1,0 +1,67 @@
+---
+title: Uninstall and data export
+description: Remove TurboPanel cleanly and understand what data remains on each host
+---
+
+# Uninstall and data export
+
+## Before you remove anything
+
+Export what you need:
+
+| Data | Location | Export |
+| --- | --- | --- |
+| Postgres (orgs, projects, secrets metadata) | Docker volume or socket DB | `pg_dump` |
+| TLS certificates (platform CA + leaf) | `/etc/turbopanel/instance/certs/` or role-managed paths | Copy PEM files |
+| Daemon license | `/var/lib/turbopanel/license.*` | Save before wipe if re-enrolling |
+| Application logs | `/var/log/turbopanel/` | Archive for compliance |
+
+Secrets at rest use the control plane keyring — without a database backup, encrypted blobs cannot be recovered.
+
+## Managed server (daemon only)
+
+On a remote enrolled server:
+
+```bash
+sudo systemctl stop turbopaneld
+sudo systemctl disable turbopaneld
+```
+
+Remove FHS trees when you are sure you will not re-enroll:
+
+- `/opt/turbopanel` (daemon binary, orchestration, vendored runtimes)
+- `/etc/turbopanel`
+- `/var/lib/turbopanel`
+- `/var/log/turbopanel`
+- `/run/turbopanel`
+
+Revoke the server in the TurboPanel console so licenses and presence do not show a stale host.
+
+Workload containers and volumes deployed through TurboPanel are **not** automatically deleted — stop environments from the console first.
+
+## Self-hosted control plane
+
+1. Stop and disable units: `turbopanel-instance`, `turbopanel-caddy`, `turbopanel-ui`, `turbopaneld`, and Docker-backed services (Postgres, Redis, RabbitMQ, …).
+2. Export Postgres (above).
+3. Remove Docker containers/volumes if this host will no longer run the panel.
+4. Remove FHS paths listed above when decommissioning.
+
+## Contributor dev environment
+
+The dev console **Reset** flow (`src/lib/reset-dev-environment.ts` in [turbopanel/dev](https://github.com/turbopanel/dev)):
+
+1. Stops platform systemd units and Docker containers
+2. Removes dev Docker volumes
+3. Hard-resets platform git checkouts to `origin/trunk`
+4. Re-runs dev converge
+
+This does **not** delete `~/dev` itself or remove `/opt/turbopanel/vendor` Node/Deno installs. For a full wipe, also remove `/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, and `/run/turbopanel` manually.
+
+## TurboPanel High Availability
+
+Cancel your account through commercial support. Export org data via API or requested export before closure.
+
+## Related
+
+- [Self-hosted overview](/docs/deployment/self-hosted)
+- [Security reporting](/docs/security/reporting)

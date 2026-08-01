@@ -8,6 +8,7 @@ import {
   MarketingSection,
   MarketingSectionHeader,
 } from '@/components/marketing/marketing-primitives'
+import { OPEN_SOURCE_LAUNCH_DATE } from '@/lib/site-dates'
 
 type PhaseStatus = 'Complete' | 'In Progress' | 'Planned' | 'Future'
 
@@ -17,7 +18,11 @@ type Phase = Readonly<{
   status: PhaseStatus
   summary: string
   focus: ReadonlyArray<string>
+  releaseUrl?: string
+  discussionUrl?: string
 }>
+
+const LAST_UPDATED = OPEN_SOURCE_LAUNCH_DATE
 
 const PHASES: ReadonlyArray<Phase> = [
   {
@@ -25,6 +30,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Foundation',
     status: 'Complete',
     summary: 'The secure foundation for accounts, teams, and one reliable control plane.',
+    releaseUrl: 'https://github.com/turbopanel/turbopanel/releases',
     focus: [
       'Secure sign-in, verification, recovery, and team invitations',
       'The same product experience across High Availability and self-hosted',
@@ -37,6 +43,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Fleet ops',
     status: 'Complete',
     summary: 'Manage many servers from one place without guessing what is online.',
+    releaseUrl: 'https://github.com/turbopanel/turbopanel/releases',
     focus: [
       'Multi-server dashboard with live status, OS, and connection details',
       'Host metrics charts for CPU, memory, disk, network, and more',
@@ -49,6 +56,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Apps & deploy',
     status: 'In Progress',
     summary: 'Deploy container apps today, with an even easier website experience on the way.',
+    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Projects, environments, visual editing, and one-click deploy (shipped)',
       'Secrets and environment variables, plus starter catalog templates (shipped)',
@@ -61,6 +69,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Reliability',
     status: 'Planned',
     summary: 'Make recovery, alerting, and account security feel production-grade.',
+    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Backup and restore workflows',
       'Health checks and operator alerts',
@@ -73,6 +82,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Teams',
     status: 'Planned',
     summary: 'Share work safely and hook TurboPanel into the rest of your stack.',
+    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Deeper team roles and client-facing account support',
       'API tokens for external automation',
@@ -84,7 +94,7 @@ const PHASES: ReadonlyArray<Phase> = [
     title: 'Platform Expansion',
     shortLabel: 'Platform',
     status: 'Future',
-    summary: 'Longer-term surfaces once core hosting and ops workflows are mature.',
+    summary: 'Longer-term surfaces once core hosting and ops workflows are mature. Not committed to a schedule.',
     focus: [
       'Native mobile operations experience',
       'Plugin and extension system',
@@ -228,6 +238,27 @@ function PhaseTimeline({ phases }: Readonly<{ phases: ReadonlyArray<Phase> }>) {
                 <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
                   {phase.summary}
                 </p>
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  {phase.releaseUrl ? (
+                    <a
+                      href={phase.releaseUrl}
+                      className="font-medium text-[var(--tp-accent)] hover:underline"
+                    >
+                      Release notes
+                    </a>
+                  ) : null}
+                  {phase.discussionUrl ? (
+                    <a
+                      href={phase.discussionUrl}
+                      className="font-medium text-[var(--tp-accent)] hover:underline"
+                    >
+                      Discuss this phase
+                    </a>
+                  ) : null}
+                  {phase.status === 'Future' ? (
+                    <span className="text-[var(--tp-text-muted)]">Not committed to a schedule</span>
+                  ) : null}
+                </div>
                 {isCurrent ? null : (
                   <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                     {phase.focus.map((item) => (
@@ -309,9 +340,9 @@ export default function RoadmapPage() {
   return (
     <MarketingPageShell active="roadmap">
       <MarketingHero
-        eyebrow="Product roadmap"
+        eyebrow="Product roadmap · Public beta"
         title="Already useful. Getting better fast."
-        description="Server management and core deploys are live today. We are now making websites, apps, databases, and everyday operations even faster and easier."
+        description={`Server management and core deploys are live today. We are now making websites, apps, databases, and everyday operations even faster and easier. Last updated ${LAST_UPDATED}.`}
         aside={
           <StatusAside
             shipped={shipped}
@@ -326,6 +357,7 @@ export default function RoadmapPage() {
             Start on TurboPanel High Availability
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/changelog">Changelog</MarketingSecondaryCta>
         </div>
       </MarketingHero>
 
