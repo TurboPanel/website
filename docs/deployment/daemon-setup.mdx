@@ -82,13 +82,16 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-When the instance is reachable on the same host as the installer script, you may
-fetch the installer from the instance URL instead:
+Production and self-hosted instances always fetch the installer from
+`turbopanel.sh`. The instance host `/run.sh` path is **development-only** — it
+is served by the dev overlay Caddyfile (plaintext `:8880`), not by the
+production instance Caddyfile.
 
 ```bash
-curl -fsSL https://<instance-host>:8443 | \
+# Dev overlay only (plaintext HTTP control plane)
+curl -fsSL http://<dev-host>:8880/run.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=https://<instance-host>:8443 \
+  TURBOPANEL_HOST=http://<dev-host>:8880 \
   sh
 ```
 
