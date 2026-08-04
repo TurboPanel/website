@@ -12,7 +12,7 @@ const MARK_ASPECT = 680 / 520
  * Left clear-space in the downloadable mark (group translate + green-bar tip)
  * before ink — crop it in chrome so the mark aligns with content, not the pad.
  */
-const INK_LEFT = 50 / 680
+const INK_LEFT = 42 / 680
 
 export function Logo({ compact = false, markOnly = false }: LogoProps) {
   const height = compact ? 28 : 36
