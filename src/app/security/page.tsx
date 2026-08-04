@@ -27,7 +27,7 @@ export default function SecurityPage() {
       <MarketingHero
         eyebrow="Security"
         title="Report vulnerabilities responsibly"
-        description="TurboPanel is in public beta. We take security reports seriously and coordinate fixes before public disclosure."
+        description="TurboPanel is in private alpha. We take security reports seriously and coordinate fixes before public disclosure."
       />
 
       <MarketingSection>

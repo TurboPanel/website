@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 const ENTRIES = [
   {
     date: OPEN_SOURCE_LAUNCH_DATE,
-    channel: 'Public beta',
+    channel: 'Private alpha',
     title: 'Open-source launch packaging',
     body: 'Unified public naming, AGPL-3.0-only across repos, self-hosted documentation, and community routing via turbopanel/.github.',
     links: [

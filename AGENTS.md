@@ -2,7 +2,7 @@
 
 **Package:** `@turbopanel/website` — Next.js 16 marketing + Fumadocs docs.
 
-**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** AGPL-3.0-only. **Maturity:** **Public beta**. README is product-facing; AGENTS.md is maintainer-facing.
+**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** AGPL-3.0-only. **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
 
 **Default branch:** `trunk`
 
@@ -10,7 +10,7 @@
 
 ## Pricing (copy source of truth)
 
-**Maturity label:** **Public beta** — use this exact term on README status callouts, `PreDevBanner`, roadmap eyebrow, and release notes.
+**Maturity label:** **Private alpha** — use this exact term on README status callouts, `PreDevBanner`, roadmap eyebrow, and release notes.
 
 Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing**.
 

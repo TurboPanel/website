@@ -340,7 +340,7 @@ export default function RoadmapPage() {
   return (
     <MarketingPageShell active="roadmap">
       <MarketingHero
-        eyebrow="Product roadmap · Public beta"
+        eyebrow="Product roadmap · Private alpha"
         title="Already useful. Getting better fast."
         description={`Server management and core deploys are live today. We are now making websites, apps, databases, and everyday operations even faster and easier. Last updated ${LAST_UPDATED}.`}
         aside={
