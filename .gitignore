@@ -35,6 +35,9 @@ server-key.json
 license.token
 certs/
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # co-located dev host stamp (normalize-dev-checkout.sh)
 .turbopanel-checkout-stamp
 
