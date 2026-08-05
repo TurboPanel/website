@@ -18,7 +18,7 @@
 
 - Canonical static files live under **`public/brand/`** (`turbopanel-logo*`)
 - Catalog for the page: `src/lib/brand-assets.ts`
-- Site chrome: `src/components/Logo.tsx` → T mark + italic Plus Jakarta Sans `urboPanel` under the blue crossbar (same lockup as the console; mark is the T)
+- Site chrome: `src/components/Logo.tsx` → T mark + Plus Jakarta Sans ExtraBold Italic `urboPanel` under the blue crossbar; placement/size from `src/lib/wordmark-lockup.ts`. Landscape SVG is ink-tight `628×370` (no embedded clear-space pad).
 - Favicon: `public/favicon.svg` (square mark)
 
 ## Style

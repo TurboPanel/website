@@ -352,6 +352,14 @@ body {
   font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
 }
 
+/** Logotype “urboPanel” — Outfit Black, skewed to the T (see Logo.tsx). */
+.tp-wordmark {
+  font-family: var(--font-wordmark), var(--font-display), var(--font-geist-sans), sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  letter-spacing: -0.02em;
+}
+
 .tp-section-title {
   font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
   font-size: clamp(1.75rem, 4vw, 2.35rem);

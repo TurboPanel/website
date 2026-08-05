@@ -4,6 +4,7 @@ import './globals.css'
 import { ClientRootProvider } from '@/components/ClientRootProvider'
 import { Providers } from '@/components/Providers'
 import { StickySiteChrome } from '@/components/StickySiteChrome'
+import { wordmarkFont } from '@/lib/wordmark-font'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -43,7 +44,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${wordmarkFont.variable} antialiased`}
       >
         <Providers>
           <StickySiteChrome />

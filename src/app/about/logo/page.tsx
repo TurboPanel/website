@@ -8,6 +8,8 @@ import {
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-primitives";
 import { BRAND_COLORS, BRAND_LOGO_VARIANTS } from "@/lib/brand-assets";
+import { TURBOPANEL_WORDMARK_STYLE } from "@/lib/wordmark-lockup";
+import { wordmarkFont } from "@/lib/wordmark-font";
 
 export const metadata: Metadata = {
   title: "TurboPanel logo",
@@ -46,7 +48,7 @@ function LogoVariantBlock({
   const previewBox =
     variant.previewAspect === "square"
       ? "aspect-square max-w-[200px]"
-      : "aspect-[680/520] max-w-[280px]";
+      : "aspect-[628/370] max-w-[280px]";
 
   return (
     <article
@@ -168,9 +170,10 @@ export default function AboutLogoPage() {
               Clear space
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              Keep empty space around the mark at least as tall as the green
-              acceleration bars. Do not let other logos, type, or UI chrome
-              collide with that margin.
+              Downloadable SVGs are ink-tight (no embedded pad). Keep empty space
+              around the mark at least as tall as the green acceleration bars —
+              apply that margin in layout, not by editing the file. Do not let
+              other logos, type, or UI chrome collide with that margin.
             </p>
           </div>
           <div>
@@ -196,18 +199,25 @@ export default function AboutLogoPage() {
               TurboPanel
             </strong>
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
-            the T mark supplies the leading T and the italic{" "}
-            <span className="tp-display italic font-bold tracking-tight text-[var(--tp-text)]">
+            the T mark supplies the leading T and the{" "}
+            <span
+              className={`${wordmarkFont.className} tracking-tight text-[var(--tp-text)]`}
+              style={{
+                display: "inline-block",
+                transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
+                transformOrigin: "left bottom",
+              }}
+            >
               urboPanel
             </span>{" "}
             wordmark tucks under the blue crossbar in{" "}
             <strong className="font-semibold text-[var(--tp-text)]">
-              Plus Jakarta Sans
+              Plus Jakarta Sans ExtraBold Italic
             </strong>
             {" "}
-            (bold italic, tight tracking — not extrabold; the mark already carries
-            the heavy stem). Never render “TurboPanel” beside the mark. The mark
-            may appear alone when space is tight.
+            (weight 800, native italic plus light CSS skew to the T’s ~22° lean;
+            baseline aligned to the T stem tip). Never render “TurboPanel” beside
+            the mark. The mark may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>

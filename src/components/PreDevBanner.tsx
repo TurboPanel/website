@@ -40,15 +40,17 @@ export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
         <div className="w-full border-b border-[var(--tp-border)] bg-[var(--tp-surface-muted)]">
           <div className="flex items-center justify-between gap-4 px-4 py-2.5">
             <p className="flex-1 text-center text-sm font-medium text-[var(--tp-text)]">
-              <span className="font-semibold text-[var(--tp-accent)]">Private alpha</span>
-              {' — TurboPanel is evolving fast. '}
+              <span className="font-semibold text-[var(--tp-accent)]">
+                Currently in Private Alpha
+              </span>
+              {' — '}
               <Link
                 href="/roadmap"
                 className="group/roadmap font-semibold text-[var(--tp-text)] transition-colors hover:text-[var(--tp-accent)]"
                 tabIndex={hidden ? -1 : undefined}
               >
                 <span className="underline decoration-[var(--tp-accent)]/50 underline-offset-[3px] transition-[text-decoration-color] group-hover/roadmap:decoration-[var(--tp-accent)]">
-                  see what&apos;s shipped and what&apos;s up next
+                  See what&apos;s shipped and what&apos;s next
                 </span>
                 <span
                   className="ml-1.5 inline-block translate-y-px text-[0.95em] tracking-tight transition-transform duration-200 ease-out group-hover/roadmap:translate-x-0.5 motion-reduce:transition-none"

@@ -118,7 +118,7 @@ Canonical tokens in `src/app/globals.css` (`--tp-glass-*`). Utility classes: `.t
 ### Logo / brand mark
 
 - Official files under **`public/brand/`** (`turbopanel-logo.svg`, square + white/mono variants, PNGs)
-- Site header uses `src/components/Logo.tsx` — T mark + italic Plus Jakarta Sans “urboPanel” tucked under the blue crossbar (same lockup as the console; crops mark clear-space so ink aligns with page content). Bold italic + tight tracking so it reads as a logotype; the chunkier T still leads. The mark **is** the T — never “TurboPanel” beside it.
+- Site header uses `src/components/Logo.tsx` — T mark + Plus Jakarta Sans ExtraBold Italic “urboPanel” tucked under the blue crossbar (same lockup as the console). Geometry comes from `src/lib/wordmark-lockup.ts` (`computeTurboPanelWordmarkLockup` / `websiteWordmarkLockup`). Mark SVGs are **ink-tight** (`viewBox="0 0 628 370"`); ExtraBold Italic (800) + CSS `skewX(-15deg)`; typographic baseline matches the T stem tip. The mark **is** the T — never “TurboPanel” beside it.
 - Public kit + usage rules: **`/about/logo`** (see `pages/about-logo.md`)
 - Favicon is the square mark (`public/favicon.svg`)
 
