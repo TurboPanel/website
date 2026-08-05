@@ -98,6 +98,14 @@ Schema changes are versioned in `instance/migrations/`. **Versioned `pnpm migrat
 2. **Push (code → DB, Deno dev iteration only):** after a migrated baseline exists, `./scripts/sync.sh` from the dev checkout can apply schema edits via drizzle-kit push for quick local iteration — not a fresh-DB bootstrap.
 3. **Pull (DB → code):** change tables in Drizzle Studio, then `./scripts/introspect.sh` from the dev checkout.
 
+### Drizzle Studio bind host
+
+Drizzle Studio must bind to **loopback only** (`localhost` / `127.0.0.1` / `::1`). `TURBOPANEL_DRIZZLE_STUDIO_HOST` rejecting any other value prevents unauthenticated database administration from being exposed on the LAN. The default is `localhost` (bound as `127.0.0.1:4983`); open `https://local.drizzle.studio?host=localhost&port=4983`.
+
+### Local-Console developer API auth
+
+The Ink console authenticates to `/api/developer/v1/*` over the instance Unix socket with an HMAC **Local-Console** credential (shared root secret at `/etc/turbopanel/instance/.instance_secret`). The signed payload covers method, full request target (path **and** query), and a SHA-256 content digest header so captured tokens cannot be replayed against altered requests. Cookie-authenticated browser writes to the developer surface are also same-origin gated (alongside client/admin/install).
+
 See [Database troubleshooting](/docs/getting-started/database-troubleshooting) for resets and connection issues.
 
 ## Port allocation
