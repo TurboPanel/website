@@ -13,7 +13,7 @@ TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/
 
 1. Clone the five repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`).
 2. From `~/dev`, run `./console` → prereqs, pinned Node, `pnpm install`, TUI launch (exports `TURBOPANEL_MODE=development`, `TURBOPANEL_DEV_ROOT`, `TURBOPANEL_<DIR>_REPO`).
-3. **Start dev stack** → daemon bootstraps as the dev user, writes `/etc/turbopanel/daemon.env`, runs the `dev/orchestration` overlay: runtimes into `/opt/turbopanel/vendor`, systemd units + Docker (postgres/redis/rabbitmq/mailpit) as the dev user, mutable data under FHS trees dev-user-owned. No `tp` / `tpctrl` / `tpcache` accounts created.
+3. **Bootstrap / converge** → on launch the console auto-bootstraps when prerequisites are missing (daemon install → systemd unit → `instance-dev-install --if-needed`), otherwise auto-converges (`if-needed`, skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE` (any non-empty value) to skip auto-converge on launch; Developer → **Converge / re-converge** always force-runs. Daemon bootstraps as the dev user, writes `/etc/turbopanel/daemon.env`, runs the `dev/orchestration` overlay: runtimes into `/opt/turbopanel/vendor`, systemd units + Docker (postgres/redis/rabbitmq/mailpit) as the dev user, mutable data under FHS trees dev-user-owned. No `tp` / `tpctrl` / `tpcache` accounts created.
 4. Open `https://localhost:8443` (or dev `http://localhost:8880`); edit source in place under `$HOME`.
 
 ## Quick start
@@ -36,14 +36,14 @@ sh scripts/develop.sh   # update dev repo only
 ./console
 ```
 
-**2. Start the dev stack**
+**2. Launch the console and converge**
 
-From `./console`, choose **Start dev stack** in the Actions area. The console:
+Run `./console`. On a fresh host the TUI auto-drives daemon bootstrap (`bootstrap-orchestration.ts` + `install-daemon-systemd.sh`) then auto-chains into converge (`if-needed`). On an already-installed host it auto-converges on launch the same way (skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE=1` to skip that auto-converge; open **Developer** → **Converge / re-converge** anytime to force a full re-run. The daemon:
 
 - Ensures the **daemon** repo exists at `~/daemon` (or `TURBOPANEL_DAEMON_REPO`)
 - Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into `/etc/turbopanel/daemon.env`
-- Runs `scripts/bootstrap-orchestration.ts` (uv, Python, Ansible under `/opt/turbopanel/vendor/`) and `install-daemon-systemd.sh`
-- Lets the daemon install instance, UI, Caddy, and Postgres via Ansible (dev overlay in `dev/orchestration/`)
+- Runs orchestration (uv, Python, Ansible under `/opt/turbopanel/vendor/`)
+- Lets Ansible install instance, UI, Caddy, and Postgres (dev overlay in `dev/orchestration/`)
 
 **3. Open**
 
@@ -70,20 +70,18 @@ curl http://localhost:8880/api/client/v1/status
 
 ## Dev console areas
 
-Use **←** / **→** to switch areas in `./console`:
+Use **←** / **→** to switch areas in `./console` (`ActiveArea = "developer" | "services" | "bootstrap"` — bootstrap is the transient provisioning overlay, not a persistent tab):
 
 | Area | Contents |
 | ---- | -------- |
-| **Status** | Runtime, source checkouts, dev stack units |
-| **Instance** | Runtime mode (Deno/Workers), instance unit status, switch action |
-| **Developer** | Fleet, services, shell, database, … (when `instance.sock` is present) |
-| **Actions** | Install daemon, start stack, follow logs, build mode, refresh, quit |
+| **Services** | Service list/detail, restart, runtime switch (Deno/Workers) |
+| **Developer** | Fleet, database, shell, **Converge / re-converge**, cell trace |
 
 In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc** returns to the section list.
 
 ## Instance runtime modes
 
-`TURBOPANEL_INSTANCE_RUNTIME` in `/etc/turbopanel/daemon.env` selects how the instance runs locally. Switch via the **Instance** area in the console.
+`TURBOPANEL_INSTANCE_RUNTIME` in `/etc/turbopanel/daemon.env` selects how the instance runs locally. Switch via the **Services** area in the console.
 
 | Mode | Behaviour |
 | ---- | --------- |
@@ -149,10 +147,12 @@ sequenceDiagram
     participant Daemon as turbopaneld
     participant Services as instance, Caddy, UI, Postgres
 
-    Dev->>Console: ./console → Start dev stack
-    Console->>Daemon: bootstrap + systemd install
-    Daemon->>Services: Ansible instance-dev-install
-    Services-->>Console: Healthy (Status area)
+    Dev->>Console: ./console
+    Console->>Console: auto-detect bootstrap vs converge (or idle if NO_AUTO_CONVERGE)
+    Console->>Daemon: bootstrap + systemd install (fresh host)
+    Daemon->>Services: Ansible instance-dev-install (if-needed)
+    Services-->>Console: Healthy (Services area)
+    Dev->>Console: Developer → Converge / re-converge (force)
     Dev->>Console: Developer sections (fleet, DB, …)
     Dev->>Services: Edit source in $HOME checkouts
 ```
