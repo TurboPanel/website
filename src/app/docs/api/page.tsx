@@ -138,7 +138,7 @@ export default function ApiDocsPage() {
     return 'https://turbopanel.app'
   }, [servers])
 
-  /** https://localhost:8443 → __Secure-turbopanel.session_token */
+  /** https://localhost:8443 → __Host-turbopanel.session_token */
   const sessionCookieName = useMemo(
     () => resolveSessionCookieNameFromBaseUrl(apiBaseUrl),
     [apiBaseUrl]

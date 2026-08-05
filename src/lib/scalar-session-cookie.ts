@@ -1,6 +1,6 @@
 import type { AuthenticationConfiguration } from '@scalar/types/api-reference'
 
-export const HTTPS_SESSION_COOKIE_NAME = '__Secure-turbopanel.session_token'
+export const HTTPS_SESSION_COOKIE_NAME = '__Host-turbopanel.session_token'
 
 export const HTTP_SESSION_COOKIE_NAME = 'turbopanel.session_token'
 

@@ -18,7 +18,7 @@
 
 - Canonical static files live under **`public/brand/`** (`turbopanel-logo*`)
 - Catalog for the page: `src/lib/brand-assets.ts`
-- Site chrome: `src/components/Logo.tsx` → T mark + upright Plus Jakarta Sans `TurboPanel` (horizontal lockup)
+- Site chrome: `src/components/Logo.tsx` → T mark + italic Plus Jakarta Sans `urboPanel` under the blue crossbar (same lockup as the console; mark is the T)
 - Favicon: `public/favicon.svg` (square mark)
 
 ## Style
@@ -29,6 +29,6 @@
 
 ## Copy
 
-- Product name: **TurboPanel** (one word)
+- Product name: **TurboPanel** (one word) in prose; lockup wordmark letters are **urboPanel** (the T mark supplies the T)
 - Do not call assets “final” — filenames use `turbopanel-logo`
 - Avoid trademark legalese beyond a short “use in accordance with these guidelines” line

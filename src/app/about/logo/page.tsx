@@ -21,6 +21,7 @@ const DO_NOT = [
   "Do not add outlines, drop shadows, gradients, or glow effects to the mark.",
   "Do not place the color mark on busy photography without a clear solid or soft backing.",
   "Do not lock up the mark with other logos closer than the clear-space rule below.",
+  "Do not set the full word “TurboPanel” next to the T mark — the mark is the T; visible wordmark letters are “urboPanel”.",
   "Do not use outdated “TP” letter tiles as the product logo.",
 ] as const;
 
@@ -195,15 +196,18 @@ export default function AboutLogoPage() {
               TurboPanel
             </strong>
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
-            the T mark locks up horizontally with an upright{" "}
-            <span className="tp-display font-semibold tracking-tight text-[var(--tp-text)]">
-              TurboPanel
+            the T mark supplies the leading T and the italic{" "}
+            <span className="tp-display italic font-bold tracking-tight text-[var(--tp-text)]">
+              urboPanel
             </span>{" "}
-            wordmark in{" "}
+            wordmark tucks under the blue crossbar in{" "}
             <strong className="font-semibold text-[var(--tp-text)]">
               Plus Jakarta Sans
             </strong>
-            {"."} The mark may appear alone when space is tight.
+            {" "}
+            (bold italic, tight tracking — not extrabold; the mark already carries
+            the heavy stem). Never render “TurboPanel” beside the mark. The mark
+            may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>
