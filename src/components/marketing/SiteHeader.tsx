@@ -47,7 +47,7 @@ export function SiteHeader({ active, compact = false }: SiteHeaderProps) {
           }`}
         >
           <Link href="/" className="flex items-center" aria-label="TurboPanel Home">
-            <Logo compact={compact} />
+            <Logo compact={compact} markOnly={compact} />
           </Link>
           <div
             className={`flex items-center transition-[gap] duration-200 ease-out motion-reduce:transition-none ${

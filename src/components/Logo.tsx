@@ -8,16 +8,18 @@ import { wordmarkFont } from '@/lib/wordmark-font'
 
 type LogoProps = Readonly<{
   compact?: boolean
-  /** Hide the wordmark (icon-only). */
+  /** Fade out the wordmark and shrink to the T mark only. */
   markOnly?: boolean
 }>
 
 export function Logo({ compact = false, markOnly = false }: LogoProps) {
   const lockup = websiteWordmarkLockup(compact, markOnly)
+  // Keep full-lockup word geometry while fading so position stays stable.
+  const wordLockup = websiteWordmarkLockup(compact, false)
 
   return (
     <span
-      className="relative inline-block overflow-visible transition-[width,height] duration-200 ease-out motion-reduce:transition-none"
+      className="relative inline-block overflow-visible transition-[width,height] duration-100 ease-out motion-reduce:transition-none"
       style={{ width: lockup.lockupWidth, height: lockup.lockupHeight }}
     >
       <img
@@ -25,7 +27,7 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
         alt=""
         width={TURBOPANEL_MARK_INK.width}
         height={TURBOPANEL_MARK_INK.height}
-        className="pointer-events-none absolute bottom-0 left-0"
+        className="pointer-events-none absolute bottom-0 left-0 transition-[width,height] duration-100 ease-out motion-reduce:transition-none"
         style={{
           width: lockup.markWidth,
           height: lockup.markRenderHeight,
@@ -33,24 +35,26 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
         }}
         aria-hidden
       />
-      {markOnly ? null : (
-        <span
-          className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-text)] transition-[font-size,left,bottom] duration-200 ease-out motion-reduce:transition-none`}
-          style={{
-            left: lockup.wordLeft,
-            bottom: lockup.wordBottomOffset,
-            fontSize: lockup.wordSize,
-            lineHeight: 1,
-            letterSpacing: `${lockup.letterSpacingEm}em`,
-            display: 'block',
-            transform: `skewX(${lockup.skew})`,
-            transformOrigin: 'left bottom',
-          }}
-          aria-hidden
-        >
-          {lockup.text}
-        </span>
-      )}
+      <span
+        className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-text)] transition-[opacity,transform,font-size,left,bottom] duration-75 ease-out motion-reduce:transition-none`}
+        style={{
+          opacity: markOnly ? 0 : 1,
+          left: wordLockup.wordLeft,
+          bottom: wordLockup.wordBottomOffset,
+          fontSize: wordLockup.wordSize,
+          lineHeight: 1,
+          letterSpacing: `${wordLockup.letterSpacingEm}em`,
+          display: 'block',
+          // Snap under the T: fade + short left tuck (skew preserved).
+          transform: markOnly
+            ? `skewX(${wordLockup.skew}) translateX(-6px)`
+            : `skewX(${wordLockup.skew}) translateX(0)`,
+          transformOrigin: 'left bottom',
+        }}
+        aria-hidden
+      >
+        {wordLockup.text}
+      </span>
     </span>
   )
 }
