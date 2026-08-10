@@ -44,15 +44,15 @@ const COST_OF_OWN = [
 const FAQ = [
   {
     q: 'What am I paying for on TurboPanel High Availability?',
-    a: 'TurboPanel High Availability is in private early access. Request access to get a fast, always-on control plane, accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
+    a: 'TurboPanel High Availability is in private alpha and not yet publicly available. Join the waitlist and we will reach out as access opens, with a fast, always-on control plane, accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
   },
   {
     q: 'When does self-hosted still make sense?',
-    a: 'Choose self-hosted when your team wants to operate the control plane — same product, your infrastructure, your uptime and upgrade cadence. TurboPanel High Availability is the default when you prefer us to run the panel.',
+    a: 'Choose self-hosted when your team wants to operate the control plane — same product, your infrastructure, your uptime and upgrade cadence. Self-hosted is also in private alpha today; TurboPanel High Availability will be the default when you prefer us to run the panel.',
   },
   {
     q: 'Is self-hosted free?',
-    a: 'Yes. The self-hosted control plane is free and unlimited on servers you connect. You pay for the infrastructure you run it on.',
+    a: 'It will be. The self-hosted control plane is planned to be free and unlimited on servers you connect — you pay only for the infrastructure you run it on. Self-hosted is currently in private alpha and not yet publicly available; the docs describe where we are headed.',
   },
 ] as const
 
@@ -75,13 +75,13 @@ export default function PricingPage() {
   return (
     <MarketingPageShell active="pricing">
       <MarketingHero
-        eyebrow="TurboPanel High Availability"
+        eyebrow="Pricing · Private alpha"
         title="Fast everywhere. Online when it matters."
-        description="TurboPanel High Availability is in private early access. Request access for a worldwide control plane — we run the panel, you connect servers and ship."
+        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. Join the waitlist for a worldwide control plane — we run the panel, you connect servers and ship."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Request early access
+            Join the waitlist
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/getting-started/introduction">How it works</MarketingSecondaryCta>
         </div>
@@ -95,23 +95,24 @@ export default function PricingPage() {
                 turbopanel high availability
               </p>
               <span className="rounded-full border border-[var(--tp-green)]/40 bg-[var(--tp-green)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text)]">
-                Private early access
+                Private alpha · Not yet available
               </span>
             </div>
             <p className="tp-display mt-4 text-4xl font-semibold tracking-tight text-[var(--tp-text)]">
-              Request access
+              Join the waitlist
             </p>
             <p className="mt-1 text-sm text-[var(--tp-text-muted)]">
-              Pricing details shared when your account is approved
+              Pricing details shared as we get closer to beta
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              The easiest way to run TurboPanel. Connect your servers to a fast worldwide control plane
-              while we handle uptime, updates, security, and the infrastructure behind it.
+              The easiest way to run TurboPanel, once it's ready. Connect your servers to a fast
+              worldwide control plane while we handle uptime, updates, security, and the infrastructure
+              behind it.
             </p>
             <PlanFeatureList items={HIGH_AVAILABILITY_FEATURES} />
             <div className="mt-8 flex flex-wrap gap-3">
               <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-                Request early access
+                Join the waitlist
               </MarketingControlPlaneCta>
               <MarketingSecondaryCta href="/docs/api" className="px-5">
                 API reference
@@ -120,23 +121,28 @@ export default function PricingPage() {
           </article>
 
           <article className="order-2 rounded-2xl border border-[var(--tp-blue)]/40 bg-[linear-gradient(165deg,color-mix(in_srgb,var(--tp-blue)_8%,var(--tp-surface))_0%,var(--tp-surface)_55%)] p-6 sm:p-8">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-blue)]">
-              self-hosted option
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--tp-blue)]">
+                self-hosted option
+              </p>
+              <span className="rounded-full border border-[var(--tp-blue)]/40 bg-[var(--tp-blue)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text)]">
+                Private alpha · Not yet available
+              </span>
+            </div>
             <p className="tp-display mt-4 text-4xl font-semibold tracking-tight text-[var(--tp-text)]">
               Free
             </p>
             <p className="mt-1 text-sm text-[var(--tp-text-muted)]">
-              Unlimited servers — you operate the control plane
+              Planned: unlimited servers — you operate the control plane
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              Run TurboPanel on infrastructure you control. Same console, same APIs, same deploy
-              workflows — your team owns uptime, upgrades, backups, and public access.
+              Run TurboPanel on infrastructure you control, once it's ready. Same console, same APIs,
+              same deploy workflows — your team owns uptime, upgrades, backups, and public access.
             </p>
             <PlanFeatureList items={SELF_HOSTED} />
             <div className="mt-8">
               <MarketingSecondaryCta href="/docs/deployment/self-hosted" className="px-5">
-                Self-hosted install guide
+                Preview self-hosted docs
               </MarketingSecondaryCta>
             </div>
           </article>
@@ -175,15 +181,16 @@ export default function PricingPage() {
         <div className="rounded-2xl border border-[var(--tp-accent)]/30 bg-[var(--tp-surface)] px-6 py-8 sm:px-10 sm:py-10">
           <p className="tp-eyebrow">Default to TurboPanel High Availability</p>
           <h2 className="tp-section-title mt-4 max-w-2xl">
-            Stop planning the panel. Start shipping with it.
+            Join us before general availability.
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--tp-text-muted)]">
-            Request early access, connect your first server, and deploy in minutes. Prefer to operate
-            the control plane yourself? Self-hosted is free and documented.
+            Join the waitlist to hear when access opens, connect your first server, and deploy in
+            minutes. Prefer to operate the control plane yourself? Self-hosted is coming too — also
+            free, also private alpha.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Request early access
+              Join the waitlist
             </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/roadmap" className="px-5">
               See the roadmap

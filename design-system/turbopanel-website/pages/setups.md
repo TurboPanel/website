@@ -15,19 +15,19 @@
    diagram (`components/marketing/setups/setup-diagrams.tsx`) alternating
    sides left/right, plus a closing **N — Unlimited** pattern styled as a
    dashed-border "anything goes" card
-4. Closing band — start on TurboPanel High Availability
+4. Closing band — join the waitlist for TurboPanel High Availability
 
 ## Content rules
 
 | Element | Rule |
 |---------|------|
-| Framing | Every pattern is achievable on **either** TurboPanel High Availability or the self-hosted control plane — do not brand a pattern by runtime/hosting choice, and do not use the words "self-hosted" or "High Availability" as a pattern name or distinguishing feature. Those terms may only appear inside CTA button copy (e.g. "Start on TurboPanel High Availability"). |
+| Framing | Every pattern is achievable on **either** TurboPanel High Availability or the self-hosted control plane — do not brand a pattern by runtime/hosting choice, and do not use the words "self-hosted" or "High Availability" as a pattern name or distinguishing feature. Those terms may only appear inside CTA button copy. Both paths are currently private alpha and not yet publicly available — CTAs read "Join the waitlist," never "Start on..." |
 | Patterns are physical topology, not hosting choice | 01 single server → 02 multi-server mesh in one datacenter (+ managed DB replica for failover) → 03 frontend/backend split across two datacenters → 04 encrypted site-to-site mesh with regional read replicas and a redundant write primary → N unlimited/custom |
 | Tone | Confident, high-tech, a little fun — "funky and fresh," not corporate-bland. Short punchy taglines per pattern are encouraged. Avoid vendor/runtime jargon (no "Workers," "Deno," "Durable Object," etc.) |
 | Diagrams | Each numbered pattern gets a decorative topology SVG in a `tp-card` with a Compute (blue) / Data (green) legend — static, no animation, `aria-hidden` |
 | Layout | Sequential sections with mono index (`01`…, `N`), alternating diagram side (`reverse` prop) for visual rhythm; hairline dividers between patterns |
 | Unlimited pattern | Styled distinctly (dashed accent border, centered copy, its own freeform/scattered diagram) to signal "this one breaks the pattern on purpose" |
-| CTA | At most **one** pulsing primary CTA (hero); later CTAs reuse the same "Start on TurboPanel High Availability" label at `emphasis={false}` |
+| CTA | At most **one** pulsing primary CTA (hero); later CTAs reuse the same "Join the waitlist" label at `emphasis={false}` |
 
 ## Do not
 

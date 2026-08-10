@@ -26,12 +26,12 @@
 
 | Internal | User-facing |
 |----------|-------------|
-| Complete | Shipped |
+| Complete | Built |
 | In Progress | Building now |
 | Planned | Next up |
 | Future | Later |
 
-Status always pairs color with a text label (never color alone).
+Status always pairs color with a text label (never color alone). `Complete` maps to **Built**, not "Shipped" — TurboPanel High Availability and self-hosted are both private alpha and not yet publicly available, so no roadmap label should imply a public release has happened.
 
 ## Typography
 

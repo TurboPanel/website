@@ -47,7 +47,7 @@ pnpm check:hosts
 
 Claims on `src/app/**` must match shipped product behavior. Check the [roadmap](https://turbopanel.io/roadmap) and sibling repo READMEs before asserting features. Pricing copy follows [AGENTS.md](./AGENTS.md) — coordinate with `/pricing` when changing commercial messaging.
 
-Larger information-architecture changes: open a Discussion or issue first with the proposed nav / page split.
+Larger information-architecture changes: ask in [Discord](https://turbopanel.io/discord) or open an issue first with the proposed nav / page split.
 
 ## Deployment (contributors)
 

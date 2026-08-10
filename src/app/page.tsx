@@ -75,7 +75,7 @@ const WHY = [
   },
   {
     title: 'Pricing that stays simple',
-    body: 'TurboPanel High Availability is in private early access. Self-hosted is free — you operate the control plane on your infrastructure.',
+    body: 'TurboPanel High Availability and self-hosted are both in private alpha — not yet publicly available. Self-hosted stays free, unlimited servers once it ships.',
   },
   {
     title: 'Fast wherever your team works',
@@ -99,7 +99,7 @@ export default function Home() {
       >
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Get started now
+            Join the waitlist
           </MarketingControlPlaneCta>
           <MarketingInlineLink href="/pricing">See pricing</MarketingInlineLink>
         </div>
@@ -208,11 +208,12 @@ export default function Home() {
             <div className="max-w-2xl">
               <p className="tp-eyebrow">TurboPanel High Availability</p>
               <h2 className="tp-section-title mt-4">
-                Private early access — request an account today.
+                Private alpha — join the waitlist for early access.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
-                Prefer to operate the control plane yourself? Self-hosted is free with unlimited servers.
-                Same product, your infrastructure.
+                Prefer to operate the control plane yourself? Self-hosted will be free with unlimited
+                servers — same product, your infrastructure. It's also in private alpha and not yet
+                publicly available.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">
@@ -220,7 +221,7 @@ export default function Home() {
                 See simple pricing
               </MarketingPrimaryCta>
               <MarketingControlPlaneCta path="/sign-up" variant="secondary" emphasis={false} className="px-5">
-                Start now
+                Join the waitlist
               </MarketingControlPlaneCta>
             </div>
           </div>
@@ -230,7 +231,7 @@ export default function Home() {
       <MarketingSection className="pb-20">
         <MarketingSectionHeader
           title="The control plane your team will actually enjoy using"
-          description="TurboPanel High Availability is fast, affordable, and ready when you are. Spend time on your apps and customers—not on the panel behind them."
+          description="TurboPanel High Availability is fast and affordable — and we're working hard to get it ready for you. Spend time on your apps and customers, not on the panel behind them."
         />
         <div className="grid gap-6 sm:grid-cols-2">
           {WHY.map((item) => (
@@ -246,7 +247,7 @@ export default function Home() {
         </div>
         <div className="mt-12 flex flex-wrap gap-3 border-t border-[var(--tp-border)] pt-10">
           <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Get started
+            Join the waitlist
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/api">Explore the API</MarketingSecondaryCta>
         </div>

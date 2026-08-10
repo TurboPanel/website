@@ -192,7 +192,7 @@ function UnlimitedPattern() {
       </ul>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-          Start on TurboPanel High Availability
+          Join the waitlist
         </MarketingControlPlaneCta>
         <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
       </div>
@@ -210,7 +210,7 @@ export default function SetupsPage() {
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on TurboPanel High Availability
+            Join the waitlist
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/getting-started/introduction">
             See how it works
@@ -263,7 +263,7 @@ export default function SetupsPage() {
           />
           <div className="flex shrink-0 flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Start on TurboPanel High Availability
+              Join the waitlist
             </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/pricing" className="px-5">
               Pricing

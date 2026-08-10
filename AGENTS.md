@@ -10,16 +10,18 @@
 
 ## Pricing (copy source of truth)
 
-**Maturity label:** **Private alpha** — use this exact term on README status callouts, roadmap eyebrow, and release notes. The site top banner (`PreDevBanner`) says **Currently in Private Alpha** (title-case Alpha).
+**Maturity label:** **Private alpha** — use this exact term on README status callouts, roadmap eyebrow, and release notes. The site top banner (`PreDevBanner`) says **Currently in Private Alpha** (title-case Alpha) and must not imply anything is publicly available (no "shipped" framing).
+
+**Neither offering is publicly available yet.** TurboPanel High Availability and self-hosted are **both** in private alpha and both **not yet publicly available** — we are working toward a beta release. Every surface that names one must name both with that same status; never present self-hosted as ready-to-use today just because the docs/install steps exist.
 
 Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing**.
 
 | Surface | Presentation |
 | --- | --- |
-| **TurboPanel High Availability** | **Private early access** — no dollar figures on marketing pages; single CTA to request access (`/sign-up`) |
-| **Self-hosted control plane** | **Free, unlimited servers** — operator provides infrastructure; link `/docs/deployment/self-hosted` |
+| **TurboPanel High Availability** | **Private alpha · Not yet available** — no dollar figures on marketing pages; single CTA is **`Join the waitlist`** (`/sign-up`), never "request access now" / "get started now" phrasing |
+| **Self-hosted control plane** | **Private alpha · Not yet available** — planned to be **free, unlimited servers** once it ships; CTA is **`Preview self-hosted docs`** (`/docs/deployment/self-hosted`), not "install now" / "self-host today" phrasing |
 
-Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`.
+Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not use CTA copy that implies either path is usable today (e.g. "Get started now", "Request early access", "Start on TurboPanel High Availability", "Install self-hosted") — use waitlist / preview-docs language instead. On the roadmap, the internal `Complete` phase status maps to the public label **Built**, not "Shipped" (see `design-system/turbopanel-website/pages/roadmap.md`) — no status label should imply a public release has happened yet.
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 

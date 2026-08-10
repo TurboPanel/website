@@ -105,7 +105,7 @@ const PHASES: ReadonlyArray<Phase> = [
 ]
 
 const STATUS_LABEL: Record<PhaseStatus, string> = {
-  Complete: 'Shipped',
+  Complete: 'Built',
   'In Progress': 'Building now',
   Planned: 'Next up',
   Future: 'Later',
@@ -305,7 +305,7 @@ function StatusAside({
       <dl className="mt-6 grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-[var(--tp-border)] bg-[var(--tp-bg)] px-3 py-3 text-center">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text-muted)]">
-            Shipped
+            Built
           </dt>
           <dd className="tp-display mt-1 text-2xl font-semibold text-[var(--tp-text)]">{shipped}</dd>
         </div>
@@ -323,8 +323,8 @@ function StatusAside({
         </div>
       </dl>
       <p className="mt-5 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-        TurboPanel High Availability customers get new features as they land, without another update
-        process to manage.
+        Every phase below moves TurboPanel High Availability and self-hosted closer to a public beta —
+        neither is available yet.
       </p>
     </div>
   )
@@ -341,8 +341,8 @@ export default function RoadmapPage() {
     <MarketingPageShell active="roadmap">
       <MarketingHero
         eyebrow="Product roadmap · Private alpha"
-        title="Already useful. Getting better fast."
-        description={`Server management and core deploys are live today. We are now making websites, apps, databases, and everyday operations even faster and easier. Last updated ${LAST_UPDATED}.`}
+        title="In private alpha. Building toward beta."
+        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management and core deploys are furthest along, and we are now working on websites, apps, databases, and everyday operations. Last updated ${LAST_UPDATED}.`}
         aside={
           <StatusAside
             shipped={shipped}
@@ -354,7 +354,7 @@ export default function RoadmapPage() {
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Start on TurboPanel High Availability
+            Join the waitlist
           </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
           <MarketingSecondaryCta href="/changelog">Changelog</MarketingSecondaryCta>
@@ -377,12 +377,12 @@ export default function RoadmapPage() {
       <MarketingSection variant="band">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <MarketingSectionHeader
-            title="Start with what is ready today"
-            description="TurboPanel High Availability already gives you accounts, fleet management, metrics, deploys, and private networking from one fast control plane."
+            title="Follow our progress toward beta"
+            description="TurboPanel High Availability is building toward accounts, fleet management, metrics, deploys, and private networking from one fast control plane — join the waitlist to hear when it opens."
           />
           <div className="flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Start on TurboPanel High Availability
+              Join the waitlist
             </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/docs" className="px-5">
               Go to docs

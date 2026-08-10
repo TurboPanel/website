@@ -50,7 +50,7 @@ const FAQ = [
   },
   {
     q: 'Does self-hosted include the full product?',
-    a: 'Yes. Self-hosted operators run the same control plane, UI, and daemon stack as TurboPanel High Availability. The difference is who operates the control plane infrastructure.',
+    a: 'Yes — by design, self-hosted operators run the same control plane, UI, and daemon stack as TurboPanel High Availability, with the difference being who operates the control-plane infrastructure. Both paths are currently in private alpha and not yet publicly available.',
   },
   {
     q: 'Can I redistribute TurboPanel?',
@@ -68,10 +68,10 @@ export default function OpenSourcePage() {
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingSecondaryCta href="/docs/deployment/self-hosted">
-            Self-hosted guide
+            Preview self-hosted docs
           </MarketingSecondaryCta>
           <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Request managed access
+            Join the waitlist
           </MarketingControlPlaneCta>
         </div>
       </MarketingHero>
@@ -166,7 +166,7 @@ export default function OpenSourcePage() {
           ))}
         </ul>
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingSecondaryCta href="/docs/deployment/self-hosted">Install self-hosted</MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/docs/deployment/self-hosted">Preview self-hosted docs</MarketingSecondaryCta>
           <MarketingSecondaryCta href="https://github.com/turbopanel/turbopanel/releases">
             Releases
           </MarketingSecondaryCta>

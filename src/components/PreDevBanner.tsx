@@ -44,13 +44,14 @@ export function PreDevBanner({ scrollHidden = false }: PreDevBannerProps) {
                 Currently in Private Alpha
               </span>
               {' — '}
+              Not yet publicly available.{' '}
               <Link
                 href="/roadmap"
                 className="group/roadmap font-semibold text-[var(--tp-text)] transition-colors hover:text-[var(--tp-accent)]"
                 tabIndex={hidden ? -1 : undefined}
               >
                 <span className="underline decoration-[var(--tp-accent)]/50 underline-offset-[3px] transition-[text-decoration-color] group-hover/roadmap:decoration-[var(--tp-accent)]">
-                  See what&apos;s shipped and what&apos;s next
+                  See our progress toward beta
                 </span>
                 <span
                   className="ml-1.5 inline-block translate-y-px text-[0.95em] tracking-tight transition-transform duration-200 ease-out group-hover/roadmap:translate-x-0.5 motion-reduce:transition-none"
