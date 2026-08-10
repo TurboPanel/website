@@ -3,7 +3,7 @@ import { Logo } from '@/components/Logo'
 
 const FOOTER_LINKS = [
   { href: '/', label: 'Overview' },
-  { href: '/setups', label: 'Suggested setups' },
+  { href: '/setups', label: 'Architecture patterns' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/roadmap', label: 'Roadmap' },
   { href: '/open-source', label: 'Open source' },

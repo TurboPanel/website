@@ -149,7 +149,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-10">
-          <MarketingInlineLink href="/setups">Explore all suggested setups</MarketingInlineLink>
+          <MarketingInlineLink href="/setups">Explore every architecture pattern</MarketingInlineLink>
         </div>
       </MarketingSection>
 

@@ -18,7 +18,7 @@ import {
 } from '@/components/marketing/setups/setup-diagrams'
 
 export const metadata: Metadata = {
-  title: 'Setups',
+  title: 'Architecture Patterns',
   description:
     'One server or a global private mesh — see how TurboPanel shapes itself around your servers, databases, and traffic, from your very first box.',
 }
@@ -162,7 +162,7 @@ function UnlimitedPattern() {
       <div className="mx-auto max-w-3xl text-center">
         <p className="font-mono text-xs font-semibold text-[var(--tp-accent)]">N</p>
         <h3 className="tp-display mt-3 text-2xl font-semibold tracking-tight text-[var(--tp-text)] sm:text-[1.9rem]">
-          There is no setup 05
+          Whatever shape comes next
         </h3>
         <p className="mt-2 text-base font-medium text-[var(--tp-text)] sm:text-lg">
           Mix every pattern above. Invent your own. TurboPanel doesn&apos;t care.

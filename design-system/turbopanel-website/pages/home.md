@@ -11,7 +11,7 @@
 
 1. Hero — plain-language product promise + price + one closing CTA (above the fold)
 2. Platform benefits — what operators get (not infrastructure jargon)
-3. Suggested setups teaser → `/setups` (HA, VPN, tunnels/edge)
+3. Architecture patterns teaser → `/setups` (HA, VPN, tunnels/edge)
 4. Product surface + pricing band → final close
 
 ## Hero (commercial, always closing)

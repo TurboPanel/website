@@ -28,6 +28,7 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`.
 | Route | File | Purpose |
 | --- | --- | --- |
 | `/` | `src/app/page.tsx` | Home |
+| `/setups` | `src/app/setups/page.tsx` | Architecture patterns (single server → unlimited mesh); nav label "Patterns" |
 | `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning |
 | `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
 | `/open-source` | `src/app/open-source/page.tsx` | License table, repo map, AGPL FAQ |

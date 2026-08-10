@@ -14,7 +14,7 @@ type SiteHeaderProps = Readonly<{
 
 const LINKS = [
   { href: '/', label: 'Overview', key: 'overview' },
-  { href: '/setups', label: 'Setups', key: 'setups' },
+  { href: '/setups', label: 'Patterns', key: 'setups' },
   { href: '/pricing', label: 'Pricing', key: 'pricing' },
   { href: '/roadmap', label: 'Roadmap', key: 'roadmap' },
   { href: '/docs', label: 'Docs', key: 'docs' },
