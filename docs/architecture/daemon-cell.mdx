@@ -87,7 +87,7 @@ TurboPanel daemon cells use **SQLite-backed** Durable Objects. Do not apply lega
     **`#initializeFromStorage()`** — restores `serverId`, `remoteAddress`, and `connectedAt` from
     hibernation WebSocket attachments (`getWebSockets()` / `deserializeAttachment`) only. Sets
     in-memory `#runtimeConnected` when a live attachment exists. Does **not** call `#ensureSchema()`
-    or `SELECT` from `cell`. Agent identity comes from Postgres/in-memory, not the cell row.
+    or `SELECT` from `cell`. Daemon build identity comes from Postgres/in-memory, not the cell row.
   </Step>
   <Step>
     **`#ensureSchema()` (lazy)** — runs only on storage-touching paths: WS upgrade, storage RPCs,
@@ -168,15 +168,15 @@ Cost-safe Workers cells **must hibernate** when idle. Enforced rules:
 
 ### Presence model
 
-- **`hello`** — sent once on connect with agent identity. On Workers, steady-state `hello` performs **no SQLite `cell` write** on the hot path — Postgres projection handles identity separately.
+- **`hello`** — sent once on connect with daemon build identity. On Workers, steady-state `hello` performs **no SQLite `cell` write** on the hot path — Postgres projection handles identity separately.
 - **Wire cell ping** — after ~60 s of inbound silence, daemon sends `{"type":"ping"}` (`DAEMON_CELL_PING`). On Workers the DO auto-responds with pong **without waking** — this is the primary idle liveness signal.
-- **App-level `heartbeat`** — sent when the agent commit changed since the last hello/heartbeat, **or** when `timeSync`/`addresses` differ from the last-sent snapshot (change-detected), not on every idle tick. On Workers, steady-state heartbeats also perform **no SQLite `cell` write** on the hot path.
+- **App-level `heartbeat`** — sent when the daemon build commit changed since the last hello/heartbeat, **or** when `timeSync`/`addresses` differ from the last-sent snapshot (change-detected), not on every idle tick. On Workers, steady-state heartbeats also perform **no SQLite `cell` write** on the hot path.
 
 ### Storage coalescing
 
 - Steady-state presence is **wire ping only** for liveness; auto-response timestamps (`getWebSocketAutoResponseTimestamp`) feed the offline-sweep cron.
 - `webSocketMessage` for `hello` / `heartbeat` does **not** write SQLite `cell` rows on the hot path on Workers.
-- Postgres projection opens only for a genuine connect/disconnect transition, an agent build-identity change, or new `timeSync`/`addresses` presence facts — never on elapsed time alone. There is no periodic "touch a timestamp every N seconds" write path; a heartbeat that carries none of those signals writes nothing.
+- Postgres projection opens only for a genuine connect/disconnect transition, a daemon build-identity change, or new `timeSync`/`addresses` presence facts — never on elapsed time alone. There is no periodic "touch a timestamp every N seconds" write path; a heartbeat that carries none of those signals writes nothing.
 
 ### Before: recurring stale-sweep amplification
 
@@ -214,7 +214,7 @@ sequenceDiagram
 
     Note over Daemon,Storage: AFTER — disconnect-first, alarms for real work only
 
-    Daemon->>DO: hello / heartbeat (when agent commit or timeSync/addresses change)
+    Daemon->>DO: hello / heartbeat (when daemon build commit or timeSync/addresses change)
     Note right of DO: No SQLite cell write on hot path
     Note right of Storage: Postgres projection only (throttled)
 
@@ -273,7 +273,7 @@ The singular `request` table carries two distinct status columns: `status` = cor
 | `hostname`, `machine_key` | Dedicated Postgres `server.hostname` / `server.machine_key` columns (via `touchServerMetadata` / projection) — `machineKey` is a derived, non-reversible HMAC of the host machine-id, not the raw value |
 | `connection_id` | In-memory + WS attachment (`serializeAttachment`) |
 | `connected` (persisted int) | In-memory `#runtimeConnected` + `getWebSockets()` |
-| `connected_at`, `last_seen_at`, `agent_json` | Postgres projection: `connected` + `status_changed_at` columns (`connectedAt` is derived, not stored) plus `server.daemon.projection` for agent; admin/debug cell snapshot sources `connectedAt`/`lastInboundAt`/`lastSeenAt`/`agent`/`connected` from Postgres, `keyLastUsedAt`/`remoteAddress` from the `cell` row |
+| `connected_at`, `last_seen_at`, `daemon_build_json` | Postgres projection: `connected` + `status_changed_at` columns (`connectedAt` is derived, not stored) plus `server.daemon.projection` for daemonBuild; admin/debug cell snapshot sources `connectedAt`/`lastInboundAt`/`lastSeenAt`/`daemonBuild`/`connected` from Postgres, `keyLastUsedAt`/`remoteAddress` from the `cell` row |
 | persisted `daemon-socket` lease row | In-memory + WS attachment on Workers (`getWebSockets()` + `serializeAttachment` carrying `connectionId`/`connectedAtMs`); **Redis retains the persisted lease + presence meta for the Lua sweep** (documented asymmetry) |
 
 Co-located daemons are stored with `remote_address = '__direct__'` so colocated routing and tunnel assignment still work. Co-located detection reads the Postgres projection (`src/client/servers/colocated.ts`); the projection's `remoteAddress`/`__direct__` marker flows from attach meta into Postgres rather than from the cell-row snapshot.

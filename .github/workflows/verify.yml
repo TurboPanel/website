@@ -39,5 +39,8 @@ jobs:
       - name: Check control-plane hosts
         run: pnpm check:hosts
 
+      - name: Check vocabulary (no daemon-as-agent phrasing)
+        run: pnpm check:vocabulary
+
       - name: Typecheck
         run: pnpm typecheck

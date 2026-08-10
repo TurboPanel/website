@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "check:hosts": "node scripts/check-control-plane-hosts.mjs",
     "check:docs-ssr": "node scripts/check-docs-ssr.mjs",
+    "check:vocabulary": "node scripts/check-vocabulary.mjs",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",

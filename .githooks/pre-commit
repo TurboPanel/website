@@ -24,4 +24,5 @@ cd "$ROOT"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 "$PNPM_BIN" lint
 "$PNPM_BIN" check:hosts
+"$PNPM_BIN" check:vocabulary
 "$PNPM_BIN" typecheck

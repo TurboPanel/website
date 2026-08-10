@@ -24,7 +24,7 @@ const REPOS = [
   {
     name: 'TurboPanel Daemon',
     slug: 'turbopaneld',
-    role: 'Node agent, Ansible, deploy runtime, metrics',
+    role: 'Host daemon, Ansible, deploy runtime, metrics',
   },
   {
     name: 'TurboPanel UI',
