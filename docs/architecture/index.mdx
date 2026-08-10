@@ -11,5 +11,6 @@ TurboPanel splits documentation by concern:
 - **[Instance API](/docs/architecture/api)** — Versioned surfaces, routing modules, compose/deploy model with `x-turbopanel` server placement, secret envelopes (`tpsecret` at rest / `tpdaemon` at delivery), and how requests flow through the `turbopanel` instance repo.
 - **[Daemon cell](/docs/architecture/daemon-cell)** — SQLite-backed Durable Object cell, hibernation, billing model, and Redis parity for self-hosted mode.
 - **[Server metrics](/docs/architecture/server-metrics)** — Shared host-metrics contract, Analytics Engine / ClickHouse storage, retention, and the dated Cloudflare cost model.
+- **[Managed database ingress](/docs/architecture/managed-database-ingress)** — Per-server ProxySQL (ports 5432/3306), org-CA TLS, bindings, private backends, and replica/failover semantics.
 
 For deployment and production operations, see [Deployment](/docs/deployment) and [Security](/docs/security/password-safety).

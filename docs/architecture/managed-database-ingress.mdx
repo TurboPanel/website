@@ -1,0 +1,102 @@
+---
+title: Managed database ingress
+description: Per-server ProxySQL frontend for managed databases, TLS, bindings, and failover
+---
+
+# Managed database ingress
+
+TurboPanel managed databases do **not** publish engine ports on the host. Client
+SQL (operators, apps, binding-emitted DSNs) always dials a **per-server ProxySQL**
+frontend that the daemon configures via `managed.ingress.reconcile`.
+
+## Topology
+
+```mermaid
+flowchart LR
+  App[Compose service] --> PS[ProxySQL on consumer server]
+  PS -->|private / VPN| Eng1[Engine member A]
+  PS -->|private / VPN| Eng2[Engine member B]
+  Ops[Operator DSN] --> PS2[ProxySQL on member server]
+  PS2 --> Eng1
+```
+
+| Piece | Role |
+| --- | --- |
+| **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`) |
+| **Listeners** | Host TCP **5432** (Postgres family) and **3306** (MySQL family) |
+| **Backends** | Engine containers (local Docker network name) or private/VPN addresses of remote members |
+| **Users** | Non-replication managed principals resealed for that server — binding-created users included |
+
+Replication principals never become ProxySQL frontend users.
+
+## Ports and firewall
+
+On each server that hosts a managed member or a **placed compose service bound to a managed cluster**:
+
+| Port | Protocol | Audience |
+| --- | --- | --- |
+| **5432** | TCP | Postgres-family clients through ProxySQL |
+| **3306** | TCP | MySQL / MariaDB clients through ProxySQL |
+| Private replication + backend ports | TCP | Datacenter / VPN only — not public |
+
+Firewall guidance:
+
+- Prefer **site/datacenter private CIDRs** (and WireGuard site links) for server-to-server engine traffic.
+- Restrict public exposure of 5432/3306 to operator IP ranges when exposure is `public`.
+- Engine containers themselves never publish host ports for SQL.
+
+See also [Deployment security](/docs/deployment/security) and [Self-hosted overview](/docs/deployment/self-hosted).
+
+## TLS and org CA
+
+- Managed engines default to TLS on; Postgres connection strings use
+  **`sslmode=verify-full`** (and MySQL-family equivalents with server verification).
+- ProxySQL frontend certificates are org-CA leaves. SANs include the
+  **advertised listener host** (connection panel / binding host), bind IP when
+  applicable, and private peer endpoints used as backends — not only synthetic
+  container names.
+- Operators download the org CA PEM from **Connect → Download CA certificate**
+  (`GET /api/client/v1/tls/ca/download`). Trust that CA on clients;
+  never ship private keys over the client API.
+
+## Bindings (credentials → compose)
+
+A **binding** connects a managed database principal to a compose service:
+
+1. Instance materializes service-scoped variables (host, port, user, password,
+   URL, CA paths) — secret values never reappear on later GETs.
+2. **Host/port** always resolve to the **consuming service’s placement server**
+   ProxySQL listener (even when engine members live elsewhere). ProxySQL on that
+   host is reconciled with routes to remote backends over the private path.
+3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
+   consumer server and cluster member servers so frontend users and servers stay
+   aligned with sealed principal passwords.
+
+## Replicas and failover
+
+| Concern | Behavior |
+| --- | --- |
+| **Placement** | Multi-member clusters use private datacenter/VPN paths between servers |
+| **Read split** | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup |
+| **Apply** | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer) |
+| **Promote** | Fence (stop) old primary, then promote replica — promote command is chained only after successful fence |
+| **Remove replica** | Member stays `applying` until `managed.destroy` succeeds; destroy failure leaves the row `failed` and retryable |
+
+## Commands
+
+| Command | Who | Purpose |
+| --- | --- | --- |
+| `managed.apply` / `.lifecycle` / `.destroy` / `.promote` | Member host | Engine lifecycle |
+| `managed.ingress.reconcile` | Each server that needs a frontend | ProxySQL compose, durable cnf, admin apply |
+
+HTTP managed routes return **command ids immediately**; the UI polls Postgres
+command rows. Dependent follow-ups (standbys, promote after fence, primary
+re-apply after member destroy) are enqueued by the command consumer on success
+only.
+
+## Related
+
+- [Architecture overview](/docs/architecture)
+- [Instance API](/docs/architecture/api)
+- [Self-hosted overview](/docs/deployment/self-hosted)
+- [Deployment security](/docs/deployment/security)

@@ -1,4 +1,11 @@
 {
   "title": "Architecture",
-  "pages": ["index", "development-architecture", "api", "daemon-cell", "server-metrics"]
+  "pages": [
+    "index",
+    "development-architecture",
+    "api",
+    "daemon-cell",
+    "server-metrics",
+    "managed-database-ingress"
+  ]
 }

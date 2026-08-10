@@ -43,6 +43,12 @@ Breaking API or enrollment changes are called out in:
 - [GitHub Releases](https://github.com/turbopanel/turbopanel/releases)
 - Release notes for `turbopaneld`
 
+Managed database ingress (shared ProxySQL, binding listener resolution on the
+consumer server, async apply/promote sequencing) requires control plane and
+daemon builds that both understand `managed.ingress.reconcile` and resealed
+frontend user passwords. Pair channel upgrades carefully when first adopting
+managed clusters — see [Managed database ingress](/docs/architecture/managed-database-ingress).
+
 ## Related
 
 - [Upgrade & rollback](/docs/deployment/upgrade)

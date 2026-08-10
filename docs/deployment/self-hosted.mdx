@@ -24,12 +24,15 @@ TurboPanel High Availability is the default when you prefer TurboPanel to operat
 | **Control plane** | Hono API on Deno (Unix socket) + Postgres + Caddy TLS |
 | **UI** | Static export at `/opt/turbopanel/share/ui` (or Expo dev proxy during development) |
 | **Daemon** | `turbopaneld` on every managed server, including the control-plane host (co-located) |
+| **Managed DB ingress** | Per-server ProxySQL on **5432** / **3306** — [architecture](/docs/architecture/managed-database-ingress) |
 
 ## Install path
 
 1. **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel (contributor dev console today; production FHS install converges via daemon Ansible roles).
 2. **[Daemon setup](/docs/deployment/daemon-setup)** — enroll each server with the `turbopanel.sh` installer.
 3. **[Compatibility](/docs/deployment/compatibility)** — pair control plane and daemon channel versions before upgrades.
+
+When you run managed databases, hosts that serve SQL clients also converge ProxySQL. Trust the org CA for `verify-full` client TLS and firewall listeners plus private peer paths as described in [Managed database ingress](/docs/architecture/managed-database-ingress) and [Security](/docs/deployment/security).
 
 <Callout type="info" title="Not the contributor dev console">
   `curl -fsSL dev.turbopanel.sh | sh` is for **contributors** only. It is documented in
