@@ -105,7 +105,7 @@ export default function PricingPage() {
               Pricing details shared as we get closer to beta
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              The easiest way to run TurboPanel, once it's ready. Connect your servers to a fast
+              The easiest way to run TurboPanel, once it is ready. Connect your servers to a fast
               worldwide control plane while we handle uptime, updates, security, and the infrastructure
               behind it.
             </p>
@@ -136,7 +136,7 @@ export default function PricingPage() {
               Planned: unlimited servers — you operate the control plane
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              Run TurboPanel on infrastructure you control, once it's ready. Same console, same APIs,
+              Run TurboPanel on infrastructure you control, once it is ready. Same console, same APIs,
               same deploy workflows — your team owns uptime, upgrades, backups, and public access.
             </p>
             <PlanFeatureList items={SELF_HOSTED} />

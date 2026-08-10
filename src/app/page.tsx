@@ -212,7 +212,7 @@ export default function Home() {
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
                 Prefer to operate the control plane yourself? Self-hosted will be free with unlimited
-                servers — same product, your infrastructure. It's also in private alpha and not yet
+                servers — same product, your infrastructure. It is also in private alpha and not yet
                 publicly available.
               </p>
             </div>
