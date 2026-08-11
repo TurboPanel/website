@@ -57,6 +57,18 @@ When self-hosted is publicly available, operators follow this sequence:
 
 When you run managed databases, hosts that serve SQL clients also converge ProxySQL. Trust the org CA for `verify-full` client TLS and firewall listeners plus private peer paths as described in [Managed database ingress](/docs/architecture/managed-database-ingress) and [Security](/docs/deployment/security).
 
+## Compose projects: project + environment layers
+
+When you deploy a Docker Compose project from the panel, TurboPanel does not collapse project and environment YAML into one file as the deploy source of truth. It keeps a **project** base compose and an **environment** overlay, then the daemon runs an ordered multi-file chain:
+
+`docker compose -f <project> -f <environment> -f <platform> …`
+
+(project → environment → optional future repository layer → **platform last**). Precedence is exactly what the `-f` order implies.
+
+Layer merge follows the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (later layers win per key), most sequences (`ports`, `volumes`, `env_file`, …) **append** with key-based de-duplication, and `command` / `entrypoint` / `healthcheck.test` **fully replace**. Use **`!reset`** to delete a key on the overlay and **`!override`** to force full replacement instead of append/merge.
+
+The console **Merged compose** preview is a readability aid; **Prepared compose** and the real deploy path use the ordered multi-file chain (plus a deprecated single-file `composeYaml` fallback). Operator detail: [Control plane — Compose deploys](/docs/deployment/control-plane#compose-deploys-project--environment-layers). Architecture: [API — multi-file compose layers](/docs/architecture/api#multi-file-compose-layers--f-chain).
+
 <Callout type="warn" title="Contributors only — dev.turbopanel.sh">
   `curl -fsSL dev.turbopanel.sh | sh` bootstraps the **contributor** dev console — not a production
   self-hosted install. See [Local development](/docs/getting-started/development).

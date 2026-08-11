@@ -130,6 +130,14 @@ services:
 
 **Per-service placement** (different services on different servers, Docker Swarm–style deploy compose) is a planned extension of this **same `x-turbopanel` mechanism** — the multi-server compose-placement seam noted in the instance/daemon architecture. It is not implemented yet.
 
+### Multi-file compose layers (`-f` chain)
+
+TurboPanel does not merge the project and environment compose documents into a single file before deploying. It writes each as its own file — project layer, environment overlay layer, and a platform-authored layer appended last — and runs them together as an ordered `docker compose -f project.yml -f environment.yml -f platform.yml …` chain (project → environment → platform, platform always last and at most one). This is the same multi-file model `docker compose` supports natively, so precedence is exactly what the `-f` order implies — there is no separate merge step that silently changes behavior between what is authored and what is deployed.
+
+Overrides and nullification between layers follow the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (a later layer wins per key), most sequences — `ports`, `volumes`, `env_file`, and similar lists — **append** with attribute-specific key-based de-duplication rather than replacing the earlier layer wholesale, and `command`, `entrypoint`, and a service's `healthcheck.test` always **fully replace** rather than append. Authors who need to remove a value entirely, or force full replacement instead of the default append/merge behavior for a sequence, can use the reserved **`!reset`** (delete the key) and **`!override`** (force full replacement) YAML tags on the environment overlay.
+
+The organization console's **Merged compose** preview renders a client-side simulation of the fully merged result — useful for reviewing the effective configuration at a glance — while the **Prepared compose** view and the daemon's actual deploy run the real ordered multi-file `-f` chain described above. The two are kept in sync by construction; the merged view is a readability aid, not a second execution path.
+
 ## Daemon hub
 
 Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The instance resolves a canonical `server` row, dedupes reconnects, and routes commands over the hub (`src/daemon-hub.ts`).
