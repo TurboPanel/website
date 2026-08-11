@@ -9,8 +9,12 @@ export function ControlPlaneOptions() {
           TurboPanel High Availability
         </p>
         <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-          The easy option. Get a fast worldwide control plane, connect your servers, and start
-          shipping without running the panel yourself.
+          Planned default when TurboPanel operates the control plane worldwide. Private alpha — not
+          yet publicly available;{' '}
+          <a href="https://turbopanel.io/sign-up" className="text-[var(--tp-accent)] hover:underline">
+            join the waitlist
+          </a>{' '}
+          for access updates.
         </p>
       </div>
       <div>
@@ -18,8 +22,9 @@ export function ControlPlaneOptions() {
           Self-hosted
         </p>
         <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-          Run the control plane on infrastructure you operate and maintain. Same product experience —
-          your team owns uptime, upgrades, backups, and public access.
+          Run the control plane on infrastructure you operate. Same product experience — your team owns
+          uptime, upgrades, backups, and public access. Private alpha — preview docs only until a public
+          release.
         </p>
       </div>
     </div>

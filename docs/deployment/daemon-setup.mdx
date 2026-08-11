@@ -18,7 +18,7 @@ The TurboPanel **daemon** ([turbopaneld](https://github.com/turbopanel/turbopane
 
 ### Relationship to control plane
 
-The daemon is **not** a slim Docker-only executor in the new architecture — it is the constant on every TurboPanel-managed host and the only party that runs Ansible. On the control plane host it runs co-located (Unix socket or Caddy URL). On additional servers it dials the instance URL you provide at install time.
+The daemon is the constant on every TurboPanel-managed host and the only party that runs Ansible. On the control plane host it runs co-located (Unix socket or Caddy URL). On additional servers it dials the instance URL you provide at install time.
 
 ### Architecture
 
@@ -40,11 +40,13 @@ graph TD
 
 | Feature | TurboPanel High Availability | Self-hosted instance |
 | ------- | ---------------------------- | -------------------- |
-| Instance URL | `https://your-worker.workers.dev` | `https://<host>:8443` |
-| Co-located daemon | Optional (dev / socket mode) | Yes on control plane |
+| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` |
+| Co-located daemon | Optional (contributor dev / socket mode) | Yes on control plane |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
 | Daemon coordination | WSS (Durable Objects) | WSS (Redis cell) |
+
+Both control-plane models are in **private alpha** and not yet publicly available. The installer and daemon behavior below apply when you have access.
 
 ## Installation
 
@@ -56,24 +58,31 @@ graph TD
 | Debian 12+ (Bookworm/Trixie) | `aarch64` (arm64) | Supported |
 | Raspberry Pi OS **64-bit** | `aarch64` (arm64) | Supported on 64-bit images only |
 
-**Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any
-CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during
-Ansible provisioning with an explicit architecture error.
+**Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during Ansible provisioning with an explicit architecture error.
 
-### Remote managed server (official installer)
+### Remote managed server (production installer)
 
-Obtain a license from your TurboPanel organization, then run the channel
-installer. Set `TURBOPANEL_LICENSE` to the base64url-encoded
-`licenseId:licenseToken` (the UI copy-paste command includes this).
+<Steps>
+  <Step>
+    Obtain a license from your TurboPanel organization. Set `TURBOPANEL_LICENSE` to the
+    base64url-encoded `licenseId:licenseToken` (the UI copy-paste command includes this).
+  </Step>
+  <Step>
+    Run the channel installer from **turbopanel.sh** — production and self-hosted instances use this
+    host, not `dev.turbopanel.sh`.
+  </Step>
+  <Step>
+    For self-hosted HTTPS, the installer fetches the platform CA from
+    `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`. Re-run the same command
+    any time to upgrade or reconcile a node.
+  </Step>
+</Steps>
 
-**TurboPanel High Availability** (Cloudflare Workers — default host from the channel
-manifest):
+<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
 ```bash
 curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
-
-**Self-hosted instance** (pass `TURBOPANEL_HOST` with the full instance URL):
 
 ```bash
 curl -fsSL turbopanel.sh | \
@@ -82,37 +91,26 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-Production and self-hosted instances always fetch the installer from
-`turbopanel.sh`. The instance host `/run.sh` path is **development-only** — it
-is served by the dev overlay Caddyfile (plaintext `:8880`), not by the
-production instance Caddyfile.
+</CodeGroup>
+
+The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
+
+While provisioning runs, the terminal shows a **rolling status view** (spinner on TTY hosts) with neutral labels — orchestration instead of Ansible tool names, **cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role names, and env vars on disk are unchanged; full detail remains in `/var/log/turbopanel/daemon.log` after install. See the daemon repo [`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md#installer-presentation-layer).
+
+#### Contributor dev overlay only
+
+The instance host `/run.sh` path is **development-only** — served by the dev overlay Caddyfile (plaintext `:8880`), not the production instance Caddyfile:
 
 ```bash
-# Dev overlay only (plaintext HTTP control plane)
 curl -fsSL http://<dev-host>:8880/run.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
   TURBOPANEL_HOST=http://<dev-host>:8880 \
   sh
 ```
 
-The installer self-escalates with `sudo` and prompts for your password when
-needed — do not prefix the pipeline with `sudo`.
-
-While provisioning runs, the terminal shows a **rolling status view** (spinner on
-TTY hosts) with neutral labels — orchestration instead of Ansible tool names,
-**cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role
-names, and env vars on disk are unchanged; full detail remains in
-`/var/log/turbopanel/daemon.log` after install. See the daemon repo
-[`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md#installer-presentation-layer).
-
-For self-hosted HTTPS, the installer fetches the platform CA from
-`GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
-Re-run the same command any time to upgrade or reconcile a node.
-
 ### Refresh an existing node
 
-If the server is already installed, re-run the same **`run.sh`** installer. Build
-the license argument from state on disk (or copy a fresh install command from the UI):
+If the server is already installed, re-run the same **`turbopanel.sh`** installer. Build the license argument from state on disk (or copy a fresh install command from the UI):
 
 ```bash
 LICENSE_B64=$(python3 -c "
@@ -128,12 +126,12 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI
-mismatches, missing license files, and self-hosted hosts.
+See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mismatches, missing license files, and self-hosted hosts.
 
 <Callout type="info" title="Control plane host">
-  On the machine that runs the instance, use the [dev](https://github.com/turbopanel/dev)
-  console (**Start dev stack**) or Ansible co-located install — not the remote node installer.
+  On the machine that runs the instance, use contributor [dev](https://github.com/turbopanel/dev)
+  (**Start dev stack**) for local development — or the managed production converge for self-hosted
+  when available. Do not use the remote node installer on the co-located dev control plane.
 </Callout>
 
 ### Install options
@@ -142,7 +140,7 @@ mismatches, missing license files, and self-hosted hosts.
 | ---- | ----------- |
 | `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
 | `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
-| `TURBOPANEL_HOST` / `--host <URL>` | Optional for production (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
+| `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
@@ -150,9 +148,7 @@ mismatches, missing license files, and self-hosted hosts.
 
 ### What gets installed (FHS layout)
 
-The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which
-lays out a clean **Filesystem Hierarchy Standard** tree — there is **no source
-checkout** on a managed server:
+The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which lays out a clean **Filesystem Hierarchy Standard** tree — there is **no source checkout** on a managed server:
 
 | Purpose | Path |
 | ------- | ---- |
@@ -167,24 +163,15 @@ checkout** on a managed server:
 | Runtime (sockets, `daemon.lock`) | `/run/turbopanel` |
 
 - User `tp:tp` (UID/GID 9999) with passwordless sudo
-- `turbopaneld.service` (systemd, single process via `flock`). The unit runs the
-  native binary when `turbopaneld --version` succeeds. On hosts where that probe
-  fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size,
-  which cannot load the usual **4 KiB**-page `deno compile` binary — install
-  downloads `turbopaneld.js`, installs vendored Deno, and uses
-  `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
-  Deno is installed only on that path; native hosts skip it.
+- `turbopaneld.service` (systemd, single process via `flock`). The unit runs the native binary when `turbopaneld --version` succeeds. On hosts where that probe fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size — install downloads `turbopaneld.js`, installs vendored Deno, and uses `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
 
-<Callout type="info" title="Co-located dev is different">
-  A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev)
-  console runs the daemon **from a source checkout** under `$HOME` (e.g. `~/daemon`, via
-  `deno run main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
-  and sockets under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`,
-  `/var/log/turbopanel`, `/run/turbopanel`); vendored runtimes under
-  `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache`
-  service accounts are created — systemd units and Docker-backed services run as the
-  current dev user. The FHS tree above (including `tp:tp`) applies to
-  managed/production installs only.
+<Callout type="info" title="Contributor dev is different">
+  A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev) console runs the
+  daemon **from a source checkout** under `$HOME` (e.g. `~/daemon`, via `deno run main.ts`). Config
+  lives in `/etc/turbopanel/daemon.env`; mutable state, logs, and sockets under dev-user-owned FHS
+  paths; vendored runtimes under `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache`
+  service accounts are created. The FHS tree above (including `tp:tp`) applies to managed/production
+  installs only.
 </Callout>
 
 ## Configuration
@@ -219,6 +206,7 @@ See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 
 ## Related documentation
 
+- [Deployment hub](/docs/deployment) — Operator overview
 - [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
 - [Security](/docs/deployment/security) — TLS and socket hardening
 - [Daemon README](https://github.com/turbopanel/turbopaneld/blob/trunk/README.md) — Maintainer reference

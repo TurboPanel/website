@@ -1,62 +1,109 @@
 ---
 title: Installation
-description: Install TurboPanel control plane and managed server daemons
+description: Contributor development, self-hosted preview, TurboPanel High Availability status, and managed server daemons
 ---
 
 # Installation
 
-TurboPanel is split across multiple repositories. Installation paths depend on whether you are setting up **contributor local dev**, a **self-hosted control plane**, or an **additional managed server daemon**.
+TurboPanel spans multiple repositories. **Pick the path that matches your goal** — the three primary paths below do not substitute for one another.
 
-## Contributor local development
-
-Bootstrap the dev console from [dev](https://github.com/turbopanel/dev):
-
-```bash
-curl -fsSL dev.turbopanel.sh | sh
+```mermaid title="TurboPanel installation path decision"
+flowchart TD
+    Q{What are you setting up?}
+    Q -->|Contributing to TurboPanel| Dev[Contributor dev — dev.turbopanel.sh]
+    Q -->|Operating your own control plane| Self[Self-hosted — private alpha preview]
+    Q -->|Managed TurboPanel control plane| HA[TurboPanel High Availability — waitlist]
+    Self --> Nodes[Enroll servers — turbopanel.sh + license]
+    HA --> Nodes
 ```
 
-The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console` automatically. `./console` installs the pinned Node runtime (sudo on first run), runs `pnpm install`, and starts the Ink dev console. From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd. To run the console again later: `cd ~/dev && ./console`.
+## Path comparison
+
+| Path | Who it is for | Status today |
+| --- | --- | --- |
+| **Contributor development** | Engineers working on TurboPanel source | Available for contributors |
+| **Self-hosted control plane** | Operators who run the panel on their infrastructure | Private alpha — preview docs only |
+| **TurboPanel High Availability** | Operators who want TurboPanel to run the panel | Private alpha — [join the waitlist](https://turbopanel.io/sign-up) |
+
+Enrolling **additional managed servers** (daemons on workload hosts) uses the production installer at `turbopanel.sh` once you have a control plane — see [Additional managed server daemons](#additional-managed-server-daemons) below.
+
+## Contributor development
+
+For **contributors** building TurboPanel itself — not for production self-hosted or TurboPanel High Availability installs.
+
+<Steps>
+  <Step>
+    Bootstrap the dev console from [dev](https://github.com/turbopanel/dev):
+
+    ```bash
+    curl -fsSL dev.turbopanel.sh | sh
+    ```
+
+    The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console`.
+  </Step>
+  <Step>
+    `./console` installs the pinned Node runtime (sudo on first run), runs `pnpm install`, and starts the Ink dev console.
+  </Step>
+  <Step>
+    From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd.
+  </Step>
+  <Step>
+    To run the console again later: `cd ~/dev && ./console`.
+  </Step>
+</Steps>
 
 See [Local development](/docs/getting-started/development) for console areas, URLs, and day-to-day workflow.
 
-## Self-hosted control plane (Debian / Ubuntu VM)
+## Self-hosted control plane (preview)
 
-<Callout type="info" title="Control plane install path">
-  Self-hosted **control planes** use the [dev](https://github.com/turbopanel/dev)
-  console on a VM (**Start dev stack**). Additional **managed server daemons** use the
-  public installer documented below.
+<Callout type="info" title="Private alpha — not yet publicly available">
+  Self-hosted production installs are in private alpha alongside TurboPanel High Availability. This
+  section documents the **planned** managed install path — not the contributor dev console.
 </Callout>
 
-On a fresh Debian or Ubuntu host:
+When self-hosted is publicly available, you provision a control plane on Debian or Ubuntu and enroll servers with the production daemon installer. **Today**, use contributor development only if you are building TurboPanel; otherwise [preview self-hosted docs](/docs/deployment/self-hosted).
 
-```bash
-curl -fsSL dev.turbopanel.sh | sh
-```
+<Steps>
+  <Step>
+    Provision a 64-bit Linux host (Debian 12+ recommended).
+  </Step>
+  <Step>
+    Install the control plane with the planned managed production path — see
+    [Control plane](/docs/deployment/control-plane) (private alpha preview; converges via daemon Ansible
+    roles when publicly available).
+  </Step>
+  <Step>
+    Complete the install wizard at `https://<host>:8443` (host PAM + superadmin).
+  </Step>
+  <Step>
+    Enroll each managed server with `turbopanel.sh` and a license — [Daemon setup](/docs/deployment/daemon-setup).
+  </Step>
+</Steps>
 
-In the console, choose **Start dev stack**. This writes developer identity into `/etc/turbopanel/daemon.env`, bootstraps the daemon orchestration runtime, enables co-located dev mode (`TURBOPANEL_DEV_INSTANCE=1`), installs `turbopaneld.service`, and tails journals. The daemon then runs Ansible to install instance (Deno), Caddy, UI, and Postgres: source repos under `$HOME` (`~/daemon`, `~/instance`, `~/ui`, `~/website`), mutable state under dev-user-owned FHS paths (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`), and vendored runtimes under `/opt/turbopanel/vendor`.
-
-- **HTTPS entrypoint:** `https://<host>:8443` (Caddy)
-- **Install wizard:** first visit prompts host PAM + superadmin setup (Deno path)
-- Trust the platform CA from `GET /api/daemon/v1/instance/ca` or `~/instance/certs/ca.crt`
-
-Details: [Control plane](/docs/deployment/control-plane).
+<Callout type="warn" title="Not dev.turbopanel.sh">
+  `curl -fsSL dev.turbopanel.sh | sh` is **contributors only**. It is not the production self-hosted
+  install path.
+</Callout>
 
 ## TurboPanel High Availability
 
-The instance can run on Cloudflare Workers (`pnpm deploy` in the instance repo; requires `TURBOPANEL_DATABASE_URL` for migrations and `CLOUDFLARE_ENV`, e.g. `live` or `testing`, matching `wrangler.jsonc`). Hosted daemon coordination uses **Durable Objects** — remote daemons connect over HTTPS/WSS to a reachable instance URL. See [Control plane](/docs/deployment/control-plane).
+<Callout type="info" title="Private alpha — join the waitlist">
+  TurboPanel High Availability is **not yet publicly available**. [Join the waitlist](https://turbopanel.io/sign-up)
+  for access updates. The instance runs on Cloudflare Workers; remote daemons connect over HTTPS/WSS.
+  See [Control plane](/docs/deployment/control-plane) for how hosted coordination works.
+</Callout>
+
+When access is available, you create an organization in the hosted panel, obtain server licenses, and enroll nodes with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default).
 
 ## Additional managed server daemons
 
-Install the daemon on servers that should be managed remotely (not the co-located
-control plane). Obtain a license from your organization first.
+Install the daemon on servers that should be managed remotely (not the co-located control plane). Obtain a license from your organization first.
 
-**TurboPanel High Availability** (Cloudflare Workers):
+<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
 ```bash
 curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
-
-**Self-hosted instance** (pass `TURBOPANEL_HOST`):
 
 ```bash
 curl -fsSL turbopanel.sh | \
@@ -65,12 +112,11 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-The installer self-escalates with `sudo` and prompts for your password when
-needed — do not prefix the pipeline with `sudo`.
+</CodeGroup>
 
-Replace host and port with where the instance is reachable from the node. The
-installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically
-for HTTPS instances.
+The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
+
+Replace host and port with where the instance is reachable from the node. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
 
 ### Supported platforms (managed nodes)
 
@@ -88,10 +134,10 @@ Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 - **64-bit** Linux server (Debian 12+ recommended for Ansible paths; Raspberry Pi OS 64-bit on arm64)
 - Docker (optional — installed on demand when a node runs container workloads)
 - SSH access to GitHub for platform repo clones on co-located dev hosts (`git@github.com:turbopanel/...`)
-- For local dev: see [Prerequisites](/docs/development/prerequisites)
+- For contributor dev: see [Prerequisites](/docs/development/prerequisites)
 
 ## Next steps
 
-- [Control plane](/docs/deployment/control-plane) — Components, configuration, and API surface
+- [Deployment hub](/docs/deployment) — Operator overview and related guides
 - [Daemon setup](/docs/deployment/daemon-setup) — Node installer flags and communication
 - [Security](/docs/deployment/security) — TLS, socket access, and hardening

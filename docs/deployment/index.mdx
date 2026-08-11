@@ -1,0 +1,65 @@
+---
+title: Deployment
+description: Operate TurboPanel control planes and managed server daemons
+---
+
+# Deployment
+
+Guides for operators who run TurboPanel in production. TurboPanel High Availability and self-hosted control planes are both in **private alpha** and **not yet publicly available** — these pages document planned and preview paths as we work toward a beta release.
+
+<Callout type="info" title="Private alpha">
+  Neither TurboPanel High Availability nor self-hosted is publicly available yet. Contributor
+  development uses [dev.turbopanel.sh](https://dev.turbopanel.sh); production daemon installs use
+  [turbopanel.sh](https://turbopanel.sh) once you have a control plane.
+</Callout>
+
+<Cards>
+  <Card
+    title="Self-hosted overview"
+    description="When to run your own control plane and what you operate"
+    href="/docs/deployment/self-hosted"
+  />
+  <Card
+    title="Control plane"
+    description="Instance, Caddy, Postgres, and API surfaces"
+    href="/docs/deployment/control-plane"
+  />
+  <Card
+    title="Daemon setup"
+    description="Install turbopaneld on managed servers with turbopanel.sh"
+    href="/docs/deployment/daemon-setup"
+  />
+  <Card
+    title="Security"
+    description="TLS, install gate, sockets, and secret handling"
+    href="/docs/deployment/security"
+  />
+</Cards>
+
+## Typical operator flow
+
+<Steps>
+  <Step>
+    Choose [self-hosted](/docs/deployment/self-hosted) or TurboPanel High Availability (waitlist at
+    [pricing](https://turbopanel.io/pricing)).
+  </Step>
+  <Step>
+    Provision the [control plane](/docs/deployment/control-plane) on your infrastructure or use the
+    hosted panel when available.
+  </Step>
+  <Step>
+    Enroll each managed server with [Daemon setup](/docs/deployment/daemon-setup) (`turbopanel.sh` +
+    license).
+  </Step>
+  <Step>
+    Harden with [Security](/docs/deployment/security), pair versions via
+    [Compatibility](/docs/deployment/compatibility), and plan [upgrades](/docs/deployment/upgrade).
+  </Step>
+</Steps>
+
+## Also in this section
+
+- [Daemon update](/docs/deployment/daemon-update) — Refresh or recover a stuck node
+- [Metrics](/docs/deployment/metrics) — Host metrics storage and queries
+- [Troubleshooting](/docs/deployment/troubleshooting) — Common deployment issues
+- [Uninstall](/docs/deployment/uninstall) — Remove TurboPanel from a host

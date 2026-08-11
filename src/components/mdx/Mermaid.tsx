@@ -4,6 +4,15 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { useClientMounted } from '@/lib/use-client-mounted'
 
+const DIAGRAM_PLACEHOLDER_CLASS =
+  'my-6 h-48 rounded-lg bg-fd-muted motion-safe:animate-pulse motion-reduce:animate-none'
+
+type MermaidProps = Readonly<{
+  chart: string
+  title?: string
+  ariaLabel?: string
+}>
+
 /**
  * Client-side Mermaid diagrams, lazy-loaded when near the viewport.
  *
@@ -14,9 +23,13 @@ import { useClientMounted } from '@/lib/use-client-mounted'
  * but only after the diagram approaches the viewport — other docs JS stays
  * smaller and above-the-fold content paints without waiting on Mermaid.
  */
-export function Mermaid({ chart }: Readonly<{ chart: string }>) {
+export function Mermaid({ chart, title, ariaLabel }: MermaidProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [nearViewport, setNearViewport] = useState(false)
+  const accessibleName = resolveAccessibleName(title, ariaLabel)
+  const deferredMessage = accessibleName
+    ? `${accessibleName} — diagram will load when scrolled into view`
+    : 'Diagram will load when scrolled into view'
 
   useEffect(() => {
     const el = hostRef.current
@@ -43,20 +56,29 @@ export function Mermaid({ chart }: Readonly<{ chart: string }>) {
   return (
     <div ref={hostRef}>
       {nearViewport ? (
-        <MermaidContent chart={chart} />
+        <MermaidContent chart={chart} title={title} ariaLabel={ariaLabel} />
       ) : (
-        <div aria-hidden className="my-6 h-48 animate-pulse rounded-lg bg-fd-muted" />
+        <>
+          <span className="sr-only">{deferredMessage}</span>
+          <div aria-hidden className={DIAGRAM_PLACEHOLDER_CLASS} />
+        </>
       )}
     </div>
   )
 }
 
-function MermaidContent({ chart }: Readonly<{ chart: string }>) {
+function MermaidContent({
+  chart,
+  title,
+  ariaLabel,
+}: Readonly<{ chart: string; title?: string; ariaLabel?: string }>) {
   const id = useId()
+  const captionId = `${id}-caption`
   const { resolvedTheme } = useTheme()
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const themeReady = useClientMounted()
+  const accessibleName = resolveAccessibleName(title, ariaLabel)
 
   useEffect(() => {
     if (!themeReady) return
@@ -102,19 +124,64 @@ function MermaidContent({ chart }: Readonly<{ chart: string }>) {
 
   if (error) {
     return (
-      <pre className="overflow-x-auto rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400">
-        {error}
-      </pre>
+      <figure className="my-6">
+        <div
+          role="alert"
+          className="overflow-x-auto rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400"
+        >
+          <p className="font-medium">
+            {accessibleName ? `${accessibleName} could not be rendered` : 'Diagram could not be rendered'}
+          </p>
+          <pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{error}</pre>
+        </div>
+      </figure>
     )
   }
 
-  if (!svg) return <div aria-hidden className="my-6 h-48 animate-pulse rounded-lg bg-fd-muted" />
+  if (!svg) {
+    return (
+      <DiagramPlaceholder
+        status={accessibleName ? `${accessibleName} — loading diagram` : 'Loading diagram'}
+      />
+    )
+  }
 
   return (
-    <div
-      id={id}
-      className="my-6 overflow-x-auto [&_svg]:mx-auto"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <figure className="my-6">
+      {accessibleName ? (
+        <figcaption id={captionId} className="sr-only">
+          {accessibleName}
+        </figcaption>
+      ) : null}
+      <div
+        id={id}
+        role="img"
+        aria-labelledby={accessibleName ? captionId : undefined}
+        aria-label={accessibleName ? undefined : 'Diagram'}
+        className="overflow-x-auto [&_svg]:mx-auto"
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+    </figure>
   )
+}
+
+function DiagramPlaceholder({ status }: Readonly<{ status: string }>) {
+  return (
+    <div
+      className={DIAGRAM_PLACEHOLDER_CLASS}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <span className="sr-only">{status}</span>
+    </div>
+  )
+}
+
+function resolveAccessibleName(title?: string, ariaLabel?: string): string | undefined {
+  const label = ariaLabel?.trim()
+  if (label) return label
+  const namedTitle = title?.trim()
+  if (namedTitle) return namedTitle
+  return undefined
 }

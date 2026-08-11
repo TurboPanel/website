@@ -7,6 +7,12 @@ description: Install and configure the TurboPanel control plane for self-hosted 
 
 The TurboPanel **instance** is the control plane API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for TurboPanel High Availability. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
 
+<Callout type="info" title="Private alpha — not yet publicly available">
+  Self-hosted and TurboPanel High Availability control planes are both in **private alpha** and
+  **not yet publicly available**. Contributor development (`dev.turbopanel.sh`) is available for
+  engineers building TurboPanel — not as a production operator install path.
+</Callout>
+
 ## Overview
 
 ### Purpose
@@ -22,12 +28,12 @@ On the control plane host, a **co-located daemon** installs and updates the inst
 
 <Callout type="info" title="Co-located daemon">
   The control plane server includes a co-located daemon that dials the local instance (socket or Caddy).
-  Remote nodes use the CDN installer — not a separate control-plane container image.
+  Remote nodes use the production installer at `turbopanel.sh` — not a separate control-plane container image.
 </Callout>
 
 ### Architecture (self-hosted)
 
-```mermaid
+```mermaid title="Self-hosted control plane traffic flow"
 graph TD
     Browser --> Caddy["Caddy :8443 TLS"]
     DevBrowser["Dev browser :8880 HTTP"] --> Caddy
@@ -47,24 +53,37 @@ graph TD
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
 | **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
-| **Pricing** | Free, unlimited servers | Pay per server |
+| **Availability** | Private alpha — preview | Private alpha — [waitlist](https://turbopanel.io/sign-up) |
+| **Pricing (planned)** | Free, unlimited servers | See [pricing](https://turbopanel.io/pricing) when available |
 
-## Installation
+## Installation paths
 
-### Self-hosted (systemd + Ansible)
+Pick the path that matches your goal — they do not substitute for one another. See [Installation](/docs/getting-started/installation) for the full decision guide.
 
-<Callout type="info" title="Current production path">
-  There is no public one-line install script for self-hosted control planes yet. Use the
-  [dev](https://github.com/turbopanel/dev) console on a Debian/Ubuntu VM.
-</Callout>
+### Contributor development (available today)
 
-On Debian/Ubuntu:
+For engineers working on TurboPanel source — **not** production self-hosted or TurboPanel High Availability.
 
-```bash
-curl -fsSL dev.turbopanel.sh | sh
-```
+<Steps>
+  <Step>
+    Bootstrap the dev console:
 
-Choose **Start dev stack** in the console. This enables co-located dev-instance mode and lets the daemon run `instance-dev-install` via Ansible. To run the console again later: `cd ~/dev && ./console`. Services:
+    ```bash
+    curl -fsSL dev.turbopanel.sh | sh
+    ```
+
+    This command is **contributors only**. It clones or updates `~/dev` and launches `./console`.
+  </Step>
+  <Step>
+    Choose **Start dev stack** in the console. This enables co-located dev-instance mode and lets the
+    daemon run `instance-dev-install` via Ansible.
+  </Step>
+  <Step>
+    To run the console again later: `cd ~/dev && ./console`.
+  </Step>
+</Steps>
+
+Services on a contributor dev host:
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
@@ -73,13 +92,41 @@ Choose **Start dev stack** in the console. This enables co-located dev-instance 
 | `turbopanel-caddy.service` | current dev user | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
 | `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |
 
-A hardened production install uses dedicated service users (`tp`, `tpctrl`, `tpcaddy`) — see [Daemon setup](/docs/deployment/daemon-setup).
+See [Local development](/docs/getting-started/development). Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
 
-Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
+### Self-hosted control plane (private alpha — preview)
 
-### TurboPanel High Availability
+When self-hosted is publicly available, operators provision a managed **FHS** control plane on Debian or Ubuntu — dedicated service users (`tp`, `tpctrl`, `tpcaddy`), static UI at `/opt/turbopanel/share/ui`, and convergence via daemon Ansible roles. **That production path is not publicly available yet.**
 
-From the instance repo:
+<Steps>
+  <Step>
+    Provision a 64-bit Linux host (Debian 12+ recommended).
+  </Step>
+  <Step>
+    Install the control plane with the managed production converge (Ansible `instance-launch` and related roles).
+  </Step>
+  <Step>
+    Complete the install wizard at `https://<host>:8443` (host PAM + superadmin).
+  </Step>
+  <Step>
+    Enroll managed servers with `turbopanel.sh` — [Daemon setup](/docs/deployment/daemon-setup).
+  </Step>
+</Steps>
+
+Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-hosted).
+
+<Callout type="warn" title="Not dev.turbopanel.sh">
+  `curl -fsSL dev.turbopanel.sh | sh` is the **contributor** dev console — not the production
+  self-hosted install path.
+</Callout>
+
+### TurboPanel High Availability (private alpha — waitlist)
+
+TurboPanel High Availability runs the instance on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to a hosted URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.io/sign-up) for access updates.
+
+When access is available, operators create an organization in the hosted panel, configure Workers bindings and secrets, and enroll nodes with `turbopanel.sh` (manifest default host — no `TURBOPANEL_HOST` required).
+
+Maintainers deploy the Workers bundle from the instance repo:
 
 ```bash
 export TURBOPANEL_DATABASE_URL="postgresql://user:pass@host:5432/dbname"
@@ -100,14 +147,6 @@ pnpm deploy
   only; the cell is not a polling API. See [Daemon cell architecture](/docs/architecture/daemon-cell)
   and `instance/AGENTS.md` (Daemon Cell) for cost/hibernation rules agents must not regress.
 </Callout>
-
-### Contributor local dev
-
-```bash
-curl -fsSL dev.turbopanel.sh | sh
-```
-
-Use **Start dev stack** in the console — see [Local development](/docs/getting-started/development). To run again later: `cd ~/dev && ./console`.
 
 ## Configuration
 
@@ -164,6 +203,8 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 ## Related documentation
 
+- [Installation paths](/docs/getting-started/installation) — Decision guide for all install paths
+- [Self-hosted overview](/docs/deployment/self-hosted) — Operator responsibilities
 - [Daemon setup](/docs/deployment/daemon-setup) — Remote node installer
 - [Security](/docs/deployment/security) — TLS, auth, and hardening
 - [Deployment troubleshooting](/docs/deployment/troubleshooting) — Runtime issues

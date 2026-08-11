@@ -5,12 +5,12 @@ description: What TurboPanel is, how the control plane and daemons fit together,
 
 # Introduction
 
-TurboPanel gives you one simple place to deploy websites, applications, and databases across all your infrastructure. Connect a server, choose where your project should run, and ship.
+TurboPanel gives you one simple place to deploy websites, applications, and databases across your infrastructure. Connect servers, choose where projects run, and ship from one console.
 
 A lightweight TurboPanel daemon on each server connects it to your control plane and runs approved operations locally. Your workloads stay on your servers.
 
 <Callout type="info" title="Private alpha — not yet publicly available">
-  Both deployment models below are in active development and not yet publicly available. This page
+  Both deployment models below are in **private alpha** and **not yet publicly available**. This page
   describes where we are headed as we work toward a beta release — see the
   [roadmap](https://turbopanel.io/roadmap) for current progress.
 </Callout>
@@ -21,28 +21,29 @@ A lightweight TurboPanel daemon on each server connects it to your control plane
 
 ### TurboPanel High Availability
 
-- Fast, always-on control plane with worldwide reach
+- Fast, always-on control plane with worldwide reach (planned)
 - No control-plane infrastructure, upgrades, backups, or public TLS for you to manage
-- Simple per-server pricing with your first server included
+- **Private alpha · Not yet available** — [join the waitlist](https://turbopanel.io/sign-up)
 
 ### Self-hosted
 
 - Run the control plane on infrastructure you operate
 - Same product experience as TurboPanel High Availability
 - You are responsible for control-plane uptime, upgrades, backups, and public access
-- Free, unlimited servers — you pay for the infrastructure you run
+- Planned to be **free, unlimited servers** once it ships — you pay for the infrastructure you run
+- **Private alpha · Not yet available** — [preview self-hosted docs](/docs/deployment/self-hosted)
 
 <Callout type="info" title="Not sure which to choose?">
-  TurboPanel High Availability is the default when you want us to operate the control plane.
-  Choose self-hosted when your team wants full operational custody — same product, your
-  infrastructure.
+  TurboPanel High Availability is the planned default when you want TurboPanel to operate the control
+  plane. Choose self-hosted when your team wants full operational custody — same product, your
+  infrastructure. Neither path is publicly available yet.
 </Callout>
 
 ## What you get
 
 - **One console** — servers, deploys, networks, and access in a single UI
-- **Fast worldwide access** — a responsive control plane for distributed teams
-- **Simple server setup** — connect a host with one install command
+- **Fast worldwide access** — a responsive control plane for distributed teams (planned for TurboPanel High Availability)
+- **Managed servers** — enroll hosts with the production daemon installer when your control plane is available
 - **Private networking** — securely link cloud, datacenter, and office infrastructure
 - **Automation when you need it** — use the API to plug TurboPanel into your workflow
 
@@ -63,7 +64,7 @@ graph TB
 
 ## Next steps
 
-- [Self-hosted overview](/docs/deployment/self-hosted) — Control plane and node setup
+- [Installation paths](/docs/getting-started/installation) — Contributor dev, self-hosted preview, and TurboPanel High Availability status
+- [Self-hosted overview](/docs/deployment/self-hosted) — Control plane and node setup (preview)
 - [Local development](/docs/getting-started/development) — Contributor Tilt workflow
 - [Daemon setup](/docs/deployment/daemon-setup) — Adding managed servers
-- [Control plane](/docs/deployment/control-plane) — Self-hosted production layout

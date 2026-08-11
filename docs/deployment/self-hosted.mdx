@@ -21,36 +21,54 @@ Self-hosted TurboPanel delivers the **same product** as TurboPanel High Availabi
 | Data residency you control | Panel data stays on infrastructure you provision |
 | Predictable infra cost | Control plane is planned to be **free, unlimited servers** — you pay for VMs and ops time |
 
-TurboPanel High Availability is the default when you prefer TurboPanel to operate the panel.
+TurboPanel High Availability is the planned default when you prefer TurboPanel to operate the panel. **Both paths are in private alpha and not yet publicly available.**
 
 ## What you run
 
 | Component | Role |
 | --- | --- |
 | **Control plane** | Hono API on Deno (Unix socket) + Postgres + Caddy TLS |
-| **UI** | Static export at `/opt/turbopanel/share/ui` (or Expo dev proxy during development) |
+| **UI** | Static export at `/opt/turbopanel/share/ui` (or Expo dev proxy during contributor development) |
 | **Daemon** | `turbopaneld` on every managed server, including the control-plane host (co-located) |
 | **Managed DB ingress** | Per-server ProxySQL on **5432** / **3306** — [architecture](/docs/architecture/managed-database-ingress) |
 
-## Install path
+## Install path (preview)
 
-1. **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel (contributor dev console today; production FHS install converges via daemon Ansible roles).
-2. **[Daemon setup](/docs/deployment/daemon-setup)** — enroll each server with the `turbopanel.sh` installer.
-3. **[Compatibility](/docs/deployment/compatibility)** — pair control plane and daemon channel versions before upgrades.
+When self-hosted is publicly available, operators follow this sequence:
+
+<Steps>
+  <Step>
+    **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel on Debian or
+    Ubuntu (planned managed FHS install via daemon Ansible roles; private alpha preview).
+  </Step>
+  <Step>
+    Complete the install wizard (host PAM + superadmin) and trust the platform CA from
+    `GET /api/daemon/v1/instance/ca`.
+  </Step>
+  <Step>
+    **[Daemon setup](/docs/deployment/daemon-setup)** — enroll each server with the `turbopanel.sh`
+    installer and an organization license.
+  </Step>
+  <Step>
+    **[Compatibility](/docs/deployment/compatibility)** — pair control plane and daemon channel
+    versions before upgrades.
+  </Step>
+</Steps>
 
 When you run managed databases, hosts that serve SQL clients also converge ProxySQL. Trust the org CA for `verify-full` client TLS and firewall listeners plus private peer paths as described in [Managed database ingress](/docs/architecture/managed-database-ingress) and [Security](/docs/deployment/security).
 
-<Callout type="info" title="Not the contributor dev console">
-  `curl -fsSL dev.turbopanel.sh | sh` is for **contributors** only. It is documented in
-  [Local development](/docs/getting-started/development), not as the production self-hosted path.
+<Callout type="warn" title="Contributors only — dev.turbopanel.sh">
+  `curl -fsSL dev.turbopanel.sh | sh` bootstraps the **contributor** dev console — not a production
+  self-hosted install. See [Local development](/docs/getting-started/development).
 </Callout>
 
 ## Pricing
 
-Self-hosted control plane: planned to be **free, unlimited servers** (you provide infrastructure) once it is publicly available. See [Pricing](/pricing) for TurboPanel High Availability — both paths are currently in private alpha.
+Self-hosted control plane: planned to be **free, unlimited servers** (you provide infrastructure) once it is publicly available. TurboPanel High Availability status and waitlist: [Pricing](https://turbopanel.io/pricing). Both paths are currently in private alpha.
 
 ## Next steps
 
+- [Deployment hub](/docs/deployment) — Operator overview
 - [Upgrade & rollback](/docs/deployment/upgrade)
 - [Uninstall & data export](/docs/deployment/uninstall)
 - [Daemon trust model](/docs/security/daemon-trust-model)
