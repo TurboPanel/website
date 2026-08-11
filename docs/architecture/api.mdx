@@ -68,7 +68,7 @@ Client auth routes under `/api/client/v1/auth/*`. Install wizard routes live und
 
 ### Secret envelopes
 
-Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the instance re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes. The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Operational detail: [Security → Secret management](/docs/deployment/security#secret-management-at-rest-vs-delivery).
+Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the instance re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes — field order is exactly `tpdaemon.v<n>.<serverId>.<keyId>.<payload>`. The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Full scheme table and rotation runbook: [Security → Envelope grammar](/docs/deployment/security#envelope-grammar).
 
 ## Database
 

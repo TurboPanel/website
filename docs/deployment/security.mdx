@@ -92,14 +92,34 @@ TurboPanel uses a **single root of trust** — `TURBOPANEL_SECRET` or the versio
 
 | Envelope | When | Scope |
 | -------- | ---- | ----- |
-| `tpsecret.v1.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and principal passwords |
-| `tpdaemon.v1.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
+| `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and principal passwords |
+| `tpdaemon.v<n>.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
 
 A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the instance and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
 
 **Encrypt-only client boundary:** the client/UI surface seals secrets (`encryptSecret` / `generateSealedSecret`) and may show a generated plaintext once. It never decrypts at-rest envelopes for display or reuse.
 
-**Rotation:** add a new highest version to `TURBOPANEL_SECRETS` and deploy. New writes **lazy re-seal** under the current data-encryption key version; older `tpsecret` rows stay decryptable via keyring fallbacks until rewritten. Superadmin `POST /api/admin/v1/secrets/reencrypt` (Admin → Secrets → **Re-encrypt secrets**) sweeps existing `variable`, `tls`, and `principal` blobs onto the current version. Each sweep write is conditional on the original envelope still being present, so a concurrent secret update during rotation is left untouched. Drop old root keys from the keyring only after the sweep (and after short-lived daemon JWTs issued under those keys have expired).
+#### Envelope grammar
+
+Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<version>.<fields…>`**. The embedded version selects the key directly (no trial decrypt). **Password hashes are the deliberate exception** — they stay standard PHC Argon2id (`$argon2id$v=19$m=…`) for interoperability.
+
+| Scheme | Shape | Where |
+| --- | --- | --- |
+| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, principal passwords, email secrets) |
+| `tpdaemon` | `tpdaemon.v<n>.<serverId>.<keyId>.<payload>` | Daemon delivery only |
+| `tpsession` | `tpsession.v<n>.<token>.<sig>` | Session cookie value |
+| `tpotp` | `tpotp.v<n>.<hmacHex>` | Email OTP verifier at rest |
+| `tpchallenge` | `tpchallenge.v<n>.<payload>.<sig>` | Stateless daemon enroll/auth challenge |
+
+**Coexistence (`TURBOPANEL_SECRET` + `TURBOPANEL_SECRETS`):** both may be set together. The keyring is authoritative **in the order written** — first entry is current/signing; the singular value is folded in as a **decrypt-only** `v1` fallback appended last. Identical `1:` in the keyring is a silent no-op; a conflicting `1:` is a **boot failure** naming both variables. Entries listed out of descending-version order log a warning and the first entry still signs. Example keyring shape (placeholder material only): `2:<new-key>,1:<old-key>`.
+
+#### Rotation (self-hosted runbook)
+
+1. **Add a key version** — re-run the instance converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the instance `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
+2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit the plural keyring env var alongside the existing singular assignment. `/etc/turbopanel/instance/.instance_secret` is **never rewritten** — it stays the legacy decrypt-only `v1`. Restart picks up the new keyring for the instance and the mailer (which loads the same env files to decrypt `MAILGUN_API_KEY` / `SMTP_PASS`).
+3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version, including the folded legacy key.
+4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand.
+5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min, stateless challenges ≤60 s. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging; retiring the legacy `v1` additionally means removing `.instance_secret` — and only once nothing is still sealed under it.
 
 ### Firewall Rules
 
@@ -122,7 +142,7 @@ Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (
 
 - Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
 - Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic
-- Rotate `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` on the instance per your key-rotation policy, then run the admin at-rest secret re-encrypt sweep before dropping old key versions (see [Secret management](#secret-management-at-rest-vs-delivery))
+- Rotate the instance root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
 
 ### Network Security
 
