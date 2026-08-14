@@ -11,8 +11,8 @@
  *
  * Companion guard to `scripts/check-control-plane-hosts.mjs` -- keep the
  * forbidden-phrase list and allowlist in sync with the sibling checks in
- * `../daemon/scripts/check-vocabulary.ts` and
- * `../instance/scripts/check-vocabulary.mjs`.
+ * `../turbopaneld/scripts/check-vocabulary.ts` and
+ * `../turbopanel/scripts/check-vocabulary.mjs`.
  *
  * Usage:
  *   node scripts/check-vocabulary.mjs

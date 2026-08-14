@@ -167,7 +167,7 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 
 <Callout type="info" title="Contributor dev is different">
   A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev) console runs the
-  daemon **from a source checkout** under `$HOME` (e.g. `~/daemon`, via `deno run main.ts`). Config
+  daemon **from a source checkout** under `$HOME` (e.g. `~/turbopaneld`, via `deno run main.ts`). Config
   lives in `/etc/turbopanel/daemon.env`; mutable state, logs, and sockets under dev-user-owned FHS
   paths; vendored runtimes under `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache`
   service accounts are created. The FHS tree above (including `tp:tp`) applies to managed/production

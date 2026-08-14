@@ -14,8 +14,8 @@ TurboPanel split from a single monorepo into sibling repositories. The [dev](htt
 | Location | GitHub repo | Role |
 | -------- | ----------- | ---- |
 | `~/dev/` | turbopanel/dev | `./console`, bootstrap installer, Ink dev UI |
-| `~/daemon/` | turbopanel/turbopaneld | Remote daemon + Ansible (installed by console) |
-| `~/instance/` | turbopanel/turbopanel | Hono API (Workers wrangler + Deno self-hosted) |
+| `~/turbopaneld/` | turbopanel/turbopaneld | Remote daemon + Ansible (installed by console) |
+| `~/turbopanel/` | turbopanel/turbopanel | Hono API (Workers wrangler + Deno self-hosted) |
 | `~/ui/` | turbopanel/ui | Expo web / native UI |
 | `~/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
 
@@ -43,7 +43,7 @@ The console drives a **dev layout** where source repos live under `$HOME` and mu
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
 | Source repos | `$HOME/{daemon,instance,ui,website}` | No source checkout (compiled release) |
-| Daemon entrypoint | `deno run main.ts` from `~/daemon` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
+| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
@@ -94,7 +94,7 @@ On co-located dev hosts, Caddy also listens on **8880** (`CADDY_HTTP_PORT`) as a
 
 Schema changes are versioned in `instance/migrations/`. **Versioned `pnpm migrate` is the only fresh-database bootstrap path** — co-located dev converge runs `scripts/bootstrap-dev-db.sh` (`pnpm migrate`), and Workers deploy runs the same command. Applied versions are tracked in `public.migration`. An unmigrated database is an operational failure (missing relations propagate); it must not be treated as install mode / `needsInstall`.
 
-1. **Generate + apply migrations:** edit `instance/src/lib/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
+1. **Generate + apply migrations:** edit `turbopanel/src/lib/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
 2. **Push (code → DB, Deno dev iteration only):** after a migrated baseline exists, `./scripts/sync.sh` from the dev checkout can apply schema edits via drizzle-kit push for quick local iteration — not a fresh-DB bootstrap.
 3. **Pull (DB → code):** change tables in Drizzle Studio, then `./scripts/introspect.sh` from the dev checkout.
 
@@ -125,13 +125,13 @@ Browser traffic should use **Caddy on `:8443`** (HTTPS) or, on co-located dev on
 
 ## Technology choices
 
-- **Hono** — Shared HTTP app for Workers and Deno (`instance/src/app.ts`).
+- **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app.ts`).
 - **Expo / React Native** — Cross-platform UI (`ui/`).
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
-- **Drizzle + Postgres** — Schema in `instance/src/db/schema.ts`; Hyperdrive in Workers production.
+- **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [turbopanel/dev](https://github.com/turbopanel/dev).
-- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `instance/AGENTS.md` (Daemon Cell + Command Pipeline) and `instance/src/lib/commands/` / `daemon/src/instance/commands/`.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `instance/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/lib/commands/` / `turbopaneld/src/instance/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).

@@ -5,14 +5,14 @@ description: Fix common Postgres and schema sync issues in local development
 
 # Database troubleshooting
 
-TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `instance/src/lib/db/AGENTS.md` in the repository.
+TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `turbopanel/src/lib/db/AGENTS.md` in the repository.
 
 ## Schema out of sync
 
 | Issue | What to do |
 | ----- | ---------- |
 | API errors about missing columns/tables | From `dev/`: `./scripts/sync.sh` (or `./scripts/sync.sh --force` after editing `schema.ts`) |
-| You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `instance/src/lib/db/schema.ts` |
+| You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `turbopanel/src/lib/db/schema.ts` |
 | Fresh Postgres volume | Deno auto-pushes on startup when `user` table is missing; or run `dev/scripts/sync.sh --force` manually |
 
 ## Connection failures

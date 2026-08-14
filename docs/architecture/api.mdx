@@ -5,7 +5,7 @@ description: Versioned surfaces, routing layout, and request flow in the turbopa
 
 # Instance API architecture
 
-The TurboPanel API lives in the [turbopanel/turbopanel](https://github.com/turbopanel/turbopanel) repository at `~/instance`. It is a **Hono** application with dual runtimes: **Cloudflare Workers** (`src/workers.ts` + wrangler) and **Deno** (`src/deno.ts` + Unix socket).
+The TurboPanel API lives in the [turbopanel/turbopanel](https://github.com/turbopanel/turbopanel) repository at `~/turbopanel`. It is a **Hono** application with dual runtimes: **Cloudflare Workers** (`src/workers.ts` + wrangler) and **Deno** (`src/deno.ts` + Unix socket).
 
 ## Versioned surfaces
 
@@ -23,7 +23,7 @@ Unversioned docs:
 - `GET /api/openapi.json` — OpenAPI 3.1 spec
 - `GET /api/reference` — Scalar embed
 
-## Folder layout (`instance/src/`)
+## Folder layout (`turbopanel/src/`)
 
 | Area | Files | Role |
 | ---- | ----- | ---- |
@@ -81,11 +81,11 @@ Single **PostgreSQL 18** database per environment. Schema groups:
 | Config | `setting` |
 | Runtime | `server` |
 
-Schema changes are versioned in `instance/migrations/` and applied via `pnpm migrate` (Workers deploy and co-located dev converge). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick iteration without committing SQL. See `instance/src/lib/db/AGENTS.md`.
+Schema changes are versioned in `instance/migrations/` and applied via `pnpm migrate` (Workers deploy and co-located dev converge). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick iteration without committing SQL. See `turbopanel/src/lib/db/AGENTS.md`.
 
 ## Compose documents & server placement
 
-`project.options.compose` / `environment.options.compose` store a versioned **ComposeDocument** (`version: 1`, `data`, `presentation`) so YAML comments, blank lines, and section order survive editor round-trips. Deploy strips `presentation` to runtime YAML and merges the environment overlay onto the project base. The compose library lives at `instance/src/lib/compose/`.
+`project.options.compose` / `environment.options.compose` store a versioned **ComposeDocument** (`version: 1`, `data`, `presentation`) so YAML comments, blank lines, and section order survive editor round-trips. Deploy strips `presentation` to runtime YAML and merges the environment overlay onto the project base. The compose library lives at `turbopanel/src/lib/compose/`.
 
 ### `x-turbopanel` vendor extension
 

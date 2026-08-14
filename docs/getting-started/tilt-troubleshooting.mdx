@@ -18,13 +18,13 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 - Open the **Status** area in `./console` and check unit states.
 - Follow logs from the **Actions** area (**Follow logs**).
 - Verify Docker is running: `docker version` (Postgres runs in Docker).
-- Confirm the daemon checkout exists: `~/daemon/`.
+- Confirm the daemon checkout exists: `~/turbopaneld/`.
 - If the daemon repo is missing, use **Install daemon** in the Actions area first, then **Start dev stack**.
 
 ## Instance runtime not switching
 
 - Use the **Instance** area in `./console` (**Switch to Deno Mode** / **Switch to Workers Mode**).
-- Workers mode requires `pnpm dev` running manually in `~/instance/`.
+- Workers mode requires `pnpm dev` running manually in `~/turbopanel/`.
 - Deno mode requires `/run/turbopanel` to exist and `turbopanel-instance.service` to be active.
 
 ## Port conflicts
@@ -50,7 +50,7 @@ Co-located dev exposes a plaintext mirror of the control plane at **`http://<hos
 
 ## TLS / certificate warnings
 
-- Trust `~/instance/certs/ca.crt` (or fetch from `GET /api/daemon/v1/instance/ca`) in your OS or browser.
+- Trust `~/turbopanel/certs/ca.crt` (or fetch from `GET /api/daemon/v1/instance/ca`) in your OS or browser.
 - Re-run the `instance-certs` Ansible role or `pnpm cert:generate` in the instance checkout if certs are missing.
 
 ## Schema sync failures

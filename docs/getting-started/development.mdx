@@ -7,11 +7,11 @@ description: Bootstrap, dev console workflow, ports, and common development task
 
 This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
-TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`). The [dev](https://github.com/turbopanel/dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
+TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`). The [dev](https://github.com/turbopanel/dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
 
 ## Fresh-clone → working dev
 
-1. Clone the five repos into `$HOME` (`~/dev`, `~/daemon`, `~/instance`, `~/ui`, `~/website`).
+1. Clone the five repos into `$HOME` (`~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`).
 2. From `~/dev`, run `./console` → prereqs, pinned Node, `pnpm install`, TUI launch (exports `TURBOPANEL_MODE=development`, `TURBOPANEL_DEV_ROOT`, `TURBOPANEL_<DIR>_REPO`).
 3. **Bootstrap / converge** → on launch the console auto-bootstraps when prerequisites are missing (daemon install → systemd unit → `instance-dev-install --if-needed`), otherwise auto-converges (`if-needed`, skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE` (any non-empty value) to skip auto-converge on launch; Developer → **Converge / re-converge** always force-runs. Daemon bootstraps as the dev user, writes `/etc/turbopanel/daemon.env`, runs the `dev/orchestration` overlay: runtimes into `/opt/turbopanel/vendor`, systemd units + Docker (postgres/redis/rabbitmq/mailpit) as the dev user, mutable data under FHS trees dev-user-owned. No `tp` / `tpctrl` / `tpcache` accounts created.
 4. Open `https://localhost:8443` (or dev `http://localhost:8880`); edit source in place under `$HOME`.
@@ -40,7 +40,7 @@ sh scripts/develop.sh   # update dev repo only
 
 Run `./console`. On a fresh host the TUI auto-drives daemon bootstrap (`bootstrap-orchestration.ts` + `install-daemon-systemd.sh`) then auto-chains into converge (`if-needed`). On an already-installed host it auto-converges on launch the same way (skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE=1` to skip that auto-converge; open **Developer** → **Converge / re-converge** anytime to force a full re-run. The daemon:
 
-- Ensures the **daemon** repo exists at `~/daemon` (or `TURBOPANEL_DAEMON_REPO`)
+- Ensures the **daemon** repo exists at `~/turbopaneld` (or `TURBOPANEL_DAEMON_REPO`)
 - Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into `/etc/turbopanel/daemon.env`
 - Runs orchestration (uv, Python, Ansible under `/opt/turbopanel/vendor/`)
 - Lets Ansible install instance, UI, Caddy, and Postgres (dev overlay in `dev/orchestration/`)
@@ -86,7 +86,7 @@ In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc
 | Mode | Behaviour |
 | ---- | --------- |
 | **deno** (default) | `turbopanel-instance` systemd unit + Unix socket at `/run/turbopanel/instance.sock` |
-| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `~/instance` manually |
+| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `~/turbopanel` manually |
 
 Workers mode has no Redis. Set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in `instance/.dev.vars`.
 
