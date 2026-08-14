@@ -63,7 +63,7 @@ Change ClickHouse TTL via env on the instance unit (`TURBOPANEL_SERVER_METRICS_R
 | Workers charts empty | AE SQL credentials missing | Set `CLOUDFLARE_ACCOUNT_ID` and `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN`; store reports `available: false` when either is absent |
 | Workers charts 503 `metrics_backend_unavailable` | AE SQL API rejected the query or token | Token must be **Account → Account Analytics → Read**. Check Worker logs for `metrics queryHostSeries failed …` (includes the Cloudflare/SQL error). Confirm `CLOUDFLARE_ACCOUNT_ID` matches the TurboPanel account |
 | Daemon connected, no metrics | Unsupported OS collector | Internal to `turbopaneld`: logs `metrics unsupported: unsupported_os:<os>`, stops periodic metrics for that attach, and does **not** send a metrics sample — check daemon logs |
-| Gap after connect | Normal warm-up | First rate metrics need two snapshots; allow ~1 min |
+| Gap after connect | Normal warm-up | First sample is immediate (gauges); rate metrics (CPU / disk / net) follow on the primed ~2 s snapshot |
 
 Writes are fire-and-forget at the WebSocket boundary — ingestion errors do not block daemon liveness.
 
@@ -71,7 +71,7 @@ Writes are fire-and-forget at the WebSocket boundary — ingestion errors do not
 
 | Symptom | Likely cause |
 | ------- | ------------ |
-| "No metrics yet" | Daemon offline or &lt; ~1 min since connect |
+| "No metrics yet" | Daemon offline or still connecting (first sample is immediate; rates follow in ~2 s) |
 | Storage still starting | ClickHouse (self-hosted) or AE binding/credentials (Workers) not ready yet — re-run instance-launch / converge |
 | Unsupported OS | Server OS metadata from daemon hello (`server.os.family !== 'linux'`) — not a metrics wire signal; Linux collector failures appear as no data/gaps instead |
 | Empty range | Selected window beyond retention (90 d API cap; 3 mo on hosted AE) |
