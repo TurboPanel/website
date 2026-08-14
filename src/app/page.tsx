@@ -49,7 +49,7 @@ const SUGGESTED_SETUPS = [
       'The easy choice. Create an account, connect a server, and deploy. We handle the control plane, updates, security, and uptime.',
   },
   {
-    stage: 'Site-to-site VPN',
+    stage: 'TurboFabric mesh',
     pitch:
       'Connect cloud, datacenter, and office servers on one private network, then manage the whole fleet from anywhere.',
   },

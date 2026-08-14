@@ -57,7 +57,7 @@ On Deno self-hosted, install endpoints are only available while the instance is 
 - Use Docker networks to isolate containers
 - Restrict Docker socket access to necessary containers only
 - Implement firewall rules to restrict access to the HTTPS entrypoint (default **8443**)
-- Use VPN or private networks for daemon communication when possible
+- Use TurboFabric or private networks for daemon communication when possible
 - Consider Docker Swarm or Kubernetes network policies
 
 ### Docker Socket Security
@@ -130,7 +130,7 @@ Recommended:
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
 - Implement rate limiting on API endpoints
-- For **managed databases**, treat ProxySQL listeners (**5432** / **3306**) as the only host SQL ingress — never expose engine containers; keep private replication/backend paths on site or VPN CIDRs. Prefer org-CA **`verify-full`** clients after downloading the CA PEM. Full contract: [Managed database ingress](/docs/architecture/managed-database-ingress).
+- For **managed databases**, treat ProxySQL listeners (**5432** / **3306**) as the only host SQL ingress — never expose engine containers; keep private replication/backend paths on site or TurboFabric CIDRs. Prefer org-CA **`verify-full`** clients after downloading the CA PEM. Full contract: [Managed database ingress](/docs/architecture/managed-database-ingress).
 
 ### Service users (self-hosted)
 

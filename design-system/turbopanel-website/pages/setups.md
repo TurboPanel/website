@@ -35,4 +35,4 @@
 - ❌ Horizontal stepper / "choose your adventure" wizard chrome
 - ❌ Identical feature-card grid for every scenario
 - ❌ Implying every server needs a public IP for the private-mesh or split-region patterns
-- ❌ Overstating unshipped capability — read replicas and site-to-site mesh are real, shipped primitives (managed cluster members + promote, org VPN links); phrase copy at the "what you can build" level, not as a literal 1:1 feature checklist
+- ❌ Overstating unshipped capability — read replicas and site-to-site mesh are real, shipped primitives (managed cluster members + promote, TurboFabric); phrase copy at the "what you can build" level, not as a literal 1:1 feature checklist

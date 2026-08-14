@@ -14,8 +14,8 @@ frontend that the daemon configures via `managed.ingress.reconcile`.
 ```mermaid
 flowchart LR
   App[Compose service] --> PS[ProxySQL on consumer server]
-  PS -->|private / VPN| Eng1[Engine member A]
-  PS -->|private / VPN| Eng2[Engine member B]
+  PS -->|private (site) or TurboFabric| Eng1[Engine member A]
+  PS -->|private (site) or TurboFabric| Eng2[Engine member B]
   Ops[Operator DSN] --> PS2[ProxySQL on member server]
   PS2 --> Eng1
 ```
@@ -24,7 +24,7 @@ flowchart LR
 | --- | --- |
 | **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`) |
 | **Listeners** | Host TCP **5432** (Postgres family) and **3306** (MySQL family) |
-| **Backends** | Engine containers (local Docker network name) or private/VPN addresses of remote members |
+| **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric addresses of remote members |
 | **Users** | Non-replication managed principals resealed for that server — binding-created users included |
 
 Replication principals never become ProxySQL frontend users.
@@ -37,11 +37,11 @@ On each server that hosts a managed member or a **placed compose service bound t
 | --- | --- | --- |
 | **5432** | TCP | Postgres-family clients through ProxySQL |
 | **3306** | TCP | MySQL / MariaDB clients through ProxySQL |
-| Private replication + backend ports | TCP | Datacenter / VPN only — not public |
+| Private replication + backend ports | TCP | Datacenter or TurboFabric only — never public |
 
 Firewall guidance:
 
-- Prefer **site/datacenter private CIDRs** (and WireGuard site links) for server-to-server engine traffic.
+- Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
 - Restrict public exposure of 5432/3306 to operator IP ranges when exposure is `public`.
 - Engine containers themselves never publish host ports for SQL.
 
@@ -68,6 +68,8 @@ A **binding** connects a managed database principal to a compose service:
 2. **Host/port** always resolve to the **consuming service’s placement server**
    ProxySQL listener (even when engine members live elsewhere). ProxySQL on that
    host is reconciled with routes to remote backends over the private path.
+   ProxySQL may also join the consuming environment's spanning network so
+   cross-host consumers resolve it by name.
 3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
    consumer server and cluster member servers so frontend users and servers stay
    aligned with sealed principal passwords.
@@ -76,7 +78,7 @@ A **binding** connects a managed database principal to a compose service:
 
 | Concern | Behavior |
 | --- | --- |
-| **Placement** | Multi-member clusters use private datacenter/VPN paths between servers |
+| **Placement** | Multi-member clusters use private datacenter or TurboFabric paths between servers |
 | **Read split** | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup |
 | **Apply** | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer) |
 | **Promote** | Fence (stop) old primary, then promote replica — promote command is chained only after successful fence |
