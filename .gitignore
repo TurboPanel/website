@@ -41,3 +41,4 @@ certs/
 # co-located dev host stamp (normalize-dev-checkout.sh)
 .turbopanel-checkout-stamp
 
+.DS_Store
