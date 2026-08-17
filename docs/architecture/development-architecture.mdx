@@ -31,8 +31,6 @@ vagrant ssh
 cd ~/dev && ./console
 ```
 
-[dev.turbopanel.sh](https://dev.turbopanel.sh) prints the same steps; it does not clone or install.
-
 ### Dev vs production path model
 
 The console drives a **dev layout** where source repos live under `$HOME` (guest) and mutable data uses FHS paths owned by the dev user. Production uses the same FHS tree with dedicated service users. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
