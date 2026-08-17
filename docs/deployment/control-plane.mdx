@@ -9,7 +9,7 @@ The TurboPanel **instance** is the control plane API. It runs as **Deno** on sel
 
 <Callout type="info" title="Private alpha — not yet publicly available">
   Self-hosted and TurboPanel High Availability control planes are both in **private alpha** and
-  **not yet publicly available**. Contributor development (`dev.turbopanel.sh`) is available for
+  **not yet publicly available**. Contributor development (Vagrant + sibling repos) is available for
   engineers building TurboPanel — not as a production operator install path.
 </Callout>
 
@@ -66,22 +66,25 @@ For engineers working on TurboPanel source — **not** production self-hosted or
 
 <Steps>
   <Step>
-    Bootstrap the dev console:
+    Clone (or fork) the six sibling repos, install Vagrant + a provider, then from the `dev` checkout:
 
     ```bash
-    curl -fsSL dev.turbopanel.sh | sh
+    vagrant up
+    vagrant ssh
+    cd ~/dev && ./console
     ```
 
-    This command is **contributors only**. It clones or updates `~/dev` and launches `./console`.
+    See [Local development](/docs/getting-started/development).
   </Step>
   <Step>
-    Choose **Start dev stack** in the console. This enables co-located dev-instance mode and lets the
-    daemon run `instance-dev-install` via Ansible.
+    On a fresh guest the console bootstraps the daemon and converges the stack (optional-services picker).
+    Later launches sit idle until Developer → **Converge / re-converge**.
   </Step>
   <Step>
-    To run the console again later: `cd ~/dev && ./console`.
+    On the host, open `https://localhost:8443` (ports are forwarded). Prefer a LAN hostname for remote test machines.
   </Step>
 </Steps>
+
 
 Services on a contributor dev host:
 
@@ -115,9 +118,9 @@ When self-hosted is publicly available, operators provision a managed **FHS** co
 
 Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-hosted).
 
-<Callout type="warn" title="Not dev.turbopanel.sh">
-  `curl -fsSL dev.turbopanel.sh | sh` is the **contributor** dev console — not the production
-  self-hosted install path.
+<Callout type="warn" title="Not the contributor Vagrant workflow">
+  Contributor development uses Vagrant and sibling checkouts — see [Local development](/docs/getting-started/development).
+  It is not the production self-hosted install path.
 </Callout>
 
 ### TurboPanel High Availability (private alpha — waitlist)

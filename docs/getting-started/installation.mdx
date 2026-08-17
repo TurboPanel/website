@@ -10,7 +10,7 @@ TurboPanel spans multiple repositories. **Pick the path that matches your goal**
 ```mermaid title="TurboPanel installation path decision"
 flowchart TD
     Q{What are you setting up?}
-    Q -->|Contributing to TurboPanel| Dev[Contributor dev — dev.turbopanel.sh]
+    Q -->|Contributing to TurboPanel| Dev[Contributor dev — Vagrant + sibling repos]
     Q -->|Operating your own control plane| Self[Self-hosted — private alpha preview]
     Q -->|Managed TurboPanel control plane| HA[TurboPanel High Availability — waitlist]
     Self --> Nodes[Enroll servers — turbopanel.sh + license]
@@ -33,26 +33,28 @@ For **contributors** building TurboPanel itself — not for production self-host
 
 <Steps>
   <Step>
-    Bootstrap the dev console from [dev](https://github.com/turbopanel/dev):
+    Clone (or fork) the six sibling repos under one parent directory (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`, `.github`). See [Local development](/docs/getting-started/development).
+  </Step>
+  <Step>
+    Install [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — [Prerequisites](/docs/development/prerequisites).
+  </Step>
+  <Step>
+    From the `dev` checkout:
 
     ```bash
-    curl -fsSL dev.turbopanel.sh | sh
+    vagrant up
+    vagrant ssh
+    cd ~/dev && ./console
     ```
 
-    The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console`.
+    The console installs pinned Node, converges the stack, and starts the Ink UI.
   </Step>
   <Step>
-    `./console` installs the pinned Node runtime (sudo on first run), runs `pnpm install`, and starts the Ink dev console.
-  </Step>
-  <Step>
-    From the console, use **Start dev stack** to install the daemon, bootstrap orchestration, and bring up instance + Caddy + UI via systemd.
-  </Step>
-  <Step>
-    To run the console again later: `cd ~/dev && ./console`.
+    On the host, open `https://localhost:8443` (ports are forwarded). Prefer a LAN hostname when attaching remote test machines.
   </Step>
 </Steps>
 
-See [Local development](/docs/getting-started/development) for console areas, URLs, and day-to-day workflow.
+See [Local development](/docs/getting-started/development) for ports, console areas, and day-to-day workflow.
 
 ## Self-hosted control plane (preview)
 
@@ -80,9 +82,9 @@ When self-hosted is publicly available, you provision a control plane on Debian 
   </Step>
 </Steps>
 
-<Callout type="warn" title="Not dev.turbopanel.sh">
-  `curl -fsSL dev.turbopanel.sh | sh` is **contributors only**. It is not the production self-hosted
-  install path.
+<Callout type="warn" title="Not the contributor Vagrant workflow">
+  Contributor development uses Vagrant and sibling checkouts — see [Local development](/docs/getting-started/development).
+  It is not the production self-hosted install path.
 </Callout>
 
 ## TurboPanel High Availability

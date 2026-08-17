@@ -1,65 +1,72 @@
 ---
 title: Prerequisites
-description: Supported environments and tooling needed to develop on TurboPanel
+description: Vagrant, providers, and tooling needed to develop on TurboPanel
 ---
 
 # Prerequisites
 
-This page lists what you need on your machine before you follow [Local development](/docs/getting-started/development). Product installation for running TurboPanel in production is covered under [Installation](/docs/getting-started/installation).
+This page lists what you need on your **host** before you follow [Local development](/docs/getting-started/development). Product installation for running TurboPanel in production is covered under [Installation](/docs/getting-started/installation).
 
 ## Supported environments
 
-**macOS** and **Linux** are the environments TurboPanel development is written for and routinely tested on.
+**macOS** and **Linux** are the environments TurboPanel development is written for and routinely tested on. The stack runs inside a **Vagrant** guest — you do not need Node, Deno, or Docker on the host.
 
 **Windows** (including **WSL**) is **not officially supported**. Some contributors use WSL successfully, but your mileage may vary; if something fails on Windows, fixups are welcome but the team may not be able to reproduce native Windows issues.
 
-## Required tooling
-
-### Node.js
-
-Node.js **24.x** or newer is required. The instance, UI, and website repos each declare their own `packageManager` field for pnpm.
-
-- **Install:** [nodejs.org](https://nodejs.org/)
-- **Verify:** `node --version`
-
-### pnpm
-
-pnpm **11.x** or newer. Using [Corepack](https://nodejs.org/api/corepack.html) is recommended so your pnpm version matches each repo.
-
-- **Install:** `corepack enable`, then use the version each repo requests, or install globally per the [pnpm installation docs](https://pnpm.io/installation)
-- **Verify:** `pnpm --version`
-
-### Docker
-
-**Docker** (Docker Engine or Docker Desktop) is required. The daemon runs Postgres in Docker; production and co-located dev paths also rely on Docker.
-
-- **Install:** [Docker Engine](https://docs.docker.com/engine/install/) or [Docker Desktop](https://docs.docker.com/desktop/)
-- **Verify:** `docker version`
+## Required on the host
 
 ### Git + SSH
 
-Platform repos clone via SSH (`git@github.com:turbopanel/...`). Ensure your GitHub SSH key is loaded before running `./console`.
+Clone (or fork) the six sibling repos over SSH. Load a GitHub SSH key on the host; Vagrant forwards the agent into the guest.
 
 - **Verify:** `ssh -T git@github.com`
 
-### openssl
+### Vagrant + provider
 
-**openssl** is required for TLS certificate generation (`scripts/generate-self-signed-cert.mjs`).
+| Host OS | Provider | Guest |
+| --- | --- | --- |
+| **Linux** | [Vagrant](https://developer.hashicorp.com/vagrant) + QEMU/KVM + [libvirt](https://libvirt.org/) + [`vagrant-libvirt`](https://vagrant-libvirt.github.io/vagrant-libvirt/) | Debian 13 (`debian/trixie64`) |
+| **macOS** | Vagrant + [UTM](https://mac.getutm.app/) + [`vagrant_utm`](https://github.com/naveenrajm7/vagrant_utm) | Debian 12 (`utm/bookworm`) until a Trixie UTM box exists |
 
-- **macOS:** `brew install openssl` (or use the system LibreSSL — already present)
-- **Debian/Ubuntu:** `apt install openssl`
-- **Verify:** `openssl version`
+**Linux:** install VirtioFS support, add your user to the `libvirt` group, and ensure libvirt’s default network and storage pool are active.
+
+**macOS example:**
+
+```bash
+brew install --cask utm
+brew install hashicorp/tap/hashicorp-vagrant
+vagrant plugin install vagrant_utm
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+### Sibling repositories
+
+Check out all six repos under one parent directory (any path works):
+
+```
+turbopanel/{dev,turbopaneld,turbopanel,ui,website,.github}
+```
+
+The `dev` checkout owns the `Vagrantfile`. Keep forks/remotes per repo so you can open PRs independently.
+
+## Installed inside the guest (not on the host)
+
+After `vagrant ssh` and `~/dev/console` / converge, the guest provides:
+
+| Tool | Notes |
+| ---- | ----- |
+| Node.js **24.x** | Pinned under `/opt/turbopanel/vendor/node/` |
+| pnpm | Via Corepack, pinned by each repo’s `packageManager` |
+| Deno | Pinned under `/opt/turbopanel/vendor/deno/` (orchestration) |
+| Docker | Postgres, RabbitMQ, ClickHouse, Mailpit, etc. |
+| openssl | TLS certificate generation |
+
+You do **not** install these on the host for the co-located Vagrant workflow.
 
 ## Optional (Workers instance runtime)
 
-Local dev defaults to the **Deno** path (`turbopanel-instance.service` on a Unix socket). To run the Cloudflare Workers path instead, switch to **Workers mode** in the **Instance** area of `./console` and run `pnpm dev` in the instance checkout. Workers mode requires Node.js and pnpm (see above).
-
-| Tool | Purpose | Install |
-| ---- | ------- | ------- |
-| Deno | Console + instance runtime (installed by `./console`) | [deno.com](https://docs.deno.com/runtime/getting_started/installation/) — or let orchestration install the pinned version under `/opt/turbopanel/vendor/deno/<version>/deno` (no `v` prefix) |
-
-Co-located dev on a Debian VM uses the [dev](https://github.com/turbopanel/dev) console (`./console` → **Start dev stack**) with Deno + systemd.
+Local guest defaults to the **Deno** path (`turbopanel-instance.service` on a Unix socket). To run the Cloudflare Workers path instead, switch to **Workers mode** in the **Services** area of `./console` and run `pnpm dev` in the instance checkout **inside the guest**.
 
 ## Next steps
 
-When the above is in place, continue with [Local development](/docs/getting-started/development) for bootstrap, ports, and day-to-day tasks.
+When the above is in place, continue with [Local development](/docs/getting-started/development) for Vagrant boot, ports, and day-to-day tasks.

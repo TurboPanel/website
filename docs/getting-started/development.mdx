@@ -1,72 +1,92 @@
 ---
 title: Local development
-description: Bootstrap, dev console workflow, ports, and common development tasks for TurboPanel
+description: Vagrant-based contributor setup, sibling repos, ports, and day-to-day TurboPanel development
 ---
 
 # Local development
 
-This guide covers contributor local development. For supported OSes and required tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
+This guide covers contributor local development. For host tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
-TurboPanel is **not a monorepo**. Clone the five sibling repos into `$HOME` (`~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`). The [dev](https://github.com/turbopanel/dev) repository is the entry point — it installs the dev console and orchestrates the stack via Ansible.
+TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under one parent directory, then run the stack inside a **Vagrant** guest. Edit on the host with VS Code / Cursor; Node, Deno, Docker, and systemd run in the VM.
 
-## Fresh-clone → working dev
+There is no `curl | sh` installer. [dev.turbopanel.sh](https://dev.turbopanel.sh) only prints these setup steps.
 
-1. Clone the five repos into `$HOME` (`~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`).
-2. From `~/dev`, run `./console` → prereqs, pinned Node, `pnpm install`, TUI launch (exports `TURBOPANEL_MODE=development`, `TURBOPANEL_DEV_ROOT`, `TURBOPANEL_<DIR>_REPO`).
-3. **Bootstrap / converge** → on launch the console auto-bootstraps when prerequisites are missing (daemon install → systemd unit → `instance-dev-install --if-needed`), otherwise auto-converges (`if-needed`, skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE` (any non-empty value) to skip auto-converge on launch; Developer → **Converge / re-converge** always force-runs. Daemon bootstraps as the dev user, writes `/etc/turbopanel/daemon.env`, runs the `dev/orchestration` overlay: runtimes into `/opt/turbopanel/vendor`, systemd units + Docker (postgres/redis/rabbitmq/mailpit) as the dev user, mutable data under FHS trees dev-user-owned. No `tp` / `tpctrl` / `tpcache` accounts created.
-4. Open `https://localhost:8443` (or dev `http://localhost:8880`); edit source in place under `$HOME`.
+## Repository layout
+
+Use your own forks and feature branches so you can open PRs against `trunk`:
+
+```
+turbopanel/
+├── dev/          # Vagrantfile + Ink console — https://github.com/turbopanel/dev
+├── turbopaneld/  # host daemon + Ansible — https://github.com/turbopanel/turbopaneld
+├── turbopanel/   # control plane — https://github.com/turbopanel/turbopanel
+├── ui/           # Expo product console — https://github.com/turbopanel/ui
+├── website/      # marketing + docs — https://github.com/turbopanel/website
+└── .github/      # community health — https://github.com/turbopanel/.github
+```
+
+Inside the guest these mount at `~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`, and `~/.github`.
 
 ## Quick start
 
-**1. Bootstrap the dev console**
+**1. Install Vagrant and a provider** (see [Prerequisites](/docs/development/prerequisites)).
 
-One-liner (fresh machine):
-
-```bash
-curl -fsSL dev.turbopanel.sh | sh
-```
-
-The one-liner clones or updates `~/dev` (or `${TURBOPANEL_DEV_ROOT}/dev`) and launches `./console` automatically.
-
-Or, from an existing checkout:
+**2. Boot the guest** from the `dev` checkout:
 
 ```bash
-cd ~/dev
-sh scripts/develop.sh   # update dev repo only
-./console
+cd path/to/turbopanel/dev
+vagrant up
+vagrant ssh
 ```
 
-**2. Launch the console and converge**
+Plain `vagrant up` selects **libvirt** on Linux and **UTM** on macOS. First boot downloads the box and may reboot once when a newer kernel is pending.
 
-Run `./console`. On a fresh host the TUI auto-drives daemon bootstrap (`bootstrap-orchestration.ts` + `install-daemon-systemd.sh`) then auto-chains into converge (`if-needed`). On an already-installed host it auto-converges on launch the same way (skip-when-unchanged). Set `TURBOPANEL_CONSOLE_NO_AUTO_CONVERGE=1` to skip that auto-converge; open **Developer** → **Converge / re-converge** anytime to force a full re-run. The daemon:
+**3. Start the console** inside the guest:
 
-- Ensures the **daemon** repo exists at `~/turbopaneld` (or `TURBOPANEL_DAEMON_REPO`)
-- Writes developer identity (`TURBOPANEL_DEV_USER/UID/GID`) into `/etc/turbopanel/daemon.env`
-- Runs orchestration (uv, Python, Ansible under `/opt/turbopanel/vendor/`)
-- Lets Ansible install instance, UI, Caddy, and Postgres (dev overlay in `dev/orchestration/`)
+```bash
+cd ~/dev && ./console
+```
 
-**3. Open**
+That ensures pinned Node, runs `pnpm install`, and launches the Ink developer console. On a fresh guest the console bootstraps the daemon and converges the stack (optional-services picker after bootstrap). On later launches it sits idle until Developer → **Converge / re-converge**.
+
+**4. Open the control plane from the host**
 
 | Service | URL |
 | ------- | --- |
 | App (Caddy → UI + API, HTTPS) | `https://localhost:8443` |
-| App (Caddy → UI + API, dev plaintext) | `http://localhost:8880` — co-located dev only; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` |
+| App (Caddy → UI + API, plaintext) | `http://localhost:8880` |
 | API health (HTTPS) | `https://localhost:8443/api/health` |
-| API health (dev plaintext) | `http://localhost:8880/api/health` |
-| Website (docs + API reference) | `http://localhost:19820` (when running separately) |
-| Mailpit | `http://localhost:8025` (when configured) |
+| API health (plaintext) | `http://localhost:8880/api/health` |
+| Website (docs + API reference) | `http://localhost:19820` (when enabled) |
+| Mailpit | `http://localhost:8025` (when enabled; host loopback only) |
 
-Trust the platform CA at `instance/certs/ca.crt` in your browser to avoid TLS warnings on `:8443`. The **`:8880`** entrypoint is a dev-only plaintext mirror of `:8443` — gated by **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`** (set automatically on co-located dev) — and works the same for **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** because both runtimes sit behind the same Caddy proxy.
+Trust the platform CA at `turbopanel/certs/ca.crt` (guest checkout) in your browser to avoid TLS warnings on `:8443`.
 
-Smoke test:
+Smoke test from the **host**:
 
 ```bash
 curl -k https://localhost:8443/api/health
-curl -k https://localhost:8443/api/client/v1/status
-# Co-located dev plaintext mirror (no -k needed):
 curl http://localhost:8880/api/health
-curl http://localhost:8880/api/client/v1/status
 ```
+
+## Ports forwarded to the host
+
+Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote test machines.
+
+| Port | Service | Host bind |
+| ---- | ------- | --------- |
+| **8443** | Control plane (Caddy HTTPS) | `0.0.0.0` (LAN) |
+| **8880** | Control plane (Caddy plaintext HTTP) | `0.0.0.0` (LAN) |
+| **8088** | Optional extra forward (guest must listen) | `0.0.0.0` (LAN) |
+| **19820** | Website (Next.js) | `0.0.0.0` (LAN) |
+| **4983** | Drizzle Studio (unauthenticated) | `127.0.0.1` only |
+| **8025** | Mailpit web UI (unauthenticated) | `127.0.0.1` only |
+| **5540** | Redis Insight (unauthenticated) | `127.0.0.1` only |
+| **8125** | Tabix (unauthenticated) | `127.0.0.1` only |
+
+- **Local browsing / VS Code / Cursor:** `https://localhost:8443` or `http://localhost:8880`.
+- **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. Ports `8443` / `8880` / `8088` / `19820` listen on all host interfaces.
+- **Studio / Mailpit / Redis Insight / Tabix** stay loopback-only on purpose — those UIs are unauthenticated. Open Drizzle Studio at `https://local.drizzle.studio?host=localhost&port=4983`.
 
 ## Dev console areas
 
@@ -90,37 +110,23 @@ In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc
 
 Workers mode has no Redis. Set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in `instance/.dev.vars`.
 
-## Repository layout
-
-Source repos live under `$HOME` (override with `TURBOPANEL_DEV_ROOT` and `TURBOPANEL_<DIR>_REPO`):
+## Guest filesystem (after converge)
 
 ```
-~/
-├── dev/           # turbopanel/dev — console entrypoint
-├── daemon/        # turbopanel/turbopaneld
-├── instance/      # Hono API (Workers + Deno)
-├── ui/            # Expo frontend
-└── website/       # marketing + docs (optional local run)
+~/dev/ ~/turbopaneld/ ~/turbopanel/ ~/ui/ ~/website/ ~/.github/   # mounted checkouts
 
-/opt/turbopanel/
-└── vendor/
-    ├── deno/2.9.5/        # pinned Deno runtime (orchestration-managed)
-    ├── node/              # pinned Node runtime (console-managed)
-    ├── uv/                # shared orchestration runtime (daemon bootstrap)
-    ├── python/            # managed Python for Ansible venv
-    └── ansible/           # ansible-playbook venv + Galaxy content
-
-/etc/turbopanel/           # config (dev-user-owned)
-/var/lib/turbopanel/       # state (dev-user-owned)
-/var/log/turbopanel/       # service logs (dev-user-owned)
-/run/turbopanel/           # runtime sockets (dev-user-owned)
+/opt/turbopanel/vendor/   # pinned Node, Deno, Caddy, uv, Ansible, …
+/etc/turbopanel/          # config (dev-user-owned)
+/var/lib/turbopanel/      # state (dev-user-owned)
+/var/log/turbopanel/      # service logs (dev-user-owned)
+/run/turbopanel/          # runtime sockets (dev-user-owned)
 ```
 
 ## Common tasks
 
 ### Database schema
 
-TurboPanel ships versioned SQL migrations in `instance/migrations/`. Co-located dev converge and Workers deploy apply them via `pnpm migrate`. For quick Deno-only iteration without committing migration files, use drizzle-kit push from the dev checkout:
+TurboPanel ships versioned SQL migrations in `turbopanel/migrations/`. Co-located dev converge and Workers deploy apply them via `pnpm migrate`. For quick Deno-only iteration without committing migration files, use drizzle-kit push from the guest `dev` checkout:
 
 ```bash
 ./scripts/sync.sh          # push instance schema.ts → Postgres (interactive)
@@ -130,10 +136,6 @@ TurboPanel ships versioned SQL migrations in `instance/migrations/`. Co-located 
 
 For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). The dev console **Database** section can reset the dev instance or start Drizzle Studio.
 
-### Drizzle Studio
-
-In the developer console **Database** section, start Studio via the API. The instance spawns `drizzle-kit studio` on **loopback:4983** only (`localhost` / `127.0.0.1` / `::1` — never a LAN bind); open **`https://local.drizzle.studio?host=localhost&port=4983`** in your browser.
-
 ### Formatting
 
 Each repo formats independently — run the formatter configured in that repo before committing.
@@ -142,34 +144,21 @@ Each repo formats independently — run the formatter configured in that repo be
 
 ```mermaid
 sequenceDiagram
-    participant Dev as Developer
-    participant Console as dev console
+    participant Host as Host (editor)
+    participant Vagrant as Vagrant guest
+    participant Console as ./console
     participant Daemon as turbopaneld
     participant Services as instance, Caddy, UI, Postgres
 
-    Dev->>Console: ./console
-    Console->>Console: auto-detect bootstrap vs converge (or idle if NO_AUTO_CONVERGE)
-    Console->>Daemon: bootstrap + systemd install (fresh host)
+    Host->>Vagrant: vagrant up / vagrant ssh
+    Host->>Console: cd ~/dev && ./console
+    Console->>Console: auto-detect bootstrap vs idle
+    Console->>Daemon: bootstrap + systemd install (fresh guest)
     Daemon->>Services: Ansible instance-dev-install (if-needed)
     Services-->>Console: Healthy (Services area)
-    Dev->>Console: Developer → Converge / re-converge (force)
-    Dev->>Console: Developer sections (fleet, DB, …)
-    Dev->>Services: Edit source in $HOME checkouts
+    Host->>Services: Edit mounted source / open :8443 on host
+    Host->>Console: Developer → Converge / re-converge (force)
 ```
-
-## Port reference
-
-| Service | Port | Notes |
-| ------- | ---- | ----- |
-| Caddy (HTTPS app) | 8443 | Primary browser entrypoint (TLS) |
-| Caddy (HTTP dev mirror) | 8880 | Plaintext mirror of `:8443`; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`; co-located dev only |
-| Website | 19820 | Next.js (when run locally) |
-| Wrangler (Workers mode) | 18787 | Not browser-facing |
-| Expo web | 8081 | Proxied by Caddy in dev |
-| Postgres | 5432 | Docker, `127.0.0.1:5432` (Workers mode) or Unix socket (Deno) |
-| Mailpit web | 8025 | Dev email UI |
-| Mailpit SMTP | 1025 | Dev email SMTP |
-| Drizzle Studio | 4983 | HTTP API; UI at `local.drizzle.studio` |
 
 ## Related
 

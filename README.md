@@ -57,11 +57,16 @@ Production deploy uses OpenNext + Wrangler — detail in [docs/development/websi
 
 For API-integrated work, use the [TurboPanel Development Environment](https://github.com/turbopanel/dev):
 
+Clone the six sibling repos (including this one), then from the `dev` checkout:
+
 ```sh
-curl -fsSL dev.turbopanel.sh | sh
+vagrant up
+vagrant ssh
+# inside guest:
+cd ~/dev && ./console
 ```
 
-That converges `~/website` alongside the control plane, daemon, and UI.
+That converges the website checkout alongside the control plane, daemon, and UI inside the Vagrant guest.
 
 ## Contributing
 
