@@ -36,7 +36,7 @@ For **contributors** building TurboPanel itself — not for production self-host
     Clone (or fork) the six sibling repos under one parent directory (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`, `.github`). See [Local development](/docs/getting-started/development).
   </Step>
   <Step>
-    Install [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — [Prerequisites](/docs/development/prerequisites).
+    Confirm the host has **at least 16 GB of RAM**, then install [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — [Prerequisites](/docs/development/prerequisites).
   </Step>
   <Step>
     From the `dev` checkout:
@@ -44,7 +44,7 @@ For **contributors** building TurboPanel itself — not for production self-host
     ```bash
     vagrant up
     vagrant ssh
-    cd ~/dev && ./console
+    dev/console
     ```
 
     The console installs pinned Node, converges the stack, and starts the Ink UI.

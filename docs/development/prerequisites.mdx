@@ -1,11 +1,23 @@
 ---
 title: Prerequisites
-description: Vagrant, providers, and tooling needed to develop on TurboPanel
+description: 16 GB RAM, Vagrant, providers, and tooling needed to develop on TurboPanel
 ---
 
 # Prerequisites
 
 This page lists what you need on your **host** before you follow [Local development](/docs/getting-started/development). Product installation for running TurboPanel in production is covered under [Installation](/docs/getting-started/installation).
+
+## System requirements
+
+Contributor development runs a **Vagrant** guest plus host editor tooling. Your machine must meet:
+
+| Requirement | Minimum |
+| --- | --- |
+| **RAM** | **16 GB** — the guest is allocated 8 GB; the rest is for the host OS, IDE, and tooling |
+| **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — see [Vagrant + provider](#vagrant--provider) |
+| **OS** | macOS or Linux (see [Supported environments](#supported-environments)) |
+
+A host with less than 16 GB of RAM will struggle to run the VM and local tooling at the same time.
 
 ## Supported environments
 
@@ -27,6 +39,8 @@ Clone (or fork) the six sibling repos over SSH. Load a GitHub SSH key on the hos
 | --- | --- | --- |
 | **Linux** | [Vagrant](https://developer.hashicorp.com/vagrant) + QEMU/KVM + [libvirt](https://libvirt.org/) + [`vagrant-libvirt`](https://vagrant-libvirt.github.io/vagrant-libvirt/) | Debian 13 (`debian/trixie64`) |
 | **macOS** | Vagrant + [UTM](https://mac.getutm.app/) + [`vagrant_utm`](https://github.com/naveenrajm7/vagrant_utm) | Debian 12 (`utm/bookworm`) until a Trixie UTM box exists |
+
+The table above is the **currently documented** pair — not a closed list. macOS and Linux will likely take **several more providers** over time. Pull requests that add a working provider are welcome: open a PR against [turbopanel/dev](https://github.com/turbopanel/dev) (`Vagrantfile` + docs) and we will review it.
 
 **Linux:** install VirtioFS support, add your user to the `libvirt` group, and ensure libvirt’s default network and storage pool are active.
 
@@ -51,7 +65,7 @@ The `dev` checkout owns the `Vagrantfile`. Keep forks/remotes per repo so you ca
 
 ## Installed inside the guest (not on the host)
 
-After `vagrant ssh` and `~/dev/console` / converge, the guest provides:
+After `vagrant ssh` and `dev/console` / converge, the guest provides:
 
 | Tool | Notes |
 | ---- | ----- |

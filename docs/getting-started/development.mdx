@@ -1,6 +1,6 @@
 ---
 title: Local development
-description: Vagrant-based contributor setup, sibling repos, ports, and day-to-day TurboPanel development
+description: Vagrant-based contributor setup — 16 GB RAM, sibling repos, ports, and day-to-day TurboPanel development
 ---
 
 # Local development
@@ -8,6 +8,15 @@ description: Vagrant-based contributor setup, sibling repos, ports, and day-to-d
 This guide covers contributor local development. For host tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
 
 TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under one parent directory, then run the stack inside a **Vagrant** guest. Edit on the host with VS Code / Cursor; Node, Deno, Docker, and systemd run in the VM.
+
+## System requirements
+
+| Requirement | Minimum |
+| --- | --- |
+| **RAM** | **16 GB** — needed to run the Vagrant guest and host tooling together |
+| **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) |
+
+Install Vagrant and the provider **before** `vagrant up`. Full host tooling, Git/SSH, and provider install notes are on [Prerequisites](/docs/development/prerequisites). Additional Vagrant providers for macOS and Linux are welcome — open a PR against [turbopanel/dev](https://github.com/turbopanel/dev).
 
 ## Repository layout
 
@@ -42,7 +51,7 @@ Plain `vagrant up` selects **libvirt** on Linux and **UTM** on macOS. First boot
 **3. Start the console** inside the guest:
 
 ```bash
-cd ~/dev && ./console
+dev/console
 ```
 
 That ensures pinned Node, runs `pnpm install`, and launches the Ink developer console. On a fresh guest the console bootstraps the daemon and converges the stack (optional-services picker after bootstrap). On later launches it sits idle until Developer → **Converge / re-converge**.
@@ -150,7 +159,7 @@ sequenceDiagram
     participant Services as instance, Caddy, UI, Postgres
 
     Host->>Vagrant: vagrant up / vagrant ssh
-    Host->>Console: cd ~/dev && ./console
+    Host->>Console: dev/console
     Console->>Console: auto-detect bootstrap vs idle
     Console->>Daemon: bootstrap + systemd install (fresh guest)
     Daemon->>Services: Ansible instance-dev-install (if-needed)
