@@ -6,6 +6,7 @@
     "api",
     "daemon-cell",
     "server-metrics",
-    "managed-database-ingress"
+    "managed-database-ingress",
+    "turbofabric-path-model"
   ]
 }

@@ -1,0 +1,81 @@
+---
+title: TurboFabric path model
+description: Six path states, direct-then-gateway-then-relay selection, and the allowRelay tightening-only policy
+---
+
+# TurboFabric path model
+
+TurboFabric picks **one** path per peer pair. Selection is ranked: **direct
+first**, then **datacenter gateways**, then **relay only when explicitly
+permitted**. A datacenter gateway is a routed peer — not the same class as an
+unrelated relay.
+
+The control plane stamps diagnostics-only `paths[]` on each GET fabric relay
+(`peerServerId`, `selected`, optional `endpoint` / `viaServerId` /
+`lastHandshakeAt` / `latencyMs`, `degraded`). That summary is never hashed into
+desired reconcile state.
+
+## Six path states
+
+| `selected` | Meaning |
+| --- | --- |
+| `direct_lan` | Same-site / private LAN endpoint |
+| `direct_public` | Public endpoint on the peer |
+| `direct_nat` | NAT rendezvous after kernel-observed endpoints |
+| `gateway` | Routed via a datacenter gateway (`viaServerId`) |
+| `relay` | Degraded fallback through an unrelated relay — **always degraded** |
+| `unreachable` | No viable path (no latency) |
+
+## Selection contract
+
+1. Prefer a healthy **direct** path (`direct_lan`, then `direct_public`).
+2. Try **NAT direct** (`direct_nat`) when a public/LAN endpoint is not enough.
+   NAT rendezvous is already implemented in the control plane
+   (`turbopanel/src/lib/fabric/rendezvous.ts`) and applied on the daemon with
+   kernel-only probes (`wg set … endpoint` + `wg show dump` — never a userspace
+   STUN socket). **Arbitrary symmetric NAT is not guaranteed to punch.**
+3. Fall back to a **datacenter gateway** (`gateway`) — typically leaf →
+   gateway → gateway → leaf across sites.
+4. Use **relay** only when org (and relay) `allowRelay` permits it.
+5. Otherwise the pair is **unreachable**.
+
+```mermaid
+sequenceDiagram
+    participant LeafA as Leaf A
+    participant GwA as Datacenter gateway A
+    participant GwB as Datacenter gateway B
+    participant LeafB as Leaf B
+
+    Note over LeafA,LeafB: Direct first (LAN, public, then NAT)
+
+    LeafA->>LeafB: direct_lan / direct_public
+    alt Direct not viable
+        LeafA->>LeafB: direct_nat (rendezvous; not guaranteed)
+    end
+    alt Still not viable
+        LeafA->>GwA: gateway
+        GwA->>GwB: gateway
+        GwB->>LeafB: gateway
+    end
+    alt Relay explicitly allowed
+        LeafA->>LeafB: relay (degraded)
+    else Relay off
+        LeafA--xLeafB: unreachable
+    end
+```
+
+## `allowRelay` policy
+
+- **Organization** `allowRelay` defaults **false** (opt-in / degraded). PUT
+  `/organizations/:id/fabric` may set it alongside `enabled`.
+- **Relay** `allowRelay` is `null` (inherit org), `true`, or `false`. A relay
+  may **only tighten** org policy: effective =
+  `orgAllowRelay AND (relayAllowRelay ?? true)`. A relay cannot turn relay on
+  when the org has it off.
+- GET fabric returns both the stored override and `effectiveAllowRelay`.
+- `preferredGatewayIds` must reference gateway-role relays in the same fabric
+  (**422** `preferred_gateway_invalid` otherwise).
+
+Relay copy in the console: *Relay is a degraded fallback path and must be
+explicitly enabled. A datacenter gateway is not the same as an unrelated
+relay.*

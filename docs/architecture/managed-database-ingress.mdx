@@ -23,8 +23,8 @@ flowchart LR
 | Piece | Role |
 | --- | --- |
 | **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`) |
-| **Listeners** | Host TCP **5432** (Postgres family) and **3306** (MySQL family) |
-| **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric addresses of remote members |
+| **Listeners** | Host TCP **15432** (Postgres family) and **16306** (MySQL family) |
+| **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
 | **Users** | Non-replication managed principals resealed for that server — binding-created users included |
 
 Replication principals never become ProxySQL frontend users.
@@ -35,17 +35,60 @@ On each server that hosts a managed member or a **placed compose service bound t
 
 | Port | Protocol | Audience |
 | --- | --- | --- |
-| **5432** | TCP | Postgres-family clients through ProxySQL |
-| **3306** | TCP | MySQL / MariaDB clients through ProxySQL |
-| Private replication + backend ports | TCP | Datacenter or TurboFabric only — never public |
+| **15432** | TCP | Postgres-family clients through ProxySQL |
+| **16306** | TCP | MySQL / MariaDB clients through ProxySQL |
+| **127.0.0.1:6032** | TCP | ProxySQL admin (loopback only) |
+| **45000–45999** | TCP | Member private listeners (replication + remote backends) |
 
 Firewall guidance:
 
 - Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
-- Restrict public exposure of 5432/3306 to operator IP ranges when exposure is `public`.
+- Restrict public exposure of 15432/16306 to operator IP ranges when exposure is `public`.
 - Engine containers themselves never publish host ports for SQL.
 
+### Public replication transport
+
+When a remote read replica shares no datacenter subnet and no TurboFabric mesh
+with its primary, the cluster falls back to the **public** transport — the last
+rung of the `local → datacenter → TurboFabric → public` ladder:
+
+- The member publishes its replication/backend listener on **one concrete public
+  address** at the allocated private port — never `0.0.0.0` and never loopback.
+- **TLS is mandatory.** The daemon refuses a public listener without org-CA
+  material, so the engine only ever starts with its org-CA leaf (SANs include
+  that public IP) and CA on disk. Postgres accepts the peer through a
+  `hostssl replication` line scoped to the peer address (`/32` or `/128`);
+  MySQL / MariaDB replication grants carry `REQUIRE SSL`, so the server enforces
+  TLS regardless of what the standby requests.
+- The daemon additionally installs **address-scoped firewall rules** that allow
+  only the known peer address(es) to reach that published port and drop
+  everything else. If no stable peer address is known, no rule is installed and
+  no broad fallback is ever added.
+
 See also [Deployment security](/docs/deployment/security) and [Self-hosted overview](/docs/deployment/self-hosted).
+
+## Stable client endpoint
+
+Promotion changes the ProxySQL **writer hostgroup**, never the host or port
+operators and apps dial. The advertised endpoint stays `host:15432` /
+`host:16306` on the placement server (member or bound consumer). There is no
+DNS or floating-IP primary discovery and no ProxySQL-to-ProxySQL chaining.
+Promote stays operator-triggered — there is no automatic failover.
+
+## Lazy placement and teardown
+
+The ProxySQL stack exists on a server **only** when that server hosts a managed
+member or a compose service bound to a managed cluster. Emptying a server
+enqueues `managed.ingress.reconcile` with `clusters: []`, which runs
+`docker compose down --remove-orphans`. Servers that never had a stack are left
+untouched.
+
+## Rollout: listener port move
+
+Already-running consumer containers keep injected `*_PORT=5432/3306` until
+their next deploy. Binding variables are recomputed in `deploy-prepare.ts` on
+every deploy — after this ingress port move, consuming environments must be
+**redeployed** to pick up `15432` / `16306`. No schema migration is required.
 
 ## TLS and org CA
 
@@ -78,7 +121,7 @@ A **binding** connects a managed database principal to a compose service:
 
 | Concern | Behavior |
 | --- | --- |
-| **Placement** | Multi-member clusters use private datacenter or TurboFabric paths between servers |
+| **Placement** | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers. Failover replicas stop at `datacenter`; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
 | **Read split** | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup |
 | **Apply** | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer) |
 | **Promote** | Fence (stop) old primary, then promote replica — promote command is chained only after successful fence |

@@ -2,10 +2,6 @@
 
 **Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io) — Next.js 16, Fumadocs MDX, deployed to Cloudflare Workers via OpenNext.
 
-[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](./LICENSE)
-[![Docs](https://img.shields.io/badge/live-turbopanel.io%2Fdocs-3366cc)](https://turbopanel.io/docs)
-[![Status: Private alpha](https://img.shields.io/badge/status-private%20alpha-3dd68c)](https://turbopanel.io/roadmap)
-
 GitHub: [turbopanel/website](https://github.com/turbopanel/website)
 
 ## Easiest first contribution
