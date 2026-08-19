@@ -52,9 +52,21 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443` (production) or, on co-located dev only, `http://<host>:8880` when `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` (no CA required)
 2. Test from node over HTTPS: `curl -k https://<host>:8443/api/daemon/v1/version`
 3. **Co-located dev only:** test plaintext: `curl http://<host>:8880/api/daemon/v1/version`
-4. Confirm platform CA (HTTPS path): compare with `GET /api/daemon/v1/instance/ca`
+4. Confirm platform CA (HTTPS path): compare `/etc/turbopanel/instance-ca.pem` with `GET /api/daemon/v1/instance/ca` (bundle, current CA first)
 5. Firewall: allow **8443** from remote daemons to instance (**8880** is dev-only and not for remote production nodes)
 6. Logs: `journalctl -u turbopaneld -f`
+
+### Stale platform CA (tls-trust parked)
+
+**Problem:** Daemon log shows `tls-trust` parked (dialed host, CA path, fingerprint) and reconnects only every 5 minutes to 1 hour — not a silent 30 s loop.
+
+**Cause:** The host still trusts an old platform CA after the control plane rotated (or the leaf SAN no longer matches the dialed hostname). Control-plane identity (JWKS JWT) is unchanged; only the **transport** anchor is stale.
+
+**Solutions:**
+
+1. Prefer the overlap path: on the control plane, keep the old CA in `ca-bundle.pem` and enqueue `server.tls.trust.reconcile` while the existing WSS session is still valid.
+2. If the session is already dead, re-run the installer with `--instance-ca` (or `--insecure-tls` for bootstrap fetch). `run.sh` pins `--cacert` first; on HTTP `000` it retries **once** unpinned and installs only if the fetched PEM validates the live leaf. Old and new fingerprints are printed when `$CA_PATH` is replaced.
+3. If verification fails, keep the existing CA and fix the instance URL / SAN list rather than blindly replacing the file.
 
 ## Postgres connection failures (self-hosted)
 

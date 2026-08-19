@@ -22,14 +22,14 @@ Re-enrollment requires the persisted `serverId` or a fresh license.
 | --- | --- |
 | Transport | TLS + WebSocket `/ws/daemon/v1` |
 | Session | 15-minute daemon JWT (EdDSA), refreshed via auth challenge |
-| Trust | Platform CA (self-hosted) or system roots (public TLS) — **no skip-verify mode** |
+| Trust | Platform CA **bundle** on self-hosted (`GET /api/daemon/v1/instance/ca` → `/etc/turbopanel/instance-ca.pem`) or system roots (public TLS) — **no skip-verify mode**. Control-plane identity is the JWKS/Ed25519 JWT; the CA is a transport anchor only. |
 | Presence | Heartbeats project `timeSync`, addresses, and online state to Postgres |
 
 Co-located dev may dial a Unix socket when configured; remote nodes always use WSS to the public URL.
 
 ## Commands the daemon can run
 
-Approved command types include deploy/stop, ping, hostname/reboot, timezone/NTP, TurboFabric reconcile, managed engine lifecycle, and orchestration playbooks invoked through Ansible.
+Approved command types include deploy/stop, ping, hostname/reboot, timezone/NTP, TurboFabric reconcile, platform CA trust reconcile (`server.tls.trust.reconcile`), managed engine lifecycle, and orchestration playbooks invoked through Ansible.
 
 Commands are **queued in Postgres**, dispatched over the cell, and correlated by `commandId`. The daemon executes only handlers registered in its command pipeline.
 
@@ -38,7 +38,7 @@ Commands are **queued in Postgres**, dispatched over the cell, and correlated by
 | Area | Path / privilege |
 | --- | --- |
 | State | `/var/lib/turbopanel` (keys, license, wireguard material mode `0600`) |
-| Config | `/etc/turbopanel/daemon.env` |
+| Config | `/etc/turbopanel/daemon.env`, `/etc/turbopanel/instance-ca.pem` (platform CA bundle) |
 | Logs | `/var/log/turbopanel/daemon.log` |
 | Production user | `tp:tp` with passwordless sudo for Ansible |
 | Orchestration | `/opt/turbopanel/share/orchestration` playbooks and roles |
@@ -75,6 +75,19 @@ Daemons do **not** upload arbitrary filesystem contents unless a specific comman
 ## Managed vs self-hosted
 
 The daemon trust model is **identical** — only the control plane URL and TLS trust roots differ (Workers edge vs self-signed platform CA).
+
+## Platform CA rotation (self-hosted)
+
+The instance-wide platform CA lives under `/var/lib/turbopanel/tls/` (`ca.crt`, `ca.key`, `ca-bundle.pem`). It is **not** the per-organization TLS library (`/api/client/v1/tls`). Public-URL apply regenerates **only the leaf**; rotating the root requires an explicit `TURBOPANEL_TLS_CA_ROTATE=1` on the generator.
+
+Rotation procedure:
+
+1. **Rotate** — mint the new root while keeping the outgoing CA in `ca-bundle.pem` (current first). The control plane still presents a leaf signed by a CA that existing daemons already trust.
+2. **Overlap** — fan `server.tls.trust.reconcile` to every connected server over the existing WSS session. Each daemon atomically writes `/etc/turbopanel/instance-ca.pem` and rebuilds its HTTP client from the bundle.
+3. **Confirm all daemons acked** — wait until every connected server reports `{ applied, fingerprint }` matching the new first-cert fingerprint.
+4. **Retire** — drop the old CA from the bundle only after those acks. Do not retire first: a daemon still on the stale pin cannot fetch a replacement CA over the killed WSS session.
+
+A daemon left on a stale anchor parks with a greppable `tls-trust` log (dialed host, CA path, local fingerprint). Recovery: re-run the installer with `--instance-ca` or `--insecure-tls` so `run.sh` can fetch the new bundle (pinned `--cacert` first; one guarded unpinned retry when the old pin is dead). See [troubleshooting](/docs/deployment/troubleshooting#stale-platform-ca-tls-trust-parked).
 
 ## Related
 
