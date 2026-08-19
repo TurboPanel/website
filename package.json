@@ -8,6 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "pretypecheck": "fumadocs-mdx",
     "typecheck": "tsc --noEmit",
     "check:hosts": "node scripts/check-control-plane-hosts.mjs",
     "check:docs-ssr": "node scripts/check-docs-ssr.mjs",
