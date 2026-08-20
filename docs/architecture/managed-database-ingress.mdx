@@ -23,7 +23,7 @@ flowchart LR
 | Piece | Role |
 | --- | --- |
 | **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`) |
-| **Listeners** | Host TCP **15432** (Postgres family) and **16306** (MySQL family) |
+| **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family) |
 | **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
 | **Users** | Non-replication managed principals resealed for that server — binding-created users included |
 
@@ -36,14 +36,14 @@ On each server that hosts a managed member or a **placed compose service bound t
 | Port | Protocol | Audience |
 | --- | --- | --- |
 | **15432** | TCP | Postgres-family clients through ProxySQL |
-| **16306** | TCP | MySQL / MariaDB clients through ProxySQL |
+| **13306** | TCP | MySQL / MariaDB clients through ProxySQL |
 | **127.0.0.1:6032** | TCP | ProxySQL admin (loopback only) |
 | **45000–45999** | TCP | Member private listeners (replication + remote backends) |
 
 Firewall guidance:
 
 - Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
-- Restrict public exposure of 15432/16306 to operator IP ranges when exposure is `public`.
+- Restrict public exposure of 15432/13306 to operator IP ranges when exposure is `public`.
 - Engine containers themselves never publish host ports for SQL.
 
 ### Public replication transport
@@ -72,7 +72,7 @@ See also [Deployment security](/docs/deployment/security) and [Self-hosted overv
 
 Promotion changes the ProxySQL **writer hostgroup**, never the host or port
 operators and apps dial. The advertised endpoint stays `host:15432` /
-`host:16306` on the placement server (member or bound consumer). There is no
+`host:13306` on the placement server (member or bound consumer). There is no
 DNS or floating-IP primary discovery and no ProxySQL-to-ProxySQL chaining.
 Promote stays operator-triggered — there is no automatic failover.
 
@@ -89,7 +89,7 @@ untouched.
 Already-running consumer containers keep injected `*_PORT=5432/3306` until
 their next deploy. Binding variables are recomputed in `deploy-prepare.ts` on
 every deploy — after this ingress port move, consuming environments must be
-**redeployed** to pick up `15432` / `16306`. No schema migration is required.
+**redeployed** to pick up `15432` / `13306`. No schema migration is required.
 
 ## TLS and Organization CA
 
