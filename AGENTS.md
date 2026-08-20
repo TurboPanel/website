@@ -55,7 +55,12 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | --- | --- |
 | `pnpm dev` | `next dev --port 19820` |
 | `pnpm build` | `next build --webpack` |
+| `pnpm lint` | ESLint |
+| `pnpm typecheck` | `tsc --noEmit` (runs `fumadocs-mdx` first) |
+| `pnpm test` | Vitest once |
+| `pnpm test:coverage` | Vitest + LCOV (`coverage/lcov.info`) — CI `verify.yml` runs this, then SonarCloud |
 | `pnpm check:hosts` | Assert `wrangler.jsonc` `API_HOSTNAMES` match `src/lib/control-plane-hosts.ts` |
+| `pnpm check:vocabulary` | Reject daemon-as-agent phrasing in docs/marketing copy |
 | `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (not only `Loading…`) |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
@@ -64,13 +69,18 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only.
 
 **Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
-Run typecheck/lint **inside the Vagrant guest** from the host `dev`
-checkout (`../dev/AGENTS.md` → Testing). This repo has no unit suite.
-Do not run `pnpm typecheck` / `pnpm lint` on the host.
+Run lint/typecheck/tests **inside the Vagrant guest** from the host `dev`
+checkout (`../dev/AGENTS.md` → Testing). Do not run `pnpm typecheck` /
+`pnpm lint` / `pnpm test` on the host.
 
 ```bash
-vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm typecheck'
+vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm test'
+vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm test:coverage'
 ```
+
+**CI:** `.github/workflows/verify.yml` runs lint, `check:hosts`, `check:vocabulary`, typecheck, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`.
+
+**Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
 ## Marketing & docs UI design (ui-ux-pro-max)
 
@@ -195,6 +205,31 @@ website/
 ```
 
 ## Key conventions
+
+### SonarQube (CI-based analysis)
+
+- Analysis runs in GitHub Actions (`.github/workflows/verify.yml`) with
+  `SONAR_TOKEN` and `sonar-project.properties`
+  (`sonar.projectKey=turbopanel_website`, `sonar.organization=turbopanel`). The job
+  runs lint + checks + typecheck + **`pnpm test:coverage`** (Vitest v8 LCOV at
+  `coverage/lcov.info`), then scans with
+  `sonar.javascript.lcov.reportPaths=coverage/lcov.info`. The scan waits on the
+  quality gate (`sonar.qualitygate.wait=true`); if the gate fails, the workflow
+  stops.
+- Vitest coverage `include` is `src/lib/**/*.ts` (`vitest.config.ts`).
+  `sonar.coverage.exclusions` must keep Next routes (`src/app/**`), marketing/docs
+  chrome (`src/components/**`), and `**/*.tsx` out of the coverage denominator so
+  untested pages do not fail Sonar-way **Coverage on New Code ≥ 80%**.
+- **`sonar.sources` / `sonar.tests` / `sonar.test.inclusions`** must stay set in
+  `sonar-project.properties` (and mirrored in vestigial
+  `.sonarcloud.properties`). Tests are co-located (`**/*.test.ts` under `src`).
+- **Automatic Analysis must stay off** for `turbopanel_website` (SonarCloud →
+  project **Administration → Analysis Method**). CI and Automatic Analysis
+  cannot run together — Automatic Analysis enabled makes the CI scanner fail.
+- Sonar-way **Coverage on New Code ≥ 80%** needs LCOV on CI. After switching
+  from Automatic Analysis, reset **New Code** (Administration → New Code) so the
+  baseline is not months of uncovered history, or the gate will fail even with
+  fresh coverage reports.
 
 ### TypeScript style (SonarQube)
 
