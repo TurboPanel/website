@@ -2,6 +2,10 @@
 
 **Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io) — Next.js 16, Fumadocs MDX, deployed to Cloudflare Workers via OpenNext.
 
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=turbopanel_website)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=coverage)](https://sonarcloud.io/component_measures?id=turbopanel_website&metric=coverage)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=code_smells)](https://sonarcloud.io/project/issues?id=turbopanel_website&resolved=false&types=CODE_SMELL)
+
 GitHub: [turbopanel/website](https://github.com/turbopanel/website)
 
 ## Easiest first contribution
