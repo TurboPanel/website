@@ -48,7 +48,7 @@ Rotation uses the same **rotate-before-retire** order as the Platform CA. Do not
 
 ## Automatic leaf renewal
 
-Issued leaves are tracked in the `tlsleaf` table (signing Organization CA, generation, not-after). A leaf is **due** when:
+Issued leaves are tracked in the `leaf` table (signing Organization CA, generation, not-after). A leaf is **due** when:
 
 - remaining lifetime is less than **one third** of the issued lifetime, or
 - its `ca_generation` no longer matches the active Organization CA generation (rotation).
