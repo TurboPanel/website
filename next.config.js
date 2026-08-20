@@ -18,7 +18,7 @@ const { createMDX } = require('fumadocs-mdx/next')
 function createNextConfig(phase, { defaultConfig }) {
   const { experimental, logging, ...restDefaultConfig } = defaultConfig
   // Strip deprecated experimental.browserDebugInfoInTerminal (use logging.browserToTerminal).
-  const experimentalConfig = { ...(experimental ?? {}) }
+  const experimentalConfig = { ...experimental }
   Reflect.deleteProperty(experimentalConfig, 'browserDebugInfoInTerminal')
 
   const config = {

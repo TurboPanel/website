@@ -16,6 +16,16 @@ export const metadata: Metadata = {
 
 const ENTRIES = [
   {
+    date: '2026-08-20',
+    channel: 'Private alpha',
+    title: 'Licensing',
+    body: 'Control plane, daemon, UI, and contributor console stay AGPL-3.0-only. The UI adds an Apple App Store additional permission. The website is Apache-2.0 for code and CC BY 4.0 for documentation. Contributions use a CLA; trademarks stay separate from the software licenses.',
+    links: [
+      { href: '/open-source', label: 'Open source' },
+      { href: '/about/logo', label: 'Logo & brand' },
+    ],
+  },
+  {
     date: OPEN_SOURCE_LAUNCH_DATE,
     channel: 'Private alpha',
     title: 'Open-source launch packaging',

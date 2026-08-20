@@ -2,7 +2,7 @@
 
 **Package:** `@turbopanel/website` — Next.js 16 marketing + Fumadocs docs.
 
-**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** AGPL-3.0-only. **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
+**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** Apache-2.0 (site/application code); CC BY 4.0 (`docs/`); trademarks excluded ([`TRADEMARKS.md`](./TRADEMARKS.md), [`LICENSES/README.md`](./LICENSES/README.md)). **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
 
 **Default branch:** `trunk`
 
@@ -33,7 +33,7 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not
 | `/setups` | `src/app/setups/page.tsx` | Architecture patterns (single server → unlimited mesh); nav label "Patterns" |
 | `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning |
 | `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
-| `/open-source` | `src/app/open-source/page.tsx` | License table, repo map, AGPL FAQ |
+| `/open-source` | `src/app/open-source/page.tsx` | License table, repo map, FAQ |
 | `/security` | `src/app/security/page.tsx` | Supported versions, private reporting |
 | `/changelog` | `src/app/changelog/page.tsx` | Human-written release highlights |
 | `/about/logo` | `src/app/about/logo/page.tsx` | Brand guidelines |
@@ -62,6 +62,15 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm cf-typegen` | `wrangler types` → `cloudflare-env.d.ts` |
 
 Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only.
+
+**Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
+Run typecheck/lint **inside the Vagrant guest** from the host `dev`
+checkout (`../dev/AGENTS.md` → Testing). This repo has no unit suite.
+Do not run `pnpm typecheck` / `pnpm lint` on the host.
+
+```bash
+vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm typecheck'
+```
 
 ## Marketing & docs UI design (ui-ux-pro-max)
 

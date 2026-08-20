@@ -12,41 +12,56 @@ import {
 export const metadata: Metadata = {
   title: 'Open source',
   description:
-    'TurboPanel repositories, AGPL-3.0 licensing, self-hosting scope, and trademark policy.',
+    'TurboPanel repositories, licenses, self-hosting scope, and trademark policy.',
 }
 
-const REPOS = [
+type RepoRow = {
+  name: string
+  slug: string
+  role: string
+  license: string
+  licenseNote?: string
+}
+
+const REPOS: readonly RepoRow[] = [
   {
     name: 'TurboPanel Control Plane',
     slug: 'turbopanel',
     role: 'API, auth, orchestration hub, daemon cell',
+    license: 'AGPL-3.0-only',
   },
   {
     name: 'TurboPanel Daemon',
     slug: 'turbopaneld',
     role: 'Host daemon, Ansible, deploy runtime, metrics',
+    license: 'AGPL-3.0-only',
   },
   {
     name: 'TurboPanel UI',
     slug: 'ui',
     role: 'Signed-in product console (Expo / Tamagui)',
+    license: 'AGPL-3.0-only',
+    licenseNote: 'with Apple App Store additional permission',
   },
   {
     name: 'TurboPanel Development Environment',
     slug: 'dev',
     role: 'Contributor dev console (not production install)',
+    license: 'AGPL-3.0-only',
   },
   {
     name: 'TurboPanel Website & Docs',
     slug: 'website',
     role: 'Marketing site and documentation source',
+    license: 'Apache-2.0 / CC BY 4.0',
+    licenseNote: 'code / documentation',
   },
-] as const
+]
 
 const FAQ = [
   {
     q: 'Can I use TurboPanel commercially?',
-    a: 'Yes, under AGPL-3.0-only. If you modify the software and run it as a network service users interact with, you must offer corresponding source to those users. Consult counsel for your specific deployment model.',
+    a: 'Yes. The control plane, daemon, product UI, and contributor console are AGPL-3.0-only. If you modify that software and run it as a network service users interact with, you must offer corresponding source to those users. The website is Apache-2.0 (code) and CC BY 4.0 (documentation).',
   },
   {
     q: 'Does self-hosted include the full product?',
@@ -54,7 +69,11 @@ const FAQ = [
   },
   {
     q: 'Can I redistribute TurboPanel?',
-    a: 'Under AGPL-3.0-only, yes — with license and source obligations. Do not imply endorsement or use TurboPanel trademarks beyond what the license and brand guidelines allow.',
+    a: 'Yes, under the license of each repository, including corresponding source where AGPL requires it. App Store copies of the UI are also covered by the Apple App Store additional permission in that repository. Do not imply endorsement or use TurboPanel trademarks beyond what the license and brand guidelines allow.',
+  },
+  {
+    q: 'Where is source for a published UI build?',
+    a: 'Each store binary and production update publishes corresponding source for that exact revision. Look for the source archive and license files that match the app version — not the trunk branch.',
   },
 ] as const
 
@@ -64,7 +83,7 @@ export default function OpenSourcePage() {
       <MarketingHero
         eyebrow="Open source"
         title="Same product. Your choice of operator."
-        description="TurboPanel application code is open source under AGPL-3.0-only. Self-host the full stack or use TurboPanel High Availability — the console and APIs are the same."
+        description="TurboPanel's control plane, daemon, and product UI are open source under AGPL-3.0-only. Self-host the full stack or use TurboPanel High Availability — the console and APIs are the same."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingSecondaryCta href="/docs/deployment/self-hosted">
@@ -79,7 +98,7 @@ export default function OpenSourcePage() {
       <MarketingSection>
         <MarketingSectionHeader
           eyebrow="License"
-          title="AGPL-3.0-only across application repos"
+          title="How each repository is licensed"
         />
         <div className="overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
           <table className="w-full border-collapse text-left text-sm">
@@ -101,18 +120,28 @@ export default function OpenSourcePage() {
                     </a>
                     <p className="mt-1 text-[var(--tp-text-muted)]">{repo.role}</p>
                   </td>
-                  <td className="px-5 py-4 font-mono text-[var(--tp-text-muted)]">AGPL-3.0-only</td>
+                  <td className="px-5 py-4 font-mono text-[var(--tp-text-muted)]">
+                    {repo.license}
+                    {repo.licenseNote ? (
+                      <p className="mt-1 font-sans text-[var(--tp-text-muted)]">{repo.licenseNote}</p>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className="mt-4 text-sm text-[var(--tp-text-muted)]">
-          Community standards live in{' '}
+          Contributions are accepted under the{' '}
+          <a
+            href="https://github.com/turbopanel/.github/blob/trunk/CLA.md"
+            className="text-[var(--tp-accent)] hover:underline"
+          >
+            Contributor License Agreement
+          </a>{'. Community standards live in '}
           <a href="https://github.com/turbopanel/.github" className="text-[var(--tp-accent)] hover:underline">
             turbopanel/.github
-          </a>{' '}
-          (no separate license file there).
+          </a>{'.'}
         </p>
       </MarketingSection>
 
@@ -181,10 +210,29 @@ export default function OpenSourcePage() {
           title="Trademark and logo use"
           description="The code is open; the TurboPanel name and logo are brand assets."
         />
-        <p className="text-sm text-[var(--tp-text-muted)]">
-          See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Logo & brand</Link>{' '}
-          for download links, clear space, and do-not rules.
-        </p>
+        <div className="space-y-4 text-sm leading-relaxed text-[var(--tp-text-muted)]">
+          <p>
+            Open-source licenses do not grant permission to use the TurboPanel name,
+            logos, or other trademarks. You may accurately state that a product is
+            based on, compatible with, or derived from TurboPanel. Modified
+            distributions must not use the TurboPanel name, logos, or trade dress in
+            a way that suggests they are official TurboPanel products without prior
+            written permission.
+          </p>
+          <p>
+            See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Logo & brand</Link>
+            {' '}
+            for download links, clear space, and do-not rules, and{' '}
+            <a
+              href="https://github.com/turbopanel/.github/blob/trunk/TRADEMARKS.md"
+              className="text-[var(--tp-accent)] hover:underline"
+            >
+              TRADEMARKS.md
+            </a>
+            {' '}
+            for the trademark policy.
+          </p>
+        </div>
       </MarketingSection>
 
       <MarketingSection variant="muted">

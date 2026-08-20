@@ -43,7 +43,7 @@ server {
 
 The control plane implements:
 
-- Signed session cookies for the web UI (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`)
+- Signed session cookies for the web UI (`TURBOPANEL_SECRETS`)
 - Argon2id password hashing for credential accounts (OWASP `m=19456,t=2,p=1`)
 - Host PAM gate for the Deno install wizard (not for routine sign-in)
 - WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
@@ -88,7 +88,7 @@ Mitigation strategies:
 
 ### Secret management (at rest vs delivery)
 
-TurboPanel uses a **single root of trust** — `TURBOPANEL_SECRET` or the versioned `TURBOPANEL_SECRETS` keyring — for session signing, daemon JWT material, and data encryption. There are **no per-server at-rest encryption keys**.
+TurboPanel uses a **single root of trust** — the versioned `TURBOPANEL_SECRETS` keyring — for session signing, daemon JWT material, and data encryption. There are **no per-server at-rest encryption keys**.
 
 | Envelope | When | Scope |
 | -------- | ---- | ----- |
@@ -111,15 +111,15 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 | `tpotp` | `tpotp.v<n>.<hmacHex>` | Email OTP verifier at rest |
 | `tpchallenge` | `tpchallenge.v<n>.<payload>.<sig>` | Stateless daemon enroll/auth challenge |
 
-**Coexistence (`TURBOPANEL_SECRET` + `TURBOPANEL_SECRETS`):** both may be set together. The keyring is authoritative **in the order written** — first entry is current/signing; the singular value is folded in as a **decrypt-only** `v1` fallback appended last. Identical `1:` in the keyring is a silent no-op; a conflicting `1:` is a **boot failure** naming both variables. Entries listed out of descending-version order log a warning and the first entry still signs. Example keyring shape (placeholder material only): `2:<new-key>,1:<old-key>`.
+**Keyring (`TURBOPANEL_SECRETS`):** the list is authoritative **in the order written** — first entry is current/signing; remaining entries are decrypt/verify-only fallbacks. Entries listed out of descending-version order log a warning and the first entry still signs. Example keyring shape (placeholder material only): `2:<new-key>,1:<old-key>`.
 
 #### Rotation (self-hosted runbook)
 
 1. **Add a key version** — re-run the instance converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the instance `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
-2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit the plural keyring env var alongside the existing singular assignment. `/etc/turbopanel/instance/.instance_secret` is **never rewritten** — it stays the legacy decrypt-only `v1`. Restart picks up the new keyring for the instance and the mailer (which loads the same env files to decrypt `MAILGUN_API_KEY` / `SMTP_PASS`).
-3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version, including the folded legacy key.
+2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the instance and the mailer (which loads the same env files to decrypt `MAILGUN_API_KEY` / `SMTP_PASS`).
+3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version.
 4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand.
-5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min, stateless challenges ≤60 s. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging; retiring the legacy `v1` additionally means removing `.instance_secret` — and only once nothing is still sealed under it.
+5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min, stateless challenges ≤60 s. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
 
 ### Firewall Rules
 

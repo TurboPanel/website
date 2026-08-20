@@ -246,10 +246,15 @@ export default function AboutLogoPage() {
 
       <MarketingSection>
         <p className="max-w-2xl text-sm leading-relaxed text-[var(--tp-text-muted)]">
-          Questions about trademark use or partnership lockups can go through
-          the usual TurboPanel contact channels. Product UI tokens stay in{" "}
+          Open-source licenses do not grant trademark rights. Questions about
+          trademark use or partnership lockups can go through the usual TurboPanel
+          contact channels. Policy:{' '}
+          <Link href="/open-source" className="text-[var(--tp-accent)] hover:underline">
+            Open source
+          </Link>
+          . Product UI tokens stay in{' '}
           <span className="font-mono">ui/src/lib/theme.ts</span>; marketing
-          tokens in{" "}
+          tokens in{' '}
           <span className="font-mono">website/src/app/globals.css</span>.
         </p>
       </MarketingSection>

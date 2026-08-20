@@ -68,13 +68,13 @@ function stripMermaidDirectives(code: string): Readonly<{ chart: string } & Merm
   const kept: string[] = []
 
   for (const line of lines) {
-    const titleDirective = /^\s*%%\s*title:\s*(.+?)\s*$/.exec(line)
+    const titleDirective = /^\s*%%\s*title:\s*(.+)$/.exec(line)
     if (titleDirective) {
       title = titleDirective[1].trim()
       continue
     }
 
-    const ariaDirective = /^\s*%%\s*aria-label:\s*(.+?)\s*$/.exec(line)
+    const ariaDirective = /^\s*%%\s*aria-label:\s*(.+)$/.exec(line)
     if (ariaDirective) {
       ariaLabel = ariaDirective[1].trim()
       continue

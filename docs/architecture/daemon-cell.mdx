@@ -407,8 +407,8 @@ Daemon JWTs are **EdDSA (Ed25519)**, 15-minute lifetime.
 **Rotation:** add a higher-version key, deploy, old tokens verify during their ≤15-min window, then drop the old key from the keyring/JWKS.
 
 <Callout type="warn" title="JWKS never exposes secrets">
-  JWKS publishes public Ed25519 verification material only — never `TURBOPANEL_SECRET`,
-  `TURBOPANEL_SECRETS`, or HMAC key material.
+  JWKS publishes public Ed25519 verification material only — never
+  `TURBOPANEL_SECRETS` or HMAC key material.
 </Callout>
 
 ```mermaid
@@ -417,7 +417,7 @@ sequenceDiagram
     participant Daemon
     participant JWKS as GET /api/daemon/v1/jwks.json
 
-    Note over Instance: deriveDaemonJwtKeyring from TURBOPANEL_SECRET(S)
+    Note over Instance: deriveDaemonJwtKeyring from TURBOPANEL_SECRETS
     Instance->>Instance: sign session JWT active kid EdDSA
 
     Daemon->>Instance: POST /api/daemon/v1/auth/session

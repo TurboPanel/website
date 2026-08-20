@@ -66,12 +66,16 @@ That converges the website checkout alongside the control plane, daemon, and UI 
 
 ## Contributing
 
-[Routing guide](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md) · [Documentation issue template](https://github.com/turbopanel/website/issues/new?template=documentation.yml)
+[Routing guide](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md) · [Contributor License Agreement](https://github.com/turbopanel/.github/blob/trunk/CLA.md) · [Documentation issue template](https://github.com/turbopanel/website/issues/new?template=documentation.yml)
 
 Agent conventions, design system workflow, and file layout: [AGENTS.md](./AGENTS.md).
 
 ## License
 
-TurboPanel Website is licensed under the [GNU Affero General Public License v3.0 only (AGPL-3.0-only)](./LICENSE).
+Site and application code is licensed under the [Apache License 2.0](./LICENSE).
+Documentation under `docs/` is licensed under [CC BY 4.0](./LICENSES/CC-BY-4.0.txt).
+See [LICENSES/README.md](./LICENSES/README.md).
 
-Copyright (C) 2025 TurboPanel contributors
+The TurboPanel name and logos are trademarks. See [TRADEMARKS.md](./TRADEMARKS.md).
+
+Copyright (C) 2025-2026 TurboPanel contributors

@@ -119,7 +119,7 @@ export default function SecurityPage() {
           >
             GitHub Security Advisories
           </a>
-          . Subscribe to release notifications for security fixes.
+          {'. Subscribe to release notifications for security fixes.'}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <MarketingSecondaryCta href="/docs/security/daemon-trust-model">

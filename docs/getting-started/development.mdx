@@ -1,6 +1,6 @@
 ---
 title: Local development
-description: Vagrant-based contributor setup — 16 GB RAM, sibling repos, ports, and day-to-day TurboPanel development
+description: Vagrant-based contributor setup — i7-4790K, 16–32 GB RAM, sibling repos, ports, and day-to-day TurboPanel development
 ---
 
 # Local development
@@ -11,9 +11,12 @@ TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under
 
 ## System requirements
 
-| Requirement | Minimum |
+We recommend **at least an Intel Core i7-4790K (or equivalent) with 16 GB of RAM**. Some workloads need more memory, so **24 GB+ is recommended**, and **32 GB is ideal**.
+
+| Requirement | Recommendation |
 | --- | --- |
-| **RAM** | **16 GB** — needed to run the Vagrant guest and host tooling together |
+| **CPU** | Intel Core i7-4790K or equivalent |
+| **RAM** | **16 GB** minimum · **24 GB+** recommended · **32 GB** ideal |
 | **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) |
 
 Install Vagrant and the provider **before** `vagrant up`. Full host tooling, Git/SSH, and provider install notes are on [Prerequisites](/docs/development/prerequisites). Additional Vagrant providers for macOS and Linux are welcome — open a PR against [turbopanel/dev](https://github.com/turbopanel/dev).
@@ -174,3 +177,5 @@ sequenceDiagram
 - [Database troubleshooting](/docs/getting-started/database-troubleshooting)
 - [Development architecture](/docs/architecture/development-architecture)
 - [API architecture](/docs/architecture/api)
+- [Open source](/open-source)
+- [Contributing](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md)

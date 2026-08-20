@@ -140,7 +140,7 @@ pnpm install
 pnpm deploy
 ```
 
-`pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
+`pnpm deploy` runs pending migrations (via `TURBOPANEL_DATABASE_URL` or `DATABASE_URL`) then `wrangler deploy --env $CLOUDFLARE_ENV --minify`. The migration step uses **Node only** (`drizzle-kit migrate` + post-migration resource-registry repair) — Deno is not required on the deploy host. Configure Hyperdrive, secrets (`TURBOPANEL_SECRETS`), and bindings in `wrangler.jsonc` before deploy.
 
 <Callout type="info" title="Daemon Cell on Workers">
   TurboPanel High Availability coordination uses a **hibernation-safe Durable Object per server**
@@ -157,7 +157,7 @@ pnpm deploy
 
 | Variable | Purpose |
 | -------- | ------- |
-| `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS` | Session signing (required in production) |
+| `TURBOPANEL_SECRETS` | Session signing (required in production) |
 | `TURBOPANEL_DATABASE_URL` | Full Postgres connection URL for self-hosted Deno boot (`instance-launch`) and tooling |
 | `DATABASE_URL` | Tooling-only fallback for `pnpm migrate` / drizzle-kit when `TURBOPANEL_DATABASE_URL` is unset (common in CI and dashboard deploy) |
 | `CLOUDFLARE_ENV` | Wrangler env name for Workers deploy (e.g. `live`, `testing`) — required by `pnpm deploy` |
@@ -204,17 +204,13 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 - **Daemon → instance:** WSS `/ws/daemon/v1` (through Caddy or direct Unix socket when co-located)
 - **Dev sync / tunnel:** Operator pushes daemon builds or tunnel tokens via developer API + daemon WS messages
 
-## Compose deploys (project + environment layers)
+## Compose deploys (compiled runtime file)
 
-Docker Compose projects do **not** ship a single pre-merged compose file to the daemon as the deploy source of truth. The control plane stores a **project** base compose and an optional **environment** overlay, then prepare/deploy writes each as its own file in an ordered multi-file chain:
+The control plane stores a **project** base compose and an optional **environment** overlay. Merge and platform inject happen on the instance; `environment.deploy` then publishes a **single compiled** `compose.yaml` (`role: 'runtime'`) that the daemon writes under `<stateDir>/deployments/<projectId>/<environmentId>/` next to `.env` (non-secrets) and `deployment.json`.
 
-`docker compose -f <project> -f <environment> -f <platform> …`
+Overrides between the authored project and environment layers follow the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (a later layer wins per key), most sequences — `ports`, `volumes`, `env_file`, and similar lists — **append** with attribute-specific key-based de-duplication rather than replacing the earlier layer wholesale, and `command`, `entrypoint`, and a service's `healthcheck.test` always **fully replace** rather than append. Authors who need to remove a value entirely, or force full replacement instead of the default append/merge behavior for a sequence, can use the reserved **`!reset`** (delete the key) and **`!override`** (force full replacement) YAML tags on the environment overlay.
 
-Order is **project → environment → (optional future repository layer) → platform last**. Platform is always daemon/instance-authored (labels, secrets, storage inject) and appears **at most once**, last. This matches the multi-file model native to `docker compose`, so precedence follows the `-f` order rather than a silent full rewrite into one file.
-
-Overrides and nullification between layers follow the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (a later layer wins per key), most sequences — `ports`, `volumes`, `env_file`, and similar lists — **append** with attribute-specific key-based de-duplication rather than replacing the earlier layer wholesale, and `command`, `entrypoint`, and a service's `healthcheck.test` always **fully replace** rather than append. Authors who need to remove a value entirely, or force full replacement instead of the default append/merge behavior for a sequence, can use the reserved **`!reset`** (delete the key) and **`!override`** (force full replacement) YAML tags on the environment overlay.
-
-In the organization console, **Merged compose** is a client-side simulation of the fully merged effective document (readability aid). **Prepared compose** and the live `environment.deploy` path use the same ordered `composeFiles[]` `-f` chain; a deprecated merged `composeYaml` field remains only as a display/legacy fallback. See also [API architecture — multi-file compose layers](/docs/architecture/api#multi-file-compose-layers--f-chain).
+In the organization console, **Merged compose** is a client-side simulation of the fully merged effective document (readability aid). **Prepared compose** and the live `environment.deploy` path show that compiled `compose.yaml`. See also [API architecture — compiled compose](/docs/architecture/api#compiled-compose-composeyaml).
 
 ## Related documentation
 

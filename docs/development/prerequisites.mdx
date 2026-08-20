@@ -1,6 +1,6 @@
 ---
 title: Prerequisites
-description: 16 GB RAM, Vagrant, providers, and tooling needed to develop on TurboPanel
+description: Intel Core i7-4790K, 16–32 GB RAM, Vagrant, providers, and tooling needed to develop on TurboPanel
 ---
 
 # Prerequisites
@@ -9,15 +9,16 @@ This page lists what you need on your **host** before you follow [Local developm
 
 ## System requirements
 
-Contributor development runs a **Vagrant** guest plus host editor tooling. Your machine must meet:
+Contributor development runs a **Vagrant** guest plus host editor tooling. We recommend **at least an Intel Core i7-4790K (or equivalent) with 16 GB of RAM**. Some workloads need more memory, so **24 GB+ is recommended**, and **32 GB is ideal**.
 
-| Requirement | Minimum |
+| Requirement | Recommendation |
 | --- | --- |
-| **RAM** | **16 GB** — the guest is allocated 8 GB; the rest is for the host OS, IDE, and tooling |
+| **CPU** | Intel Core i7-4790K or equivalent |
+| **RAM** | **16 GB** minimum · **24 GB+** recommended · **32 GB** ideal |
 | **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — see [Vagrant + provider](#vagrant--provider) |
 | **OS** | macOS or Linux (see [Supported environments](#supported-environments)) |
 
-A host with less than 16 GB of RAM will struggle to run the VM and local tooling at the same time.
+The guest is allocated 8 GB; remaining RAM is for the host OS, IDE, and tooling. A host with less than 16 GB of RAM will struggle to run the VM and local tooling at the same time.
 
 ## Supported environments
 

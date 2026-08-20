@@ -73,7 +73,6 @@ function MermaidContent({
   ariaLabel,
 }: Readonly<{ chart: string; title?: string; ariaLabel?: string }>) {
   const id = useId()
-  const captionId = `${id}-caption`
   const { resolvedTheme } = useTheme()
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -96,7 +95,7 @@ function MermaidContent({
           theme: resolvedTheme === 'dark' ? 'dark' : 'default',
         })
 
-        const { svg: rendered, bindFunctions } = await mermaid.render(
+        const { svg: rendered } = await mermaid.render(
           id.replaceAll(':', ''),
           chart.replaceAll(String.raw`\n`, '\n'),
         )
@@ -104,11 +103,6 @@ function MermaidContent({
         if (cancelled) return
         setError(null)
         setSvg(rendered)
-
-        requestAnimationFrame(() => {
-          const container = document.getElementById(id)
-          if (container) bindFunctions?.(container)
-        })
       } catch (err) {
         if (cancelled) return
         setSvg(null)
@@ -148,19 +142,14 @@ function MermaidContent({
 
   return (
     <figure className="my-6">
-      {accessibleName ? (
-        <figcaption id={captionId} className="sr-only">
-          {accessibleName}
-        </figcaption>
-      ) : null}
-      <div
-        id={id}
-        role="img"
-        aria-labelledby={accessibleName ? captionId : undefined}
-        aria-label={accessibleName ? undefined : 'Diagram'}
-        className="overflow-x-auto [&_svg]:mx-auto"
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
+      <div className="overflow-x-auto">
+        <img
+          id={id}
+          src={svgToDataUrl(svg)}
+          alt={accessibleName ?? 'Diagram'}
+          className="mx-auto"
+        />
+      </div>
     </figure>
   )
 }
@@ -176,6 +165,10 @@ function DiagramPlaceholder({ status }: Readonly<{ status: string }>) {
       <span className="sr-only">{status}</span>
     </div>
   )
+}
+
+function svgToDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 function resolveAccessibleName(title?: string, ariaLabel?: string): string | undefined {
