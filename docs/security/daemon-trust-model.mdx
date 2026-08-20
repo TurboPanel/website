@@ -89,8 +89,13 @@ Rotation procedure:
 
 A daemon left on a stale anchor parks with a greppable `tls-trust` log (dialed host, CA path, local fingerprint). Recovery: re-run the installer with `--instance-ca` or `--insecure-tls` so `run.sh` can fetch the new bundle (pinned `--cacert` first; one guarded unpinned retry when the old pin is dead). See [troubleshooting](/docs/deployment/troubleshooting#stale-platform-ca-tls-trust-parked).
 
+Organization CA rotation (managed-database / ProxySQL / replication leaves — not daemon → control-plane trust) follows the same order via the org TLS library. This is not the Platform CA above — see [Organization CA](/docs/security/organization-ca) for the full model. **Mint** a new active generation while the outgoing CA stays in the overlap trust bundle (`POST /api/client/v1/tls/ca/rotate`), **distribute** by fanning `managed.apply` and `managed.ingress.reconcile`, **confirm** those commands succeeded (`GET /api/client/v1/tls/ca/rotation`), then **retire** (`POST /api/client/v1/tls/ca/retire`) so the old generation leaves the bundle. Do not retire first.
+
+**Future:** tenant **hosting** leaves (Caddy-fronted web services) remain operator-pinned library certificates or Caddy `tls internal`. They are never issued by the Organization CA.
+
 ## Related
 
 - [Daemon setup](/docs/deployment/daemon-setup)
 - [Deployment security](/docs/deployment/security)
+- [Organization CA](/docs/security/organization-ca)
 - [Vulnerability reporting](/docs/security/reporting)

@@ -1,0 +1,73 @@
+---
+title: Organization CA
+description: Per-organization certificate authority for managed-database TLS, rotation, and leaf renewal
+---
+
+# Organization CA
+
+The **Organization CA** is the per-organization certificate authority that signs managed-database TLS leaves. It is distinct from the instance-wide **Platform CA** that daemons use to trust the control plane.
+
+<Callout type="info" title="Not the Platform CA">
+  There is one active Organization CA per organization. It is never shared across organizations. For the *other* CA — the instance-wide root daemons pin — see [Daemon trust model](/docs/security/daemon-trust-model) → Platform CA rotation.
+</Callout>
+
+## What it is
+
+Each organization has **one active** Organization CA: a `tls` row with `source='organization_ca'`. A rotation mints a new active generation and keeps the previous generation in the trust bundle as **retired** until operators explicitly retire it. Organizations never share a CA; a leaf issued for one org is not trusted by another org's bundle.
+
+## What it signs
+
+The Organization CA signs the leaves that terminate managed-database TLS:
+
+- **ProxySQL frontend** leaves (the advertised client listener)
+- **Managed engine listener** leaves
+- **Replication** leaves (`sslmode=verify-full` / MySQL-family `REQUIRE SSL`)
+
+Topology — who dials whom, SANs, and the ProxySQL hostgroup model — lives in [Managed database ingress](/docs/architecture/managed-database-ingress). This page does not re-explain that stack.
+
+## How clients obtain it
+
+Operators and apps retrieve the Organization CA as **PEM text**, never as a private key and never as a filesystem path:
+
+| Channel | Detail |
+| --- | --- |
+| Console | **Connect → Download CA certificate** |
+| API | `GET /api/client/v1/tls/ca/download` |
+| Bindings | Materialized `<PREFIX>_CA_CERT` environment variable (PEM text; the consuming app writes it to a file if the driver requires a path) |
+
+The download is the **trust bundle**: the active generation plus any retired generation still in overlap. Private keys never cross the client API.
+
+## Rotation runbook
+
+Rotation uses the same **rotate-before-retire** order as the Platform CA. Do not retire first: clients and daemons still on the outgoing generation must keep a trusted chain while new leaves are issued.
+
+1. **Rotate** — `POST /api/client/v1/tls/ca/rotate` mints a new **active** generation. The previous active generation becomes **retired** but stays in the trust bundle.
+2. **Overlap** — fan-out re-issues ProxySQL and engine leaves under the new generation and rematerializes bindings so `<PREFIX>_CA_CERT` carries the updated bundle.
+3. **Confirm** — `GET /api/client/v1/tls/ca/rotation` until every tracked command is terminal-success.
+4. **Retire** — `POST /api/client/v1/tls/ca/retire` drops the old generation from the bundle. The control plane refuses with **409** until overlap has converged.
+
+## Automatic leaf renewal
+
+Issued leaves are tracked in the `tlsleaf` table (signing Organization CA, generation, not-after). A leaf is **due** when:
+
+- remaining lifetime is less than **one third** of the issued lifetime, or
+- its `ca_generation` no longer matches the active Organization CA generation (rotation).
+
+A bounded, cursor-driven sweep renews due leaves and fans the same apply / ingress reconcile path as operator rotation.
+
+## Client-impact checklist
+
+| Client TLS mode | After Organization CA rotation |
+| --- | --- |
+| `verify-ca` / `verify-full` | Re-download the trust bundle. Redeploy binding-consuming environments so `<PREFIX>_CA_CERT` refreshes. Until both happen, drivers that pin the old PEM will fail handshake. |
+| `require` and lower | No client action. The ingress cert chain stays trusted through the overlap bundle; the server still presents a valid leaf. |
+
+## Non-goal
+
+**Future:** tenant **hosting** leaves (Caddy-fronted web services) remain operator-pinned library certificates or Caddy `tls internal`. They are never issued by the Organization CA.
+
+## Related
+
+- [Daemon trust model](/docs/security/daemon-trust-model)
+- [Managed database ingress](/docs/architecture/managed-database-ingress)
+- [Deployment security](/docs/deployment/security)
