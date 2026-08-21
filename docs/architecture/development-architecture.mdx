@@ -9,7 +9,7 @@ This page describes how the TurboPanel **multi-repo** Vagrant environment is orc
 
 ## Repository model
 
-TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/turbopanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them.
+TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them.
 
 | Host path (example) | Guest mount | GitHub repo | Role |
 | ------------------- | ----------- | ----------- | ---- |
@@ -128,7 +128,7 @@ Browser traffic from the host should use **Caddy on `:8443`** (HTTPS) or **`http
 - **Drizzle + Postgres** — Schema in `turbopanel/src/lib/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
-- **Ink** — Terminal dev console in [turbopanel/dev](https://github.com/turbopanel/dev).
+- **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
 - **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/lib/commands/` / `turbopaneld/src/instance/commands/`.
 

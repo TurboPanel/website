@@ -30,7 +30,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Foundation',
     status: 'Complete',
     summary: 'The secure foundation for accounts, teams, and one reliable control plane.',
-    releaseUrl: 'https://github.com/turbopanel/turbopanel/releases',
+    releaseUrl: 'https://github.com/TurboPanel/turbopanel/releases',
     focus: [
       'Secure sign-in, verification, recovery, and team invitations',
       'The same product experience across High Availability and self-hosted',
@@ -43,7 +43,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Fleet ops',
     status: 'Complete',
     summary: 'Manage many servers from one place without guessing what is online.',
-    releaseUrl: 'https://github.com/turbopanel/turbopanel/releases',
+    releaseUrl: 'https://github.com/TurboPanel/turbopanel/releases',
     focus: [
       'Multi-server dashboard with live status, OS, and connection details',
       'Host metrics charts for CPU, memory, disk, network, and more',
@@ -56,7 +56,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Apps & deploy',
     status: 'In Progress',
     summary: 'Deploy container apps today, with an even easier website experience on the way.',
-    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
+    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Projects, environments, visual editing, and one-click deploy (shipped)',
       'Secrets and environment variables, plus starter catalog templates (shipped)',
@@ -69,7 +69,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Reliability',
     status: 'Planned',
     summary: 'Make recovery, alerting, and account security feel production-grade.',
-    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
+    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Backup and restore workflows',
       'Health checks and operator alerts',
@@ -82,7 +82,7 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Teams',
     status: 'Planned',
     summary: 'Share work safely and hook TurboPanel into the rest of your stack.',
-    discussionUrl: 'https://github.com/turbopanel/turbopanel/discussions/categories/ideas',
+    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Deeper team roles and client-facing account support',
       'API tokens for external automation',

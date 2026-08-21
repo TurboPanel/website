@@ -134,7 +134,7 @@ Recommended:
 
 ### Service users (self-hosted)
 
-Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, ClickHouse, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/turbopanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
+Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, ClickHouse, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
 ## Daemon Security
 
@@ -200,7 +200,7 @@ graph TD
 # Optional outer nginx terminates public TLS and proxies to Caddy:
 
 # Remote managed server — official installer
-curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/install.sh \
   | sudo bash -s -- \
       --instance-url https://turbopanel.example.com:8443 \
       --instance-ca /etc/turbopanel/instance-ca.pem
@@ -211,7 +211,7 @@ curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/ins
 
 ```bash
 # Remote managed server connecting to Workers instance
-curl -fsSL https://raw.githubusercontent.com/turbopanel/turbopanel-cdn/trunk/install.sh \
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/install.sh \
   | sudo bash -s -- \
       --instance-url https://your-instance.workers.dev
 ```

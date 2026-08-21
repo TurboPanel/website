@@ -113,10 +113,10 @@ export default function OpenSourcePage() {
                 <tr key={repo.slug} className="border-t border-[var(--tp-border)]">
                   <td className="px-5 py-4">
                     <a
-                      href={`https://github.com/turbopanel/${repo.slug}`}
+                      href={`https://github.com/TurboPanel/${repo.slug}`}
                       className="font-medium text-[var(--tp-text)] hover:text-[var(--tp-accent)]"
                     >
-                      turbopanel/{repo.slug}
+                      TurboPanel/{repo.slug}
                     </a>
                     <p className="mt-1 text-[var(--tp-text-muted)]">{repo.role}</p>
                   </td>
@@ -134,12 +134,12 @@ export default function OpenSourcePage() {
         <p className="mt-4 text-sm text-[var(--tp-text-muted)]">
           Contributions are accepted under the{' '}
           <a
-            href="https://github.com/turbopanel/.github/blob/trunk/CLA.md"
+            href="https://github.com/TurboPanel/.github/blob/trunk/CLA.md"
             className="text-[var(--tp-accent)] hover:underline"
           >
             Contributor License Agreement
           </a>{'. Community standards live in '}
-          <a href="https://github.com/turbopanel/.github" className="text-[var(--tp-accent)] hover:underline">
+          <a href="https://github.com/TurboPanel/.github" className="text-[var(--tp-accent)] hover:underline">
             turbopanel/.github
           </a>{'.'}
         </p>
@@ -185,7 +185,7 @@ export default function OpenSourcePage() {
           {REPOS.map((repo) => (
             <li key={repo.slug}>
               <Link
-                href={`https://github.com/turbopanel/${repo.slug}`}
+                href={`https://github.com/TurboPanel/${repo.slug}`}
                 className="font-medium text-[var(--tp-accent)] hover:underline"
               >
                 {repo.name}
@@ -196,7 +196,7 @@ export default function OpenSourcePage() {
         </ul>
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingSecondaryCta href="/docs/deployment/self-hosted">Preview self-hosted docs</MarketingSecondaryCta>
-          <MarketingSecondaryCta href="https://github.com/turbopanel/turbopanel/releases">
+          <MarketingSecondaryCta href="https://github.com/TurboPanel/turbopanel/releases">
             Releases
           </MarketingSecondaryCta>
           <MarketingSecondaryCta href="/security">Security</MarketingSecondaryCta>
@@ -224,7 +224,7 @@ export default function OpenSourcePage() {
             {' '}
             for download links, clear space, and do-not rules, and{' '}
             <a
-              href="https://github.com/turbopanel/.github/blob/trunk/TRADEMARKS.md"
+              href="https://github.com/TurboPanel/.github/blob/trunk/TRADEMARKS.md"
               className="text-[var(--tp-accent)] hover:underline"
             >
               TRADEMARKS.md

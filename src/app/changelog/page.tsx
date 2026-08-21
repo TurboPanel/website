@@ -46,7 +46,7 @@ export default function ChangelogPage() {
         description="Human-written summaries — not commit dumps. Pair with GitHub Releases for artifacts and checksums."
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingSecondaryCta href="https://github.com/turbopanel/turbopanel/releases">
+          <MarketingSecondaryCta href="https://github.com/TurboPanel/turbopanel/releases">
             GitHub Releases
           </MarketingSecondaryCta>
           <MarketingSecondaryCta href="/security">Security advisories</MarketingSecondaryCta>

@@ -10,7 +10,7 @@ The **daemon cell** is TurboPanel's low-latency coordination layer for remote da
 <Callout type="info" title="Canonical source">
   This page mirrors shipped behavior documented in the instance repo. For agent maintenance and
   anti-regression rules, see{' '}
-  <File path="AGENTS.md" href="https://github.com/turbopanel/turbopanel/blob/trunk/AGENTS.md">
+  <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md">
     instance/AGENTS.md
   </File>{' '}
   (Daemon Cell section).
@@ -20,8 +20,8 @@ The **daemon cell** is TurboPanel's low-latency coordination layer for remote da
 
 | Runtime | Backend | Storage |
 | ------- | ------- | ------- |
-| Cloudflare Workers | <File path="src/daemon/cell/do.ts" href="https://github.com/turbopanel/turbopanel/blob/trunk/src/daemon/cell/do.ts">DaemonCellObject</File> | SQLite-backed Durable Object per server, named by `serverId` via `getByName(serverId)` |
-| Self-hosted Deno | <File path="src/daemon/cell/redis/" href="https://github.com/turbopanel/turbopanel/tree/trunk/src/daemon/cell/redis">RedisDaemonCell</File> | Redis Streams + HASH + SET at `tp:cell:{serverId}:*` on Unix socket `/run/turbopanel/redis.sock` |
+| Cloudflare Workers | <File path="src/daemon/cell/do.ts" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/cell/do.ts">DaemonCellObject</File> | SQLite-backed Durable Object per server, named by `serverId` via `getByName(serverId)` |
+| Self-hosted Deno | <File path="src/daemon/cell/redis/" href="https://github.com/TurboPanel/turbopanel/tree/trunk/src/daemon/cell/redis">RedisDaemonCell</File> | Redis Streams + HASH + SET at `tp:cell:{serverId}:*` on Unix socket `/run/turbopanel/redis.sock` |
 
 **Behavioral parity:** Cloudflare Workers (Durable Object) mode and self-hosted Deno/Redis mode must keep the same user-facing API and status semantics. DO and Redis are implementation details only — operators see identical `/api/daemon/v1/*` and `/ws/daemon/v1` behavior on both runtimes.
 
@@ -388,7 +388,7 @@ Two lease types:
 
 **Redis asymmetry:** Redis persists `leaseKey` + `connectionId`/`connected` in the meta HASH because it has no per-connection isolate memory.
 
-Safety-critical single-daemon guarantee on managed hosts combines the cell lease with `IdlePresence` and `ensure-single-daemon.sh` flock on `/run/turbopanel/daemon.lock` (see [daemon AGENTS.md](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md)).
+Safety-critical single-daemon guarantee on managed hosts combines the cell lease with `IdlePresence` and `ensure-single-daemon.sh` flock on `/run/turbopanel/daemon.lock` (see [daemon AGENTS.md](https://github.com/TurboPanel/turbopaneld/blob/trunk/AGENTS.md)).
 
 ## JWT / JWKS auth flow
 
@@ -444,7 +444,7 @@ Setting `TURBOPANEL_DAEMON_DEBUG=1` (via `isDaemonDebugEnabled()`) surfaces per-
 - DO: incremented by `#sql(callSite,…)` / `#setAlarm` / `#deleteAlarm` wrappers (thin pass-through when debug is off)
 - Redis: equivalent counters via `#bumpMethodRoute` / `#bumpDiag`
 
-Greppable trace lines use the `daemon-cell` component tag in instance logs. The dev console **Cell trace** viewer tails these lines — see [dev AGENTS.md](https://github.com/turbopanel/dev/blob/trunk/AGENTS.md).
+Greppable trace lines use the `daemon-cell` component tag in instance logs. The dev console **Cell trace** viewer tails these lines — see [dev AGENTS.md](https://github.com/TurboPanel/dev/blob/trunk/AGENTS.md).
 
 ## Billing audit checklist
 

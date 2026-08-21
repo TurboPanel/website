@@ -2,7 +2,7 @@
 
 **Package:** `@turbopanel/website` — Next.js 16 marketing + Fumadocs docs.
 
-**Public name:** TurboPanel Website & Docs → [turbopanel/website](https://github.com/turbopanel/website). **License:** Apache-2.0 (site/application code); CC BY 4.0 (`docs/`); trademarks excluded ([`TRADEMARKS.md`](./TRADEMARKS.md), [`LICENSES/README.md`](./LICENSES/README.md)). **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
+**Public name:** TurboPanel Website & Docs → [TurboPanel/website](https://github.com/TurboPanel/website). **License:** Apache-2.0 (site/application code); CC BY 4.0 (`docs/`); trademarks excluded ([`TRADEMARKS.md`](./TRADEMARKS.md), [`LICENSES/README.md`](./LICENSES/README.md)). **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
 
 **Default branch:** `trunk`
 
@@ -246,7 +246,7 @@ website/
 - **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
 - **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. After `pnpm build`, run `pnpm check:docs-ssr`.
 - **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
-- **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`turbopanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
+- **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`TurboPanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
 - **`getApiBaseUrl`** / control-plane localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` from Tilt `dev/.env`). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
 - **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_UI_CORS_ORIGINS`** on the instance (synced from `dev/.env` via `sync-env.sh`).

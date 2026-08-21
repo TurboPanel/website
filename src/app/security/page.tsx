@@ -65,7 +65,7 @@ export default function SecurityPage() {
           <li>
             Use{' '}
             <a
-              href="https://github.com/turbopanel/turbopanel/security/advisories/new"
+              href="https://github.com/TurboPanel/turbopanel/security/advisories/new"
               className="text-[var(--tp-accent)] hover:underline"
             >
               GitHub private vulnerability reporting
@@ -114,7 +114,7 @@ export default function SecurityPage() {
         <p className="text-sm text-[var(--tp-text-muted)]">
           Published advisories appear on{' '}
           <a
-            href="https://github.com/turbopanel/turbopanel/security/advisories"
+            href="https://github.com/TurboPanel/turbopanel/security/advisories"
             className="text-[var(--tp-accent)] hover:underline"
           >
             GitHub Security Advisories

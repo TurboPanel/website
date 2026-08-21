@@ -6,7 +6,7 @@
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=coverage)](https://sonarcloud.io/component_measures?id=turbopanel_website&metric=coverage)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=code_smells)](https://sonarcloud.io/project/issues?id=turbopanel_website&resolved=false&types=CODE_SMELL)
 
-GitHub: [turbopanel/website](https://github.com/turbopanel/website)
+GitHub: [TurboPanel/website](https://github.com/TurboPanel/website)
 
 ## Easiest first contribution
 
@@ -25,8 +25,8 @@ Live site: **[turbopanel.io](https://turbopanel.io)** · **[turbopanel.io/docs](
 
 1. Edit the MDX file under `docs/` (frontmatter `title` / `description` required).
 2. Update the parent `meta.json` if you add or rename a page.
-3. Terminology: public name is **TurboPanel Control Plane** ([turbopanel/turbopanel](https://github.com/turbopanel/turbopanel)); keep `instance` for internal/runtime references only.
-4. **Edit on GitHub** links and the MDX `<File>` chip resolve via [`src/lib/docs-github.ts`](./src/lib/docs-github.ts) (`turbopanel/website`, branch `trunk`).
+3. Terminology: public name is **TurboPanel Control Plane** ([TurboPanel/turbopanel](https://github.com/TurboPanel/turbopanel)); keep `instance` for internal/runtime references only.
+4. **Edit on GitHub** links and the MDX `<File>` chip resolve via [`src/lib/docs-github.ts`](./src/lib/docs-github.ts) (`TurboPanel/website`, branch `trunk`).
 
 Preview locally:
 
@@ -55,7 +55,7 @@ Production deploy uses OpenNext + Wrangler — detail in [docs/development/websi
 
 ## Full stack development
 
-For API-integrated work, use the [TurboPanel Development Environment](https://github.com/turbopanel/dev):
+For API-integrated work, use the [TurboPanel Development Environment](https://github.com/TurboPanel/dev):
 
 Clone the six sibling repos (including this one), then from the `dev` checkout:
 
@@ -70,7 +70,7 @@ That converges the website checkout alongside the control plane, daemon, and UI 
 
 ## Contributing
 
-[Routing guide](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md) · [Contributor License Agreement](https://github.com/turbopanel/.github/blob/trunk/CLA.md) · [Documentation issue template](https://github.com/turbopanel/website/issues/new?template=documentation.yml)
+[Routing guide](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md) · [Contributor License Agreement](https://github.com/TurboPanel/.github/blob/trunk/CLA.md) · [Documentation issue template](https://github.com/TurboPanel/website/issues/new?template=documentation.yml)
 
 Agent conventions, design system workflow, and file layout: [AGENTS.md](./AGENTS.md).
 

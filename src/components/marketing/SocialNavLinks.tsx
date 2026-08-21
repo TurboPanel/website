@@ -2,7 +2,7 @@ import { DiscordIcon, GithubIcon } from '@/components/icons'
 
 const SOCIAL_LINKS = [
   {
-    href: 'https://github.com/turbopanel',
+    href: 'https://github.com/TurboPanel',
     label: 'GitHub',
     Icon: GithubIcon,
   },

@@ -19,7 +19,7 @@ We recommend **at least an Intel Core i7-4790K (or equivalent) with 16 GB of RAM
 | **RAM** | **16 GB** minimum · **24 GB+** recommended · **32 GB** ideal |
 | **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) |
 
-Install Vagrant and the provider **before** `vagrant up`. Full host tooling, Git/SSH, and provider install notes are on [Prerequisites](/docs/development/prerequisites). Additional Vagrant providers for macOS and Linux are welcome — open a PR against [turbopanel/dev](https://github.com/turbopanel/dev).
+Install Vagrant and the provider **before** `vagrant up`. Full host tooling, Git/SSH, and provider install notes are on [Prerequisites](/docs/development/prerequisites). Additional Vagrant providers for macOS and Linux are welcome — open a PR against [TurboPanel/dev](https://github.com/TurboPanel/dev).
 
 ## Repository layout
 
@@ -27,12 +27,12 @@ Use your own forks and feature branches so you can open PRs against `trunk`:
 
 ```
 turbopanel/
-├── dev/          # Vagrantfile + Ink console — https://github.com/turbopanel/dev
-├── turbopaneld/  # host daemon + Ansible — https://github.com/turbopanel/turbopaneld
-├── turbopanel/   # control plane — https://github.com/turbopanel/turbopanel
-├── ui/           # Expo product console — https://github.com/turbopanel/ui
-├── website/      # marketing + docs — https://github.com/turbopanel/website
-└── .github/      # community health — https://github.com/turbopanel/.github
+├── dev/          # Vagrantfile + Ink console — https://github.com/TurboPanel/dev
+├── turbopaneld/  # host daemon + Ansible — https://github.com/TurboPanel/turbopaneld
+├── turbopanel/   # control plane — https://github.com/TurboPanel/turbopanel
+├── ui/           # Expo product console — https://github.com/TurboPanel/ui
+├── website/      # marketing + docs — https://github.com/TurboPanel/website
+└── .github/      # community health — https://github.com/TurboPanel/.github
 ```
 
 Inside the guest these mount at `~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`, and `~/.github`.
@@ -178,4 +178,4 @@ sequenceDiagram
 - [Development architecture](/docs/architecture/development-architecture)
 - [API architecture](/docs/architecture/api)
 - [Open source](/open-source)
-- [Contributing](https://github.com/turbopanel/.github/blob/trunk/CONTRIBUTING.md)
+- [Contributing](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md)

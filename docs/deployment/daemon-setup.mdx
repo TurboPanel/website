@@ -5,7 +5,7 @@ description: Install and configure TurboPanel daemons on managed servers
 
 # Daemon Setup
 
-The TurboPanel **daemon** ([turbopaneld](https://github.com/turbopanel/turbopaneld)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
+The TurboPanel **daemon** ([turbopaneld](https://github.com/TurboPanel/turbopaneld)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
 
 ## Overview
 
@@ -95,7 +95,7 @@ curl -fsSL turbopanel.sh | \
 
 The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
 
-While provisioning runs, the terminal shows a **rolling status view** (spinner on TTY hosts) with neutral labels — orchestration instead of Ansible tool names, **cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role names, and env vars on disk are unchanged; full detail remains in `/var/log/turbopanel/daemon.log` after install. See the daemon repo [`AGENTS.md` — Installer presentation layer](https://github.com/turbopanel/turbopaneld/blob/trunk/AGENTS.md#installer-presentation-layer).
+While provisioning runs, the terminal shows a **rolling status view** (spinner on TTY hosts) with neutral labels — orchestration instead of Ansible tool names, **cache** instead of Redis, **queue** instead of RabbitMQ. Vendor paths, role names, and env vars on disk are unchanged; full detail remains in `/var/log/turbopanel/daemon.log` after install. See the daemon repo [`AGENTS.md` — Installer presentation layer](https://github.com/TurboPanel/turbopaneld/blob/trunk/AGENTS.md#installer-presentation-layer).
 
 #### Contributor dev overlay only
 
@@ -129,7 +129,7 @@ curl -fsSL turbopanel.sh | \
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mismatches, missing license files, and self-hosted hosts.
 
 <Callout type="info" title="Control plane host">
-  On the machine that runs the instance, use contributor [dev](https://github.com/turbopanel/dev)
+  On the machine that runs the instance, use contributor [dev](https://github.com/TurboPanel/dev)
   (**Start dev stack**) for local development — or the managed production converge for self-hosted
   when available. Do not use the remote node installer on the co-located dev control plane.
 </Callout>
@@ -166,7 +166,7 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 - `turbopaneld.service` (systemd, single process via `flock`). The unit runs the native binary when `turbopaneld --version` succeeds. On hosts where that probe fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size — install downloads `turbopaneld.js`, installs vendored Deno, and uses `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
 
 <Callout type="info" title="Contributor dev is different">
-  A control-plane host provisioned via the [dev](https://github.com/turbopanel/dev) console runs the
+  A control-plane host provisioned via the [dev](https://github.com/TurboPanel/dev) console runs the
   daemon **from a source checkout** under `$HOME` (e.g. `~/turbopaneld`, via `deno run main.ts`). Config
   lives in `/etc/turbopanel/daemon.env`; mutable state, logs, and sockets under dev-user-owned FHS
   paths; vendored runtimes under `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache`
@@ -209,4 +209,4 @@ See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 - [Deployment hub](/docs/deployment) — Operator overview
 - [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
 - [Security](/docs/deployment/security) — TLS and socket hardening
-- [Daemon README](https://github.com/turbopanel/turbopaneld/blob/trunk/README.md) — Maintainer reference
+- [Daemon README](https://github.com/TurboPanel/turbopaneld/blob/trunk/README.md) — Maintainer reference
