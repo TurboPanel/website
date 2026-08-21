@@ -22,7 +22,7 @@ flowchart LR
 
 | Piece | Role |
 | --- | --- |
-| **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`) |
+| **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`). Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
 | **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family) |
 | **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
 | **Users** | Non-replication managed principals resealed for that server — binding-created users included |
