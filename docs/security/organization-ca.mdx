@@ -15,6 +15,12 @@ The **Organization CA** is the per-organization certificate authority that signs
 
 Each organization has **one active** Organization CA: a `tls` row with `source='organization_ca'`. A rotation mints a new active generation and keeps the previous generation in the trust bundle as **retired** until operators explicitly retire it. Organizations never share a CA; a leaf issued for one org is not trusted by another org's bundle.
 
+Newly minted Organization CAs use a unique subject distinguished name:
+
+`O=TurboPanel, OU=Organization CA, CN={organization id}`
+
+The common name is the organization UUID so two orgs never share an Organization CA distinguished name. Branding lives in `O` / `OU`.
+
 ## What it signs
 
 The Organization CA signs the leaves that terminate managed-database TLS:
