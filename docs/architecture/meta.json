@@ -7,6 +7,9 @@
     "daemon-cell",
     "server-metrics",
     "managed-database-ingress",
-    "turbofabric-path-model"
+    "turbofabric-path-model",
+    "storage-architecture",
+    "deployment-logs",
+    "container-logs"
   ]
 }

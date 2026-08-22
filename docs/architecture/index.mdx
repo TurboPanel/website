@@ -13,5 +13,8 @@ TurboPanel splits documentation by concern:
 - **[Server metrics](/docs/architecture/server-metrics)** — Shared host-metrics contract, Analytics Engine / ClickHouse storage, retention, and the dated Cloudflare cost model.
 - **[Managed database ingress](/docs/architecture/managed-database-ingress)** — Per-server ProxySQL (ports 15432/13306), org-CA TLS, bindings, private backends, and replica/failover semantics.
 - **[TurboFabric path model](/docs/architecture/turbofabric-path-model)** — Six path states, direct-then-gateway-then-relay selection, and the `allowRelay` tightening-only policy.
+- **[Storage architecture](/docs/architecture/storage-architecture)** — The five storage workload classes, which backend serves each on TurboPanel High Availability and self-hosted, and the Iceberg/R2 Data Catalog/R2 SQL layering.
+- **[Deployment logs](/docs/architecture/deployment-logs)** — The `ExecutionLogStore` contract, daemon spool durability, redaction before disk, append/offset reads, retention, and the R2 / filesystem / S3 drivers.
+- **[Container logs](/docs/architecture/container-logs)** — Default-off container output collection: one store contract over Cloudflare Pipelines → Iceberg → R2 SQL and ClickHouse, with the predicate set that fixes the physical layout.
 
 For deployment and production operations, see [Deployment](/docs/deployment) and [Security](/docs/security/password-safety).

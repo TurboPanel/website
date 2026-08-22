@@ -106,6 +106,8 @@ See [Database troubleshooting](/docs/getting-started/database-troubleshooting) f
 
 | Service | Default port | Host forward | Notes |
 | ------- | ------------ | ------------ | ----- |
+| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant site ingress (not the control plane) |
+| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Tenant site ingress (not the control plane) |
 | Caddy HTTPS | 8443 | `0.0.0.0` | Primary browser entrypoint (TLS) |
 | Caddy HTTP (dev) | 8880 | `0.0.0.0` | Plaintext mirror of `:8443` |
 | Website | 19820 | `0.0.0.0` | Next.js (optional) |

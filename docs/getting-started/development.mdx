@@ -85,6 +85,8 @@ Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote t
 
 | Port | Service | Host bind |
 | ---- | ------- | --------- |
+| **80** | Hosting Caddy HTTP (tenant sites) | `0.0.0.0` (LAN) |
+| **443** | Hosting Caddy HTTPS (tenant sites) | `0.0.0.0` (LAN) |
 | **8443** | Control plane (Caddy HTTPS) | `0.0.0.0` (LAN) |
 | **8880** | Control plane (Caddy plaintext HTTP) | `0.0.0.0` (LAN) |
 | **8081** | Expo / Metro (native + direct; Caddy also proxies this) | `0.0.0.0` (LAN) |
@@ -96,8 +98,9 @@ Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote t
 | **8125** | Tabix (unauthenticated) | `127.0.0.1` only |
 
 - **Local browsing / VS Code / Cursor:** `https://localhost:8443` or `http://localhost:8880`.
-- **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. Ports `8443` / `8880` / `8081` / `8088` / `19820` listen on all host interfaces.
+- **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. Ports `80` / `443` / `8443` / `8880` / `8081` / `8088` / `19820` listen on all host interfaces.
 - **Studio / Mailpit / Redis Insight / Tabix** stay loopback-only on purpose — those UIs are unauthenticated. Open Drizzle Studio at `https://local.drizzle.studio?host=localhost&port=4983`.
+- **Tenant sites:** `http://localhost` and `https://localhost` (ports **80** / **443**) reach hosting Caddy after a deploy. On Linux those host binds are privileged — the libvirt tunnel supervisor uses passwordless `sudo -n`, or you can lower `net.ipv4.ip_unprivileged_port_start`.
 
 ## Dev console areas
 
