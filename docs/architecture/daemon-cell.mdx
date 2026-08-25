@@ -174,7 +174,7 @@ Cost-safe Workers cells **must hibernate** when idle. Enforced rules:
 
 ### Storage coalescing
 
-- Steady-state presence is **wire ping only** for liveness; auto-response timestamps (`getWebSocketAutoResponseTimestamp`) feed the offline-sweep cron.
+- Steady-state presence is **wire ping only** for liveness; auto-response timestamps (`getWebSocketAutoResponseTimestamp`) feed the offline-sweep cron. Ticks are serialized by a durable Postgres `setting` lease (`OFFLINE_SWEEP_LOCK`; `expiresAt` is `max(TTL, tick deadline + DB timeout)` so a live holder cannot be stolen mid-invocation) and bounded by a per-tick **hard** wall-clock deadline wrapping every awaited phase.
 - `webSocketMessage` for `hello` / `heartbeat` does **not** write SQLite `cell` rows on the hot path on Workers.
 - Postgres projection opens only for a genuine connect/disconnect transition, a daemon build-identity change, or new `timeSync`/`addresses` presence facts — never on elapsed time alone. There is no periodic "touch a timestamp every N seconds" write path; a heartbeat that carries none of those signals writes nothing.
 
@@ -246,7 +246,7 @@ On Workers:
 1. **`webSocketClose` / `webSocketError`** → `#cleanupWebSocket` marks offline and releases the socket lease **in-memory** (no lease-row delete, no `last_seen_at` write — column gone) on clean disconnect. Postgres demotion still runs via `#projectDisconnected`.
 2. **No periodic stale-sweep alarm** — silent half-open sockets self-heal on reconnect (lease force-detach) or command dispatch (outbox requeue → consumer timeout).
 3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable/retry/inflight request rows, expiry, or terminal retention work.
-4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost.
+4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost. Ticks are serialized by a durable Postgres `setting` lease (`expiresAt` covers the enforced live runtime so a slow phase cannot be stolen by the next cron) and bounded by a per-tick **hard** wall-clock deadline: timed-out phases log and skip later work rather than overlapping the next invocation.
 
 **WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the instance-side max-age check remains only as that suspect-path backstop.
 
@@ -313,7 +313,7 @@ Self-hosted Deno uses `RedisDaemonCell` at `tp:cell:{serverId}:*` (Streams + HAS
 
 Redis **intentionally retains its persisted socket lease + presence meta** (`connected`, `connectionId`, `lastInboundAt`, `lastSeenAt`, `connectedAt`) in the meta HASH **because Redis has no per-connection isolate memory** — the Lua sweep and orphan reclaim need persisted connection state. The online set powers `listOnlineServerIds()`. Delivery still uses the outbox Stream + PEL (no `delivery_status` column); the correlation record is retained until terminal+retention to match the DO merged lifecycle. No key renames (`eventsKey` removed).
 
-Offline detection uses timer-driven `maintain()` + `sweepStalePresence` (`DAEMON_CELL_MAINTAIN_MS`, demote at `DAEMON_OFFLINE_SWEEP_MS`) — cost-safe with no DO billing.
+Offline detection uses timer-driven `maintain()` + `sweepStalePresence` (`DAEMON_CELL_MAINTAIN_MS`, demote at `DAEMON_OFFLINE_SWEEP_MS`) — cost-safe with no DO billing. Liveness and slower cleanup (command-dispatch, webhook, execution-log, system-reconcile) use **separate** in-flight flags so a hung cleanup phase cannot suppress the next stale-presence tick; each lane still refuses to overlap itself.
 
 ```mermaid
 graph TD
