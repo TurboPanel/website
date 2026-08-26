@@ -3,16 +3,8 @@
  * Vocabulary check (CI guard).
  *
  * Scans human-authored marketing copy, docs (MDX), and maintainer docs for
- * forbidden daemon-as-agent phrasing left over from before the daemon
- * build-identity rename in the instance/daemon repos. The TurboPanel daemon
- * is a "daemon" / "host daemon" / "turbopaneld", never an "agent" -- that
- * word is reserved for coding-agent tooling (`AGENTS.md`, `.agents/skills`)
- * and unrelated third-party terms (HTTP `User-Agent`, npm package names).
- *
- * Companion guard to `scripts/check-control-plane-hosts.mjs` -- keep the
- * forbidden-phrase list and allowlist in sync with the sibling checks in
- * `../turbopaneld/scripts/check-vocabulary.ts` and
- * `../turbopanel/scripts/check-vocabulary.mjs`.
+ * forbidden daemon-as-agent phrasing. Phrase list, skip/allowlist, and
+ * per-file scan live in `src/lib/vocabulary.ts`.
  *
  * Usage:
  *   node scripts/check-vocabulary.mjs
@@ -21,109 +13,39 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  formatVocabularyFailure,
+  isSkippedDirName,
+  isSkippedFileName,
+  scanTextForForbiddenPhrases,
+  shouldScanFile,
+} from '../src/lib/vocabulary.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SELF = path.relative(ROOT, fileURLToPath(import.meta.url))
-
-// Exact phrases, matched case-insensitively as substrings. Extend this list
-// as new daemon-as-agent regressions are found; keep the three repo copies
-// (daemon/instance/website) aligned.
-const FORBIDDEN_PHRASES = [
-  'turbopanel agent',
-  'node agent',
-  'agent host',
-  'agent identity',
-  'agent commit',
-  'server.daemon.projection.agent',
-]
-
-// Lines that must never be flagged, even if a forbidden phrase substring
-// appears (defensive -- none of the phrases above currently collide with
-// these, but keep the guard broad-list-safe as it grows).
-const ALLOWLIST_LINE_PATTERNS = [
-  /user-agent/i, // HTTP User-Agent header
-  /\.agents\/skills/i, // installed agent-skill packs
-  /^\s*#+\s*agent\b/i, // AGENTS.md coding-agent policy headings (e.g. "### Agent policy")
-  /\bcoding[- ]agent\b/i,
-  /agent maintenance/i, // AGENTS.md coding-agent maintainer-doc callouts
-  /@scalar\/agent-chat|agent-base|agent-cli-detector|https-proxy-agent/i, // dependency names
-]
-
-const SKIP_DIR_NAMES = new Set([
-  '.git',
-  'node_modules',
-  'dist',
-  'coverage',
-  '.next',
-  '.wrangler',
-  '.turbo',
-  '.open-next',
-  '.source',
-])
-
-const SKIP_FILENAMES = new Set([
-  'pnpm-lock.yaml',
-  'package-lock.json',
-  'yarn.lock',
-  'deno.lock',
-])
-
-// Generated type declarations -- never hand-authored.
-const GENERATED_TYPE_FILES = new Set(['cloudflare-env.d.ts', 'worker-configuration.d.ts'])
-
-/** Vendored/generated trees and skill packs that must never be scanned. */
-function isSkippedPath(rel) {
-  return /(^|\/)\.agents\/skills(\/|$)/.test(rel) || rel === SELF
-}
-
-function isSkippedDir(entry, rel) {
-  return SKIP_DIR_NAMES.has(entry.name) || isSkippedPath(rel)
-}
-
-function isSkippedFile(entry, rel) {
-  return (
-    SKIP_FILENAMES.has(entry.name) ||
-    GENERATED_TYPE_FILES.has(entry.name) ||
-    isSkippedPath(rel)
-  )
-}
-
-const SCAN_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|md|mdx|yml|yaml|sh|json)$/
 
 function* walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, entry.name)
     const rel = path.relative(ROOT, abs)
     if (entry.isDirectory()) {
-      if (isSkippedDir(entry, rel)) continue
+      if (isSkippedDirName(entry.name, rel, SELF)) continue
       yield* walk(abs)
-    } else if (entry.isFile() && !isSkippedFile(entry, rel)) {
+    } else if (entry.isFile() && !isSkippedFileName(entry.name, rel, SELF)) {
       yield abs
     }
   }
 }
 
-function isAllowlisted(line) {
-  return ALLOWLIST_LINE_PATTERNS.some((pattern) => pattern.test(line))
-}
-
 const failures = []
 
 for (const file of walk(ROOT)) {
-  if (!SCAN_EXTENSIONS.test(file)) continue
+  if (!shouldScanFile(file)) continue
   const rel = path.relative(ROOT, file)
   const text = fs.readFileSync(file, 'utf8')
-  const lines = text.split('\n')
-
-  lines.forEach((line, i) => {
-    if (isAllowlisted(line)) return
-    const lower = line.toLowerCase()
-    for (const phrase of FORBIDDEN_PHRASES) {
-      if (lower.includes(phrase)) {
-        failures.push(`${rel}:${i + 1} uses forbidden daemon-as-agent phrase "${phrase}"`)
-      }
-    }
-  })
+  for (const failure of scanTextForForbiddenPhrases(rel, text)) {
+    failures.push(formatVocabularyFailure(failure))
+  }
 }
 
 if (failures.length > 0) {
@@ -133,7 +55,7 @@ if (failures.length > 0) {
   }
   console.error(
     `\n${failures.length} problem(s) found. The TurboPanel daemon is a "daemon" / "host daemon" / "turbopaneld", never an "agent". ` +
-      'Update the allowlist in this script (and the daemon/instance copies) if this is a legitimate coding-agent or third-party reference.',
+      'Update the allowlist in src/lib/vocabulary.ts (and the daemon/instance copies) if this is a legitimate coding-agent or third-party reference.',
   )
   process.exit(1)
 }

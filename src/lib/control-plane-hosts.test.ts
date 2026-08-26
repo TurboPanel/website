@@ -11,6 +11,14 @@ describe('WEBSITE_HOST_TO_CONTROL_PLANE', () => {
       expect(origin.startsWith('https://')).toBe(true)
     }
   })
+
+  it('maps the primary marketing domains', () => {
+    expect(WEBSITE_HOST_TO_CONTROL_PLANE['turbopanel.io']).toBe('https://turbopanel.app')
+    expect(WEBSITE_HOST_TO_CONTROL_PLANE['www.turbopanel.io']).toBe('https://turbopanel.app')
+    expect(WEBSITE_HOST_TO_CONTROL_PLANE['staging.turbopanel.io']).toBe(
+      'https://staging.turbopanel.dev',
+    )
+  })
 })
 
 describe('WRANGLER_API_HOSTNAMES', () => {

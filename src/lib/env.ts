@@ -132,7 +132,7 @@ export function parseApiHostnames(csv: string): { url: string; description: stri
   const result: { url: string; description: string }[] = []
   for (let i = 0; i < tokens.length; i += 2) {
     const hostname = tokens[i]
-    const description = tokens[i + 1] ?? 'API Server'
+    const description = tokens[i + 1]!
     const scheme = schemeForApiHost(hostname)
     result.push({ url: `${scheme}${hostname}`, description })
   }

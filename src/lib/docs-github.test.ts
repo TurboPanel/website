@@ -4,6 +4,8 @@ import { DOCS_GITHUB, docsGithubBlobUrl } from '@/lib/docs-github'
 describe('docsGithubBlobUrl', () => {
   it('uses the TurboPanel GitHub organization', () => {
     expect(DOCS_GITHUB.owner).toBe('TurboPanel')
+    expect(DOCS_GITHUB.repo).toBe('website')
+    expect(DOCS_GITHUB.sha).toBe('trunk')
   })
 
   it('builds trunk blob URLs under the website repo', () => {

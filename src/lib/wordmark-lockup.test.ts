@@ -32,6 +32,42 @@ describe('computeTurboPanelWordmarkLockup', () => {
 
     expect(lockup.lockupWidth).toBe(lockup.markWidth)
   })
+
+  it('defaults to the console profile when none is given', () => {
+    const implied = computeTurboPanelWordmarkLockup({ size: 40 })
+    const explicit = computeTurboPanelWordmarkLockup({
+      size: 40,
+      profile: 'console',
+    })
+    expect(implied).toEqual(explicit)
+    expect(implied.wordBottomOffset).toBe(
+      -TURBOPANEL_WORDMARK_PROFILE.console.wordDownPx,
+    )
+  })
+
+  it('applies wordBoostPx and wordDownPx overrides', () => {
+    const baseline = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    const boosted = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      wordBoostPx: 8,
+      wordDownPx: 5,
+    })
+    expect(boosted.wordSize).toBeGreaterThan(baseline.wordSize)
+    expect(boosted.wordBottomOffset).toBe(-5)
+  })
+
+  it('floors word size at 1px for a degenerate lockup', () => {
+    const lockup = computeTurboPanelWordmarkLockup({
+      size: 0,
+      wordBoostPx: 0,
+      profile: 'website',
+    })
+    expect(lockup.wordSize).toBe(1)
+  })
 })
 
 describe('websiteWordmarkLockup', () => {
@@ -40,6 +76,12 @@ describe('websiteWordmarkLockup', () => {
     const defaultLockup = websiteWordmarkLockup(false)
 
     expect(compact.lockupHeight).toBeLessThan(defaultLockup.lockupHeight)
+  })
+
+  it('can emit a mark-only website lockup', () => {
+    const lockup = websiteWordmarkLockup(false, true)
+    expect(lockup.lockupWidth).toBe(lockup.markWidth)
+    expect(lockup.lockupWidth).toBeLessThan(websiteWordmarkLockup(false).lockupWidth)
   })
 })
 

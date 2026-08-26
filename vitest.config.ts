@@ -21,16 +21,8 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.ts',
         'src/lib/**/*.d.ts',
-        // Fumadocs loader wiring — integration-only
+        // Fumadocs loader wiring — integration-only (no extractable helpers)
         'src/lib/source.ts',
-        // next/font/google — no meaningful unit surface
-        'src/lib/wordmark-font.ts',
-        // React hook — chrome-only
-        'src/lib/use-client-mounted.ts',
-        // localStorage external store — browser-only
-        'src/lib/predev-banner-dismissed.ts',
-        // shared marketing date constants
-        'src/lib/site-dates.ts',
       ],
     },
   },

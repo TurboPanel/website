@@ -52,13 +52,23 @@ describe('isLocalDevWebsiteHost', () => {
     expect(isLocalDevWebsiteHost('turbopanel.app', '19820')).toBe(true)
     expect(isLocalDevWebsiteHost('turbopanel.app', '443')).toBe(false)
   })
+
+  it('strips an embedded port from the hostname and compares case-insensitively', () => {
+    expect(isLocalDevWebsiteHost('localhost:19820')).toBe(true)
+    expect(isLocalDevWebsiteHost('TURBOPANEL.APP', '19820')).toBe(true)
+    expect(isLocalDevWebsiteHost('turbopanel.app')).toBe(false)
+  })
 })
 
 describe('getApiBaseUrl', () => {
   it('maps marketing hosts and local dev to the expected control-plane origins', () => {
     expect(getApiBaseUrl('localhost')).toBe('https://localhost:8443')
+    expect(getApiBaseUrl('127.0.0.1')).toBe('https://localhost:8443')
+    expect(getApiBaseUrl('turbopanel.app', '19820')).toBe('https://localhost:8443')
     expect(getApiBaseUrl('turbopanel.io')).toBe('https://turbopanel.app')
+    expect(getApiBaseUrl('www.turbopanel.io')).toBe('https://turbopanel.app')
     expect(getApiBaseUrl('testing.turbopanel.io')).toBe('https://testing.turbopanel.dev')
+    expect(getApiBaseUrl('staging.turbopanel.io')).toBe('https://staging.turbopanel.dev')
     expect(getApiBaseUrl('unknown.example')).toBe('https://turbopanel.app')
   })
 })
@@ -78,12 +88,23 @@ describe('getControlPlaneBaseUrl', () => {
     expect(getControlPlaneBaseUrl('staging.turbopanel.io')).toBe(
       'https://staging.turbopanel.dev',
     )
+    expect(getControlPlaneBaseUrl('turbopanel.io', '', '')).toBe('https://turbopanel.app')
+  })
+
+  it('ignores malformed API_HOSTNAMES CSV and uses the host map', () => {
+    expect(getControlPlaneBaseUrl('turbopanel.io', '', 'odd-token-count')).toBe(
+      'https://turbopanel.app',
+    )
   })
 })
 
 describe('getSignInUrl', () => {
   it('appends /sign-in to the resolved control-plane origin', () => {
     expect(getSignInUrl('turbopanel.io')).toBe('https://turbopanel.app/sign-in')
+    expect(getSignInUrl('localhost')).toBe('https://localhost:8443/sign-in')
+    expect(
+      getSignInUrl('turbopanel.io', '', 'testing.turbopanel.dev,Testing API'),
+    ).toBe('https://testing.turbopanel.dev/sign-in')
   })
 })
 
@@ -125,6 +146,32 @@ describe('parseApiHostnames', () => {
   it('uses http for localhost when the port is not the Caddy port', () => {
     expect(parseApiHostnames('localhost:8880,Plain HTTP')).toEqual([
       { url: 'http://localhost:8880', description: 'Plain HTTP' },
+    ])
+  })
+
+  it('uses https for localhost without a port or on port 443', () => {
+    expect(parseApiHostnames('localhost,Local Dev')).toEqual([
+      { url: 'https://localhost', description: 'Local Dev' },
+    ])
+    expect(parseApiHostnames('localhost:443,TLS')).toEqual([
+      { url: 'https://localhost:443', description: 'TLS' },
+    ])
+  })
+
+  it('parses multiple hostname pairs and remote hosts stay on https', () => {
+    expect(
+      parseApiHostnames(
+        'localhost:8443,Local Dev,testing.turbopanel.dev,Testing API',
+      ),
+    ).toEqual([
+      { url: 'https://localhost:8443', description: 'Local Dev' },
+      { url: 'https://testing.turbopanel.dev', description: 'Testing API' },
+    ])
+  })
+
+  it('uses http for 127.0.0.1 when the port is not the Caddy port', () => {
+    expect(parseApiHostnames('127.0.0.1:8880,Plain HTTP')).toEqual([
+      { url: 'http://127.0.0.1:8880', description: 'Plain HTTP' },
     ])
   })
 })

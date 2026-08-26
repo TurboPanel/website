@@ -60,8 +60,8 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm test` | Vitest once |
 | `pnpm test:coverage` | Vitest + LCOV (`coverage/lcov.info`) — CI `verify.yml` runs this, then SonarCloud |
 | `pnpm check:hosts` | Assert `wrangler.jsonc` `API_HOSTNAMES` match `src/lib/control-plane-hosts.ts` |
-| `pnpm check:vocabulary` | Reject daemon-as-agent phrasing in docs/marketing copy |
-| `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (not only `Loading…`) |
+| `pnpm check:vocabulary` | Reject daemon-as-agent phrasing (`src/lib/vocabulary.ts` + `scripts/check-vocabulary.mjs`) |
+| `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (`src/lib/docs-ssr.ts`) |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
 | `pnpm cf-typegen` | `wrangler types` → `cloudflare-env.d.ts` |
@@ -218,8 +218,11 @@ website/
   stops.
 - Vitest coverage `include` is `src/lib/**/*.ts` (`vitest.config.ts`).
   `sonar.coverage.exclusions` must keep Next routes (`src/app/**`), marketing/docs
-  chrome (`src/components/**`), and `**/*.tsx` out of the coverage denominator so
-  untested pages do not fail Sonar-way **Coverage on New Code ≥ 80%**.
+  chrome (`src/components/**`), `**/*.tsx`, and the Fumadocs loader wiring
+  (`src/lib/source.ts`) out of the coverage denominator so untested pages do
+  not fail Sonar-way **Coverage on New Code ≥ 80%**. Font options
+  (`wordmark-font.ts`) and the client-mount snapshot hook
+  (`use-client-mounted.ts`) are unit-tested.
 - **`sonar.sources` / `sonar.tests` / `sonar.test.inclusions`** must stay set in
   `sonar-project.properties` (and mirrored in vestigial
   `.sonarcloud.properties`). Tests are co-located (`**/*.test.ts` under `src`).
@@ -244,7 +247,8 @@ website/
 - **Site chrome** (`src/components/StickySiteChrome.tsx`) — sticky banner + `SiteHeader` (Sign in, social icons, theme toggle). Social icons (`SocialNavLinks`): GitHub (external) + Discord (`/discord` → invite via `next.config.js` redirects). Theme toggle visuals follow `html.dark` via Tailwind `dark:` (no mount-gated light→dark FOUC). On scroll the evolving-fast banner collapses and the nav shrinks; `--tp-chrome-height` (via ResizeObserver) feeds Fumadocs `--fd-banner-height` and Scalar `--scalar-custom-header-height` so docs/API sidebars fill the remaining viewport without a dead scroll strip. Soft navigations that change `pathname` (and have no URL hash) scroll to top and expand the full-size chrome; hash/anchor targets leave scroll alone. Docs sidebar theme switch is disabled (`themeSwitch.enabled: false`) — theme lives only in the site nav.
 - **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` + `WRANGLER_API_HOSTNAMES`); helpers in `src/lib/env.ts`. Local website → `https://localhost:8443`; marketing hosts map to TurboPanel High Availability (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. Wrangler `API_HOSTNAMES` (first entry) wins on the Worker when present; keep it aligned via `pnpm check:hosts`.
 - **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
-- **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. After `pnpm build`, run `pnpm check:docs-ssr`.
+- **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. HTML evaluation lives in `src/lib/docs-ssr.ts`; after `pnpm build`, run `pnpm check:docs-ssr` (`scripts/check-docs-ssr.mjs` reads the built introduction page).
+- **Vocabulary CI guard:** forbidden daemon-as-agent phrases, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts` (keep the list aligned with the daemon/instance copies). `scripts/check-vocabulary.mjs` walks the tree and exits non-zero on hits.
 - **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
 - **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`TurboPanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.

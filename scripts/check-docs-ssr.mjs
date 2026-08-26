@@ -8,6 +8,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  docsSsrFailureMessage,
+  evaluateDocsSsrHtml,
+} from '../src/lib/docs-ssr.ts'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const htmlPath = path.join(
@@ -23,27 +27,9 @@ if (!existsSync(htmlPath)) {
 }
 
 const html = readFileSync(htmlPath, 'utf8')
-const contentSnippet =
-  'TurboPanel gives you one simple place to deploy websites, applications, and databases'
-
-if (!html.includes(contentSnippet)) {
-  console.error(
-    'check-docs-ssr: introduction HTML is missing visible page body content',
-  )
-  process.exit(1)
-}
-
-const layoutIdx = html.indexOf('id="nd-docs-layout"')
-if (layoutIdx === -1) {
-  console.error('check-docs-ssr: docs layout root (#nd-docs-layout) not found')
-  process.exit(1)
-}
-
-const layoutWindow = html.slice(layoutIdx, layoutIdx + 800)
-if (layoutWindow.includes('Loading…') && !layoutWindow.includes(contentSnippet)) {
-  console.error(
-    'check-docs-ssr: docs layout still renders only the Loading… shell in initial HTML',
-  )
+const result = evaluateDocsSsrHtml(html)
+if (!result.ok) {
+  console.error(docsSsrFailureMessage(result.reason))
   process.exit(1)
 }
 
