@@ -18,7 +18,7 @@
 
 TurboPanel marketing should feel **fast and trustworthy** — SSG content paints instantly, one blue CTA draws the eye, no decorative entrance choreography. Dual brand with the product console (`ui/design-system/turbopanel/MASTER.md`): **blue `#3366cc`** (primary chrome / links / CTAs) + **green** (HA / live secondary). Marketing stays **light-first** for docs readability while dark mode remains fully supported.
 
-**Style blend:** Trust & Authority + Soft UI Evolution + **Liquid glass** (restrained frosted chrome) — not cyberpunk neon, not AI purple gradients, not wizard-stepper chrome, not iridescent chromatic aberration.
+**Style blend:** Trust & Authority + Soft UI Evolution + **frosted chrome** — not cyberpunk neon, not AI purple gradients, not wizard-stepper chrome, not iridescent chromatic aberration.
 
 ---
 
@@ -75,7 +75,7 @@ Content max width: `max-w-6xl` on marketing pages.
 - Soft card shadow only when already present — do not add decorative lift animations  
 - Prefer **sections and lists** over card grids when content is sequential (roadmap, FAQ)
 
-### Liquid glass (secondary polish)
+### Frosted chrome (secondary polish)
 
 Canonical tokens in `src/app/globals.css` (`--tp-glass-*`). Utility classes: `.tp-glass`, `.tp-glass-strong`. Align with console `ui/src/lib/glass.ts`.
 
@@ -143,13 +143,13 @@ Canonical tokens in `src/app/globals.css` (`--tp-glass-*`). Utility classes: `.t
 ## Style Guidelines
 
 **Primary style:** Trust & Authority + Soft UI Evolution  
-**Secondary polish:** Liquid glass (frosted sticky chrome + cards)  
+**Secondary polish:** Frosted chrome (frosted sticky chrome + cards)  
 **Keywords:** professional, fast, ops, blue primary, green live accent, hairline borders, frosted glass, transparent pricing, editorial timeline  
 
 **Anti-patterns:**
 - ❌ Entrance fade / slide animations
 - ❌ AI purple/pink gradients
-- ❌ Full iridescent / chromatic-aberration liquid-glass excess
+- ❌ Full iridescent / chromatic-aberration marketing excess
 - ❌ Playful / emoji-as-icon UI
 - ❌ Multiple pulsing CTAs on one page
 - ❌ Layout-shifting hover scales on cards

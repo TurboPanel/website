@@ -1,0 +1,158 @@
+---
+title: Licensing
+description: Per-repository licenses, trademarks, third-party notices, and how to obtain Corresponding Source
+---
+
+# Licensing
+
+TurboPanel is open source. Each repository has its own license. Third-party
+components shipped inside artifacts keep **their** licenses. Trademarks —
+TurboPanel’s and anyone else’s — are never granted by those software licenses.
+
+The marketing summary is [Open source](/open-source). This page is the
+operator-facing model: what applies, where notices live, and how to get
+Corresponding Source for a deployed control plane or a store binary.
+
+## Per-repository licenses
+
+| Repository | License |
+| --- | --- |
+| [TurboPanel/turbopanel](https://github.com/TurboPanel/turbopanel) (control plane) | [AGPL-3.0-only](https://github.com/TurboPanel/turbopanel/blob/trunk/LICENSE) |
+| [TurboPanel/turbopaneld](https://github.com/TurboPanel/turbopaneld) (daemon) | [AGPL-3.0-only](https://github.com/TurboPanel/turbopaneld/blob/trunk/LICENSE) |
+| [TurboPanel/dev](https://github.com/TurboPanel/dev) (contributor console) | [AGPL-3.0-only](https://github.com/TurboPanel/dev/blob/trunk/LICENSE) |
+| [TurboPanel/ui](https://github.com/TurboPanel/ui) (product console) | AGPL-3.0-only with the [Apple App Store additional permission](https://github.com/TurboPanel/ui/blob/trunk/LICENSES/TurboPanel-Apple-App-Store-Additional-Permission.txt) |
+| [TurboPanel/website](https://github.com/TurboPanel/website) | [Apache-2.0](https://github.com/TurboPanel/website/blob/trunk/LICENSE) (site and application code); [CC BY 4.0](https://github.com/TurboPanel/website/blob/trunk/LICENSES/CC-BY-4.0.txt) (`docs/`) |
+
+The UI additional permission is a GNU AGPLv3 section 7 permission for Apple App
+Store object-code distribution. It applies **only** to material TurboPanel has
+authority to license. It is not an exception to a third party’s copyright or
+trademark terms. `package.json` stays `"license": "AGPL-3.0-only"` — there is
+no invented SPDX exception identifier. Detail:
+[ui/LICENSES/README.md](https://github.com/TurboPanel/ui/blob/trunk/LICENSES/README.md).
+
+Website path splits (code vs `docs/` vs brand vs `public/`) are recorded in
+[website/LICENSES/README.md](https://github.com/TurboPanel/website/blob/trunk/LICENSES/README.md).
+Storing a file under `public/` does not relicense it.
+
+Contributions are accepted under the
+[Contributor License Agreement](https://github.com/TurboPanel/.github/blob/trunk/CLA.md).
+The same table lives in
+[CONTRIBUTING.md](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md).
+
+## Community health files (`.github`)
+
+[TurboPanel/.github](https://github.com/TurboPanel/.github) is the sixth sibling
+checkout (community standards, not a product runtime). Original community
+documentation there is [CC BY 4.0](https://github.com/TurboPanel/.github/blob/trunk/LICENSES/CC-BY-4.0.txt)
+unless a file says otherwise:
+
+- `CONTRIBUTING.md`, `GOVERNANCE.md`, `SUPPORT.md`, `SECURITY.md`
+- `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/`, `profile/README.md`
+
+Excluded from that CC BY grant:
+
+| Path | Why |
+| --- | --- |
+| `CLA.md`, `TRADEMARKS.md` | Legal-policy documents |
+| `CODE_OF_CONDUCT.md` | Contains adapted Contributor Covenant material under that work’s own terms |
+| `scripts/` | Software under [Apache-2.0](https://github.com/TurboPanel/.github/blob/trunk/LICENSES/Apache-2.0.txt), not the CC BY documentation grant |
+
+The repository-wide statement does not relicense third-party material. Canonical
+map: [.github/LICENSES/README.md](https://github.com/TurboPanel/.github/blob/trunk/LICENSES/README.md).
+
+## Trademarks
+
+Open-source licenses do not grant permission to use the TurboPanel name, logos,
+or other trademarks. You may accurately state that a product is based on,
+compatible with, or derived from TurboPanel. Modified distributions must not
+use the TurboPanel name, logos, or trade dress in a way that suggests they are
+official TurboPanel products without prior written permission.
+
+- [TRADEMARKS.md](https://github.com/TurboPanel/.github/blob/trunk/TRADEMARKS.md)
+- [Logo & brand](/about/logo)
+
+Third-party marks are **never** covered by TurboPanel’s licenses or by the UI
+App Store additional permission. OS identity artwork in the product console
+(for example the Debian swirl) stays under its original copyright, license, and
+trademark terms:
+[ui/assets/os/NOTICE.md](https://github.com/TurboPanel/ui/blob/trunk/assets/os/NOTICE.md).
+
+## Third-party notices
+
+Each product repository generates `THIRD_PARTY_NOTICES.md` from the resolved
+dependency graph (`pnpm notices:generate` or `deno task notices:generate`).
+CI `notices:check` fails when that file is stale versus the lockfile, or when
+a production dependency introduces an unreviewed license class.
+
+Third-party components remain under their own copyright and license terms.
+TurboPanel’s AGPL, Apache-2.0, CC BY 4.0, and the UI App Store additional
+permission do **not** relicense them.
+
+### Current development (`trunk`)
+
+These links are the notices on the default branch — useful while developing
+against `trunk`. They are **not** the notices for a shipped artifact.
+
+| Repository | Current notices |
+| --- | --- |
+| Control plane | [turbopanel/THIRD_PARTY_NOTICES.md](https://github.com/TurboPanel/turbopanel/blob/trunk/THIRD_PARTY_NOTICES.md) |
+| Daemon | [turbopaneld/THIRD_PARTY_NOTICES.md](https://github.com/TurboPanel/turbopaneld/blob/trunk/THIRD_PARTY_NOTICES.md) |
+| Product UI | [ui/THIRD_PARTY_NOTICES.md](https://github.com/TurboPanel/ui/blob/trunk/THIRD_PARTY_NOTICES.md); OS artwork in [assets/os/NOTICE.md](https://github.com/TurboPanel/ui/blob/trunk/assets/os/NOTICE.md) |
+| Contributor console | [dev/THIRD_PARTY_NOTICES.md](https://github.com/TurboPanel/dev/blob/trunk/THIRD_PARTY_NOTICES.md) |
+| Website | [THIRD_PARTY_NOTICES.md](https://github.com/TurboPanel/website/blob/trunk/THIRD_PARTY_NOTICES.md) plus first-party [NOTICE](https://github.com/TurboPanel/website/blob/trunk/NOTICE) (Apache-2.0 attribution). The generated file complements `NOTICE`; it does not replace it. |
+
+### Per-release artifact notices
+
+Use the notices file that shipped with **that** release or revision — not
+whatever `trunk` happens to list later.
+
+| Artifact | Where the notices live |
+| --- | --- |
+| Packaged daemon release | `/opt/turbopanel/share/THIRD_PARTY_NOTICES.md` on the host |
+| Deployed control plane | `THIRD_PARTY_NOTICES.md` at the commit in `GET /api/health` `revision.sourceUrl` (or the matching git tag) |
+| Store binary or production UI update | `THIRD_PARTY_NOTICES.md` at the git revision shown in Settings → About |
+| Any other published artifact | `THIRD_PARTY_NOTICES.md` on the matching GitHub tag or commit, not `trunk` |
+
+## Corresponding Source
+
+AGPL Corresponding Source is the **exact revision** that produced the artifact,
+not the default `trunk` branch.
+
+### Deployed control plane
+
+`GET /api/health` (unversioned) returns:
+
+```json
+{
+  "ok": true,
+  "license": "AGPL-3.0-only",
+  "revision": {
+    "commit": "<git sha>",
+    "sourceUrl": "https://github.com/TurboPanel/turbopanel/tree/<git sha>"
+  }
+}
+```
+
+`sourceUrl` is the git tree for that **full** 40-character commit. When the
+revision is unknown, it falls back to the repository root. Self-hosted units
+stamp `TURBOPANEL_REVISION`; Workers deploy sets it from the git SHA.
+
+Daemon release catalogs (`BUILD_INFO.commit`, `BUILD_INFO.sourceUrl`, and
+`ChannelManifest.commit`) also store that full commit. Development overlays
+keep timestamp uniqueness (`<full-sha>+<unix-seconds>`) while `sourceUrl`
+still names the immutable source commit before `+`. Short SHAs are only for
+`buildId` or logs.
+
+### Store binary or production UI update
+
+Native **Settings → About** (`/about`, also in the account menu; unsigned users
+may open it) names the license, version/build, and Corresponding Source URL for
+the git revision baked by `app.config.ts` — never `trunk`. Each store binary
+and production EAS Update must publish Corresponding Source for that exact
+revision before the artifact ships.
+
+## Related
+
+- [Open source](/open-source) — license table, self-hosting scope, FAQ
+- [Contributing](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md)
+- [Security](/security) — supported versions and private reporting

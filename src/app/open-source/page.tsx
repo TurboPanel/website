@@ -12,7 +12,7 @@ import {
 export const metadata: Metadata = {
   title: 'Open source',
   description:
-    'TurboPanel repositories, licenses, self-hosting scope, and trademark policy.',
+    'TurboPanel repositories, licenses, third-party notices, self-hosting scope, and trademark policy.',
 }
 
 type RepoRow = {
@@ -21,6 +21,8 @@ type RepoRow = {
   role: string
   license: string
   licenseNote?: string
+  noticesHref: string
+  noticesLabel: string
 }
 
 const REPOS: readonly RepoRow[] = [
@@ -29,12 +31,16 @@ const REPOS: readonly RepoRow[] = [
     slug: 'turbopanel',
     role: 'API, auth, orchestration hub, daemon cell',
     license: 'AGPL-3.0-only',
+    noticesHref: 'https://github.com/TurboPanel/turbopanel/blob/trunk/THIRD_PARTY_NOTICES.md',
+    noticesLabel: 'Current development (trunk)',
   },
   {
     name: 'TurboPanel Daemon',
     slug: 'turbopaneld',
     role: 'Host daemon, Ansible, deploy runtime, metrics',
     license: 'AGPL-3.0-only',
+    noticesHref: 'https://github.com/TurboPanel/turbopaneld/blob/trunk/THIRD_PARTY_NOTICES.md',
+    noticesLabel: 'Current development (trunk)',
   },
   {
     name: 'TurboPanel UI',
@@ -42,12 +48,16 @@ const REPOS: readonly RepoRow[] = [
     role: 'Signed-in product console (Expo / Tamagui)',
     license: 'AGPL-3.0-only',
     licenseNote: 'with Apple App Store additional permission',
+    noticesHref: 'https://github.com/TurboPanel/ui/blob/trunk/THIRD_PARTY_NOTICES.md',
+    noticesLabel: 'Current development (trunk)',
   },
   {
     name: 'TurboPanel Development Environment',
     slug: 'dev',
     role: 'Contributor dev console (not production install)',
     license: 'AGPL-3.0-only',
+    noticesHref: 'https://github.com/TurboPanel/dev/blob/trunk/THIRD_PARTY_NOTICES.md',
+    noticesLabel: 'Current development (trunk)',
   },
   {
     name: 'TurboPanel Website & Docs',
@@ -55,6 +65,8 @@ const REPOS: readonly RepoRow[] = [
     role: 'Marketing site and documentation source',
     license: 'Apache-2.0 / CC BY 4.0',
     licenseNote: 'code / documentation',
+    noticesHref: 'https://github.com/TurboPanel/website/blob/trunk/THIRD_PARTY_NOTICES.md',
+    noticesLabel: 'Current development (trunk)',
   },
 ]
 
@@ -69,11 +81,23 @@ const FAQ = [
   },
   {
     q: 'Can I redistribute TurboPanel?',
-    a: 'Yes, under the license of each repository, including corresponding source where AGPL requires it. App Store copies of the UI are also covered by the Apple App Store additional permission in that repository. Do not imply endorsement or use TurboPanel trademarks beyond what the license and brand guidelines allow.',
+    a: 'Yes, under the license of each repository, including corresponding source where AGPL requires it. App Store copies of the UI are also covered by the Apple App Store additional permission in that repository. That permission applies only to material TurboPanel has authority to license — not third-party components or marks. Do not imply endorsement or use TurboPanel trademarks beyond what the license and brand guidelines allow.',
+  },
+  {
+    q: 'Do third-party components use TurboPanel’s license?',
+    a: 'No. Components shipped inside TurboPanel artifacts keep their own copyright and license terms. Use the THIRD_PARTY_NOTICES.md that shipped with that release, tag, or exact git revision — not the current trunk file. Packaged daemon releases stage the matching file at /opt/turbopanel/share/THIRD_PARTY_NOTICES.md. The website keeps a first-party NOTICE in addition to generated third-party notices.',
+  },
+  {
+    q: 'Are third-party marks covered by TurboPanel licenses?',
+    a: 'No. TurboPanel’s licenses and the UI App Store additional permission never grant rights in third-party trademarks or artwork. OS identity marks (for example the Debian swirl) are recorded in the UI repository’s assets/os/NOTICE.md and remain under their original terms.',
   },
   {
     q: 'Where is source for a published UI build?',
-    a: 'Each store binary and production update publishes corresponding source for that exact revision. Look for the source archive and license files that match the app version — not the trunk branch.',
+    a: 'Each store binary and production update publishes corresponding source for that exact revision. Native Settings → About names the license, version, and source URL for the git revision baked into that build — not the trunk branch.',
+  },
+  {
+    q: 'Where is source for a deployed control plane?',
+    a: 'GET /api/health returns the license and a revision object with commit and sourceUrl. sourceUrl points at the exact git tree for that revision, not trunk.',
   },
 ] as const
 
@@ -100,12 +124,13 @@ export default function OpenSourcePage() {
           eyebrow="License"
           title="How each repository is licensed"
         />
-        <div className="overflow-hidden rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
-          <table className="w-full border-collapse text-left text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
+          <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
             <thead className="bg-[var(--tp-surface-muted)]/80">
               <tr>
                 <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Repository</th>
                 <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">License</th>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Current notices (trunk)</th>
               </tr>
             </thead>
             <tbody>
@@ -126,22 +151,52 @@ export default function OpenSourcePage() {
                       <p className="mt-1 font-sans text-[var(--tp-text-muted)]">{repo.licenseNote}</p>
                     ) : null}
                   </td>
+                  <td className="px-5 py-4">
+                    <a
+                      href={repo.noticesHref}
+                      className="font-mono text-[var(--tp-accent)] hover:underline"
+                    >
+                      {repo.noticesLabel}
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className="mt-4 text-sm text-[var(--tp-text-muted)]">
-          Contributions are accepted under the{' '}
+          Third-party components shipped inside TurboPanel artifacts keep their own
+          licenses; the notices column is the current-development file on{' '}
+          <span className="font-mono">trunk</span>, not a relicense and not the
+          notices for a shipped artifact. For a release, use the{' '}
+          <span className="font-mono">THIRD_PARTY_NOTICES.md</span> that shipped
+          with that tag, commit, or packaged artifact — packaged daemon releases
+          stage it at{' '}
+          <span className="font-mono">/opt/turbopanel/share/THIRD_PARTY_NOTICES.md</span>
+          {'. '}
+          Community health files in{' '}
+          <a href="https://github.com/TurboPanel/.github" className="text-[var(--tp-accent)] hover:underline">
+            turbopanel/.github
+          </a>
+          {' '}use the path-based map in{' '}
+          <a
+            href="https://github.com/TurboPanel/.github/blob/trunk/LICENSES/README.md"
+            className="text-[var(--tp-accent)] hover:underline"
+          >
+            LICENSES/README.md
+          </a>
+          {'. Contributions are accepted under the '}
           <a
             href="https://github.com/TurboPanel/.github/blob/trunk/CLA.md"
             className="text-[var(--tp-accent)] hover:underline"
           >
             Contributor License Agreement
-          </a>{'. Community standards live in '}
-          <a href="https://github.com/TurboPanel/.github" className="text-[var(--tp-accent)] hover:underline">
-            turbopanel/.github
-          </a>{'.'}
+          </a>
+          {'. The full model is in '}
+          <Link href="/docs/getting-started/licensing" className="text-[var(--tp-accent)] hover:underline">
+            Licensing
+          </Link>
+          {'.'}
         </p>
       </MarketingSection>
 
@@ -195,6 +250,7 @@ export default function OpenSourcePage() {
           ))}
         </ul>
         <div className="mt-8 flex flex-wrap gap-3">
+          <MarketingSecondaryCta href="/docs/getting-started/licensing">Licensing</MarketingSecondaryCta>
           <MarketingSecondaryCta href="/docs/deployment/self-hosted">Preview self-hosted docs</MarketingSecondaryCta>
           <MarketingSecondaryCta href="https://github.com/TurboPanel/turbopanel/releases">
             Releases
@@ -218,6 +274,19 @@ export default function OpenSourcePage() {
             distributions must not use the TurboPanel name, logos, or trade dress in
             a way that suggests they are official TurboPanel products without prior
             written permission.
+          </p>
+          <p>
+            Third-party marks are never covered by TurboPanel’s licenses or by the
+            UI App Store additional permission. OS identity artwork stays under
+            its original copyright, license, and trademark terms — see{' '}
+            <a
+              href="https://github.com/TurboPanel/ui/blob/trunk/assets/os/NOTICE.md"
+              className="text-[var(--tp-accent)] hover:underline"
+            >
+              assets/os/NOTICE.md
+            </a>
+            {' '}
+            in the UI repository.
           </p>
           <p>
             See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Logo & brand</Link>

@@ -28,7 +28,7 @@
   --tp-terminal-bg: #0f172a;
   --tp-shadow-card: 0 16px 48px -32px rgba(15, 23, 42, 0.35);
   --tp-grid: rgba(15, 23, 42, 0.04);
-  /* Liquid glass (ui-ux-pro-max) — frosted fill + blur; keep in step with ui `src/lib/glass.ts` */
+  /* Frosted chrome — frosted fill + blur; keep in step with ui `src/lib/glass.ts` */
   --tp-glass-fill: rgba(255, 255, 255, 0.62);
   --tp-glass-fill-strong: rgba(245, 247, 250, 0.78);
   --tp-glass-border: rgba(15, 23, 42, 0.12);
@@ -319,7 +319,7 @@ body {
 }
 
 /**
- * Liquid-glass surface — frosted fill + saturate blur + hairline rim.
+ * Frosted chrome surface — frosted fill + saturate blur + hairline rim.
  * Use on sticky chrome, interactive cards, chips — not dense tables.
  */
 .tp-glass {

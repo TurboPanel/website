@@ -3,8 +3,8 @@
  * Vocabulary check (CI guard).
  *
  * Scans human-authored marketing copy, docs (MDX), and maintainer docs for
- * forbidden daemon-as-agent phrasing. Phrase list, skip/allowlist, and
- * per-file scan live in `src/lib/vocabulary.ts`.
+ * forbidden daemon-as-agent phrasing and Apple-associated glass product copy.
+ * Phrase list, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts`.
  *
  * Usage:
  *   node scripts/check-vocabulary.mjs
@@ -77,14 +77,15 @@ export function runVocabularyCheck({
     }
     io.error(
       `\n${failures.length} problem(s) found. The TurboPanel daemon is a "daemon" / "host daemon" / "turbopaneld", never an "agent". ` +
-        'Update the allowlist in src/lib/vocabulary.ts (and the daemon/instance copies) if this is a legitimate coding-agent or third-party reference.',
+        'Shell chrome is "frosted chrome", never Apple-associated glass product copy. ' +
+        'Update the allowlist in src/lib/vocabulary.ts (and the sibling repo copies) if this is a legitimate coding-agent, third-party, or expo-glass-effect identifier.',
     )
     const leave = exit ?? ((code) => process.exit(code))
     leave(1)
     return 1
   }
 
-  io.log('check-vocabulary: no daemon-as-agent phrasing found.')
+  io.log('check-vocabulary: no forbidden phrasing found.')
   return 0
 }
 

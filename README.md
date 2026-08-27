@@ -80,6 +80,8 @@ Site and application code is licensed under the [Apache License 2.0](./LICENSE).
 Documentation under `docs/` is licensed under [CC BY 4.0](./LICENSES/CC-BY-4.0.txt).
 See [LICENSES/README.md](./LICENSES/README.md).
 
+Third-party components keep their own licenses; see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md). First-party Apache attribution lives in [NOTICE](./NOTICE). The published model is [Licensing](https://turbopanel.io/docs/getting-started/licensing).
+
 The TurboPanel name and logos are trademarks. See [TRADEMARKS.md](./TRADEMARKS.md).
 
 Copyright (C) 2025-2026 TurboPanel contributors

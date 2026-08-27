@@ -1,15 +1,17 @@
 /**
- * Daemon-as-agent vocabulary helpers for the CI guard.
+ * Vocabulary helpers for the CI guard.
  *
  * The TurboPanel daemon is a "daemon" / "host daemon" / "turbopaneld", never
  * an "agent" — that word is reserved for coding-agent tooling (`AGENTS.md`,
  * `.agents/skills`) and unrelated third-party terms (HTTP `User-Agent`, npm
- * package names). `scripts/check-vocabulary.mjs` walks the tree; this module
- * owns the phrase list, skip/allowlist, and per-file scan.
+ * package names). Shell chrome is "frosted chrome", never Apple-associated
+ * glass product copy. `scripts/check-vocabulary.mjs` walks the tree; this
+ * module owns the phrase list, skip/allowlist, and per-file scan.
  *
  * Keep the forbidden-phrase list and allowlist in sync with the sibling
- * checks in `../turbopaneld/scripts/check-vocabulary.ts` and
- * `../turbopanel/scripts/check-vocabulary.mjs`.
+ * checks in `../turbopaneld/scripts/check-vocabulary.ts`,
+ * `../turbopanel/scripts/check-vocabulary.mjs`, `../ui/src/lib/vocabulary.ts`,
+ * and `../.github/scripts/check-vocabulary.sh`.
  */
 
 /** This file necessarily lists the phrases — the walker must not scan it. */
@@ -22,6 +24,10 @@ export const FORBIDDEN_PHRASES = [
   'agent identity',
   'agent commit',
   'server.daemon.projection.agent',
+  // Spaced/hyphenated Apple product copy. CamelCase expo-glass-effect
+  // identifiers (`isLiquidGlassAvailable`) do not match these phrases.
+  'liquid glass',
+  'liquid-glass',
 ] as const
 
 export const ALLOWLIST_LINE_PATTERNS = [
@@ -50,6 +56,7 @@ export const SKIP_FILENAMES = new Set([
   'package-lock.json',
   'yarn.lock',
   'deno.lock',
+  'THIRD_PARTY_NOTICES.md',
 ])
 
 export const GENERATED_TYPE_FILES = new Set([
@@ -57,7 +64,7 @@ export const GENERATED_TYPE_FILES = new Set([
   'worker-configuration.d.ts',
 ])
 
-export const SCAN_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|md|mdx|yml|yaml|sh|json)$/
+export const SCAN_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|md|mdx|yml|yaml|sh|json|css)$/
 
 export type VocabularyFailure = Readonly<{
   rel: string
@@ -114,5 +121,5 @@ export function scanTextForForbiddenPhrases(
 }
 
 export function formatVocabularyFailure(failure: VocabularyFailure): string {
-  return `${failure.rel}:${failure.line} uses forbidden daemon-as-agent phrase "${failure.phrase}"`
+  return `${failure.rel}:${failure.line} uses forbidden phrase "${failure.phrase}"`
 }

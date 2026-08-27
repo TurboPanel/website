@@ -3,6 +3,7 @@
   "pages": [
     "introduction",
     "installation",
+    "licensing",
     "development",
     "tilt-troubleshooting",
     "database-troubleshooting"

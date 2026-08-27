@@ -2,7 +2,7 @@
 
 **Package:** `@turbopanel/website` — Next.js 16 marketing + Fumadocs docs.
 
-**Public name:** TurboPanel Website & Docs → [TurboPanel/website](https://github.com/TurboPanel/website). **License:** Apache-2.0 (site/application code); CC BY 4.0 (`docs/`); trademarks excluded ([`TRADEMARKS.md`](./TRADEMARKS.md), [`LICENSES/README.md`](./LICENSES/README.md)). **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
+**Public name:** TurboPanel Website & Docs → [TurboPanel/website](https://github.com/TurboPanel/website). **License:** Apache-2.0 (site/application code); CC BY 4.0 (`docs/`); trademarks excluded ([`TRADEMARKS.md`](./TRADEMARKS.md), [`LICENSES/README.md`](./LICENSES/README.md)). Third-party components keep their own licenses ([`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md); complements first-party [`NOTICE`](./NOTICE)). **Published licensing story:** marketing [`/open-source`](./src/app/open-source/page.tsx) plus docs [`docs/getting-started/licensing.mdx`](./docs/getting-started/licensing.mdx) — keep both aligned with `LICENSES/README.md` and [`.github/CONTRIBUTING.md`](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md). **Maturity:** **Private alpha**. README is product-facing; AGENTS.md is maintainer-facing.
 
 **Default branch:** `trunk`
 
@@ -33,7 +33,7 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not
 | `/setups` | `src/app/setups/page.tsx` | Architecture patterns (single server → unlimited mesh); nav label "Patterns" |
 | `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning |
 | `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
-| `/open-source` | `src/app/open-source/page.tsx` | License table, repo map, FAQ |
+| `/open-source` | `src/app/open-source/page.tsx` | License table (incl. per-release third-party notices), repo map, third-party marks, FAQ |
 | `/security` | `src/app/security/page.tsx` | Supported versions, private reporting |
 | `/changelog` | `src/app/changelog/page.tsx` | Human-written release highlights |
 | `/about/logo` | `src/app/about/logo/page.tsx` | Brand guidelines |
@@ -60,7 +60,9 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm test` | Vitest once |
 | `pnpm test:coverage` | Vitest + LCOV (`coverage/lcov.info`) — CI `verify.yml` runs this, then SonarCloud |
 | `pnpm check:hosts` | Assert `wrangler.jsonc` `API_HOSTNAMES` match `src/lib/control-plane-hosts.ts` |
-| `pnpm check:vocabulary` | Reject daemon-as-agent phrasing (`src/lib/vocabulary.ts` + `scripts/check-vocabulary.mjs`) |
+| `pnpm check:vocabulary` | Reject daemon-as-agent and Apple-associated chrome phrasing (`src/lib/vocabulary.ts` + `scripts/check-vocabulary.mjs`) |
+| `pnpm notices:generate` | Write `THIRD_PARTY_NOTICES.md` from the resolved pnpm graph (complements first-party `NOTICE`; captures upstream NOTICE files) |
+| `pnpm notices:check` | Fail when notices are stale vs the lockfile, or a production dependency has an unreviewed license class |
 | `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (`src/lib/docs-ssr.ts`) |
 | `pnpm preview` | OpenNext build + Wrangler preview |
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
@@ -78,7 +80,7 @@ vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd 
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm test:coverage'
 ```
 
-**CI:** `.github/workflows/verify.yml` runs lint, `check:hosts`, `check:vocabulary`, typecheck, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`.
+**CI:** `.github/workflows/verify.yml` runs lint, `check:hosts`, `check:vocabulary`, `notices:check`, typecheck, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`.
 
 **Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
@@ -167,7 +169,7 @@ Apply in this order (later steps only fill gaps; they do not override earlier pr
 
 These are non-negotiable for this site (detail + checklist live in Master):
 
-- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-blue` `#3366cc` (primary via `--tp-accent` — links, CTAs, docs) + `--tp-green` `#3dd68c` (secondary HA / live); brand stripe blue→green; restrained **liquid glass** via `--tp-glass-*` / `.tp-glass` (sticky chrome, cards — not dense docs tables)
+- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-blue` `#3366cc` (primary via `--tp-accent` — links, CTAs, docs) + `--tp-green` `#3dd68c` (secondary HA / live); brand stripe blue→green; restrained **frosted chrome** via `--tp-glass-*` / `.tp-glass` (sticky chrome, cards — not dense docs tables)
 - Logo kit: static files in `public/brand/` (`turbopanel-logo*`); site chrome via `src/components/Logo.tsx`; public guidelines at **`/about/logo`**
 - Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist
 - **No entrance fade/slide animations** — SSG content must paint instantly
@@ -248,7 +250,8 @@ website/
 - **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` + `WRANGLER_API_HOSTNAMES`); helpers in `src/lib/env.ts`. Local website → `https://localhost:8443`; marketing hosts map to TurboPanel High Availability (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. Wrangler `API_HOSTNAMES` (first entry) wins on the Worker when present; keep it aligned via `pnpm check:hosts`.
 - **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
 - **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. HTML evaluation lives in `src/lib/docs-ssr.ts`; after `pnpm build`, run `pnpm check:docs-ssr` (`scripts/check-docs-ssr.mjs` reads the built introduction page).
-- **Vocabulary CI guard:** forbidden daemon-as-agent phrases, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts` (keep the list aligned with the daemon/instance copies). `scripts/check-vocabulary.mjs` walks the tree and exits non-zero on hits.
+- **Vocabulary CI guard:** forbidden daemon-as-agent and Apple-associated chrome phrases, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts` (keep the list aligned with the daemon, instance, UI, and `.github` copies). `scripts/check-vocabulary.mjs` walks the tree and exits non-zero on hits.
+- **Third-party notices:** `pnpm notices:generate` writes `THIRD_PARTY_NOTICES.md` from the resolved pnpm graph. It complements first-party `NOTICE` (Apache-2.0 attribution) and inlines dependency NOTICE files; it does not replace `NOTICE`. CI `pnpm notices:check` fails on a stale file or an unreviewed production license class. Product-facing copy that describes licenses must also name this file (and that third-party marks are never covered by TurboPanel licenses or the UI App Store additional permission). Canonical operator doc: [`docs/getting-started/licensing.mdx`](./docs/getting-started/licensing.mdx).
 - **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
 - **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`TurboPanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.

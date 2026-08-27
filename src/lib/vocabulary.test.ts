@@ -68,6 +68,7 @@ describe('shouldScanFile', () => {
     expect(shouldScanFile('orchestration/playbook.yaml')).toBe(true)
     expect(shouldScanFile('package.json')).toBe(true)
     expect(shouldScanFile('scripts/run.sh')).toBe(true)
+    expect(shouldScanFile('src/app/globals.css')).toBe(true)
     expect(shouldScanFile('wrangler.jsonc')).toBe(false)
     expect(shouldScanFile('public/brand/turbopanel-logo.svg')).toBe(false)
   })
@@ -123,6 +124,15 @@ describe('scanTextForForbiddenPhrases', () => {
       scanTextForForbiddenPhrases('AGENTS.md', `User-Agent docs mention ${phrase}`),
     ).toEqual([])
   })
+
+  it('does not flag camelCase expo-glass-effect identifiers', () => {
+    expect(
+      scanTextForForbiddenPhrases(
+        'src/components/glass/glass-surface.tsx',
+        'return isLiquidGlassAvailable() && isGlassEffectAPIAvailable()',
+      ),
+    ).toEqual([])
+  })
 })
 
 describe('formatVocabularyFailure', () => {
@@ -134,7 +144,7 @@ describe('formatVocabularyFailure', () => {
         phrase: FORBIDDEN_PHRASES[0],
       }),
     ).toBe(
-      `docs/x.mdx:4 uses forbidden daemon-as-agent phrase "${FORBIDDEN_PHRASES[0]}"`,
+      `docs/x.mdx:4 uses forbidden phrase "${FORBIDDEN_PHRASES[0]}"`,
     )
   })
 })

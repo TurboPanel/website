@@ -146,7 +146,7 @@ describe('runVocabularyCheck', () => {
 
     expect(code).toBe(0)
     expect(exits).toEqual([])
-    expect(io.logs).toEqual(['check-vocabulary: no daemon-as-agent phrasing found.'])
+    expect(io.logs).toEqual(['check-vocabulary: no forbidden phrasing found.'])
     expect(io.errors).toEqual([])
   })
 
@@ -197,7 +197,7 @@ describe('runVocabularyCheck', () => {
     expect(exits).toEqual([1])
     expect(io.logs).toEqual([])
     expect(io.errors[0]).toBe('Vocabulary check failed:\n')
-    expect(io.errors[1]).toContain(`docs/bad.mdx:2 uses forbidden daemon-as-agent phrase "${phrase}"`)
+    expect(io.errors[1]).toContain(`docs/bad.mdx:2 uses forbidden phrase "${phrase}"`)
     expect(io.errors[2]).toContain('1 problem(s) found.')
   })
 

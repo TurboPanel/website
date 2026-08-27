@@ -15,6 +15,8 @@
     "check:hosts": "node scripts/check-control-plane-hosts.mjs",
     "check:docs-ssr": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-docs-ssr.mjs",
     "check:vocabulary": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-vocabulary.mjs",
+    "notices:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs",
+    "notices:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs --check",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
