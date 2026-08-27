@@ -417,7 +417,7 @@ describe('installScalarSessionCookieNameRowLock', () => {
     }
     const keydown = cookieRow.listeners.get('keydown')?.[0]
     if (!keydown) throw new TypeError('expected keydown listener')
-    keydown(event as Event)
+    keydown(event as unknown as Event)
 
     expect(event.preventDefault).toHaveBeenCalled()
     expect(event.stopPropagation).toHaveBeenCalled()
