@@ -5,17 +5,11 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-const hostsSource = readFileSync(
-  path.join(root, 'src/lib/control-plane-hosts.ts'),
-  'utf8',
-)
-const wranglerSource = readFileSync(path.join(root, 'wrangler.jsonc'), 'utf8')
-
-function extractWranglerApiHostnames(ts) {
+export function extractWranglerApiHostnames(ts) {
   const marker = 'export const WRANGLER_API_HOSTNAMES'
   const start = ts.indexOf(marker)
   if (start === -1) {
@@ -51,10 +45,10 @@ function extractWranglerApiHostnames(ts) {
   return out
 }
 
-const API_HOSTNAMES_KEY = '"API_HOSTNAMES"'
+export const API_HOSTNAMES_KEY = '"API_HOSTNAMES"'
 
 /** Read the string value of `"API_HOSTNAMES": "…"` starting at or after `fromIndex`. */
-function readApiHostnamesValue(source, fromIndex = 0) {
+export function readApiHostnamesValue(source, fromIndex = 0) {
   const keyPos = source.indexOf(API_HOSTNAMES_KEY, fromIndex)
   if (keyPos === -1) {
     return null
@@ -78,7 +72,7 @@ function readApiHostnamesValue(source, fromIndex = 0) {
  * Pull API_HOSTNAMES from wrangler.jsonc without a full JSONC parse
  * (trailing commas + comments are common in this file).
  */
-function actualFromWrangler(jsonc) {
+export function actualFromWrangler(jsonc) {
   const envValues = {}
   for (const env of ['testing', 'staging', 'live']) {
     const envPos = jsonc.indexOf(`"${env}"`)
@@ -98,21 +92,66 @@ function actualFromWrangler(jsonc) {
   }
 }
 
-const expected = extractWranglerApiHostnames(hostsSource)
-const actual = actualFromWrangler(wranglerSource)
-
-let failed = false
-for (const env of Object.keys(expected).sort((a, b) => a.localeCompare(b))) {
-  if (actual[env] !== expected[env]) {
-    console.error(
-      `API_HOSTNAMES mismatch for ${env}:\n  control-plane-hosts.ts: ${expected[env]}\n  wrangler.jsonc:         ${actual[env] ?? '(missing)'}`,
+/**
+ * Compare host-map sources (or files under `root`) and return a CLI exit code.
+ *
+ * @param {{
+ *   root?: string,
+ *   hostsPath?: string,
+ *   wranglerPath?: string,
+ *   hostsSource?: string,
+ *   wranglerSource?: string,
+ *   log?: (...args: unknown[]) => void,
+ *   error?: (...args: unknown[]) => void,
+ * }} [options]
+ * @returns {0 | 1}
+ */
+export function run(options = {}) {
+  const log = options.log ?? console.log
+  const error = options.error ?? console.error
+  const rootDir = options.root ?? root
+  const hostsSource =
+    options.hostsSource ??
+    readFileSync(
+      options.hostsPath ?? path.join(rootDir, 'src/lib/control-plane-hosts.ts'),
+      'utf8',
     )
-    failed = true
+  const wranglerSource =
+    options.wranglerSource ??
+    readFileSync(options.wranglerPath ?? path.join(rootDir, 'wrangler.jsonc'), 'utf8')
+
+  const expected = extractWranglerApiHostnames(hostsSource)
+  const actual = actualFromWrangler(wranglerSource)
+
+  let failed = false
+  for (const env of Object.keys(expected).sort((a, b) => a.localeCompare(b))) {
+    if (actual[env] !== expected[env]) {
+      error(
+        `API_HOSTNAMES mismatch for ${env}:\n  control-plane-hosts.ts: ${expected[env]}\n  wrangler.jsonc:         ${actual[env] ?? '(missing)'}`,
+      )
+      failed = true
+    }
+  }
+
+  if (failed) {
+    return 1
+  }
+
+  log('check-control-plane-hosts: wrangler.jsonc matches control-plane-hosts.ts')
+  return 0
+}
+
+function invokedAsCli() {
+  const entry = process.argv[1]
+  if (!entry) {
+    return false
+  }
+  return import.meta.url === pathToFileURL(path.resolve(entry)).href
+}
+
+if (invokedAsCli()) {
+  const code = run()
+  if (code !== 0) {
+    process.exit(code)
   }
 }
-
-if (failed) {
-  process.exit(1)
-}
-
-console.log('check-control-plane-hosts: wrangler.jsonc matches control-plane-hosts.ts')
