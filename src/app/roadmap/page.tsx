@@ -8,8 +8,6 @@ import {
   MarketingSection,
   MarketingSectionHeader,
 } from '@/components/marketing/marketing-primitives'
-import { OPEN_SOURCE_LAUNCH_DATE } from '@/lib/site-dates'
-
 type PhaseStatus = 'Complete' | 'In Progress' | 'Planned' | 'Future'
 
 type Phase = Readonly<{
@@ -22,7 +20,7 @@ type Phase = Readonly<{
   discussionUrl?: string
 }>
 
-const LAST_UPDATED = OPEN_SOURCE_LAUNCH_DATE
+const LAST_UPDATED = '2026-08-28'
 
 const PHASES: ReadonlyArray<Phase> = [
   {
@@ -49,19 +47,23 @@ const PHASES: ReadonlyArray<Phase> = [
       'Host metrics charts for CPU, memory, disk, network, and more',
       'Server connect, reconnect, ping, hostname, reboot, and updates',
       'A quick add-server flow that gets a host online in minutes',
+      'Private networking mesh, datacenters, and IP address management',
     ],
   },
   {
     title: 'Apps and Deploy',
     shortLabel: 'Apps & deploy',
     status: 'In Progress',
-    summary: 'Deploy container apps today, with an even easier website experience on the way.',
+    summary:
+      'Deploy container apps, WordPress and PHP sites, and managed databases from one place.',
     discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
     focus: [
       'Projects, environments, visual editing, and one-click deploy (shipped)',
       'Secrets and environment variables, plus starter catalog templates (shipped)',
-      'Faster WordPress and PHP setup, plus simpler domains and TLS',
-      'Database helpers, scheduled tasks, and better container day-to-day views',
+      'WordPress, PHP, and static site hosting with SFTP access (shipped)',
+      'Managed databases with users, backups, and high availability (shipped)',
+      'Scheduled tasks and push-to-deploy from GitHub and GitLab (shipped)',
+      'Automatic TLS certificates and richer container day-to-day views',
     ],
   },
   {
@@ -71,10 +73,10 @@ const PHASES: ReadonlyArray<Phase> = [
     summary: 'Make recovery, alerting, and account security feel production-grade.',
     discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
     focus: [
-      'Backup and restore workflows',
+      'Backup workflows for apps, sites, and volumes',
+      'Scheduled backups with retention policies',
       'Health checks and operator alerts',
       'MFA, audit logs, and further security hardening',
-      'Smoother install, upgrade, and recovery paths',
     ],
   },
   {
@@ -86,7 +88,7 @@ const PHASES: ReadonlyArray<Phase> = [
     focus: [
       'Deeper team roles and client-facing account support',
       'API tokens for external automation',
-      'Webhooks for deploy and status events',
+      'Outbound webhooks for deploy and status events',
       'Usage and reporting views',
     ],
   },
@@ -342,7 +344,7 @@ export default function RoadmapPage() {
       <MarketingHero
         eyebrow="Product roadmap · Private alpha"
         title="In private alpha. Building toward beta."
-        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management and core deploys are furthest along, and we are now working on websites, apps, databases, and everyday operations. Last updated ${LAST_UPDATED}.`}
+        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, deploys, website hosting, and managed databases are furthest along, and we are now finishing TLS automation and everyday container operations. Last updated ${LAST_UPDATED}.`}
         aside={
           <StatusAside
             shipped={shipped}

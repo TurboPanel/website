@@ -2,8 +2,8 @@
  * Runtime environment detection for API URLs.
  * Use hostname and port (from window.location) to determine the correct API base URL.
  * When using turbopanel.app in /etc/hosts for local dev, hostname alone is not enough—
- * we must also check the port (WEBSITE_PORT from dev/.env, default 19820). Local API calls
- * target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
+ * we must also check the port (WEBSITE_PORT on turbopanel-website.service, default 19820).
+ * Local API calls target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
  *
  * Host → control-plane mapping lives in {@link ./control-plane-hosts.ts}; keep
  * `wrangler.jsonc` `API_HOSTNAMES` in sync (`pnpm check:hosts`).
@@ -16,7 +16,7 @@ import {
 const DEFAULT_DEV_WEBSITE_PORT = '19820'
 const DEFAULT_DEV_CADDY_PORT = '8443'
 
-/** Dev website listen port — set by Tilt via NEXT_PUBLIC_WEBSITE_PORT / WEBSITE_PORT. */
+/** Dev website listen port — NEXT_PUBLIC_WEBSITE_PORT / WEBSITE_PORT set on turbopanel-website.service by Ansible. */
 export function getDevWebsitePort(): string {
   return (
     process.env.NEXT_PUBLIC_WEBSITE_PORT ??
@@ -25,7 +25,7 @@ export function getDevWebsitePort(): string {
   )
 }
 
-/** Local HTTPS API entrypoint (Caddy) — set by Tilt via NEXT_PUBLIC_CADDY_PORT / CADDY_PORT. */
+/** Local HTTPS API entrypoint (Caddy) — NEXT_PUBLIC_CADDY_PORT / CADDY_PORT set on turbopanel-website.service by Ansible. */
 export function getDevCaddyPort(): string {
   return (
     process.env.NEXT_PUBLIC_CADDY_PORT ??

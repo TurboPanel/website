@@ -34,6 +34,11 @@ function createNextConfig(phase, { defaultConfig }) {
           destination: 'https://discord.com/invite/vGDQaTXPQw',
           permanent: false,
         },
+        {
+          source: '/docs/getting-started/tilt-troubleshooting',
+          destination: '/docs/getting-started/console-troubleshooting',
+          permanent: true,
+        },
       ]
     },
     // Next.js 16: Turbopack is the default bundler. Aliases must be in turbopack for dev + default build.

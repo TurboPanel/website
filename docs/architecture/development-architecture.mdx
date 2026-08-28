@@ -5,7 +5,7 @@ description: Multi-repo Vagrant layout, dev console orchestration, schema sync, 
 
 # Development architecture
 
-This page describes how the TurboPanel **multi-repo** Vagrant environment is orchestrated. Before you start, see [Prerequisites](/docs/development/prerequisites). For day-to-day commands, see [Local development](/docs/getting-started/development) and [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
+This page describes how the TurboPanel **multi-repo** Vagrant environment is orchestrated. Before you start, see [Prerequisites](/docs/development/prerequisites). For day-to-day commands, see [Local development](/docs/getting-started/development) and [Dev console troubleshooting](/docs/getting-started/console-troubleshooting).
 
 ## Repository model
 
@@ -20,7 +20,7 @@ TurboPanel is six sibling repositories under one parent directory on the host. T
 | `…/website/` | `~/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
 | `…/.github/` | `~/.github/` | turbopanel/.github | Community health files |
 
-Paths resolve via `TURBOPANEL_DEV_ROOT` and per-repo `TURBOPANEL_<DIR>_REPO` overrides (defaults: `$HOME/{turbopaneld,turbopanel,ui,website}`).
+Paths resolve via `TURBOPANEL_DEV_ROOT` and per-repo `TURBOPANEL_<DIR>_REPO` overrides (defaults: `$HOME/{turbopaneld,turbopanel,ui,website}`; `~/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
 
 Canonical flow:
 
@@ -82,7 +82,7 @@ On co-located guests, Caddy also listens on **8880** as a **plaintext mirror** o
 
 ### Instance runtime switch
 
-`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` is `deno` (default) or `workers`. Switch via the **Services** area in the console. Workers mode stops the systemd instance unit and expects `pnpm dev` (wrangler) in the instance checkout with Postgres on TCP.
+`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` is `deno` (default) or `workers`. Switch via the **Services** area in the console. In Workers mode the same `turbopanel-instance.service` unit runs wrangler dev (`scripts/workers-serve.sh` in the instance checkout) with Postgres on TCP.
 
 ## Database schema (development)
 

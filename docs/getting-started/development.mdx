@@ -5,7 +5,7 @@ description: Vagrant-based contributor setup — i7-4790K, 16–32 GB RAM, sibli
 
 # Local development
 
-This guide covers contributor local development. For host tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting).
+This guide covers contributor local development. For host tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/console-troubleshooting).
 
 TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under one parent directory, then run the stack inside a **Vagrant** guest. Edit on the host with VS Code / Cursor; Node, Deno, Docker, and systemd run in the VM.
 
@@ -70,7 +70,7 @@ That ensures pinned Node, runs `pnpm install`, and launches the Ink developer co
 | Website (docs + API reference) | `http://localhost:19820` (when enabled) |
 | Mailpit | `http://localhost:8025` (when enabled; host loopback only) |
 
-Trust the platform CA at `turbopanel/certs/ca.crt` (guest checkout) in your browser to avoid TLS warnings on `:8443`.
+Trust the platform CA bundle at `/var/lib/turbopanel/tls/ca-bundle.pem` (after converge, or fetch it from `GET /api/daemon/v1/instance/ca`) in your browser to avoid TLS warnings on `:8443`.
 
 Smoke test from the **host**:
 
@@ -119,10 +119,10 @@ In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc
 
 | Mode | Behaviour |
 | ---- | --------- |
-| **deno** (default) | `turbopanel-instance` systemd unit + Unix socket at `/run/turbopanel/instance.sock` |
-| **workers** | Stops the systemd unit, exposes Postgres on TCP (`127.0.0.1:5432`), expects `pnpm dev` in `~/turbopanel` manually |
+| **deno** (default) | `turbopanel-instance` systemd unit runs Deno + Unix socket at `/run/turbopanel/instance.sock` |
+| **workers** | Same systemd unit runs wrangler dev (`scripts/workers-serve.sh`) with Postgres on TCP (`127.0.0.1:5432`) |
 
-Workers mode has no Redis. Set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` in `instance/.dev.vars`.
+Workers mode has no Redis. Converge generates the runtime env for both modes (including the local Hyperdrive connection string) under `/etc/turbopanel/instance/` — no manual `.dev.vars` editing is needed.
 
 ## Guest filesystem (after converge)
 
@@ -176,7 +176,7 @@ sequenceDiagram
 
 ## Related
 
-- [Dev console troubleshooting](/docs/getting-started/tilt-troubleshooting)
+- [Dev console troubleshooting](/docs/getting-started/console-troubleshooting)
 - [Database troubleshooting](/docs/getting-started/database-troubleshooting)
 - [Development architecture](/docs/architecture/development-architecture)
 - [API architecture](/docs/architecture/api)

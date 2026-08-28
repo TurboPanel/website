@@ -5,7 +5,7 @@ description: Fix common Postgres and schema sync issues in local development
 
 # Database troubleshooting
 
-TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into Tilt, see [Development architecture](/docs/architecture/development-architecture) and `turbopanel/src/lib/db/AGENTS.md` in the repository.
+TurboPanel uses **versioned SQL migrations** in `turbopanel/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into the dev environment, see [Development architecture](/docs/architecture/development-architecture) and `turbopanel/src/lib/db/AGENTS.md` in the repository.
 
 ## Schema out of sync
 
@@ -13,15 +13,15 @@ TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied 
 | ----- | ---------- |
 | API errors about missing columns/tables | From `dev/`: `./scripts/sync.sh` (or `./scripts/sync.sh --force` after editing `schema.ts`) |
 | You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `turbopanel/src/lib/db/schema.ts` |
-| Fresh Postgres volume | Deno auto-pushes on startup when `user` table is missing; or run `dev/scripts/sync.sh --force` manually |
+| Fresh Postgres volume | Converge applies versioned migrations (`pnpm migrate` via `scripts/bootstrap-dev-db.sh`) — the only fresh-database bootstrap path. Re-run Developer → **Converge / re-converge** if relations are missing |
 
 ## Connection failures
 
 | Issue | What to do |
 | ----- | ---------- |
-| Postgres unreachable | Check Tilt **postgres** resource; verify Docker is running |
-| Wrong credentials | Check `dev/.env` `POSTGRES_*` vars; re-run env sync (`tilt trigger env-sync` or restart Tilt) |
-| Connection pool wedged (Deno) | Restart the `instance` resource |
+| Postgres unreachable | Check the `turbopanel-database` container (`docker ps` / **Services** area in `./console`); verify Docker is running |
+| Wrong credentials | Postgres credentials are generated during converge under `/etc/turbopanel/`; re-run Developer → **Converge / re-converge** |
+| Connection pool wedged (Deno) | `systemctl restart turbopanel-instance` (or restart it from the console **Services** area) |
 
 ## Reset dev database
 
@@ -34,7 +34,7 @@ TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied 
 ./scripts/sync.sh --force   # after DROP SCHEMA public CASCADE; or use reset-dev API
 ```
 
-**Nuclear (dev only):** stop Tilt, remove `dev/.postgresql/` data directory, `tilt up` (recreates empty Postgres).
+**Nuclear (dev only):** stop the instance (`systemctl stop turbopanel-instance`), remove the Postgres container and its data volume (`docker rm -f turbopanel-database && docker volume rm turbopanel-database`), then Developer → **Converge / re-converge** (recreates empty Postgres and applies migrations).
 
 ## Drizzle Studio
 
@@ -53,7 +53,7 @@ TurboPanel uses **versioned SQL migrations** in `instance/migrations/` (applied 
 ```bash
 # From dev/
 ./scripts/sync.sh --verbose
-docker exec -it $(docker ps -qf name=postgres) psql -U turbopanel -d turbopanel -c '\dt'
+docker exec -it turbopanel-database psql -U turbopanel -d turbopanel -c '\dt'
 ```
 
 ## Related

@@ -15,16 +15,16 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 
 ## Dev stack will not start
 
-- Open the **Status** area in `./console` and check unit states.
-- Follow logs from the **Actions** area (**Follow logs**).
+- Open the **Services** area in `./console` and check unit states.
+- Follow logs with **L** on a service row (external pager), or tail `/var/log/turbopanel/`.
 - Verify Docker is running: `docker version` (Postgres runs in Docker).
 - Confirm the daemon checkout exists: `~/turbopaneld/`.
-- If the daemon repo is missing, use **Install daemon** in the Actions area first, then **Start dev stack**.
+- On a fresh guest the console auto-bootstraps the daemon on launch; otherwise run Developer → **Converge / re-converge**.
 
 ## Instance runtime not switching
 
-- Use the **Instance** area in `./console` (**Switch to Deno Mode** / **Switch to Workers Mode**).
-- Workers mode requires `pnpm dev` running manually in `~/turbopanel/`.
+- Use the **Services** area in `./console` to switch between Deno and Workers runtime.
+- Both modes run under `turbopanel-instance.service` — Workers mode starts wrangler via `scripts/workers-serve.sh` in the instance checkout; no manual `pnpm dev` is needed.
 - Deno mode requires `/run/turbopanel` to exist and `turbopanel-instance.service` to be active.
 
 ## Port conflicts
@@ -50,13 +50,13 @@ Co-located dev exposes a plaintext mirror of the control plane at **`http://<hos
 
 ## TLS / certificate warnings
 
-- Trust `~/turbopanel/certs/ca.crt` (or fetch from `GET /api/daemon/v1/instance/ca`) in your OS or browser.
-- Re-run the `instance-certs` Ansible role or `pnpm cert:generate` in the instance checkout if certs are missing.
+- Trust the platform CA bundle at `/var/lib/turbopanel/tls/ca-bundle.pem` (or fetch from `GET /api/daemon/v1/instance/ca`) in your OS or browser.
+- If certs are missing, re-run Developer → **Converge / re-converge** in `./console`.
 
 ## Schema sync failures
 
 - Run `./scripts/sync.sh --force` from the dev checkout.
-- Ensure Postgres is healthy (`docker ps` / **Services** section in the developer console).
+- Ensure Postgres is healthy (`docker ps` / **Services** area in the dev console).
 - See [Database troubleshooting](/docs/getting-started/database-troubleshooting).
 
 ## Expo / UI not loading
