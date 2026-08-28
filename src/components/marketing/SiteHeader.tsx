@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
+import { MobileNavMenu } from '@/components/marketing/MobileNavMenu'
 import { SignInButton } from '@/components/marketing/SignInButton'
 import { SocialNavLinks } from '@/components/marketing/SocialNavLinks'
 
@@ -54,8 +55,13 @@ export function SiteHeader({ active, compact = false }: SiteHeaderProps) {
               compact ? 'gap-1.5 sm:gap-2' : 'gap-2 sm:gap-3'
             }`}
           >
+            {/*
+              The full row (nav + CTA + social + toggle) needs ~800px next to
+              the logo, so everything except the CTA collapses into
+              `MobileNavMenu` below `lg`.
+            */}
             <nav
-              className={`flex items-center gap-0.5 font-medium transition-[font-size] duration-200 ease-out motion-reduce:transition-none ${
+              className={`hidden items-center gap-0.5 font-medium transition-[font-size] duration-200 ease-out motion-reduce:transition-none lg:flex ${
                 compact ? 'text-xs' : 'text-sm'
               }`}
             >
@@ -63,19 +69,31 @@ export function SiteHeader({ active, compact = false }: SiteHeaderProps) {
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-current={active === link.key ? 'page' : undefined}
                   className={navClass(active === link.key, compact)}
                 >
                   {link.label}
                 </Link>
               ))}
             </nav>
-            <SignInButton compact={compact} />
+            {/*
+              Logo lockup is ~190px wide, so logo + CTA + trigger stops fitting
+              below ~360px. Narrower phones reach Sign in from the panel instead.
+            */}
+            <div className="hidden min-[360px]:flex">
+              <SignInButton compact={compact} />
+            </div>
             <div
-              className={`mx-0.5 hidden w-px bg-[var(--tp-border)] sm:block ${compact ? 'h-4' : 'h-5'}`}
+              className={`mx-0.5 hidden w-px bg-[var(--tp-border)] lg:block ${compact ? 'h-4' : 'h-5'}`}
               aria-hidden
             />
-            <SocialNavLinks compact={compact} />
-            <ThemeToggleButton compact={compact} />
+            <div className="hidden lg:flex">
+              <SocialNavLinks compact={compact} />
+            </div>
+            <div className="hidden lg:block">
+              <ThemeToggleButton compact={compact} />
+            </div>
+            <MobileNavMenu links={LINKS} activeKey={active} compact={compact} />
           </div>
         </div>
       </div>

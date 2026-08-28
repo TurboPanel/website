@@ -207,5 +207,10 @@ export default defineConfig({
   plugins: [lastModified()],
   mdxOptions: {
     remarkPlugins: [remarkMdxMermaid],
+    rehypeCodeOptions: {
+      // Keeps `language-<lang>` on the inner <code> after Shiki highlighting so
+      // `mdx-components.tsx` can label each block ("Terminal", "TypeScript", …).
+      addLanguageClass: true,
+    },
   },
 })

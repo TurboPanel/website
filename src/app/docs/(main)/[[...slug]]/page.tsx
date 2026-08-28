@@ -3,7 +3,7 @@ import type { MDXComponents } from 'mdx/types'
 import { getMDXComponents } from '../../../../../mdx-components'
 import { DOCS_GITHUB } from '@/lib/docs-github'
 import { source } from '@/lib/source'
-import { DocsPage } from 'fumadocs-ui/page'
+import { DocsBody, DocsPage } from 'fumadocs-ui/page'
 import { notFound } from 'next/navigation'
 
 type PageData = {
@@ -56,7 +56,15 @@ export default async function Page({ params }: DocsPageProps) {
         path: `docs/${data.info?.path ?? page.path}`,
       }}
     >
-      <MdxBody components={getMDXComponents()} />
+      {/*
+        `DocsBody` is what applies Fumadocs' `prose` typography layer. Without
+        it the MDX rendered as unstyled HTML — headings collapsed to 16px/400,
+        tables lost every border and cell padding, and paragraphs had no
+        margins, which is what made the docs read as one flat wall of text.
+      */}
+      <DocsBody>
+        <MdxBody components={getMDXComponents()} />
+      </DocsBody>
     </DocsPage>
   )
 }

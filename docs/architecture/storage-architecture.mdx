@@ -12,19 +12,7 @@ TurboPanel does not have "a database." It has **four storage workloads**, each w
 A deploy transcript and a running container's stdout can both be called "logs" and still belong in opposite classes — one is stored, one is not. See [Deployment logs](/docs/architecture/deployment-logs) (keyed objects, the only log class TurboPanel retains) versus [Container logs](/docs/architecture/container-logs) (live tail, never stored).
 
 <Callout type="info" title="Canonical source">
-  Per-subsystem maintenance rules live in the instance repo:{' '}
-  <File path="src/lib/commands/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/commands/AGENTS.md">
-    commands/AGENTS.md
-  </File>
-  ,{' '}
-  <File path="src/lib/execution-logs/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/execution-logs/AGENTS.md">
-    execution-logs/AGENTS.md
-  </File>
-  , and{' '}
-  <File path="src/daemon/metrics/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">
-    daemon/metrics/AGENTS.md
-  </File>
-  .
+  Per-subsystem maintenance rules live in the instance repo: <File path="src/lib/commands/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/commands/AGENTS.md">commands/AGENTS.md</File>, <File path="src/lib/execution-logs/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/execution-logs/AGENTS.md">execution-logs/AGENTS.md</File>, and <File path="src/daemon/metrics/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">daemon/metrics/AGENTS.md</File>.
 </Callout>
 
 ## The four workload classes

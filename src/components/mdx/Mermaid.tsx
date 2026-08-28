@@ -141,7 +141,9 @@ function MermaidContent({
   }
 
   return (
-    <figure className="my-6">
+    // `data-tp-diagram` is the styling hook for the framed diagram surface in
+    // `globals.css` — the alt text varies with the chart's accessible name.
+    <figure data-tp-diagram className="my-6">
       <div className="overflow-x-auto">
         <img
           id={id}
@@ -150,6 +152,7 @@ function MermaidContent({
           className="mx-auto"
         />
       </div>
+      {title ? <figcaption>{title}</figcaption> : null}
     </figure>
   )
 }

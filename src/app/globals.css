@@ -27,6 +27,8 @@
   --tp-hero-b: rgba(61, 214, 140, 0.14);
   --tp-terminal-bg: #0f172a;
   --tp-shadow-card: 0 16px 48px -32px rgba(15, 23, 42, 0.35);
+  /* Dim behind the mobile nav panel. */
+  --tp-scrim: rgba(15, 23, 42, 0.35);
   --tp-grid: rgba(15, 23, 42, 0.04);
   /* Frosted chrome — frosted fill + blur; keep in step with ui `src/lib/glass.ts` */
   --tp-glass-fill: rgba(255, 255, 255, 0.62);
@@ -41,8 +43,8 @@
   --fd-foreground: var(--tp-text);
   --fd-border: var(--tp-border);
   --fd-accent: var(--color-fd-accent, rgba(71, 85, 105, 0.25));
-  --fd-layout-width: 100vw;
-  --fd-sidebar-width: 260px;
+  /* 100% (not 100vw) — 100vw ignores the scrollbar and overflows the grid. */
+  --fd-layout-width: 100%;
   /* Align Fumadocs theme tokens with marketing --tp-* (docs chrome). */
   --color-fd-background: var(--tp-bg);
   --color-fd-foreground: var(--tp-text);
@@ -85,6 +87,7 @@
   --tp-hero-b: rgba(61, 214, 140, 0.18);
   --tp-terminal-bg: #060a12;
   --tp-shadow-card: 0 20px 56px -36px rgba(0, 0, 0, 0.65);
+  --tp-scrim: rgba(2, 6, 15, 0.66);
   --tp-grid: rgba(148, 163, 184, 0.05);
   --tp-glass-fill: rgba(17, 26, 43, 0.72);
   --tp-glass-fill-strong: rgba(11, 18, 32, 0.84);
@@ -115,112 +118,35 @@
   --fd-banner-height: var(--tp-chrome-height);
 }
 
-/* Full-width docs layout: grid uses --fd-layout-width for main column width */
+/*
+ * Full-width docs layout: the Fumadocs grid sizes its main column as
+ * `--fd-layout-width - --fd-sidebar-width - --fd-toc-width`.
+ *
+ * Do NOT pin `--fd-sidebar-width` here. Fumadocs keeps it at `0px` and only
+ * raises it to 268px from `md:` up (the sidebar placeholder is `max-md:hidden`).
+ * A hard value leaked the sidebar column onto phones, so every docs page
+ * rendered inside a narrow strip with a 260px dead gutter to its left.
+ */
 #nd-docs-layout {
-  --fd-sidebar-width: 260px;
-  --fd-layout-width: 100vw;
+  --fd-layout-width: 100%;
   /* Keep --fd-docs-height at 100dvh for sticky sidebar math; chrome is outside. */
   min-height: calc(100dvh - var(--tp-chrome-height, 0px));
   width: 100%;
   max-width: none;
 }
 
+/*
+ * Mobile docs sidebar is a drawer over the page; the sticky site chrome is
+ * z-50, so without this the header floats on top of the open drawer.
+ * The overlay is the drawer's immediately preceding sibling.
+ */
+#nd-sidebar-mobile,
+div[data-state]:has(+ #nd-sidebar-mobile) {
+  z-index: 60;
+}
+
 #nd-page {
   padding-inline: 1rem;
-}
-
-/* Docs article: display H1 + muted lead (matches marketing typography). */
-#nd-page article h1 {
-  font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-}
-
-#nd-page article > p:first-of-type {
-  font-size: 1.0625rem;
-  line-height: 1.65;
-  color: var(--tp-text-muted);
-}
-
-/* Path cards: hairline surface + accent hover (no scale / entrance motion). */
-#nd-page article [data-card] {
-  background: var(--tp-surface);
-  border-color: var(--tp-border);
-  box-shadow: none;
-  transition:
-    border-color 200ms ease,
-    background-color 200ms ease;
-}
-
-#nd-page article a[data-card] {
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  #nd-page article a[data-card]:hover {
-    border-color: color-mix(in srgb, var(--tp-accent) 40%, var(--tp-border));
-    background: color-mix(in srgb, var(--tp-accent) 6%, var(--tp-surface));
-  }
-}
-
-#nd-page article a[data-card]:focus-visible {
-  outline: 2px solid var(--tp-ring);
-  outline-offset: 2px;
-}
-
-/* Docs tables: bordered surface rows, not grey highlight soup. */
-#nd-page article table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-#nd-page article thead th {
-  background: var(--tp-surface-muted);
-  color: var(--tp-text);
-  font-weight: 600;
-  text-align: left;
-}
-
-#nd-page article th,
-#nd-page article td {
-  border: 1px solid var(--tp-border);
-  padding: 0.65rem 0.85rem;
-  vertical-align: top;
-  background: var(--tp-surface);
-}
-
-#nd-page article tbody tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--tp-surface-muted) 55%, var(--tp-surface));
-}
-
-#nd-page article th code,
-#nd-page article td code {
-  background: transparent;
-  padding: 0;
-}
-
-/* Inline prose links lean brand blue; skip path cards and code. */
-#nd-page article :not(pre):not(code) > a:not(.block) {
-  color: color-mix(in srgb, var(--tp-blue) 78%, var(--tp-text));
-  text-underline-offset: 0.15em;
-  transition: color 150ms ease;
-}
-
-#nd-page article :not(pre):not(code) > a:not(.block):hover {
-  color: var(--tp-blue);
-}
-
-/* fd-step badges anchor to each step row (fumadocs utility only styles ::before). */
-.fd-step {
-  position: relative;
-  padding-bottom: 1.25rem;
-}
-
-.fd-step:last-child {
-  padding-bottom: 0;
 }
 
 @media (min-width: 768px) {
@@ -229,12 +155,395 @@
   }
 }
 
-#nd-sidebar {
-  background-color: var(--tp-bg);
-  min-width: 260px;
+/*
+ * ---------------------------------------------------------------------------
+ * Docs typography
+ * ---------------------------------------------------------------------------
+ * Fumadocs' `.prose` layer (applied by `DocsBody`) supplies the baseline —
+ * heading scale, paragraph rhythm, table borders, list markers. Everything
+ * below is the TurboPanel treatment on top of it: display-font headings with
+ * ruled sections, banded tables, and code / quote blocks that read as distinct
+ * objects rather than differently-fonted paragraphs.
+ *
+ * `.prose` rules are authored with `:where()` (zero specificity), so a plain
+ * `#nd-page .prose <el>` selector wins without `!important`.
+ */
+
+/* Anchor targets must clear the sticky chrome, whose height varies. */
+#nd-page .prose :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: calc(var(--tp-chrome-height, 0px) + 2rem);
 }
 
-/* Keep search trigger and placeholder on one line (sidebar is 260px) */
+#nd-page .prose :is(h1, h2, h3, h4) {
+  font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
+  color: var(--tp-text);
+  text-wrap: balance;
+}
+
+#nd-page .prose h1 {
+  font-size: clamp(2rem, 1.4rem + 1.8vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin-block: 0 0.75rem;
+}
+
+/*
+ * Lead paragraph — the one-sentence answer to "what is this page?".
+ * Anchored to the H1 rather than `p:first-of-type`: on a page that opens with a
+ * callout or a section heading, "first paragraph child" is a mid-page
+ * paragraph, which would then be typeset as a lead.
+ */
+#nd-page .prose > h1 + p {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--tp-text-muted);
+  margin-block: 0 2rem;
+}
+
+/*
+ * H2 opens a new section, so it gets a rule and real air above it. This is the
+ * main cue that turns a long page into scannable chapters.
+ */
+#nd-page .prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-block: 3.5rem 1.25rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--tp-border);
+}
+
+#nd-page .prose h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+#nd-page .prose h3 {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  margin-block: 2.25rem 0.75rem;
+}
+
+#nd-page .prose h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-block: 1.75rem 0.5rem;
+}
+
+/* Fumadocs wraps heading text in a self-link; it must read as the heading. */
+#nd-page .prose :is(h1, h2, h3, h4, h5, h6) > a[href^='#'] {
+  color: inherit;
+  background: none;
+  text-decoration: none;
+}
+
+#nd-page .prose hr {
+  border-color: var(--tp-border);
+  margin-block: 3rem;
+}
+
+/* Inline prose links lean brand blue; skip path cards and code. */
+#nd-page .prose :not(pre):not(code) > a:not(.block):not([data-card]) {
+  color: color-mix(in srgb, var(--tp-blue) 78%, var(--tp-text));
+  text-decoration-color: color-mix(in srgb, var(--tp-blue) 35%, transparent);
+  text-underline-offset: 0.15em;
+  transition: color 150ms ease;
+}
+
+#nd-page .prose :not(pre):not(code) > a:not(.block):not([data-card]):hover {
+  color: var(--tp-blue);
+  text-decoration-color: currentColor;
+}
+
+/* Brand-tinted list markers read as deliberate rather than browser default. */
+#nd-page .prose :is(ul, ol) > li::marker {
+  color: color-mix(in srgb, var(--tp-blue) 65%, var(--tp-text-muted));
+  font-weight: 600;
+}
+
+#nd-page .prose :is(ul, ol) {
+  padding-inline-start: 1.35rem;
+}
+
+/*
+ * Inline code — a chip, so a `flag` inside a sentence is unmistakable.
+ */
+#nd-page .prose :not(pre) > code:not(.fd-file) {
+  background: color-mix(in srgb, var(--tp-blue) 7%, var(--tp-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--tp-blue) 14%, var(--tp-border));
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.8125em;
+  font-weight: 500;
+  color: var(--tp-text);
+  overflow-wrap: break-word;
+  /* A chip that wraps should render padding + border on both fragments. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/*
+ * Blockquote — a called-out aside, not italic body text. Solid surface plus a
+ * brand rule so it reads as a distinct object at a glance.
+ */
+#nd-page .prose blockquote {
+  margin-block: 1.75rem;
+  border: 1px solid var(--tp-border);
+  border-inline-start: 3px solid var(--tp-accent);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: color-mix(in srgb, var(--tp-accent) 5%, var(--tp-surface));
+  padding: 1rem 1.25rem;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--tp-text);
+}
+
+#nd-page .prose blockquote > :first-child {
+  margin-top: 0;
+}
+
+#nd-page .prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* `.prose` adds typographic quote glyphs; the surface already does that job. */
+#nd-page .prose blockquote p:first-of-type::before,
+#nd-page .prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+/*
+ * Code blocks — Fumadocs renders `figure.shiki` (+ a `figcaption` header bar
+ * once a title is set, which `mdx-components.tsx` fills with the language).
+ * Recessed surface, not a card: a code block is something you read *into*, and
+ * on this light-first page a white-on-white slab was invisible.
+ */
+#nd-page .prose figure.shiki {
+  margin-block: 1.5rem;
+  border-color: var(--tp-border);
+  border-radius: 0.75rem;
+  background: var(--tp-surface-muted);
+  box-shadow: none;
+}
+
+#nd-page .prose figure.shiki > div:has(> figcaption) {
+  background: color-mix(in srgb, var(--tp-text) 5%, var(--tp-surface-muted));
+  border-bottom-color: var(--tp-border);
+  height: 2.25rem;
+  color: var(--tp-text-muted);
+}
+
+#nd-page .prose figure.shiki figcaption {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#nd-page .prose figure.shiki code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  line-height: 1.65;
+}
+
+/*
+ * Inside a `<CodeGroup>` tab the tab strip already frames the block, so let the
+ * code fill the panel instead of floating as a second box inside the first.
+ * (Fumadocs ships a `-m-4` utility for this, but its own `my-4` wins the
+ * cascade, leaving a 1rem gutter.)
+ */
+#nd-page .prose [role='tabpanel'] > figure.shiki:only-child {
+  margin: -1rem;
+  border: 0;
+  border-radius: 0;
+}
+
+/*
+ * Tables — the wrapper Fumadocs emits (`div.overflow-auto.prose-no-margin`)
+ * becomes the bordered container, so cells only need horizontal rules. A full
+ * grid of boxes reads as a spreadsheet; a header band plus row rules reads as
+ * reference material.
+ */
+#nd-page .prose div:has(> table) {
+  margin-block: 1.75rem;
+  border: 1px solid var(--tp-border);
+  border-radius: 0.75rem;
+  background: var(--tp-surface);
+}
+
+#nd-page .prose table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+#nd-page .prose thead th {
+  background: var(--tp-surface-muted);
+  color: var(--tp-text);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: start;
+  padding: 0.75rem 0.875rem;
+  border: 0;
+  border-bottom: 1px solid var(--tp-border);
+  white-space: nowrap;
+}
+
+/*
+ * Floor the column width so 5+ column tables scroll instead of collapsing to
+ * one word per line. The first column is usually a short key (`#`, `OS`,
+ * `Feature`), so it keeps its natural min-content width.
+ */
+#nd-page .prose :is(th, td) {
+  min-width: 8.5rem;
+}
+
+#nd-page .prose :is(th, td):first-child {
+  min-width: 0;
+}
+
+#nd-page .prose tbody td {
+  padding: 0.75rem 0.875rem;
+  border: 0;
+  border-top: 1px solid var(--tp-border);
+  vertical-align: top;
+  color: var(--tp-text-muted);
+}
+
+#nd-page .prose tbody tr:first-child td {
+  border-top: 0;
+}
+
+#nd-page .prose tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--tp-surface-muted) 40%, transparent);
+}
+
+/* First column is the row's subject — keep it at full text contrast. */
+#nd-page .prose tbody td:first-child {
+  color: var(--tp-text);
+  font-weight: 500;
+}
+
+/*
+ * Cell code stays scannable but loses the border, so a dense row is not a strip
+ * of boxes. (Descendant of the cell — `:is(th, td) > code` alone would miss
+ * code nested in a `<strong>`, and a `<td>` is not its own descendant.)
+ */
+#nd-page .prose :is(th, td) code:not(.fd-file) {
+  background: color-mix(in srgb, var(--tp-blue) 8%, transparent);
+  border-color: transparent;
+  padding: 0.05em 0.3em;
+  font-size: 0.8125em;
+}
+
+/*
+ * Callouts — the design system prefers hairline borders to heavy shadow, and
+ * Fumadocs ships `shadow-md` on these.
+ */
+#nd-page .prose [class*='rounded-xl'][class*='shadow-md'] {
+  box-shadow: none;
+  border-color: var(--tp-border);
+}
+
+/*
+ * Mermaid diagrams — same "distinct object" language as code and tables, so a
+ * diagram is not just artwork floating in the middle of the prose.
+ */
+#nd-page .prose figure[data-tp-diagram] {
+  margin-block: 1.75rem;
+  border: 1px solid var(--tp-border);
+  border-radius: 0.75rem;
+  background: var(--tp-surface);
+  padding: 1.25rem;
+}
+
+#nd-page .prose figure[data-tp-diagram] figcaption {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--tp-border);
+  color: var(--tp-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/*
+ * Path cards: hairline surface + accent hover (no scale / entrance motion).
+ * Scoped with `.block` because Fumadocs also tags heading anchor links with
+ * `data-card` — unscoped, every heading got a card background painted behind it.
+ */
+#nd-page .prose [data-card].block {
+  background: var(--tp-surface);
+  border-color: var(--tp-border);
+  box-shadow: none;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+#nd-page .prose a[data-card].block {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  #nd-page .prose a[data-card].block:hover {
+    border-color: color-mix(in srgb, var(--tp-accent) 40%, var(--tp-border));
+    background: color-mix(in srgb, var(--tp-accent) 6%, var(--tp-surface));
+  }
+}
+
+#nd-page .prose a[data-card].block:focus-visible {
+  outline: 2px solid var(--tp-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * Steps — fumadocs styles only the `::before` counter and assumes it anchors to
+ * `.fd-steps` (which is `position: relative`), so `inset-inline-start: -1rem`
+ * centres each badge on the rail. Do NOT make `.fd-step` positioned: that
+ * re-anchors the badge inside the text column, where it covers the first
+ * character of every step.
+ */
+#nd-page .prose .fd-steps {
+  border-inline-start: 1px solid var(--tp-border);
+}
+
+.fd-step {
+  padding-bottom: 1.25rem;
+}
+
+.fd-step:last-child {
+  padding-bottom: 0;
+}
+
+#nd-page .prose .fd-step::before {
+  background: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  color: var(--tp-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#nd-page .prose .fd-step > :first-child {
+  margin-top: 0;
+}
+
+#nd-sidebar {
+  background-color: var(--tp-bg);
+}
+
+/* Keep search trigger and placeholder on one line (sidebar is 268px) */
 #nd-sidebar [data-search] {
   white-space: nowrap;
   min-width: 0;
@@ -434,6 +743,13 @@ body {
   [data-search] button,
   [data-search-full] {
     min-height: 44px;
+  }
+
+  /* Opt-in container (mobile nav panel) — size every control for thumbs. */
+  .tp-touch-targets a,
+  .tp-touch-targets button {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

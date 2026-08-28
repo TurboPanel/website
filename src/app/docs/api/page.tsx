@@ -106,9 +106,25 @@ function subscribeClientApiDocsConfig(): () => void {
   return () => {}
 }
 
+/**
+ * `useSyncExternalStore` compares snapshots by identity, so this must return the
+ * same object until the host actually changes — building a fresh one per call
+ * made React throw "The result of getSnapshot should be cached to avoid an
+ * infinite loop" and re-render on every pass.
+ */
+let cachedApiDocsConfigKey: string | null = null
+let cachedApiDocsConfig: ReturnType<typeof resolveLocalApiDocsConfig> | null = null
+
 function getClientApiDocsConfigSnapshot() {
   const { hostname, port } = globalThis.location
-  return resolveLocalApiDocsConfig(hostname, port)
+  const key = `${hostname}:${port}`
+
+  if (key !== cachedApiDocsConfigKey || !cachedApiDocsConfig) {
+    cachedApiDocsConfigKey = key
+    cachedApiDocsConfig = resolveLocalApiDocsConfig(hostname, port)
+  }
+
+  return cachedApiDocsConfig
 }
 
 export default function ApiDocsPage() {

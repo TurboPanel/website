@@ -12,15 +12,9 @@ The transcript is a **separate, never load-bearing channel**. The command's own 
 This is the **only** log class TurboPanel stores. Running-container stdout/stderr is a live on-demand tail and is never retained — see [Container logs](/docs/architecture/container-logs).
 
 <Callout type="info" title="Canonical source">
-  Control-plane contract:{' '}
-  <File path="src/lib/execution-logs/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/execution-logs/AGENTS.md">
-    instance/src/lib/execution-logs/AGENTS.md
-  </File>
-  . Daemon-side capture:{' '}
-  <File path="src/deploy/AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/deploy/AGENTS.md">
-    daemon/src/deploy/AGENTS.md
-  </File>{' '}
-  (Streamed transcript capture). Storage classification: [Storage architecture](/docs/architecture/storage-architecture).
+  Control-plane contract: <File path="src/lib/execution-logs/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/execution-logs/AGENTS.md">instance/src/lib/execution-logs/AGENTS.md</File>.
+  Daemon-side capture: <File path="src/deploy/AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/deploy/AGENTS.md">daemon/src/deploy/AGENTS.md</File> (Streamed transcript capture).
+  Storage classification: [Storage architecture](/docs/architecture/storage-architecture).
 </Callout>
 
 ## End to end
