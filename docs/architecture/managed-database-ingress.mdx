@@ -22,12 +22,24 @@ flowchart LR
 
 | Piece | Role |
 | --- | --- |
-| **ProxySQL** (`turbopanel-proxysql`) | One compose project per managed server (`/etc/turbopanel/proxysql/`). Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
+| **ProxySQL** | One compose project per managed server, with configuration under `/etc/turbopanel/proxysql/`. Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
 | **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family) |
-| **Backends** | Engine containers (local Docker network name) or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
+| **Backends** | Engine containers on the organization's managed Docker network, or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
 | **Users** | Non-replication managed principals resealed for that server — binding-created users included |
 
 Replication principals never become ProxySQL frontend users.
+
+### Names you never have to type
+
+TurboPanel allocates the Docker network that carries managed engine traffic —
+one per organization — and the ProxySQL compose project on each managed server.
+Both names are assigned by the platform and are not meant to be typed, guessed,
+or referenced by an operator: you reach a managed database through its
+connection panel or a binding, and you manage the stack through TurboPanel, not
+through `docker` on the host. Nothing on a managed server is expected to carry a
+human-readable Docker name. The one exception is the self-hosted TurboPanel
+instance stack itself, whose compose project stays `turbopanel-system` because
+operators do inspect it directly.
 
 ## Ports and firewall
 

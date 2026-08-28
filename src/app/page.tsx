@@ -14,8 +14,8 @@ import {
 } from '@/components/marketing/marketing-primitives'
 
 const HERO_BENEFITS = [
+  'One place for everything you host',
   'Fast, always-on control plane',
-  'One place for every server and app',
   'First server included',
 ] as const
 
@@ -37,8 +37,8 @@ const CAPABILITIES = [
   },
   {
     mono: 'Always on',
-    title: 'Fast for teams everywhere',
-    body: 'TurboPanel High Availability keeps your control plane close, quick, and online around the world. Nothing extra for you to run.',
+    title: 'Built on a global edge network',
+    body: 'The panel does not live on one box in one datacenter. TurboPanel High Availability runs across a worldwide edge network, close to you and your servers no matter where they are — and there is nothing extra for you to run.',
   },
 ] as const
 
@@ -79,7 +79,7 @@ const WHY = [
   },
   {
     title: 'Fast wherever your team works',
-    body: 'A responsive worldwide control plane keeps everyday actions quick, whether your team is across town or across the globe.',
+    body: 'The panel is served from a global edge network, so everyday actions stay quick whether your team is across town or across an ocean.',
   },
   {
     title: 'Power without the clutter',
@@ -92,8 +92,8 @@ export default function Home() {
     <MarketingPageShell active="overview">
       <MarketingHero
         eyebrow="TurboPanel"
-        title="Your servers. One fast control plane."
-        description="Connect a server and start shipping. TurboPanel High Availability gives you a quick, always-on control plane worldwide for websites, containers, databases, and day-to-day ops."
+        title="Host more. Manage less."
+        description="Run websites, apps, databases, and servers from one fast, always-on control plane. TurboPanel High Availability keeps the panel online for you, worldwide — you connect servers and ship."
         plainBackground
         benefits={HERO_BENEFITS}
       >
@@ -208,12 +208,13 @@ export default function Home() {
             <div className="max-w-2xl">
               <p className="tp-eyebrow">TurboPanel High Availability</p>
               <h2 className="tp-section-title mt-4">
-                Private alpha — join the waitlist for early access.
+                We run the panel. You run what matters.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
-                Prefer to operate the control plane yourself? Self-hosted will be free with unlimited
-                servers — same product, your infrastructure. It is also in private alpha and not yet
-                publicly available.
+                High Availability is in private alpha — join the waitlist for early access. Prefer to
+                operate the control plane yourself? Self-hosted will be free with unlimited servers —
+                same product, your infrastructure. It is also in private alpha and not yet publicly
+                available.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">
@@ -230,7 +231,7 @@ export default function Home() {
 
       <MarketingSection className="pb-20">
         <MarketingSectionHeader
-          title="The control plane your team will actually enjoy using"
+          title="Everything you host. One place to run it."
           description="TurboPanel High Availability is fast and affordable — and we're working hard to get it ready for you. Spend time on your apps and customers, not on the panel behind them."
         />
         <div className="grid gap-6 sm:grid-cols-2">

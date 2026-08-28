@@ -21,7 +21,7 @@ export function SiteFooter() {
         <div>
           <Logo compact />
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--tp-text-muted)]">
-            One fast, always-on control plane for every server, app, and team.
+            Everything you host. One place to run it.
           </p>
         </div>
         <nav

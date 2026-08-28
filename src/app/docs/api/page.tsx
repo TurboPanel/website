@@ -59,7 +59,7 @@ const scalarCustomCss = `
   .scalar-api-reference .t-doc__header { display: none !important; }
   .scalar-api-reference .api-reference-toolbar { display: none !important; }
 
-  /* Reduce top padding for seamless site chrome integration */
+  /* Reduce top padding so the page sits flush under the site chrome */
   .scalar-api-reference,
   .scalar-app {
     padding-top: 0 !important;

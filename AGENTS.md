@@ -25,6 +25,26 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 
+## Messaging (brand voice source of truth)
+
+Three layers — each line has one job; do not blend or reword them:
+
+| Layer | Line | Job | Where |
+| --- | --- | --- | --- |
+| **Definition** | **Host more. Manage less.** + "Run websites, apps, databases, and servers from one fast, always-on control plane." | Answers "what is TurboPanel?" | Home hero, site `<title>`, GitHub org description, README taglines |
+| **Brand slogan** | **Everything you host. One place to run it.** | The memorable line | Footer, closing sections, brand assets |
+| **HA slogan** | **We run the panel. You run what matters.** | Answers "why not just self-host for free?" | Pricing hero, High Availability sections |
+
+Supporting line for the self-hosted split: *"Self-host it when you need to; let us run it when you don't."* Self-hosted is the power-user exception, not a co-equal default.
+
+Voice rules:
+
+- Plain words a developer would say out loud: **host, run, one place, fast, always-on, your servers**. "Control plane" belongs in technical and docs copy; headlines prefer "panel" or "one place".
+- Machine-brochure vocabulary is **banned and enforced**: `pnpm check:vocabulary` fails on the marketing-phrase block in `src/lib/vocabulary.ts` (kept in sync across sibling repos). Beyond the enforced stems, also avoid: streamline, unlock, unified platform, cloud-native, cutting-edge, leverage, robust.
+- **Infrastructure story:** TurboPanel High Availability runs on **"a global edge network"** — close to users and their servers, fast and always on, worldwide. Never name the underlying vendor or its products in marketing/docs copy.
+- **Claim boundary:** "always-on" and "High Availability" describe the **control plane only**. Never imply customer workloads become highly available automatically — "always-on hosting" and "your apps never go down" are off-limits.
+- Open source is a trust property, not the pitch. Never lead with "open-source" as the product definition.
+
 ## Marketing routes (App Router)
 
 | Route | File | Purpose |

@@ -9,7 +9,7 @@ import {
 } from '@/components/marketing/marketing-primitives'
 
 const HIGH_AVAILABILITY_FEATURES = [
-  'Fast, always-on control plane with worldwide reach',
+  'Runs on a global edge network — fast and always on, wherever you and your servers are',
   'No panel infrastructure, upgrades, backups, or TLS to manage',
   'First connected server included',
   'Add servers as your fleet grows',
@@ -25,7 +25,7 @@ const SELF_HOSTED = [
 
 const COST_OF_OWN = [
   {
-    label: 'Fast worldwide control plane',
+    label: 'Control plane on a global edge network',
     highAvailability: 'Ready by default',
     self: 'You build and operate it',
   },
@@ -44,7 +44,7 @@ const COST_OF_OWN = [
 const FAQ = [
   {
     q: 'What am I paying for on TurboPanel High Availability?',
-    a: 'TurboPanel High Availability is in private alpha and not yet publicly available. Join the waitlist and we will reach out as access opens, with a fast, always-on control plane, accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
+    a: 'TurboPanel High Availability is in private alpha and not yet publicly available. Join the waitlist and we will reach out as access opens, with a control plane that runs on a global edge network — fast and always on — plus accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
   },
   {
     q: 'When does self-hosted still make sense?',
@@ -76,8 +76,8 @@ export default function PricingPage() {
     <MarketingPageShell active="pricing">
       <MarketingHero
         eyebrow="Pricing · Private alpha"
-        title="Fast everywhere. Online when it matters."
-        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. Join the waitlist for a worldwide control plane — we run the panel, you connect servers and ship."
+        title="We run the panel. You run what matters."
+        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. Join the waitlist for a control plane that lives on a global edge network — we run the panel, you connect servers and ship."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingControlPlaneCta path="/sign-up" emphasis>
@@ -105,9 +105,9 @@ export default function PricingPage() {
               Pricing details shared as we get closer to beta
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
-              The easiest way to run TurboPanel, once it is ready. Connect your servers to a fast
-              worldwide control plane while we handle uptime, updates, security, and the infrastructure
-              behind it.
+              The easiest TurboPanel is the one you never have to run. Your panel lives on a global
+              edge network — close to you and your servers anywhere in the world — while we handle
+              uptime, updates, security, and the infrastructure behind it.
             </p>
             <PlanFeatureList items={HIGH_AVAILABILITY_FEATURES} />
             <div className="mt-8 flex flex-wrap gap-3">
@@ -185,8 +185,8 @@ export default function PricingPage() {
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--tp-text-muted)]">
             Join the waitlist to hear when access opens, connect your first server, and deploy in
-            minutes. Prefer to operate the control plane yourself? Self-hosted is coming too — also
-            free, also private alpha.
+            minutes. Self-host it when you need to; let us run it when you don&apos;t. Self-hosted is
+            coming too — free with unlimited servers, also in private alpha.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
