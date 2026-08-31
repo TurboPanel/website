@@ -1,83 +1,80 @@
 ---
 title: Server metrics operations
-description: Host metrics storage, ClickHouse resources, retention, troubleshooting, and privacy
+description: Host metrics storage, embedded DuckDB, Parquet archive, retention, troubleshooting, and privacy
 ---
 
 # Server metrics operations
 
-Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For the wire contract, metric list, AE positional map, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
+Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For the wire contract, metric list, backend mappings, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
 
 ## Configuration
 
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
-| `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | `90` | ClickHouse table TTL (days) |
-| `TURBOPANEL_CLICKHOUSE_URL` | — | HTTP base, e.g. `http://127.0.0.1:8123` (Deno) |
-| `TURBOPANEL_CLICKHOUSE_DATABASE` | `turbopanel_metrics` | App database |
-| `TURBOPANEL_CLICKHOUSE_USER` | `turbopanel_app` | Least-privilege app user |
-| `TURBOPANEL_CLICKHOUSE_PASSWORD` | generated | In `runtime.dev-vars` on managed hosts |
+| `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | `90` | Retention in days — applies to both hot DuckDB rows and sealed Parquet partitions |
+| `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` | `2` | DuckDB `SET threads` cap |
+| `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | `128` | DuckDB `SET memory_limit` in MiB |
+| `TURBOPANEL_METRICS_DIR` | `<stateDir>/metrics` | Metrics state root override (internal path — not required) |
 | `CLOUDFLARE_ACCOUNT_ID` | — | **Workers only** — required for Analytics Engine SQL reads |
 | `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` | — | **Workers only** — Account Analytics Read token for AE SQL queries |
 | `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS` | `7776000` (90 d) | **Workers only** — optional max query window override |
 
-When no storage backend is configured yet (pre-converge), the instance uses a temporary no-op store with a one-time boot warning until ClickHouse (Deno) or Analytics Engine (Workers) is wired.
+The self-hosted Deno path constructs `DuckDbParquetServerMetricsStore` directly against an internal path (`resolveMetricsDir()`), so it needs no operator-supplied credentials — it falls back to a temporary no-op store (with a one-time boot warning) only when the metrics directory cannot be created or opened.
 
 **Workers (hosted):** add the `SERVER_METRICS` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the hosted query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
 
-**Deno (self-hosted):** provide a full ClickHouse config to persist samples. Query failures return **503** `metrics_backend_unavailable`.
+**Deno (self-hosted):** metrics persist to embedded DuckDB + Parquet automatically. Query failures return **503** `metrics_backend_unavailable`.
 
-Ansible injects ClickHouse env when `.clickhouse_app_pass` exists — see [daemon AGENTS.md](https://github.com/TurboPanel/turbopaneld/blob/trunk/AGENTS.md) (ClickHouse role).
+There is no analytics Ansible role — the daemon provisions nothing for metrics beyond the instance's own state directory; the instance creates and manages the DuckDB metrics directory itself on first use.
 
-## ClickHouse resources (self-hosted)
+## DuckDB + Parquet resources (self-hosted)
 
-Installed by the daemon **`clickhouse`** Ansible role (co-located dev converge or `playbooks/clickhouse-setup.yml`).
+The self-hosted metrics store is **embedded in the instance process** — no container, no port, no separate daemon process, no credentials, and no analytics database service to install or monitor.
 
-| Expectation | Detail |
-| ----------- | ------ |
-| Runtime | Docker container `turbopanel-analytics` (official `clickhouse/clickhouse-server` image) on the `turbopanel` network |
-| Bind | **127.0.0.1:8123** HTTP only (no public exposure; native TCP 9000 stays internal to the container) |
-| Auth | Anonymous disabled; separate admin + app passwords (mode `0600` under `/etc/turbopanel/clickhouse/`) |
-| App user | `turbopanel_app` — created via SQL, scoped to `turbopanel_metrics` |
-| Data path | Named Docker volume `turbopanel-analytics` (`/var/lib/clickhouse` in-container) |
-| Unit | `turbopanel-clickhouse.service` (`Type=oneshot`) |
-| Footprint | Low-footprint profile: 64 MiB mark cache, 512 MiB server memory cap, container `--memory 768m` / `--cpus 1.0` |
+Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`):
 
-Pin: `CLICKHOUSE_VERSION` **26.5.5.8** (daemon orchestration).
+| Path | Role |
+| ---- | ---- |
+| `metrics.duckdb` | Hot database — recent samples and status events in typed tables |
+| `parquet/server-metrics/year=YYYY/month=MM/day=DD/metrics.parquet` | Daily sealed archive — each completed UTC day exported out of the hot table |
+| `tmp/` | DuckDB spill plus in-flight Parquet exports (swept on restart; never mistaken for sealed partitions) |
+
+Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` (default **2**) and `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` (default **128** MiB) bound the embedded engine's footprint.
 
 ## Retention
 
 | Layer | Config | Default |
 | ----- | ------ | ------- |
-| ClickHouse (`turbopanel_server_metrics`) | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | **90** days |
+| DuckDB hot table + Parquet archive | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | **90** days |
 | Analytics Engine (hosted) | Cloudflare platform | **3 months** — UI cannot exceed this on Workers |
 
-Change ClickHouse TTL via env on the instance unit (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`). On `ensureSchema`, the instance creates the table with that TTL and idempotently runs `ALTER TABLE … MODIFY TTL` so existing installations pick up retention changes (requires `ALTER` on the metrics DB, granted to `turbopanel_app` by the ClickHouse role bootstrap).
+The same daily archive tick prunes both expired Parquet partitions and any hot/status rows past the cutoff — change retention via env on the instance unit and it applies on the next tick.
 
 ## Troubleshooting ingestion
 
 | Symptom | Likely cause | Action |
 | ------- | ------------ | ------ |
-| No samples at all | ClickHouse/AE not wired | Verify ClickHouse env in `runtime.env` / `runtime.dev-vars`, or AE binding + SQL credentials on Workers |
-| Samples on Workers, not Deno | ClickHouse down or misconfigured | `systemctl status turbopanel-clickhouse`; verify URL/user/password in `runtime.env` / `runtime.dev-vars` |
-| API 503 on charts | ClickHouse unreachable | Fix ClickHouse service; check `/var/log/turbopanel/clickhouse/` |
+| No samples at all | Metrics directory unusable (self-hosted) or AE not wired (Workers) | Check the instance boot log for the no-op store warning and verify the metrics directory is creatable; on Workers verify the AE binding + SQL credentials |
+| API 503 on charts | DuckDB/filesystem error | Check the metrics directory is writable and the disk is not full; see instance logs for the underlying DuckDB error |
+| Interrupted daily archive | Instance stopped mid-export | Nothing to do — the in-flight `.tmp` Parquet file is ignored and swept on the next tick, and the day is re-exported; hot rows are only deleted after the sealed file validates, so samples are never lost |
 | Workers charts empty | AE SQL credentials missing | Set `CLOUDFLARE_ACCOUNT_ID` and `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN`; store reports `available: false` when either is absent |
 | Workers charts 503 `metrics_backend_unavailable` | AE SQL API rejected the query or token | Token must be **Account → Account Analytics → Read**. Check Worker logs for `metrics queryHostSeries failed …` (includes the Cloudflare/SQL error). Confirm `CLOUDFLARE_ACCOUNT_ID` matches the TurboPanel account |
 | Daemon connected, no metrics | Unsupported OS collector | Internal to `turbopaneld`: logs `metrics unsupported: unsupported_os:<os>`, stops periodic metrics for that attach, and does **not** send a metrics sample — check daemon logs |
 | Gap after connect | Normal warm-up | First sample is immediate (gauges); rate metrics (CPU / disk / net) follow on the primed ~2 s snapshot |
 
-Writes are fire-and-forget at the WebSocket boundary — ingestion errors do not block daemon liveness.
+Writes are fire-and-forget at the ingest boundary — ingestion errors do not block daemon liveness.
 
 ## Troubleshooting missing charts (UI)
 
 | Symptom | Likely cause |
 | ------- | ------------ |
 | "No metrics yet" | Daemon offline or still connecting (first sample is immediate; rates follow in ~2 s) |
-| Storage still starting | ClickHouse (self-hosted) or AE binding/credentials (Workers) not ready yet — re-run instance-launch / converge |
+| Storage still starting | DuckDB metrics directory not yet created (self-hosted) or AE binding/credentials (Workers) not ready yet — re-run instance-launch / converge |
 | Unsupported OS | Server OS metadata from daemon hello (`server.os.family !== 'linux'`) — not a metrics wire signal; Linux collector failures appear as no data/gaps instead |
 | Empty range | Selected window beyond retention (90 d API cap; 3 mo on hosted AE) |
-| Backend unavailable | ClickHouse 503 on self-hosted |
+| Backend unavailable | DuckDB 503 on self-hosted |
 | Gaps in lines | `sampleCount` &lt; `expectedSampleCount` — missing samples, not zero usage |
-| Stale appearance | Charts are not real-time below the ~60 s collection interval |
+| Stale appearance | Charts are not real-time below the ~60 s baseline collection interval |
 
 Use `sampleCount`, `expectedSampleCount`, and `gapCount` from the series API — do not treat null/zero the same.
 
@@ -86,9 +83,9 @@ Use `sampleCount`, `expectedSampleCount`, and `gapCount` from the series API —
 Metrics stores:
 
 - **`serverId`** (authenticated UUID index) — from server context after auth, not client-supplied identity
-- **Low-cardinality dimensions:** daemon version, OS name, architecture, kernel release
+- **Low-cardinality dimensions:** daemon version, OS name, architecture, kernel release, collection mode, selected sensor/interface identities
 
-Metrics does **not** store organization names, account emails, hostnames, client IPs, license tokens, or secrets. Query endpoints require session + server read grant — never bare UUID access.
+Metrics does **not** store organization names, account emails, hostnames, client IPs, license tokens, or secrets. Query endpoints require session + server read grant — never bare UUID access. (Internally, DuckDB stores missing values as plain SQL `NULL` columns while Analytics Engine uses a missing-value sentinel — a backend implementation detail with no user-facing impact.)
 
 ## Related
 

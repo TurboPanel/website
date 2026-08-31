@@ -95,11 +95,11 @@ Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote t
 | **4983** | Drizzle Studio (unauthenticated) | `127.0.0.1` only |
 | **8025** | Mailpit web UI (unauthenticated) | `127.0.0.1` only |
 | **5540** | Redis Insight (unauthenticated) | `127.0.0.1` only |
-| **8125** | Tabix (unauthenticated) | `127.0.0.1` only |
+| **4213** | DuckDB UI (on-demand, dev build only) | `127.0.0.1` only |
 
 - **Local browsing / VS Code / Cursor:** `https://localhost:8443` or `http://localhost:8880`.
 - **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. Ports `80` / `443` / `8443` / `8880` / `8081` / `8088` / `19820` listen on all host interfaces.
-- **Studio / Mailpit / Redis Insight / Tabix** stay loopback-only on purpose — those UIs are unauthenticated. Open Drizzle Studio at `https://local.drizzle.studio?host=localhost&port=4983`.
+- **Studio / Mailpit / Redis Insight / DuckDB UI** stay loopback-only on purpose — those UIs are unauthenticated. Open Drizzle Studio at `https://local.drizzle.studio?host=localhost&port=4983`.
 - **Tenant sites:** `http://localhost` and `https://localhost` (ports **80** / **443**) reach hosting Caddy after a deploy. On Linux those host binds are privileged — the libvirt tunnel supervisor uses passwordless `sudo -n`, or you can lower `net.ipv4.ip_unprivileged_port_start`.
 
 ## Dev console areas

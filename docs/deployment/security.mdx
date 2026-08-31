@@ -134,7 +134,7 @@ Recommended:
 
 ### Service users (self-hosted)
 
-Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, ClickHouse, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
+Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
 ## Daemon Security
 

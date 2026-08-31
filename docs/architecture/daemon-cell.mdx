@@ -450,7 +450,7 @@ Use this table when reviewing cell changes for Cloudflare cost impact:
 | --------- | -------- | ------------- | -------------- | -------------- |
 | WS connection establishment (upgrade) | Yes | `cell` | `cell` row only (in-memory socket lease, no lease row) | 1 request + rows |
 | `POST /auth/session` (JWT issuance) | No | — | Postgres `server.daemon.key.lastUsedAt` only | primary DB write |
-| `POST /api/daemon/v1/metrics` (host metrics ingest) | No | — | AE / ClickHouse only | normal Worker/Deno request; **no DO duration** |
+| `POST /api/daemon/v1/metrics` (host metrics ingest) | No | — | AE / DuckDB only | normal Worker/Deno request; **no DO duration** |
 | Incoming WS message (`hello` / `heartbeat`, steady state) | Yes | none on hot path | none on hot path | 20:1 request when handled; no cell SQLite write |
 | Incoming WS reply (`command-ack`, `*-result`, `command-outcome`) | Yes | `request` | `request` status + `delivery_status` update; marks `delivery_status='acked'` (row retained); no `cell` write; prune deferred to alarm cleanup; may call `setAlarm()` | 20:1 request + request-row I/O |
 | Wire ping `DAEMON_CELL_PING` (auto-response) | No | No | No | Not charged (outgoing pong + protocol) |

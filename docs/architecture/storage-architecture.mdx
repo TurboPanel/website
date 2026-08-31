@@ -22,7 +22,7 @@ A deploy transcript and a running container's stdout can both be called "logs" a
 | 1 | **Command state** — `command` rows, status, timings, context | Relational, transactional, joined and filtered; source of truth | Postgres via Hyperdrive | Postgres (co-located) | <File path="src/lib/commands/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/commands/AGENTS.md">commands/AGENTS.md</File> |
 | 2 | **Command execution material** — the one-shot daemon payload | Written once, read once, then deleted | Postgres `dispatch` side table | Postgres `dispatch` side table | <File path="src/lib/db/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/db/AGENTS.md">db/AGENTS.md</File> |
 | 3 | **Deploy/build transcript** — a command's stdout/stderr | `GET` by known `commandId`, whole or resumed from an offset | R2 keyed objects (`EXECUTION_LOGS`) | Filesystem under the state tree (or S3) | <File path="src/lib/execution-logs/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/lib/execution-logs/AGENTS.md">execution-logs/AGENTS.md</File> |
-| 4 | **Analytics** — host metrics + connection-status events | Aggregate over time buckets; sampled and disposable | Analytics Engine | ClickHouse `turbopanel_server_metrics` | <File path="src/daemon/metrics/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">daemon/metrics/AGENTS.md</File> |
+| 4 | **Analytics** — host metrics + connection-status events | Aggregate over time buckets; sampled and disposable | Analytics Engine | DuckDB + Parquet under the metrics state root | <File path="src/daemon/metrics/AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">daemon/metrics/AGENTS.md</File> |
 
 Classes **1 and 2** are canonical business data. Classes **3 and 4** are product telemetry: valuable, retained on a clock, and never load-bearing for a control-plane decision.
 
@@ -58,7 +58,7 @@ The only real query is "show me command `X`'s output, from sequence `N`". That i
 | Command state | Indefinite (append-only history) | — |
 | Command execution material | Deleted on success; ~24 h on failure | `dispatch` sweep on the maintenance tick |
 | Deploy/build transcript | **90 days**, configurable — the **only** log class TurboPanel stores | Date-partitioned prefix delete on the shared once-a-minute maintenance tick |
-| Host metrics | 3 months (Analytics Engine) / **90 days** (ClickHouse) | Backend retention / `TTL` |
+| Host metrics | 3 months (Analytics Engine) / **90 days** (DuckDB + Parquet) | Analytics Engine: platform-managed dataset retention. DuckDB: daily archive tick seals each completed UTC day into a Parquet partition, then prunes partitions and hot rows past the retention cutoff |
 
 ## Rules that keep the classification honest
 

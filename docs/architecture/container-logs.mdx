@@ -5,9 +5,9 @@ description: Container logs are not retained — TurboPanel tails live output on
 
 # Container logs are not retained
 
-TurboPanel does **not** collect or store running-container stdout/stderr. There is no org-level retention switch, no ClickHouse or Iceberg table, no `CONTAINER_LOGS` ingest path, and no fleet-wide search. A line a container printed is gone from TurboPanel the moment you close the tail.
+TurboPanel does **not** collect or store running-container stdout/stderr. There is no org-level retention switch, no analytics table, no `CONTAINER_LOGS` ingest path, and no fleet-wide search. A line a container printed is gone from TurboPanel the moment you close the tail.
 
-What you get instead is a **live tail**: the console calls `GET /api/client/v1/containers/:id/logs`, the instance correlates a cell request to that container's daemon, and the daemon runs `docker container logs` on the spot. Bytes travel that request and are discarded. Nothing is written to Postgres, R2, or ClickHouse.
+What you get instead is a **live tail**: the console calls `GET /api/client/v1/containers/:id/logs`, the instance correlates a cell request to that container's daemon, and the daemon runs `docker container logs` on the spot. Bytes travel that request and are discarded. Nothing is written to Postgres, R2, or the metrics store.
 
 <Callout type="info" title="The only log class TurboPanel stores">
   [Deployment logs](/docs/architecture/deployment-logs) — the stdout/stderr of one command, addressed by `commandId` — are retained for **90 days**. Container output is a different question and a different answer. Storage classes: [Storage architecture](/docs/architecture/storage-architecture).
