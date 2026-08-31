@@ -8,6 +8,7 @@ description: TurboPanel multi-repo layout, dev environment orchestration, and in
 TurboPanel splits documentation by concern:
 
 - **[Development architecture](/docs/architecture/development-architecture)** — Multi-repo Vagrant layout, dev console orchestration, schema sync in dev, ports, and technology choices.
+- **[The Compose contract](/docs/architecture/compose-contract)** — TurboPanel as a Compose implementation: one extension namespace (`x-turbopanel`), the canonical place for each concern, and the four-model compiler pipeline (authored → application → resolved → per-server deployment).
 - **[Instance API](/docs/architecture/api)** — Versioned surfaces, routing modules, compose/deploy model with `x-turbopanel` server placement, secret envelopes (`tpsecret` at rest / `tpdaemon` at delivery), and how requests flow through the `turbopanel` instance repo.
 - **[Daemon cell](/docs/architecture/daemon-cell)** — SQLite-backed Durable Object cell, hibernation, billing model, and Redis parity for self-hosted mode.
 - **[Server metrics](/docs/architecture/server-metrics)** — Shared host-metrics contract, Analytics Engine / DuckDB + Parquet storage, retention, and the dated Cloudflare cost model.

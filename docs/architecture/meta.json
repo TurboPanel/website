@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "development-architecture",
+    "compose-contract",
     "api",
     "daemon-cell",
     "server-metrics",
