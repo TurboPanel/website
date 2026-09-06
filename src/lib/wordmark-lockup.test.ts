@@ -60,6 +60,40 @@ describe('computeTurboPanelWordmarkLockup', () => {
     expect(boosted.wordBottomOffset).toBe(-5)
   })
 
+  it('keeps the profile down offset when only wordBoostPx is set', () => {
+    const boosted = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      wordBoostPx: 8,
+    })
+    expect(boosted.wordBottomOffset).toBe(
+      -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+    )
+  })
+
+  it('keeps the profile boost when only wordDownPx is set', () => {
+    const baseline = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    const lowered = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      wordDownPx: 9,
+    })
+    expect(lowered.wordSize).toBe(baseline.wordSize)
+    expect(lowered.wordBottomOffset).toBe(-9)
+  })
+
+  it('sizes the full lockup wider than the mark when the word is present', () => {
+    const lockup = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    expect(lockup.lockupWidth).toBeGreaterThan(lockup.markWidth)
+    expect(lockup.letterSpacingEm).toBe(0)
+  })
+
   it('floors word size at 1px for a degenerate lockup', () => {
     const lockup = computeTurboPanelWordmarkLockup({
       size: 0,
@@ -83,10 +117,19 @@ describe('websiteWordmarkLockup', () => {
     expect(lockup.lockupWidth).toBe(lockup.markWidth)
     expect(lockup.lockupWidth).toBeLessThan(websiteWordmarkLockup(false).lockupWidth)
   })
+
+  it('can emit a compact mark-only website lockup', () => {
+    const lockup = websiteWordmarkLockup(true, true)
+    const fullCompact = websiteWordmarkLockup(true)
+    expect(lockup.lockupWidth).toBe(lockup.markWidth)
+    expect(lockup.lockupWidth).toBeLessThan(fullCompact.lockupWidth)
+    expect(lockup.lockupHeight).toBe(fullCompact.lockupHeight)
+  })
 })
 
 describe('wordmarkLetterSpacingPx', () => {
   it('returns zero when letter spacing is unset', () => {
     expect(wordmarkLetterSpacingPx(24)).toBe(0)
+    expect(wordmarkLetterSpacingPx(0)).toBe(0)
   })
 })

@@ -1,0 +1,142 @@
+---
+title: Memory metrics
+description: Available RAM, used percent, swap, memory PSI, paging, and optional memory detail
+---
+
+# Memory metrics
+
+Memory charts show **how much RAM is left**, **whether the host is swapping**, and **whether tasks waited for memory**. Used percent can look comfortable while PSI and major faults say the kernel is reclaiming hard.
+
+## Overview tile [#overview-tile]
+
+**Memory used** is a derived percent: capacity minus [available](#memory-available), not “total − free.” Available includes reclaimable cache, so it is the number Linux would give a new allocation. The tile is the latest value of `derived.memoryUsedPercent`.
+
+## Memory available [#memory-available]
+
+`host.memory.availableBytes` — bytes the kernel reports as available (`MemAvailable`). This is the best single gauge of “can this host take more work.”
+
+It is **not** the same as free RAM. Linux uses idle memory as cache on purpose. Available already subtracts what the kernel expects to need and adds what it can reclaim. A falling available line is the warning; a small free-memory number by itself is not.
+
+## Memory used [#memory-percent]
+
+`derived.memoryUsedPercent` — used as a percent of capacity, computed on the control plane from available bytes and the known total. Area chart, 0–100%.
+
+Treat the last 10–15% as the danger band on a host that also runs databases or caches — those want the cache. Pair a high used % with [PSI](#memory-pressure) before assuming you must add RAM: a cache-heavy host can sit at 90% used with zero pressure.
+
+## Swap used [#swap-bytes]
+
+`host.memory.swapUsedBytes` — bytes currently on swap. Zero is legitimate when swap is off or unused; the series still plots.
+
+Some swap on a long-lived host is common (idle pages pushed out). A climbing line **together with** swap-in traffic and memory PSI means the host is actively paging, not just holding old pages on disk.
+
+## Swap used % [#swap-percent]
+
+`derived.swapUsedPercent` — swap used as a percent of swap capacity. Hidden-looking zeros still mean “no swap in use,” not “swap is missing.” If the host has no swap at all, used bytes stay at 0 and this percent stays at 0.
+
+## Memory pressure (PSI) [#memory-pressure]
+
+[PSI](/docs/metrics#pressure-stall-information) for RAM. Two series:
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Some | `host.memory.pressureSomePercent` | At least one task waited for memory — reclaim, compaction, or swap |
+| Full | `host.memory.pressureFullPercent` | **Every** non-idle task waited. The machine stalled |
+
+**Some** is contention. **Full** above zero for more than a spike is thrashing: nothing useful ran because everything was waiting on memory. That is more serious than a high used %.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Both near 0% | Allocations are being satisfied without stalls |
+| Some rising, Full still ~0 | Reclaim is working but costing latency — check [major faults](#memory-major-faults) and [swap I/O](#memory-swap-io) |
+| Full leaving zero | Severe. Shed load, add RAM, or find the leak. The host was not doing application work during those samples |
+
+The chart hides when `/proc/pressure/memory` is missing.
+
+## Swap I/O [#memory-swap-io]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Swap in | `host.memory.swapInBytesPerSecond` | Pages read back from swap into RAM |
+| Swap out | `host.memory.swapOutBytesPerSecond` | Pages written out to swap |
+
+Swap-out without swap-in is the kernel parking idle pages — often harmless. Swap-**in** is the expensive direction: a process needed those pages and waited on disk. Swap-in plus memory Full PSI is the classic “this host is too small for its working set.”
+
+The chart hides when both series stay empty.
+
+## Major page faults [#memory-major-faults]
+
+`host.memory.majorPageFaultsPerSecond` — faults that required a disk read (not the cheap minor faults satisfied from RAM).
+
+A burst at process start is normal (demand paging). A sustained rate, especially with swap-in, means the working set does not fit. Pair with I/O PSI if the disk is the one paying for it.
+
+## Memory detail [#memory-detail]
+
+These charts appear only when **Memory detail** is enabled on the capability plan. They break RAM into kernel accounting buckets from `/proc/meminfo` and `/proc/vmstat`.
+
+### Free & cached memory [#memory-detail-primary]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Free | `memoryDetail.memoryFreeBytes` | Truly unused pages. Low free with healthy available is normal |
+| Cached | `memoryDetail.cachedBytes` | Page cache — file data the kernel kept. Reclaimable under pressure |
+| Anonymous | `memoryDetail.anonPagesBytes` | Process heap/stack pages. Not file-backed; these become swap |
+
+Anonymous growing without bound is the usual leak signature. Cached growing while available stays healthy is the kernel doing its job.
+
+### Slab memory [#memory-detail-slab]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Reclaimable | `memoryDetail.slabReclaimableBytes` | Kernel caches it can drop (dentries, inodes) |
+| Unreclaimable | `memoryDetail.slabUnreclaimableBytes` | Kernel objects it cannot drop without freeing the owner |
+
+A large unreclaimable slab can mean many connections, files, or kernel objects. It does not shrink just because user processes exit.
+
+### Dirty & writeback pages [#memory-detail-dirty]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Dirty | `memoryDetail.dirtyBytes` | File pages modified in RAM, not yet written |
+| Writeback | `memoryDetail.writebackBytes` | Pages the kernel is writing right now |
+
+A large dirty pile followed by writeback and [I/O PSI](/docs/metrics/storage#storage-io-pressure) is a flush storm — backups, logging, or a write-heavy database.
+
+### Shared, page table & kernel stack [#memory-detail-other-gauges]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Shared | `memoryDetail.shmemBytes` | `tmpfs`, shared memory, some container overlays |
+| Page tables | `memoryDetail.pageTablesBytes` | Bookkeeping for virtual memory. Grows with many processes or huge address spaces |
+| Kernel stack | `memoryDetail.kernelStackBytes` | Per-task kernel stacks. Grows with thread count |
+
+### Committed memory [#memory-detail-commit]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Committed | `memoryDetail.committedAsBytes` | Memory the kernel has promised to processes (overcommit-aware) |
+| Limit | `memoryDetail.commitLimitBytes` | The commit ceiling (`overcommit` policy) |
+
+Committed approaching the limit means new allocations can start failing even if used % still looks fine — especially on hosts that over-allocate (JVMs, databases with huge `mmap`).
+
+### Active & inactive pages [#memory-detail-active-inactive]
+
+Anonymous vs file-backed pages, split into **active** (recently used) and **inactive** (candidates to reclaim). Inactive file pages are the first the kernel takes. Inactive anon moving to swap is the start of paging. Wire names: `activeAnonBytes`, `inactiveAnonBytes`, `activeFileBytes`, `inactiveFileBytes`.
+
+### Page reclaim [#memory-detail-reclaim]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Direct scan | `memoryDetail.pageScanDirectPerSecond` | A process scanned pages itself because it needed memory *now* — this stalls that process |
+| kswapd scan | `memoryDetail.pageScanKswapdPerSecond` | Background reclaim. Healthier than direct scan |
+
+Direct scan rising with memory Some PSI is the kernel stealing time from applications to free RAM.
+
+### Compaction stalls [#memory-detail-compaction]
+
+`memoryDetail.compactionStallsPerSecond` — times the kernel stalled a process to compact fragmented pages (needed for huge pages or large contiguous allocations). Occasional spikes are normal. A sustained rate means fragmentation is costing latency.
+
+## Related
+
+- [Pressure Stall Information](/docs/metrics#pressure-stall-information)
+- [CPU pressure](/docs/metrics/cpu#cpu-pressure)
+- [I/O pressure](/docs/metrics/storage#storage-io-pressure)

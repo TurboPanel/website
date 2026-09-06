@@ -1,0 +1,33 @@
+---
+title: Physical signal metrics
+description: Board, CPU package, disk, and other hardware sensor readings with optional warning and critical thresholds
+---
+
+# Physical signal metrics
+
+This group is one chart per hardware sensor the daemon trusts enough to export: CPU package temperature or power, board and ambient temps, storage temps, and similar. Each chart is titled from the sensor's own label. Virtual machines default to **zero** signal slots — no group — because those probes usually are not real.
+
+Fan RPM and GPU temp/power do **not** live here. GPU readings are on [GPU](/docs/metrics/gpu). Fan faults still appear as [events](/docs/metrics/events#fan_fault).
+
+The default physical-host plan allows up to 19 signals. A physical host with no working sensors still emits nothing — expected, not an error.
+
+## The reading [#value]
+
+`hardwareSignal.value` — a single number whose **unit** comes from the sensor (`celsius`, `watts`, `rpm`, `percent`, or other).
+
+Temperatures are stored in Celsius. The axis and tooltip convert to the organization's display unit (Celsius or Fahrenheit) at render time. A reference line, when present, is the sensor's **critical** threshold, or **warning** if no critical is set. Compare against that line in the stored unit; only the label text converts.
+
+| Unit | How to read it |
+| ---- | -------------- |
+| Celsius (shown as °C or °F) | Package and board heat. Crossing the critical line is the vendor's limit, not a TurboPanel policy |
+| Watts | Package or rail power. A sudden drop with load still high can mean a cap or a failed sensor |
+| RPM | When a tachometer is exported as a signal (uncommon here). Zero on a fan that should be spinning is a fault — also see `fan_fault` events |
+| Percent | Vendor-normalized readings (some “utilization” or “capacity” probes) |
+
+A missing chart for a sensor you expect usually means the daemon could not read it this tick (driver, permissions, or the probe disappeared). A `temp_alarm` / `temp_critical` / `psu_fault` / `voltage_alarm` [event](/docs/metrics/events#temp_alarm) is the discrete companion to these gauges.
+
+## Related
+
+- [GPU temperature and power](/docs/metrics/gpu#temperature)
+- [Block device temperature](/docs/metrics/block-devices#temperature)
+- [Hardware events](/docs/metrics/events#temp_alarm)

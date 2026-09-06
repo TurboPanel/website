@@ -8,6 +8,7 @@ description: Shared host-metrics contract, Analytics Engine and DuckDB + Parquet
 TurboPanel collects **host metrics** from connected daemons via authenticated `POST /api/daemon/v1/metrics` — one sample per minute per server at the baseline cadence. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
 
 <Callout type="info" title="Canonical source">
+  What each console chart means: [Server metrics](/docs/metrics).
   Agent maintenance detail lives in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">instance/src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
   Operations: [Metrics deployment](/docs/deployment/metrics).
 </Callout>
@@ -177,7 +178,7 @@ Every genuine online/offline transition on a `server` row also writes **one stat
 
 ## DuckDB + Parquet schema (self-hosted)
 
-The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION`, currently **6** — see [Metrics deployment](/docs/deployment/metrics) for the wipe-on-stale behavior it drives).
+The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION`, currently **6** — open creates the current layout on a new file; see [Metrics deployment](/docs/deployment/metrics)).
 
 **One real typed table per family — no positional layout, no sentinel.** Missing metrics are genuine SQL `NULL`s. This replaces v3's single wide `server_metric_samples` table with a dedicated table per entity type:
 

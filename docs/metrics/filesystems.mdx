@@ -1,0 +1,30 @@
+---
+title: Filesystem metrics
+description: Available bytes and free inodes on non-root mounts
+---
+
+# Filesystem metrics
+
+This group lists **mounts that are not `/`**. Root capacity is in [Storage](/docs/metrics/storage#root-filesystem-bytes). Each card is titled from the mountpoint and any roles (for example `/var/lib/turbopanel (hosting)`).
+
+A host with only `/` has no Filesystems group. Extra mounts appear when the daemon enumerates them and the capability plan allows extra filesystem slots.
+
+## Available [#available]
+
+`filesystem.availableBytes` — space that new files can use on that mount.
+
+Same idea as [root available](/docs/metrics/storage#root-filesystem-bytes), scoped to one mount. Hosting data, database volumes, and backup disks often live here rather than on `/`. A falling line is the volume filling; a sudden drop is usually a large write or a snapshot.
+
+The overview **Hosting storage used** tile prefers a filesystem tagged with the hosting role. If that mount is not root, the tile is derived from this series plus the inventory total.
+
+## Free inodes [#free-inodes]
+
+`filesystem.freeInodes` — remaining file slots on that mount.
+
+A volume of small files (caches, mail, container layers) can hit zero inodes with space still free. “No space left on device” then means inodes. See [root inodes](/docs/metrics/storage#root-filesystem-inodes) for the same pattern on `/`.
+
+## Related
+
+- [Storage](/docs/metrics/storage) — host I/O and root filesystem
+- [Block devices](/docs/metrics/block-devices) — the disks underneath the mounts
+- [Filesystem events](/docs/metrics/events#fs_read_only) — remounted read-only, disappeared, remounted

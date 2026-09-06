@@ -1,0 +1,62 @@
+---
+title: Network metrics
+description: TCP retransmits, softnet drops, kernel file-handle and conntrack usage, and extra network devices
+---
+
+# Network metrics
+
+The **Network** group on a server is host-scoped: loss and kernel table pressure, not a single “uplink Mbps” chart. Per-interface throughput lives on extra NICs (below) and is otherwise folded into the host sample for the monitored slots.
+
+There is no host-level “total network throughput” tile. v4 tracks **health** at host scope (`tcpRetransmitPercent`, `softnetDropsPerSecond`) and **bytes** on devices.
+
+## TCP retransmit rate [#network-retransmit]
+
+`host.network.tcpRetransmitPercent` — share of TCP segments that had to be sent again.
+
+Retransmits mean a packet did not get an ACK in time: congestion, a lossy path, a overloaded receiver, or a middlebox dropping traffic. Brief spikes happen. A rate that stays up is users hitting latency and stalls — pair with [ingress duration](/docs/metrics/ingress#duration) if this host terminates HTTP.
+
+The chart hides when the host cannot export the counter.
+
+## Softnet drops [#network-softnet-drops]
+
+`host.network.softnetDropsPerSecond` — packets the kernel dropped in the software network backlog (`/proc/net/softnet_stat`).
+
+The NIC received frames faster than CPUs could process them. Often sits next to high [SoftIRQ](/docs/metrics/cpu#cpu-modes) and [interrupt](/docs/metrics/cpu#cpu-detail-scheduling) rates. Sustained drops are lost traffic — raise backlog, spread IRQs, or reduce packet rate (or the attack).
+
+## Kernel resource usage [#kernel-resources]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| File handles | `host.kernel.fileHandlesUsedPercent` | Open file descriptors vs the system ceiling (`fs.file-nr` / `file-max`) |
+| Conntrack table | `host.kernel.conntrackUsedPercent` | Tracked connections vs `nf_conntrack_max`. Missing (chart hides that series) when conntrack is not loaded |
+
+Both are **percent of a hard kernel limit**. Hitting 100% fails new sockets or new tracked connections — the host looks “up” while apps get `EMFILE` or random connectivity failures. A NAT or proxy host lives and dies on conntrack; a busy reverse proxy or mail host lives on file handles.
+
+A `conntrack_exhaustion` [event](/docs/metrics/events#conntrack_exhaustion) is the discrete “the table filled” signal that goes with this gauge.
+
+## Extra network devices [#additional-network-devices]
+
+Monitored NIC slots and TurboFabric mesh devices are embedded in the host sample. They do **not** get their own per-device series in this group (a request for one is rejected). Only devices with role **other** — extra NICs beyond the two managed slots and the fabric mesh — appear here.
+
+### Throughput [#network-throughput]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Receive | `network.receiveBytesPerSecond` | Bytes/s inbound on that device |
+| Transmit | `network.transmitBytesPerSecond` | Bytes/s outbound on that device |
+
+### Errors & drops [#network-errors]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Receive / transmit errors | `receiveErrorsPerSecond`, `transmitErrorsPerSecond` | Frames the NIC or driver counted as bad (CRC, length, aborted) |
+| Receive / transmit drops | `receiveDropsPerSecond`, `transmitDropsPerSecond` | Frames discarded (ring full, backlog, policy) |
+
+Errors are usually a cable, NIC, or offload problem. Drops are usually capacity — the host or NIC could not accept the packet rate. Pair drops with [softnet drops](#network-softnet-drops) and SoftIRQ.
+
+[NIC link](/docs/metrics/events#nic_link_down) events (`nic_link_down`, `nic_link_up`, `nic_flapping`) are the discrete companion: the interface actually went down, not just dropped packets.
+
+## Related
+
+- [Ingress](/docs/metrics/ingress) — HTTP-level rates on Caddy or Traefik
+- [Events](/docs/metrics/events) — link flaps, TurboFabric mesh state, conntrack exhaustion

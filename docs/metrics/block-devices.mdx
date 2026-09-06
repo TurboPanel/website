@@ -1,0 +1,63 @@
+---
+title: Block device metrics
+description: Per-disk throughput, IOPS, latency, utilization, temperature, and queue depth
+---
+
+# Block device metrics
+
+This group is one card set per **service** disk the daemon reports (`isServiceDevice`). Titles use the kernel name and model (`nvme0n1 (Samsung …)`). Partition-only or excluded devices do not appear.
+
+Host-wide totals and the single busiest-device percent stay on [Storage](/docs/metrics/storage). Use this group when you need to know *which* disk.
+
+The default capability plan includes one detailed block-device slot; extra disks need a higher slot count. Temperature is stored in Celsius and shown in the organization's display unit.
+
+## Throughput [#throughput]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Read | `block.readBytesPerSecond` | Bytes/s read from this device |
+| Write | `block.writeBytesPerSecond` | Bytes/s written to this device |
+
+Compare a device to **itself** over time. An NVMe and a spinning disk have different ceilings; a line that doubles while latency stays flat is still healthy.
+
+## IOPS [#iops]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Read | `block.readOpsPerSecond` | Read operations per second |
+| Write | `block.writeOpsPerSecond` | Write operations per second |
+
+IOPS catch small-I/O saturation that bytes/s miss. A database doing 4 KiB reads can max the device's IOPS while throughput looks low. Pair a high IOPS line with [latency](#latency) and [utilization](#utilization).
+
+## Latency [#latency]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Read | `block.readLatencyMs` | Average read service time on this device, milliseconds |
+| Write | `block.writeLatencyMs` | Average write service time on this device, milliseconds |
+
+The first chart to check when [I/O PSI](/docs/metrics/storage#storage-io-pressure) rises. A device whose read latency left its baseline is the one holding the host.
+
+## Utilization [#utilization]
+
+`block.utilizationPercent` — percent of time this device had outstanding I/O (the per-disk version of [Busiest block device](/docs/metrics/storage#disk-max-util)).
+
+Near 100% for minutes means the device is busy, not necessarily that bytes/s hit a vendor spec. Queue depth and latency tell you whether it is keeping up or falling behind.
+
+## Temperature [#temperature]
+
+`block.temperatureCelsius` — drive temperature when SMART/NVMe exports it. The chart hides when there is no probe.
+
+Rising temperature with rising latency can be thermal throttling. Discrete SMART/NVMe faults are [events](/docs/metrics/events#smart_critical), not this gauge.
+
+## Queue depth [#queue-depth]
+
+`block.queueDepth` — outstanding I/O requests on the device.
+
+A deeper queue with stable latency is the device absorbing burst. A deeper queue with climbing latency is saturation — work is waiting in line. Together with utilization near 100% and I/O Full PSI, this is “the disk cannot take more.”
+
+## Related
+
+- [Storage](/docs/metrics/storage) — host-wide I/O and root filesystem
+- [Physical signals](/docs/metrics/hardware-signals) — other temperature probes
+- [Disk events](/docs/metrics/events#smart_critical) — SMART, NVMe, RAID

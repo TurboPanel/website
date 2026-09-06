@@ -25,9 +25,12 @@ describe('isSkippedPath', () => {
 
   it('skips installed agent-skill packs at any depth', () => {
     expect(isSkippedPath('.agents/skills', SELF)).toBe(true)
+    expect(isSkippedPath('.agents/skills/', SELF)).toBe(true)
     expect(isSkippedPath('.agents/skills/ui-ux-pro-max/SKILL.md', SELF)).toBe(true)
     expect(isSkippedPath('vendor/.agents/skills/pack/x.ts', SELF)).toBe(true)
     expect(isSkippedPath('.agents/other/file.ts', SELF)).toBe(false)
+    expect(isSkippedPath('.agents/skillsfoo/x.ts', SELF)).toBe(false)
+    expect(isSkippedPath('foo.agents/skills/x.ts', SELF)).toBe(false)
   })
 })
 
@@ -71,6 +74,8 @@ describe('shouldScanFile', () => {
     expect(shouldScanFile('src/app/globals.css')).toBe(true)
     expect(shouldScanFile('wrangler.jsonc')).toBe(false)
     expect(shouldScanFile('public/brand/turbopanel-logo.svg')).toBe(false)
+    expect(shouldScanFile('README.TS')).toBe(false)
+    expect(shouldScanFile('LICENSE')).toBe(false)
   })
 })
 
@@ -85,6 +90,10 @@ describe('isAllowlisted', () => {
     expect(isAllowlisted('depends on https-proxy-agent')).toBe(true)
     expect(isAllowlisted('import "@scalar/agent-chat"')).toBe(true)
     expect(isAllowlisted('agent-cli-detector')).toBe(true)
+    expect(isAllowlisted('peer of agent-base')).toBe(true)
+    expect(isAllowlisted('  ## Agent notes')).toBe(true)
+    expect(isAllowlisted('#Agent tight heading')).toBe(true)
+    expect(isAllowlisted('## agents plural heading')).toBe(false)
     expect(isAllowlisted('Plain daemon copy')).toBe(false)
   })
 })
@@ -132,6 +141,11 @@ describe('scanTextForForbiddenPhrases', () => {
         'return isLiquidGlassAvailable() && isGlassEffectAPIAvailable()',
       ),
     ).toEqual([])
+  })
+
+  it('returns no failures for empty or blank files', () => {
+    expect(scanTextForForbiddenPhrases('docs/empty.mdx', '')).toEqual([])
+    expect(scanTextForForbiddenPhrases('docs/blank.mdx', '\n\n   \n')).toEqual([])
   })
 })
 

@@ -1,0 +1,193 @@
+---
+title: Metric events
+description: Discrete host faults and state changes — OOM, disk and RAID, NIC flaps, GPU Xid, clock sync, and topology generation
+---
+
+# Metric events
+
+The **Recent events** panel is a compact list of discrete things that happened in the selected range: a kill, a disk fault, a NIC that flapped, a GPU Xid. These are not time-series. A chart can look calm in the same window an event fired.
+
+The panel is omitted entirely when nothing fell in range — not an empty-state card. Each row shows kind, severity (`info` / `warning` / `critical`), entity, source, and time.
+
+Events are sampled and disposable like the rest of metrics. They are history, not an alert product.
+
+## Two classes [#classes]
+
+| Class | Gated by | Examples |
+| ----- | -------- | -------- |
+| **Hardware health** | `hardwareHealthEventsEnabled` on the capability plan (on by default for physical hosts) | SMART/NVMe/RAID, NIC link, fans, thermal, PSU/voltage, memory ECC, GPU faults |
+| **Operational** | Always collected | OOM, hung task, conntrack, filesystem state, TurboFabric mesh, clock sync, topology/boot generation |
+
+Disabling hardware-health events does **not** drop OOM, filesystem, fabric, or clock events.
+
+## Kernel and OS
+
+### Out of memory kill [#oom_kill]
+
+The kernel invoked the OOM killer. A process was sacrificed so the rest of the system could continue. Pair with [memory PSI](/docs/metrics/memory#memory-pressure) and [available RAM](/docs/metrics/memory#memory-available) in the same window.
+
+### Hung task [#hung_task]
+
+The kernel reported a task stuck in uninterruptible sleep longer than the hung-task timeout (often disk or a blocked driver). Pair with [I/O PSI](/docs/metrics/storage#storage-io-pressure) and [blocked processes](/docs/metrics/cpu#cpu-processes).
+
+### Conntrack exhaustion [#conntrack_exhaustion]
+
+The connection-tracking table hit its ceiling. New tracked connections fail. See [Kernel resource usage](/docs/metrics/network#kernel-resources).
+
+## Filesystems
+
+### Read-only [#fs_read_only]
+
+A mounted filesystem flipped to read-only — often the kernel's reaction to I/O errors. Writes start failing while reads may still work.
+
+### Disappeared [#fs_disappeared]
+
+A mount the daemon had been watching is gone (unmounted, failed, or the device vanished).
+
+### Remount [#fs_remount]
+
+A filesystem was remounted (options or read-write state changed). Info-level context next to the two events above.
+
+## Disks and RAID
+
+### SMART critical [#smart_critical]
+
+The drive's SMART attributes crossed a vendor critical threshold (reallocations, pending sectors, and similar). Replace-the-disk territory; pair with [block temperature](/docs/metrics/block-devices#temperature) and latency.
+
+### NVMe critical [#nvme_critical]
+
+Controller-level NVMe critical warning (spare capacity, reliability, read-only, or similar bits).
+
+### NVMe media error [#nvme_media_error]
+
+The NVMe device reported media errors. Data at risk on that namespace.
+
+### RAID degraded [#raid_degraded]
+
+An array is running without a full complement of members.
+
+### RAID rebuild started [#raid_rebuild_started]
+
+A rebuild began. Rebuilds cost I/O — expect [latency](/docs/metrics/storage#disk-latency) and PSI to rise until [completed](#raid_rebuild_completed) or [failed](#raid_rebuild_failed).
+
+### RAID rebuild completed [#raid_rebuild_completed]
+
+The array finished rebuilding. I/O pressure should fall back toward the host's baseline.
+
+### RAID rebuild failed [#raid_rebuild_failed]
+
+The rebuild did not finish. The array stays degraded — see [RAID degraded](#raid_degraded).
+
+## Network and TurboFabric
+
+### NIC link down [#nic_link_down]
+
+Carrier lost or returned on a physical interface. A single down/up pair is a blip. Many pairs are [flapping](#nic_flapping).
+
+### NIC link up [#nic_link_up]
+
+Carrier returned. Pair with the preceding [link down](#nic_link_down) to see how long the interface was dark.
+
+### NIC flapping [#nic_flapping]
+
+Link state changed too often in a short window — bad cable, bad NIC, or a switch port in trouble.
+
+### TurboFabric peer change [#fabric_peer_change]
+
+The mesh peer set changed (a peer appeared or left). Operational, not hardware-health.
+
+### TurboFabric unavailable [#fabric_unavailable]
+
+The mesh overlay was not usable. Workloads that need the mesh fail until it recovers.
+
+### TurboFabric recovered [#fabric_recovered]
+
+The mesh overlay is usable again after [unavailable](#fabric_unavailable).
+
+## Thermal, power, and memory ECC
+
+### Fan fault [#fan_fault]
+
+A fan stopped reporting a working speed, or the hardware marked it failed.
+
+### Fan alarm [#fan_alarm]
+
+A fan is still present but outside its expected range (too slow, too fast, or the controller raised an alarm). Temperatures on [physical signals](/docs/metrics/hardware-signals) and [GPU](/docs/metrics/gpu#temperature) usually follow.
+
+### Temperature alarm [#temp_alarm]
+
+A probe crossed its warning threshold. The matching gauge is on [physical signals](/docs/metrics/hardware-signals) or [GPU](/docs/metrics/gpu#temperature).
+
+### Temperature critical [#temp_critical]
+
+A probe crossed its critical threshold — the vendor's limit, not a TurboPanel policy.
+
+### PSU fault [#psu_fault]
+
+A power supply reported a fault (failed, missing, or out of spec).
+
+### Voltage alarm [#voltage_alarm]
+
+A rail left its allowed band.
+
+### ECC corrected [#edac_corrected]
+
+A memory error the hardware fixed. Occasional corrected errors happen; a rising rate is a DIMM that will get worse.
+
+### ECC uncorrected [#edac_uncorrected]
+
+A memory error that was **not** corrected — processes can crash or the host can panic.
+
+## GPU
+
+### Xid [#gpu_xid]
+
+NVIDIA Xid (or vendor equivalent) — the GPU driver reported a fault. Some Xids are application errors; others are the card.
+
+### ECC [#gpu_ecc]
+
+GPU memory ECC error. Same seriousness ladder as host ECC: corrected vs uncorrected lives in the event payload when the vendor provides it.
+
+### Row remap [#gpu_row_remap]
+
+The GPU remapped a bad memory row. The card is still running; this is wear.
+
+### Retirement [#gpu_retirement]
+
+The driver retired a memory page. Accumulating retirements is a card approaching failure.
+
+### Fallen off bus [#gpu_fallen_off_bus]
+
+The GPU disappeared from PCIe. Often power, seating, or a crashed device.
+
+### Thermal critical [#gpu_thermal_critical]
+
+GPU temperature crossed the vendor critical limit. See [throttle](/docs/metrics/gpu#throttle).
+
+### Disappeared [#gpu_disappeared]
+
+The GPU is gone from inventory (not just off the bus for a moment) — uninstalled, failed, or a VM lost its vGPU.
+
+## Clock and topology
+
+### Clock sync lost [#clock_sync_lost]
+
+NTP (or the configured time source) lost sync. Metrics timestamps can skew while sync is lost; compare hosts carefully in that window.
+
+### Clock sync restored [#clock_sync_restored]
+
+Time sync is healthy again after [clock sync lost](#clock_sync_lost).
+
+### Topology generation changed [#topology_generation_changed]
+
+The daemon's enumerated set of NICs, disks, GPUs, filesystems, or sensors changed shape. Charts draw a vertical divider here so two different devices never look like one line.
+
+### Boot generation changed [#boot_generation_changed]
+
+The daemon restarted (or the host rebooted in a way that reset that counter). Rate metrics re-baseline after this.
+
+## Related
+
+- [How to read the Metrics screen](/docs/metrics)
+- [Physical signals](/docs/metrics/hardware-signals)
+- [GPU](/docs/metrics/gpu)

@@ -1,0 +1,60 @@
+---
+title: GPU metrics
+description: Per-GPU utilization, memory, temperature, power, PCIe throughput, and throttle
+---
+
+# GPU metrics
+
+This group appears when the daemon reports at least one GPU. Each card is titled from vendor and chip (for example `NVIDIA H100`). Temperatures are stored in Celsius and shown in the organization's display unit.
+
+A capability plan can *allow* GPU reporting (the default includes one GPU slot) without a machine *having* a GPU. No GPU in inventory means no group — that is expected, not a misconfiguration.
+
+## Utilization [#utilization]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| GPU | `gpu.utilizationPercent` | Share of time the GPU compute engines were busy |
+| Memory activity | `gpu.memoryActivityPercent` | Share of time the GPU memory interface was busy |
+
+High compute with low memory activity is arithmetic-bound work. High memory activity with modest compute is bandwidth-bound (large tensors, scans). Both near 100% is a fully used GPU.
+
+## Memory used [#memory-used]
+
+`gpu.memoryUsedBytes` — framebuffer / HBM (or equivalent) in use.
+
+GPUs do not overcommit the way Linux RAM does. Approaching the card's capacity fails new allocations (the GPU runtime reports out of memory). This is **on-device** memory, not host RAM — host pressure is on [Memory](/docs/metrics/memory).
+
+## Temperature [#temperature]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Core | `gpu.temperatureCelsius` | GPU die / package temperature |
+| Memory | `gpu.memoryTemperatureCelsius` | HBM or equivalent memory temperature when the vendor exports it |
+
+The memory series hides when the card has no memory probe. Rising temperature with a rising [throttle](#throttle) line is the card protecting itself — performance drops on purpose. Critical thermal events are listed under [Events](/docs/metrics/events#gpu_thermal_critical).
+
+## Power draw [#power]
+
+`gpu.powerWatts` — instantaneous board power. Hides when the vendor does not export power.
+
+A card stuck well below its usual draw while utilization is high can mean a power cap or a throttle. A card at the cap with utilization below 100% is often power-limited, not compute-limited.
+
+## PCIe throughput [#pcie]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Receive | `gpu.pcieReceiveBytesPerSecond` | Host → GPU over the PCIe link |
+| Transmit | `gpu.pcieTransmitBytesPerSecond` | GPU → host |
+
+Sustained high PCIe with modest GPU utilization often means the job is bottlenecked on copies, not kernels. Multi-GPU hosts that also have a dedicated GPU interconnect still show host-link traffic here; that interconnect is separate.
+
+## Throttle [#throttle]
+
+`gpu.throttlePercent` — share of time the GPU was throttling (thermal, power, or other clocks-down).
+
+Any sustained value above zero is lost performance. Pair with [temperature](#temperature) and [power](#power) to see whether heat or a power limit is the cause. A `gpu_thermal_critical` event is the discrete “this went past a chart.”
+
+## Related
+
+- [Physical signals](/docs/metrics/hardware-signals) — board and package sensors that are not the GPU's own readings
+- [GPU events](/docs/metrics/events#gpu_xid) — Xid, ECC, retirement, fallen-off-bus

@@ -5,7 +5,7 @@ description: Host metrics storage, embedded DuckDB, Parquet archive, retention, 
 
 # Server metrics operations
 
-Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For the wire contract, family catalog, backend mappings, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
+Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For what each console chart means, see [Server metrics](/docs/metrics). For the wire contract, family catalog, backend mappings, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
 
 ## Configuration
 
@@ -53,14 +53,11 @@ Two independent, loopback-only adapter domains feed `managed.ingress` / `managed
 
 An adapter that throws or returns nothing for a tick omits that source from the array entirely (never an all-null placeholder row) and invalidates that source's counter-baseline namespace so the next successful read re-origins instead of diffing across the gap.
 
-## Self-hosted schema upgrade
+## Self-hosted schema
 
-DuckDB has no in-place migration path for a breaking column-layout change. On every open, the self-hosted store decides whether to wipe based on the actual store artifacts, keyed to `DUCKDB_SCHEMA_MARKER_VERSION` (currently **6**, `backends/duckdb/schema.ts`):
+On every open the self-hosted store runs `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` for the current layout. Pre-MVP does not migrate older DuckDB files. If a local store predates the current columns, delete `metrics.duckdb` (and `parquet/` for a clean archive) and let the next open create a fresh file.
 
-- **No database file:** a fresh install — never wiped — unless a leftover pre-v4 `parquet/` tree survives from an old install, in which case that orphaned Parquet data is wiped so it can't union back into query results with mismatched columns.
-- **An existing database file:** the marker is trusted outright when it already matches the current schema version. Otherwise the store probes the database's actual on-disk columns (`probeSchemaIsCurrent`) rather than treating a missing or corrupt marker as proof of staleness — a **current** database with a missing marker is preserved and opened untouched. Only a database whose probed schema is genuinely **not** current (or whose probe itself fails, e.g. a corrupt file) is wiped.
-
-A wipe (`wipeStaleStore`) deletes `metrics.duckdb` (and its `.wal`) plus the **entire** `parquet/` tree together — a surviving old-schema Parquet partition would otherwise union back into query results via `read_parquet([...], union_by_name := true)` with the new columns NULL-filled, silently corrupting aggregates. This is a **clean break with no old-schema data retained**, consistent with the project's pre-MVP posture of never carrying old-schema data forward. The marker is written only after a fully successful open, so a crash mid-open retries the staleness check on next boot instead of trusting a half-built store.
+Configured retention still expires old points (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`, default 90). The sidecar `schema-version` marker is written after a successful open.
 
 ## DuckDB + Parquet resources (self-hosted)
 
@@ -73,7 +70,7 @@ Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default
 | `metrics.duckdb` | Hot database — one typed table per family (see [Server metrics architecture](/docs/architecture/server-metrics#duckdb--parquet-schema-self-hosted)) plus status events |
 | `parquet/<family>/year=YYYY/month=MM/day=DD/metrics.parquet` | Daily sealed archive, per family — each completed UTC day exported out of that family's hot table independently |
 | `tmp/` | DuckDB spill plus in-flight Parquet exports (swept on restart; never mistaken for sealed partitions) |
-| schema marker (sidecar) | Drives wipe-on-stale (see above) |
+| schema marker (sidecar) | Written after a successful open (`DUCKDB_SCHEMA_MARKER_VERSION`) |
 
 Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` (default **2**) and `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` (default **128** MiB) bound the embedded engine's footprint.
 
@@ -131,6 +128,7 @@ Metrics does **not** store organization names, account emails, hostnames, client
 
 ## Related
 
+- [Server metrics](/docs/metrics) — what each console chart means
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, mappings, cost model
 - [Control plane deployment](/docs/deployment/control-plane) — instance + co-located daemon
 - [Daemon setup](/docs/deployment/daemon-setup) — remote node install

@@ -155,6 +155,10 @@ describe('resolveSessionCookieNameFromBaseUrl', () => {
       HTTPS_SESSION_COOKIE_NAME,
     )
   })
+
+  it('defaults to the secure cookie for an empty string', () => {
+    expect(resolveSessionCookieNameFromBaseUrl('')).toBe(HTTPS_SESSION_COOKIE_NAME)
+  })
 })
 
 describe('buildScalarCookieAuthentication', () => {
@@ -422,5 +426,180 @@ describe('installScalarSessionCookieNameRowLock', () => {
     expect(event.preventDefault).toHaveBeenCalled()
     expect(event.stopPropagation).toHaveBeenCalled()
     cleanup()
+  })
+
+  it('blocks paste, cut, and beforeinput on locked cookie-name rows', () => {
+    const { root, cookieRow } = createScalarDom()
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+
+    for (const type of ['paste', 'cut', 'beforeinput'] as const) {
+      const listener = cookieRow.listeners.get(type)?.[0]
+      if (!listener) throw new TypeError(`expected ${type} listener`)
+      const event = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      }
+      listener(event as unknown as Event)
+      expect(event.preventDefault).toHaveBeenCalled()
+      expect(event.stopPropagation).toHaveBeenCalled()
+    }
+    cleanup()
+  })
+
+  it('locks a Name: label on the label element itself', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const row = new MockNode('TR')
+    table.appendChild(row)
+    const label = new MockNode('LABEL')
+    label.textContent = 'Name: turbopanel.session_token'
+    row.appendChild(label)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(row.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(true)
+  })
+
+  it('locks a cell label that is exactly Name', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const row = new MockNode('TR')
+    table.appendChild(row)
+    const cellLabel = new MockNode('DIV')
+    cellLabel.className = 'text-c-1 flex items-center'
+    cellLabel.textContent = 'Name'
+    row.appendChild(cellLabel)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(row.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(true)
+  })
+
+  it('ignores rows with no label and no cell label', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const emptyRow = new MockNode('TR')
+    table.appendChild(emptyRow)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(emptyRow.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(false)
+  })
+
+  it('ignores blank and missing label text', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const blankRow = new MockNode('TR')
+    table.appendChild(blankRow)
+    const blankLabel = new MockNode('LABEL')
+    blankLabel.textContent = '   '
+    blankRow.appendChild(blankLabel)
+
+    const nullRow = new MockNode('TR')
+    table.appendChild(nullRow)
+    const nullLabel = new MockNode('LABEL')
+    nullLabel.textContent = null as unknown as string
+    nullRow.appendChild(nullLabel)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(blankRow.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(false)
+    expect(nullRow.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(false)
+  })
+
+  it('locks a cookie-name row that has no CodeMirror editor', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const row = new MockNode('TR')
+    table.appendChild(row)
+    const label = new MockNode('LABEL')
+    label.textContent = 'Name'
+    row.appendChild(label)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(row.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(true)
+    expect(row.querySelector('.cm-editor')).toBeNull()
+  })
+
+  it('marks the editor read-only when cm-content is absent', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const row = new MockNode('TR')
+    table.appendChild(row)
+    const label = new MockNode('LABEL')
+    label.textContent = 'Name'
+    row.appendChild(label)
+    const editor = new MockNode('DIV')
+    editor.className = 'cm-editor'
+    row.appendChild(editor)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(editor.getAttribute('aria-readonly')).toBe('true')
+    expect(editor.querySelector('.cm-content')).toBeNull()
+  })
+
+  it('does not retag a row that already has the lock attribute', () => {
+    const { root, cookieRow } = createScalarDom()
+    cookieRow.setAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR, 'true')
+    const setAttribute = vi.spyOn(cookieRow, 'setAttribute')
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    const lockCalls = setAttribute.mock.calls.filter(
+      ([name]) => name === SCALAR_SESSION_COOKIE_NAME_ROW_ATTR,
+    )
+    expect(lockCalls).toHaveLength(0)
+    expect(cookieRow.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(true)
+  })
+
+  it('ignores mutation observer callbacks after cleanup', () => {
+    const rafCallbacks: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback)
+      return rafCallbacks.length
+    })
+
+    const { root } = createScalarDom()
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    const schedule = mutationCallbacks[0]
+    if (!schedule) throw new TypeError('expected mutation observer callback')
+    cleanup()
+
+    schedule()
+    expect(rafCallbacks).toHaveLength(0)
   })
 })

@@ -1,0 +1,101 @@
+---
+title: CPU metrics
+description: CPU utilization modes, Pressure Stall Information (PSI), busiest core, process counts, and optional CPU detail
+---
+
+# CPU metrics
+
+CPU charts answer two different questions: **how occupied is the processor**, and **are tasks waiting for it**. Occupied is utilization. Waiting is [PSI](/docs/metrics#pressure-stall-information). Read them together — utilization alone hides a overloaded run queue.
+
+## Overview tile [#overview-tile]
+
+**CPU utilization** on the tiles row is `host.cpu.busyPercent` — the share of CPU time that was not idle. It is collected directly, not computed as `100 − idle` in the browser. A caption under the tiles names core count and the first reported CPU model when the daemon sent that inventory.
+
+## CPU utilization [#cpu-modes]
+
+Stacked share of CPU time by *why* the processor was busy. The stack's total tracks busy percent closely; the two are sampled independently and can differ by a point.
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| User | `host.cpu.userPercent` | Time running application code (your processes, runtimes, databases) |
+| System | `host.cpu.systemPercent` | Time in the kernel — syscalls, networking, filesystem work |
+| I/O wait | `host.cpu.iowaitPercent` | Time the CPU was idle because a task was waiting on disk or network I/O. High iowait with low user/system usually means storage, not “the CPU is maxed” |
+| Steal | `host.cpu.stealPercent` | Time this VM wanted a CPU and the hypervisor gave it to someone else. Meaningful on virtual machines; near zero on bare metal |
+| SoftIRQ | `host.cpu.softirqPercent` | Time handling deferred interrupts (packet processing, timers). A rising SoftIRQ line on a busy NIC often means the host is spending CPU on the network stack |
+
+TurboPanel does not chart a leftover “nice” or hard-IRQ bucket — those modes were dropped from the host contract. Load average is also not collected; PSI and the run-queue counts below replace it.
+
+**How to read it:** a tall User band is application work. A tall System or SoftIRQ band is kernel/network overhead. I/O wait says “the CPU is waiting on something else” — jump to [Storage](/docs/metrics/storage). Steal says “this VM is not getting the CPUs it asked for.”
+
+## CPU pressure (PSI) [#cpu-pressure]
+
+Share of time **at least one task waited for a CPU**. Wire name: `host.cpu.pressureSomePercent`. Series label: **Some**.
+
+This is the chart to open when the host feels slow but utilization looks modest.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Near 0% | The run queue is keeping up |
+| Spikes that return to zero | Short bursts — a deploy, a backup, a cron |
+| Sustained double digits | Tasks are regularly queued. Check [Busiest core](#cpu-max-core): one pegged core can stall a single-threaded app while the average looks fine |
+| High PSI + moderate busy % | Too many runnable tasks for the cores you have, or steal from a noisy neighbor |
+| High PSI + high busy % | The machine is saturated the obvious way |
+
+CPU PSI has **no Full series**. Memory and I/O can stall every non-idle task at once; a CPU cannot — some task is always running if there is work. See the [PSI primer](/docs/metrics#pressure-stall-information) for Some vs Full on the other resources.
+
+The chart hides when the kernel does not export `/proc/pressure/cpu`.
+
+## Busiest core [#cpu-max-core]
+
+`host.cpu.maxCoreBusyPercent` — the single most occupied logical CPU in that sample.
+
+Averages hide hotspots. A 16-core host at 10% busy can still have one core at 100% (a single-threaded runtime, a stuck process, a poorly pinned interrupt). If PSI is up and this line is near 100% while the stacked utilization chart looks calm, the problem is concentration, not fleet-wide load.
+
+## Processes [#cpu-processes]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Total | `host.cpu.processCount` | How many processes exist right now (numeric `/proc` PID directories). This is the overview-tile number |
+| Runnable | `host.cpu.procsRunning` | Tasks that are on a CPU or immediately runnable (`/proc/stat` `procs_running`) — usually about the core count, not the total |
+| Blocked | `host.cpu.procsBlocked` | Tasks waiting on uninterruptible I/O (`procs_blocked`) — usually disk |
+
+The overview tile **Processes** is the latest `processCount`. Runnable much larger than core count, together with rising CPU PSI, is a classic overload. Blocked rising with [I/O PSI](/docs/metrics/storage#storage-io-pressure) points at storage, not compute.
+
+## CPU detail [#cpu-detail]
+
+These charts appear only when the organization's or server's metrics capability plan has **CPU detail** enabled. Otherwise the group is hidden.
+
+### CPU frequency [#cpu-detail-frequency]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Min / avg / max | `cpuDetail.minimumFrequencyMHz`, `averageFrequencyMHz`, `maximumFrequencyMHz` | Observed clock across cores in that sample |
+
+A max that never leaves the floor can mean thermal or power limits — pair with [physical signals](/docs/metrics/hardware-signals) and [GPU throttle](/docs/metrics/gpu#throttle) when those exist. Missing on hosts that do not export frequency.
+
+### Context switches & interrupts [#cpu-detail-scheduling]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Context switches | `cpuDetail.contextSwitchesPerSecond` | How often the kernel swapped which task runs. A sudden jump often means too many threads fighting for cores |
+| Interrupts | `cpuDetail.interruptsPerSecond` | Hardware interrupt rate. A jump with SoftIRQ and network errors often means packet flood or a NIC problem |
+
+### Process forks [#cpu-detail-forks]
+
+`cpuDetail.forksPerSecond` — new processes created per second. Short spikes are normal (shells, deploys). A sustained climb can be a fork bomb, a crashing service in a restart loop, or a CI host spawning work.
+
+### IRQ time [#cpu-detail-irq]
+
+`cpuDetail.cpuIrqPercent` — share of CPU time in hard interrupt handlers. Complements SoftIRQ on the utilization stack. High IRQ with high interrupt rate is the NIC or a device spending CPU in the interrupt path.
+
+## Per-core (live sessions) [#cpu-core-live]
+
+While a **live** session is active (5 or 10 minute range), TurboPanel can chart each logical core: busy %, iowait %, steal %. These rows exist only during the lease — they are not stored as a long-term per-core history at the 60 second cadence.
+
+Use them to confirm the [Busiest core](#cpu-max-core) hotspot: which `cpuN` is pegged, and whether that core is busy with work, waiting on I/O, or stolen by the hypervisor.
+
+## Related
+
+- [Pressure Stall Information](/docs/metrics#pressure-stall-information)
+- [Memory pressure](/docs/metrics/memory#memory-pressure)
+- [I/O pressure](/docs/metrics/storage#storage-io-pressure)

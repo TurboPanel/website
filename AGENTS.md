@@ -25,6 +25,8 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 
+**Operator metric glossary:** [`docs/metrics/`](docs/metrics/) — what each Metrics-screen chart and event means. Heading ids match console chart ids (`cpu-pressure`, `memory-pressure`, …) so a later console click can open `/docs/metrics/<group>#<chart-id>`. Add or update a heading in the same change as a new console metric. Architecture/cost stays in `docs/architecture/server-metrics.mdx`; storage/ops stays in `docs/deployment/metrics.mdx`.
+
 ## Messaging (brand voice source of truth)
 
 Three layers — each line has one job; do not blend or reword them:

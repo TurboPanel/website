@@ -1,0 +1,85 @@
+---
+title: Ingress metrics
+description: Caddy and Traefik request rates, status classes, throughput, duration, latency buckets, upstreams, and retries
+---
+
+# Ingress metrics
+
+This group appears when the daemon can scrape a **site** ingress adapter — Caddy or Traefik — on the host. Titles are **Caddy** or **Traefik**. A host with no site proxy has no group.
+
+These are HTTP-level counters for the interval, not host network bytes. The daemon reads each adapter independently; one being down does not hide the other.
+
+<Callout type="info" title="Caddy counts each request once">
+  Caddy instruments every handler in the chain. TurboPanel uses the outermost handler (the largest request total) so a request is not counted once per nested `handle` / `reverse_proxy`. Traefik's exposition does not have that chain problem.
+</Callout>
+
+## Requests [#requests]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Requests | `ingress.requests` | Requests finished in the interval |
+| Errors | `ingress.requestErrors` | Requests that failed before a normal response (connect errors, cancelled, adapter-defined errors) |
+
+A jump in errors with a flat request line is failures, not traffic. Pair with [5xx](#responses) and [retries](#retries).
+
+## Responses by status [#responses]
+
+Stacked counts in the interval:
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| 2xx | `ingress.responses2xx` | Success |
+| 3xx | `ingress.responses3xx` | Redirects |
+| 4xx | `ingress.responses4xx` | Client errors (auth, not found, bad request) |
+| 5xx | `ingress.responses5xx` | Server / upstream errors |
+
+A 4xx pile after a deploy is often a bad path or a probe. A 5xx pile is the host or an upstream failing — check [upstreams](#upstreams) and the app, not just CPU.
+
+## Throughput [#throughput]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Request bytes | `ingress.requestBytes` | Request body bytes in the interval |
+| Response bytes | `ingress.responseBytes` | Response body bytes in the interval |
+
+Large response bytes with modest request counts is downloads or big API payloads. This is not the same as [NIC throughput](/docs/metrics/network#network-throughput) (headers, other ports, and non-HTTP sit on the NIC).
+
+## Avg request duration [#duration]
+
+`ingress.requestDurationSecondsAvg` — mean request duration in the interval. The console draws it in milliseconds.
+
+Averages hide tails. Use this as a trend, then confirm with [requests under threshold](#latency-buckets). A rising average with a stable request rate is the typical “the app got slower” signal.
+
+## Requests under threshold [#latency-buckets]
+
+Counts of requests that finished faster than each cutoff. A request under 100 ms is also under 500 ms, 1 s, and 5 s — the bands are **cumulative**, not exclusive buckets.
+
+| Series | Wire name | Cutoff |
+| ------ | --------- | ------ |
+| &lt;100ms | `ingress.requestsUnder100ms` | 100 milliseconds |
+| &lt;500ms | `ingress.requestsUnder500ms` | 500 milliseconds |
+| &lt;1s | `ingress.requestsUnder1s` | 1 second |
+| &lt;5s | `ingress.requestsUnder5s` | 5 seconds |
+
+When total requests stay flat but the &lt;100ms line falls while &lt;1s holds, work moved from fast to merely okay. When even &lt;5s falls relative to [requests](#requests), a growing share is slower than five seconds.
+
+## Upstreams & in-flight [#upstreams]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| In-flight | `ingress.requestsInFlight` | Requests the proxy is handling right now |
+| Healthy upstreams | `ingress.upstreamsHealthy` | Backends the proxy currently considers up |
+| Total upstreams | `ingress.upstreamsTotal` | Backends configured |
+
+In-flight climbing with duration is a backup forming — the proxy is holding connections. Healthy falling below total is an upstream marked down; 5xx usually follows.
+
+## Retries [#retries]
+
+`ingress.retries` — proxy retries in the interval.
+
+Retries hide backend blips from clients and multiply load on the remaining healthy upstreams. A retry spike with falling healthy upstreams is the cascade to watch.
+
+## Related
+
+- [Network](/docs/metrics/network) — TCP retransmits and kernel tables
+- [Database proxy](/docs/metrics/database-proxy) — ProxySQL, not HTTP

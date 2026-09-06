@@ -1,0 +1,146 @@
+---
+title: Server metrics
+description: What the Metrics screen shows, how to read Pressure Stall Information (PSI), and a catalog of every host chart
+---
+
+# Server metrics
+
+The server **Metrics** screen is a history of how a host has been doing — CPU, memory, disks, network, and whatever else that machine actually has (GPUs, extra filesystems, ingress, a database proxy). It is **statistical and disposable**: good for spotting saturation, stalls, and hardware faults. It is not a billing ledger or an audit trail.
+
+<Callout type="info" title="What each chart means">
+  This section is the operator glossary. Storage, retention, and the wire contract live in [Server metrics architecture](/docs/architecture/server-metrics) and [Metrics operations](/docs/deployment/metrics).
+</Callout>
+
+## How sampling works
+
+A connected Linux daemon posts one sample about every **60 seconds**. The first sample after connect is immediate (gauges such as memory available). Rates (CPU busy, disk bytes/s, network) appear about **two seconds** later, once the daemon has two readings to subtract.
+
+| Range on the screen | What you get |
+| ------------------- | ------------ |
+| 5 minutes / 10 minutes | **Live mode** — 10 second samples for up to 60 minutes, then it falls back to 1 minute |
+| 1 hour / 6 hours | 1 minute refresh |
+| 24 hours | 5 minute refresh |
+| 7 / 30 / 90 days | Historical buckets; no auto-refresh |
+
+Charts are not wall-clock real time below that ~60 second baseline. A gap in the line is a **missing sample**, not zero usage — amber bands mark those holes. A solid vertical divider is a **topology change** (a NIC, disk, GPU, or sensor was added, removed, or replaced). The line breaks there on purpose so two different devices never look like one continuous trend.
+
+Metrics are Linux-only. A non-Linux server shows an unsupported-OS state instead of empty charts.
+
+## Overview tiles
+
+The five numbers above the charts are the **latest** values, not a plotted series:
+
+| Tile | What it is |
+| ---- | ---------- |
+| **CPU utilization** | Share of CPU time that was busy (`host.cpu.busyPercent`). See [CPU](/docs/metrics/cpu#overview-tile). |
+| **Memory used** | Used RAM as a percent of capacity (derived from available bytes). See [Memory](/docs/metrics/memory#overview-tile). |
+| **Hosting storage used** | Used percent of the filesystem marked for hosting, or the root filesystem if none is. See [Storage](/docs/metrics/storage#overview-tile). |
+| **Running / blocked** | Tasks on a CPU right now vs tasks waiting on I/O. See [Processes](/docs/metrics/cpu#cpu-processes). |
+| **Uptime** | Time this server has been connected in the selected range, from connection history — not a metrics-store series. History only; the Servers list is what says whether the host is online **right now**. See [Uptime](#uptime). |
+
+## Uptime [#uptime]
+
+The **Uptime** tile is not a plotted series. It is time this server was connected during the selected range, from the connection-status history. That history is best-effort. Whether the host is online **right now** is the Servers list (Postgres liveness), never this tile.
+
+## A chart is missing
+
+Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts. A host whose kernel does not export Pressure Stall Information has no PSI charts. Capability-gated groups (**CPU detail**, **Memory detail**) stay hidden until that capability is enabled for the organization or server.
+
+Empty is not the same as zero. A metric the host cannot measure stays blank; a metric that is legitimately zero (no swap configured, no retransmits) plots at 0%.
+
+## Pressure Stall Information (PSI) [#pressure-stall-information]
+
+**PSI** is the Linux kernel's answer to “are tasks waiting?” It is the most important number on the Metrics screen when CPU busy % looks fine but the machine still feels slow.
+
+<Callout type="info" title="Busy percent vs pressure">
+  **Busy percent** is how much of the CPU (or disk) was occupied. **Pressure** is how often work **waited** for that resource. A host can be 40% busy and still have high CPU pressure if too many tasks are queued behind too few cores. It can also be 95% busy with almost no pressure if the work is well matched to the hardware.
+</Callout>
+
+Linux tracks three resources: **CPU**, **memory**, and **I/O**. TurboPanel charts them as a percent of time in the sampling window:
+
+| Resource | Charts | Some | Full |
+| -------- | ------ | ---- | ---- |
+| CPU | [CPU pressure (PSI)](/docs/metrics/cpu#cpu-pressure) | At least one task waited for a CPU | CPU has no Full series — the CPU is never completely stalled the way memory and disk can be |
+| Memory | [Memory pressure (PSI)](/docs/metrics/memory#memory-pressure) | At least one task waited for memory (reclaim or swap) | **Every** non-idle task waited — the machine stalled |
+| I/O | [I/O pressure (PSI)](/docs/metrics/storage#storage-io-pressure) | At least one task waited on storage | Every non-idle task waited on storage |
+
+**Some** answers “is anyone stuck?” **Full** answers “did the whole machine stop?” A rising Some line is contention. A Full line that leaves zero is a stall — memory thrashing or a disk that cannot keep up.
+
+### How to read a PSI chart [#psi]
+
+Rules of thumb, not product alert thresholds:
+
+| What you see | What it usually means |
+| ------------ | --------------------- |
+| Flat near 0% | The resource is keeping up |
+| Some in the low single digits, brief spikes | Normal under bursty load |
+| Some in double digits for minutes | Saturation — tasks are regularly waiting |
+| Some high while busy % is only moderate | Mismatch: too many threads, a few pegged cores, or a noisy neighbor (check [Busiest core](/docs/metrics/cpu#cpu-max-core) and steal %) |
+| Memory or I/O **Full** above 0% for more than a blip | Severe — the host stalled. Pair memory Full with [swap I/O](/docs/metrics/memory#memory-swap-io); pair I/O Full with [disk latency](/docs/metrics/storage#disk-latency) |
+
+PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; Debian 13 does). If those files are missing — some older kernels, some containers — the PSI charts hide instead of plotting zero.
+
+The kernel name is **Pressure Stall Information**. TurboPanel labels it **PSI** on the chart title and stores it as `pressureSomePercent` / `pressureFullPercent` (CPU and memory) or `ioPressureSomePercent` / `ioPressureFullPercent` (storage).
+
+## Catalog
+
+<Cards>
+  <Card title="CPU" description="Busy modes, PSI, busiest core, processes, and optional CPU detail" href="/docs/metrics/cpu" />
+  <Card title="Memory" description="Available RAM, swap, PSI, paging, and optional memory detail" href="/docs/metrics/memory" />
+  <Card title="Storage" description="I/O PSI, disk throughput and latency, root filesystem" href="/docs/metrics/storage" />
+  <Card title="Network" description="TCP retransmits, softnet drops, kernel tables, extra NICs" href="/docs/metrics/network" />
+  <Card title="GPU" description="Utilization, memory, temperature, power, PCIe, throttle" href="/docs/metrics/gpu" />
+  <Card title="Filesystems" description="Non-root mounts — available bytes and free inodes" href="/docs/metrics/filesystems" />
+  <Card title="Block devices" description="Per-disk throughput, IOPS, latency, utilization, queue" href="/docs/metrics/block-devices" />
+  <Card title="Physical signals" description="Board, CPU package, disk, and other hardware sensors" href="/docs/metrics/hardware-signals" />
+  <Card title="Ingress" description="Caddy or Traefik request rates, status classes, latency" href="/docs/metrics/ingress" />
+  <Card title="Database proxy" description="ProxySQL queries, connections, and backends" href="/docs/metrics/database-proxy" />
+  <Card title="Events" description="OOM, disk faults, NIC flaps, GPU Xid, clock sync, and more" href="/docs/metrics/events" />
+</Cards>
+
+## Stable links [#stable-links]
+
+Each heading below uses the same `id` as the console chart. A later console click can open `/docs/metrics/<group>#<chart-id>`.
+
+| Console chart id | Docs |
+| ---------------- | ---- |
+| `cpu-modes` | [CPU utilization](/docs/metrics/cpu#cpu-modes) |
+| `cpu-pressure` | [CPU pressure (PSI)](/docs/metrics/cpu#cpu-pressure) |
+| `cpu-max-core` | [Busiest core](/docs/metrics/cpu#cpu-max-core) |
+| `cpu-processes` | [Processes](/docs/metrics/cpu#cpu-processes) |
+| `cpu-detail-frequency` | [CPU frequency](/docs/metrics/cpu#cpu-detail-frequency) |
+| `cpu-detail-scheduling` | [Context switches & interrupts](/docs/metrics/cpu#cpu-detail-scheduling) |
+| `cpu-detail-forks` | [Process forks](/docs/metrics/cpu#cpu-detail-forks) |
+| `cpu-detail-irq` | [IRQ time](/docs/metrics/cpu#cpu-detail-irq) |
+| `memory-available` | [Memory available](/docs/metrics/memory#memory-available) |
+| `memory-percent` | [Memory used](/docs/metrics/memory#memory-percent) |
+| `swap-bytes` | [Swap used](/docs/metrics/memory#swap-bytes) |
+| `swap-percent` | [Swap used %](/docs/metrics/memory#swap-percent) |
+| `memory-pressure` | [Memory pressure (PSI)](/docs/metrics/memory#memory-pressure) |
+| `memory-swap-io` | [Swap I/O](/docs/metrics/memory#memory-swap-io) |
+| `memory-major-faults` | [Major page faults](/docs/metrics/memory#memory-major-faults) |
+| `memory-detail-primary` | [Free & cached memory](/docs/metrics/memory#memory-detail-primary) |
+| `memory-detail-slab` | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
+| `memory-detail-dirty` | [Dirty & writeback pages](/docs/metrics/memory#memory-detail-dirty) |
+| `memory-detail-other-gauges` | [Shared, page table & kernel stack](/docs/metrics/memory#memory-detail-other-gauges) |
+| `memory-detail-commit` | [Committed memory](/docs/metrics/memory#memory-detail-commit) |
+| `memory-detail-active-inactive` | [Active & inactive pages](/docs/metrics/memory#memory-detail-active-inactive) |
+| `memory-detail-reclaim` | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) |
+| `memory-detail-compaction` | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) |
+| `storage-io-pressure` | [I/O pressure (PSI)](/docs/metrics/storage#storage-io-pressure) |
+| `disk-throughput` | [Disk throughput](/docs/metrics/storage#disk-throughput) |
+| `disk-latency` | [Disk latency](/docs/metrics/storage#disk-latency) |
+| `disk-max-util` | [Busiest block device](/docs/metrics/storage#disk-max-util) |
+| `root-filesystem-bytes` | [Root filesystem available](/docs/metrics/storage#root-filesystem-bytes) |
+| `root-filesystem-percent` | [Root filesystem used](/docs/metrics/storage#root-filesystem-percent) |
+| `root-filesystem-inodes` | [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes) |
+| `network-retransmit` | [TCP retransmit rate](/docs/metrics/network#network-retransmit) |
+| `network-softnet-drops` | [Softnet drops](/docs/metrics/network#network-softnet-drops) |
+| `kernel-resources` | [Kernel resource usage](/docs/metrics/network#kernel-resources) |
+
+Per-device charts (GPU, extra NICs, filesystems, block devices, sensors, ingress, ProxySQL) use the group page, not a per-device heading.
+
+## Related
+
+- [Server metrics architecture](/docs/architecture/server-metrics) — contract, storage backends, cost model
+- [Metrics operations](/docs/deployment/metrics) — retention, capability plan, troubleshooting

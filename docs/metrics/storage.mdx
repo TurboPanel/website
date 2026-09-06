@@ -1,0 +1,77 @@
+---
+title: Storage metrics
+description: I/O Pressure Stall Information, host disk throughput and latency, busiest device, and the root filesystem
+---
+
+# Storage metrics
+
+Host storage charts are the **whole machine's** disk picture: pressure, combined throughput and latency, the busiest device, and the root filesystem. Individual disks have their own group — [Block devices](/docs/metrics/block-devices). Extra mounts (not `/`) live under [Filesystems](/docs/metrics/filesystems).
+
+## Overview tile [#overview-tile]
+
+**Hosting storage used** is the used percent of the filesystem marked with the hosting role, or the root filesystem if none is. For root it is `derived.rootFilesystemUsedPercent`. For a non-root hosting mount it is computed from that mount's available bytes and its inventory total.
+
+This tile is about **capacity**, not speed. A disk can be 20% full and still saturated — that shows up as I/O PSI and latency, not on this tile.
+
+## I/O pressure (PSI) [#storage-io-pressure]
+
+[PSI](/docs/metrics#pressure-stall-information) for storage.
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Some | `host.storage.ioPressureSomePercent` | At least one task waited on I/O |
+| Full | `host.storage.ioPressureFullPercent` | Every non-idle task waited on I/O — the host stalled on disk |
+
+Utilization and throughput can look modest while PSI is high: many small waits, a saturated queue, or a single slow device holding everyone. **Full** leaving zero is the serious case — pair it with [disk latency](#disk-latency) and [Busiest block device](#disk-max-util) to see which disk.
+
+The chart hides when `/proc/pressure/io` is missing.
+
+## Disk throughput [#disk-throughput]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Read | `host.storage.diskReadBytesPerSecond` | Bytes read per second across the host |
+| Write | `host.storage.diskWriteBytesPerSecond` | Bytes written per second across the host |
+
+This is a host-wide sum, not “the SSD's rated sequential speed.” A high write line during a backup is expected. A high line that stays high with rising latency and PSI is saturation.
+
+Per-disk bytes are on [Block devices](/docs/metrics/block-devices).
+
+## Disk latency [#disk-latency]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Read | `host.storage.diskReadLatencyMs` | Average host-wide read service time, milliseconds |
+| Write | `host.storage.diskWriteLatencyMs` | Average host-wide write service time, milliseconds |
+
+Latency is usually the better saturation signal than bytes/s. An SSD that was at 0.2 ms and is now at 5–20 ms is hurting even if throughput has not grown. Spinning disks and busy RAID rebuilds sit higher by nature — compare a host to its own baseline, not to a generic number.
+
+## Busiest block device [#disk-max-util]
+
+`host.storage.maxBlockDeviceUtilPercent` — utilization of the single busiest service disk in that sample (percent of time the device had outstanding I/O).
+
+Like [Busiest core](/docs/metrics/cpu#cpu-max-core), this catches one pegged disk hiding inside a calm host average. Near 100% for minutes means that device cannot take more work; PSI and latency should agree.
+
+## Root filesystem available [#root-filesystem-bytes]
+
+`host.storage.rootFilesystemAvailableBytes` — free space on `/` that new files can use. A steadily falling line is the disk filling up. A sudden drop is often a log explosion, a container image pull, or a misplaced write.
+
+Non-root mounts are not on this chart — see [Filesystems](/docs/metrics/filesystems).
+
+## Root filesystem used [#root-filesystem-percent]
+
+`derived.rootFilesystemUsedPercent` — used percent of `/`, computed on the control plane from available bytes and the known size. Area chart, 0–100%.
+
+Plan growth before this reaches the high 80s — some filesystems (and some databases) degrade badly before they hit 100%. Inodes can run out while this percent still looks fine; use the next chart.
+
+## Root filesystem free inodes [#root-filesystem-inodes]
+
+`host.storage.rootFilesystemFreeInodes` — remaining inode (file-slot) count on `/`.
+
+Each file, directory, and symlink consumes an inode. A host that creates millions of small files (mail, caches, container layers, CI artifacts) can hit **zero inodes** with gigabytes of space still free. “No space left on device” then means inodes, not bytes. A falling free-inode line with a flat used-% line is that pattern.
+
+## Related
+
+- [Block devices](/docs/metrics/block-devices) — per-disk charts
+- [Filesystems](/docs/metrics/filesystems) — extra mounts
+- [Pressure Stall Information](/docs/metrics#pressure-stall-information)

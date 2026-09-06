@@ -1,0 +1,45 @@
+---
+title: Database proxy metrics
+description: ProxySQL query rates, slow queries, connection errors, client and backend connections, and backends up
+---
+
+# Database proxy metrics
+
+This group appears when the daemon can scrape **ProxySQL** on the host (the managed database ingress sidecar). The title is **ProxySQL**. A host that runs Postgres or MySQL **without** that proxy has no group — engine process metrics are not this surface.
+
+Counters are per interval (how many happened), matching [ingress](/docs/metrics/ingress). Connection gauges are point-in-time.
+
+## Queries [#queries]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Queries | `databaseProxy.queries` | Statements the proxy handled in the interval |
+| Slow queries | `databaseProxy.slowQueries` | Statements the proxy classified as slow |
+
+A rising slow-query line with a flat query line is the database (or the network to it) getting slower, not busier. Pair with [backend connections](#connections) and the managed engine's own status — this chart cannot see inside Postgres.
+
+## Connection errors [#connection-errors]
+
+`databaseProxy.connectionErrors` — failed client or backend connects in the interval.
+
+Spikes at deploy or failover can be expected. A sustained rate is refused connections, a full connection table, TLS mismatches, or backends that are down. See [conntrack](/docs/metrics/network#kernel-resources) if this host NATs heavily.
+
+## Connections [#connections]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Client | `databaseProxy.clientConnections` | Connections from apps into ProxySQL right now |
+| Backend | `databaseProxy.backendConnections` | Connections from ProxySQL into the database(s) right now |
+
+Many more client connections than backend connections is pooling doing its job. Both climbing together toward a known ceiling is the pool filling. Client high with backend near zero and errors up is “the proxy is up, the database is not accepting.”
+
+## Backends up [#backends-up]
+
+`databaseProxy.backendsUp` — how many database backends the proxy currently considers available.
+
+A drop is the discrete “a replica or primary disappeared from the proxy's point of view.” That may be a planned failover or a real outage — check managed failover history and the server's [events](/docs/metrics/events) list in the same range.
+
+## Related
+
+- [Managed database ingress](/docs/architecture/managed-database-ingress) — ports, TLS, replica semantics
+- [Ingress](/docs/metrics/ingress) — HTTP proxy charts (Caddy / Traefik)

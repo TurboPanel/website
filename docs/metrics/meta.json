@@ -1,0 +1,17 @@
+{
+  "title": "Server metrics",
+  "pages": [
+    "index",
+    "cpu",
+    "memory",
+    "storage",
+    "network",
+    "gpu",
+    "filesystems",
+    "block-devices",
+    "hardware-signals",
+    "ingress",
+    "database-proxy",
+    "events"
+  ]
+}
