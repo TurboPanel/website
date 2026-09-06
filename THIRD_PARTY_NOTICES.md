@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:757c2cc7b3b2f0667bafe4a5c3dc6f9110633e22491e87b5dd329f258f8bf1ab
+pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955e27ac1
 -->
 
 ## Production dependencies
