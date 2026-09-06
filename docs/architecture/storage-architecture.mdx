@@ -63,6 +63,6 @@ The only real query is "show me command `X`'s output, from sequence `N`". That i
 ## Rules that keep the classification honest
 
 - **Postgres holds no log bytes.** There is no execution-log column and no container-log table on the control plane. `hasLog` on a batched status response is resolved store-side via `ExecutionLogStore.exists` — do not add a column to cache it.
-- **Every telemetry store has a disabled fallback.** `resolveExecutionLogStore` and `resolveServerMetricsStore` return a safe no-op store rather than throwing when their backend is unconfigured, so a half-converged deployment still serves commands. **Callers never branch on availability.**
+- **Every telemetry store has a disabled fallback.** `resolveExecutionLogStore` and `resolveServerMetricsStoreV4` return a safe no-op store rather than throwing when their backend is unconfigured, so a half-converged deployment still serves commands. **Callers never branch on availability.**
 - **Container output is never stored.** Host metrics are always on; container stdout is an on-demand live tail. Do not reintroduce a `container_logs` table, a Pipelines/Iceberg path, or an org `containerLogsEnabled` switch.
 - **Never gate liveness on telemetry.** `server.connected` / `server.status_changed_at` in Postgres are the only source of truth for whether a server is online right now — see [Daemon cell](/docs/architecture/daemon-cell).
