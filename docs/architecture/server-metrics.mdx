@@ -97,7 +97,7 @@ v4 has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics are grouped 
 | `filesystem` | Presence-gated | one row per page of `filesystems[]` | 2 per filesystem — available bytes, free inodes |
 | `block` | Presence-gated | one row per page of `blockDevices[]` | 9 per device — read/write bytes+ops/s, read/write latency ms, utilization%, temperature, queue depth |
 | `hardware.physical` | Presence-gated | one row per page of `hardwareSignals[]` | 1 per signal (`value`) — conservative physical sensor readings (CPU package temp/power, storage temp, trustworthy board temps); never fan RPM or GPU temp/power, which ride `gpu` instead |
-| `managed.ingress` | Presence-gated | one unpaged row per `ingressSources[]` entry | 17 — requests/s, response class rates (2xx/3xx/4xx/5xx), request errors/s, request/response bytes/s, avg duration, latency-bucket rates (<100ms/<500ms/<1s/<5s), in-flight, upstreams healthy/total, retries/s |
+| `managed.ingress` | Presence-gated | one unpaged row per `ingressSources[]` entry | 17 — requests/s, response class rates (2xx/3xx/4xx/5xx), request errors/s, request/response bytes/s, avg duration, latency-bucket rates (`<100ms`/`<500ms`/`<1s`/`<5s`), in-flight, upstreams healthy/total, retries/s |
 | `managed.database_proxy` | Presence-gated | one unpaged row per `databaseProxies[]` entry | 6 — queries/s, slow queries/s, connection errors/s, client/backend connections, backends up |
 | `cpu.detail` | Capability-gated | one row (embeds up to 4 CPU hotspots) | 4 busiest-core hotspots (3 fields each) + 7 host-wide scalars (avg/min/max frequency, context switches/s, interrupts/s, forks/s, IRQ%) |
 | `memory.detail` | Capability-gated | one row | 18 — slab/dirty/writeback/commit breakdown plus reclaim/compaction rates |
