@@ -13,14 +13,14 @@ A capability plan can *allow* GPU reporting (the default includes one GPU slot) 
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| GPU | `gpu.utilizationPercent` | Share of time the GPU compute engines were busy |
-| Memory activity | `gpu.memoryActivityPercent` | Share of time the GPU memory interface was busy |
+| GPU | `gpu.utilizationPercent` | Share of time the GPU was busy. NVIDIA/AMD: compute engines. Intel iGPU: GT-awake from RC6 residency when the kernel has no `engine/*/busy` sysfs (the same boards' `btop` / `intel_gpu_top` numbers come from the i915 PMU instead) |
+| Memory activity | `gpu.memoryActivityPercent` | Share of time the GPU memory interface was busy. NVIDIA (NVML/DCGM) only — Intel/AMD sysfs do not export this, and the series hides rather than plotting empty |
 
 High compute with low memory activity is arithmetic-bound work. High memory activity with modest compute is bandwidth-bound (large tensors, scans). Both near 100% is a fully used GPU.
 
 ## Memory used [#memory-used]
 
-`gpu.memoryUsedBytes` — framebuffer / HBM (or equivalent) in use.
+`gpu.memoryUsedBytes` — framebuffer / HBM (or equivalent) in use. Hides when the vendor does not export a device-level used-bytes counter (Intel iGPUs typically do not).
 
 GPUs do not overcommit the way Linux RAM does. Approaching the card's capacity fails new allocations (the GPU runtime reports out of memory). This is **on-device** memory, not host RAM — host pressure is on [Memory](/docs/metrics/memory).
 
@@ -35,7 +35,7 @@ The memory series hides when the card has no memory probe. Rising temperature wi
 
 ## Power draw [#power]
 
-`gpu.powerWatts` — instantaneous board power. Hides when the vendor does not export power.
+`gpu.powerWatts` — instantaneous board power. Hides when the vendor does not export power. Intel iGPUs typically have no `i915` hwmon wattage; the daemon then uses RAPL PP1 (`uncore` / `energy-gpu`) energy over the sampling interval, the same RAPL GPU energy `btop` reads. Kernel RAPL `energy_uj` is root-only; TurboPanel grants the daemon group read access on install/converge so those watts appear without running the daemon as root.
 
 A card stuck well below its usual draw while utilization is high can mean a power cap or a throttle. A card at the cap with utilization below 100% is often power-limited, not compute-limited.
 

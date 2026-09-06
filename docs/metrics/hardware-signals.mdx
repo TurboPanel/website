@@ -5,7 +5,7 @@ description: Board, CPU package, disk, and other hardware sensor readings with o
 
 # Physical signal metrics
 
-This group is one chart per hardware sensor the daemon trusts enough to export: CPU package temperature or power, board and ambient temps, storage temps, and similar. Each chart is titled from the sensor's own label. Virtual machines default to **zero** signal slots — no group — because those probes usually are not real.
+This group is one chart per hardware sensor the daemon trusts enough to export: CPU package temperature or power, board and ambient temps, storage temps, and similar. Chart titles use operator-facing names — kernel strings such as `Package id 0` (coretemp socket temperature) and `package-0` (RAPL CPU package energy) become **CPU package temperature** and **CPU package power**. `signalId` still uses the kernel `chip:label` identity. RAPL package power is the whole CPU package (cores plus iGPU); iGPU-only watts live on [GPU](/docs/metrics/gpu). Virtual machines default to **zero** signal slots — no group — because those probes usually are not real.
 
 Fan RPM and GPU temp/power do **not** live here. GPU readings are on [GPU](/docs/metrics/gpu). Fan faults still appear as [events](/docs/metrics/events#fan_fault).
 
