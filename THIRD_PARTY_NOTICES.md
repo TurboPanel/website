@@ -43,11 +43,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://ast-grep.github.io
 
-### @ast-grep/napi-linux-x64-gnu@0.40.5
-
-- License: MIT
-- Homepage: https://github.com/ast-grep/ast-grep#readme
-
 ### @aws-crypto/crc32@5.2.0
 
 - License: Apache-2.0
@@ -336,54 +331,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Amazon Web Services
 - Homepage: https://github.com/awslabs/aws-lambda-invoke-store
 
-### @babel/code-frame@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-code-frame
-
-### @babel/compat-data@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://github.com/babel/babel#readme
-
-### @babel/core@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-core
-
-### @babel/generator@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-generator
-
-### @babel/helper-compilation-targets@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://github.com/babel/babel#readme
-
-### @babel/helper-globals@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://github.com/babel/babel#readme
-
-### @babel/helper-module-imports@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-helper-module-imports
-
-### @babel/helper-module-transforms@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-helper-module-transforms
-
 ### @babel/helper-string-parser@7.29.7
 
 - License: MIT
@@ -396,35 +343,11 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: The Babel Team
 - Homepage: https://github.com/babel/babel#readme
 
-### @babel/helper-validator-option@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://github.com/babel/babel#readme
-
-### @babel/helpers@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-helpers
-
 ### @babel/parser@7.29.7
 
 - License: MIT
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-parser
-
-### @babel/template@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-template
-
-### @babel/traverse@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-traverse
 
 ### @babel/types@7.29.7
 
@@ -453,11 +376,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 
 - License: MIT OR Apache-2.0
 - Homepage: https://github.com/cloudflare/workers-sdk#readme
-
-### @cloudflare/workerd-linux-64@1.20260815.1
-
-- License: Apache-2.0
-- Homepage: https://github.com/cloudflare/workerd#readme
 
 ### @codemirror/autocomplete@6.20.3
 
@@ -545,21 +463,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Weiliang Li
 - Homepage: https://github.com/ecies/js-ciphers#readme
 
-### @esbuild/linux-x64@0.25.4
-
-- License: MIT
-- Homepage: https://github.com/evanw/esbuild#readme
-
-### @esbuild/linux-x64@0.28.0
-
-- License: MIT
-- Homepage: https://github.com/evanw/esbuild#readme
-
-### @esbuild/linux-x64@0.28.1
-
-- License: MIT
-- Homepage: https://github.com/evanw/esbuild#readme
-
 ### @floating-ui/core@1.7.5
 
 - License: MIT
@@ -635,30 +538,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://github.com/lovell/colour#readme
 
-### @img/sharp-libvips-linux-x64@1.2.4
-
-- License: LGPL-3.0-or-later
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
-### @img/sharp-libvips-linux-x64@1.3.1
-
-- License: LGPL-3.0-or-later
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
-### @img/sharp-linux-x64@0.34.5
-
-- License: Apache-2.0
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
-### @img/sharp-linux-x64@0.35.2
-
-- License: Apache-2.0
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
 ### @internationalized/date@3.12.2
 
 - License: Apache-2.0
@@ -679,12 +558,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
-
-### @jridgewell/remapping@2.3.5
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
 
 ### @jridgewell/resolve-uri@3.1.2
 
@@ -787,20 +660,10 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @napi-rs/lzma-linux-x64-gnu@1.5.1
-
-- License: MIT
-- Homepage: https://github.com/Brooooooklyn/lzma#readme
-
 ### @next/env@16.2.9
 
 - License: MIT
 - Copyright: Next.js Team
-- Homepage: https://github.com/vercel/next.js#readme
-
-### @next/swc-linux-x64-gnu@16.2.9
-
-- License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
 ### @noble/ciphers@1.3.0
@@ -1066,12 +929,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Copyright: Faris Masad
 - Homepage: https://github.com/replit/Codemirror-CSS-color-picker#readme
-
-### @rollup/rollup-linux-x64-gnu@4.62.4
-
-- License: MIT
-- Copyright: Lukas Taegert-Atkinson
-- Homepage: https://rollupjs.org/
 
 ### @scalar/agent-chat@0.12.9
 
@@ -1541,16 +1398,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: 강동윤
 - Homepage: https://swc.rs
 
-### @tailwindcss/oxide@4.3.0
-
-- License: MIT
-- Homepage: https://github.com/tailwindlabs/tailwindcss#readme
-
-### @tailwindcss/oxide-linux-x64-gnu@4.3.0
-
-- License: MIT
-- Homepage: https://github.com/tailwindlabs/tailwindcss#readme
-
 ### @tanstack/virtual-core@3.17.0
 
 - License: MIT
@@ -1787,21 +1634,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 
 - License: MIT
 - Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node-fetch
-
-### @types/react@19.2.17
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
-
-### @types/react-dom@19.2.3
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
-
-### @types/trusted-types@2.0.7
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/trusted-types
 
 ### @types/unist@2.0.11
 
@@ -2086,12 +1918,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://github.com/juliangruber/brace-expansion#readme
 
-### browserslist@4.28.2
-
-- License: MIT
-- Copyright: Andrey Sitnik
-- Homepage: https://github.com/browserslist/browserslist#readme
-
 ### buffer-from@1.1.2
 
 - License: MIT
@@ -2274,12 +2100,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/convert-hrtime#readme
-
-### convert-source-map@2.0.0
-
-- License: MIT
-- Copyright: Thorsten Lorenz
-- Homepage: https://github.com/thlorenz/convert-source-map
 
 ### cookie@0.7.2
 
@@ -2664,12 +2484,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Jonathan Ong
 - Homepage: https://github.com/jonathanong/ee-first#readme
 
-### electron-to-chromium@1.5.371
-
-- License: ISC
-- Copyright: Kilian Valkhof
-- Homepage: https://github.com/Kilian/electron-to-chromium#readme
-
 ### emoji-regex@10.6.0
 
 - License: MIT
@@ -2947,7 +2761,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 
 - License: MIT
 - Copyright: Matt Perry
-- Homepage: https://github.com/motiondivision/motion#readme
 
 ### fresh@2.0.0
 
@@ -2996,12 +2809,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: Apache-2.0
 - Copyright: Kiro Risk
 - Homepage: http://fusejs.io
-
-### gensync@1.0.0-beta.2
-
-- License: MIT
-- Copyright: Logan Smyth
-- Homepage: https://github.com/loganfsmyth/gensync
 
 ### get-caller-file@2.0.5
 
@@ -3402,22 +3209,11 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Isaac Z. Schlueter
 - Homepage: https://github.com/isaacs/jackspeak#readme
 
-### jiti@2.7.0
-
-- License: MIT
-- Homepage: https://github.com/unjs/jiti#readme
-
 ### js-base64@3.7.8
 
 - License: BSD-3-Clause
 - Copyright: Dan Kogai
 - Homepage: https://github.com/dankogai/js-base64#readme
-
-### js-tokens@4.0.0
-
-- License: MIT
-- Copyright: Simon Lydell
-- Homepage: https://github.com/lydell/js-tokens#readme
 
 ### js-yaml@4.2.0
 
@@ -3425,23 +3221,11 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Vladimir Zapparov
 - Homepage: https://github.com/nodeca/js-yaml#readme
 
-### jsesc@3.1.0
-
-- License: MIT
-- Copyright: Mathias Bynens
-- Homepage: https://mths.be/jsesc
-
 ### json-schema@0.4.0
 
 - License: (AFL-2.1 OR BSD-3-Clause)
 - Copyright: Kris Zyp
 - Homepage: https://github.com/kriszyp/json-schema#readme
-
-### json5@2.2.3
-
-- License: MIT
-- Copyright: Aseem Kishore
-- Homepage: http://json5.org/
 
 ### jsonc-parser@3.3.1
 
@@ -3475,16 +3259,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://github.com/iVis-at-Bilkent/layout-base#readme
 
-### lightningcss@1.32.0
-
-- License: MPL-2.0
-- Homepage: https://github.com/parcel-bundler/lightningcss#readme
-
-### lightningcss-linux-x64-gnu@1.32.0
-
-- License: MPL-2.0
-- Homepage: https://github.com/parcel-bundler/lightningcss#readme
-
 ### lodash-es@4.18.1
 
 - License: MIT
@@ -3512,12 +3286,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 ### lru-cache@11.5.1
 
 - License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-lru-cache#readme
-
-### lru-cache@5.1.1
-
-- License: ISC
 - Copyright: Isaac Z. Schlueter
 - Homepage: https://github.com/isaacs/node-lru-cache#readme
 
@@ -4032,12 +3800,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: David Frank
 - Homepage: https://github.com/bitinn/node-fetch
 
-### node-releases@2.0.47
-
-- License: MIT
-- Copyright: Sergey Rubanov
-- Homepage: https://github.com/chicoxyzzy/node-releases#readme
-
 ### npm-run-path@4.0.1
 
 - License: MIT
@@ -4426,12 +4188,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Vladimir Agafonkin
 - Homepage: https://github.com/mourner/robust-predicates#readme
 
-### rollup@4.62.4
-
-- License: MIT
-- Copyright: Rich Harris
-- Homepage: https://rollupjs.org/
-
 ### roughjs@4.6.6
 
 - License: MIT
@@ -4467,18 +4223,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Cody Olsen
 - Homepage: https://scroll-into-view.dev
 
-### semver@6.3.1
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-semver#readme
-
-### semver@7.8.3
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-semver#readme
-
 ### semver@7.8.5
 
 - License: ISC
@@ -4508,12 +4252,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: ISC
 - Copyright: Wes Todd
 - Homepage: https://github.com/wesleytodd/setprototypeof
-
-### sharp@0.34.5
-
-- License: Apache-2.0
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
 
 ### sharp@0.35.2
 
@@ -4827,12 +4565,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://github.com/jshttp/type-is#readme
 
-### typescript@5.9.3
-
-- License: Apache-2.0
-- Copyright: Microsoft Corp.
-- Homepage: https://www.typescriptlang.org/
-
 ### undici@7.29.0
 
 - License: MIT
@@ -4924,12 +4656,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Douglas Christopher Wilson
 - Homepage: https://github.com/stream-utils/unpipe#readme
 
-### update-browserslist-db@1.2.3
-
-- License: MIT
-- Copyright: Andrey Sitnik
-- Homepage: https://github.com/browserslist/update-db#readme
-
 ### urlpattern-polyfill@10.1.0
 
 - License: MIT
@@ -4939,7 +4665,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 
 - License: MIT
 - Copyright: theKashey
-- Homepage: https://github.com/theKashey/use-callback-ref#readme
 
 ### use-sidecar@1.1.3
 
@@ -4975,12 +4700,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/vfile/vfile-message#readme
-
-### vite@6.4.3
-
-- License: MIT
-- Copyright: Evan You
-- Homepage: https://vite.dev
 
 ### vue@3.5.35
 
@@ -5093,12 +4812,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Ben Coe
 - Homepage: https://github.com/yargs/y18n
 
-### yallist@3.1.1
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/yallist#readme
-
 ### yaml@2.9.0
 
 - License: ISC
@@ -5156,11 +4869,108 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/ampproject/remapping#readme
 
+### @ast-grep/napi-linux-x64-gnu@0.40.5
+
+- License: MIT
+- Homepage: https://github.com/ast-grep/ast-grep#readme
+
+### @babel/code-frame@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-code-frame
+
+### @babel/compat-data@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://github.com/babel/babel#readme
+
+### @babel/core@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-core
+
+### @babel/generator@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-generator
+
+### @babel/helper-compilation-targets@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://github.com/babel/babel#readme
+
+### @babel/helper-globals@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://github.com/babel/babel#readme
+
+### @babel/helper-module-imports@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-helper-module-imports
+
+### @babel/helper-module-transforms@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-helper-module-transforms
+
+### @babel/helper-validator-option@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://github.com/babel/babel#readme
+
+### @babel/helpers@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-helpers
+
+### @babel/template@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-template
+
+### @babel/traverse@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-traverse
+
 ### @bcoe/v8-coverage@1.0.2
 
 - License: MIT
 - Copyright: Charles Samborski
 - Homepage: https://github.com/bcoe/v8-coverage#readme
+
+### @cloudflare/workerd-linux-64@1.20260815.1
+
+- License: Apache-2.0
+- Homepage: https://github.com/cloudflare/workerd#readme
+
+### @esbuild/linux-x64@0.25.4
+
+- License: MIT
+- Homepage: https://github.com/evanw/esbuild#readme
+
+### @esbuild/linux-x64@0.28.0
+
+- License: MIT
+- Homepage: https://github.com/evanw/esbuild#readme
+
+### @esbuild/linux-x64@0.28.1
+
+- License: MIT
+- Homepage: https://github.com/evanw/esbuild#readme
 
 ### @eslint-community/eslint-utils@4.9.1
 
@@ -5244,6 +5054,30 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Nicholas C. Zaks
 - Homepage: https://github.com/humanwhocodes/retry#readme
 
+### @img/sharp-libvips-linux-x64@1.2.4
+
+- License: LGPL-3.0-or-later
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
+### @img/sharp-libvips-linux-x64@1.3.1
+
+- License: LGPL-3.0-or-later
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
+### @img/sharp-linux-x64@0.34.5
+
+- License: Apache-2.0
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
+### @img/sharp-linux-x64@0.35.2
+
+- License: Apache-2.0
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
 ### @isaacs/cliui@8.0.2
 
 - License: ISC
@@ -5256,7 +5090,23 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Corey Farrell
 - Homepage: https://github.com/istanbuljs/schema#readme
 
+### @jridgewell/remapping@2.3.5
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
+
+### @napi-rs/lzma-linux-x64-gnu@1.5.1
+
+- License: MIT
+- Homepage: https://github.com/Brooooooklyn/lzma#readme
+
 ### @next/eslint-plugin-next@16.2.9
+
+- License: MIT
+- Homepage: https://github.com/vercel/next.js#readme
+
+### @next/swc-linux-x64-gnu@16.2.9
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -5286,6 +5136,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/pkgjs/parseargs#readme
 
+### @rollup/rollup-linux-x64-gnu@4.62.4
+
+- License: MIT
+- Copyright: Lukas Taegert-Atkinson
+- Homepage: https://rollupjs.org/
+
 ### @rtsao/scc@1.1.0
 
 - License: MIT
@@ -5295,6 +5151,16 @@ These packages are used for development, test, or build tooling and are not bund
 
 - License: MIT
 - Homepage: https://tailwindcss.com
+
+### @tailwindcss/oxide@4.3.0
+
+- License: MIT
+- Homepage: https://github.com/tailwindlabs/tailwindcss#readme
+
+### @tailwindcss/oxide-linux-x64-gnu@4.3.0
+
+- License: MIT
+- Homepage: https://github.com/tailwindlabs/tailwindcss#readme
 
 ### @tailwindcss/postcss@4.3.0
 
@@ -5311,6 +5177,21 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jason Swearingen
 - Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped#readme
+
+### @types/react@19.2.17
+
+- License: MIT
+- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+
+### @types/react-dom@19.2.3
+
+- License: MIT
+- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+
+### @types/trusted-types@2.0.7
+
+- License: MIT
+- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/trusted-types
 
 ### @typescript-eslint/eslint-plugin@8.61.0
 
@@ -5525,6 +5406,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jon Schlinkert
 - Homepage: https://github.com/micromatch/braces
 
+### browserslist@4.28.2
+
+- License: MIT
+- Copyright: Andrey Sitnik
+- Homepage: https://github.com/browserslist/browserslist#readme
+
 ### cac@6.7.14
 
 - License: MIT
@@ -5577,6 +5464,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: James Halliday
 - Homepage: https://github.com/substack/node-concat-map#readme
+
+### convert-source-map@2.0.0
+
+- License: MIT
+- Copyright: Thorsten Lorenz
+- Homepage: https://github.com/thlorenz/convert-source-map
 
 ### damerau-levenshtein@1.0.8
 
@@ -5642,6 +5535,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Masaki Komagata
 - Homepage: https://github.com/komagata/eastasianwidth#readme
+
+### electron-to-chromium@1.5.371
+
+- License: ISC
+- Copyright: Kilian Valkhof
+- Homepage: https://github.com/Kilian/electron-to-chromium#readme
 
 ### emoji-regex@8.0.0
 
@@ -5875,6 +5774,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harbamd
 - Homepage: https://github.com/TimothyGu/generator-function#readme
+
+### gensync@1.0.0-beta.2
+
+- License: MIT
+- Copyright: Logan Smyth
+- Homepage: https://github.com/loganfsmyth/gensync
 
 ### get-symbol-description@1.1.0
 
@@ -6197,6 +6102,23 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Isaac Z. Schlueter
 - Homepage: https://github.com/isaacs/jackspeak#readme
 
+### jiti@2.7.0
+
+- License: MIT
+- Homepage: https://github.com/unjs/jiti#readme
+
+### js-tokens@4.0.0
+
+- License: MIT
+- Copyright: Simon Lydell
+- Homepage: https://github.com/lydell/js-tokens#readme
+
+### jsesc@3.1.0
+
+- License: MIT
+- Copyright: Mathias Bynens
+- Homepage: https://mths.be/jsesc
+
 ### json-buffer@3.0.1
 
 - License: MIT
@@ -6216,6 +6138,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Homepage: https://github.com/samn/json-stable-stringify
 
 ### json5@1.0.2
+
+- License: MIT
+- Copyright: Aseem Kishore
+- Homepage: http://json5.org/
+
+### json5@2.2.3
 
 - License: MIT
 - Copyright: Aseem Kishore
@@ -6250,6 +6178,16 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: George Zahariev
 - Homepage: https://github.com/gkz/levn
 
+### lightningcss@1.32.0
+
+- License: MPL-2.0
+- Homepage: https://github.com/parcel-bundler/lightningcss#readme
+
+### lightningcss-linux-x64-gnu@1.32.0
+
+- License: MPL-2.0
+- Homepage: https://github.com/parcel-bundler/lightningcss#readme
+
 ### locate-path@6.0.0
 
 - License: MIT
@@ -6273,6 +6211,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Veselin Todorov
 - Homepage: https://github.com/chaijs/loupe
+
+### lru-cache@5.1.1
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/node-lru-cache#readme
 
 ### magicast@0.3.5
 
@@ -6331,6 +6275,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/inspect-js/node-exports-info#readme
+
+### node-releases@2.0.47
+
+- License: MIT
+- Copyright: Sergey Rubanov
+- Homepage: https://github.com/chicoxyzzy/node-releases#readme
 
 ### object-assign@4.1.1
 
@@ -6498,6 +6448,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Matteo Collina
 - Homepage: https://github.com/mcollina/reusify#readme
 
+### rollup@4.62.4
+
+- License: MIT
+- Copyright: Rich Harris
+- Homepage: https://rollupjs.org/
+
 ### run-parallel@1.2.0
 
 - License: MIT
@@ -6522,6 +6478,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/safe-regex-test#readme
 
+### semver@6.3.1
+
+- License: ISC
+- Copyright: GitHub Inc.
+- Homepage: https://github.com/npm/node-semver#readme
+
+### semver@7.8.3
+
+- License: ISC
+- Copyright: GitHub Inc.
+- Homepage: https://github.com/npm/node-semver#readme
+
 ### set-function-length@1.2.2
 
 - License: MIT
@@ -6539,6 +6507,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/set-proto#readme
+
+### sharp@0.34.5
+
+- License: Apache-2.0
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
 
 ### siginfo@2.0.0
 
@@ -6727,6 +6701,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/inspect-js/typed-array-length#readme
 
+### typescript@5.9.3
+
+- License: Apache-2.0
+- Copyright: Microsoft Corp.
+- Homepage: https://www.typescriptlang.org/
+
 ### typescript-eslint@8.61.0
 
 - License: MIT
@@ -6743,11 +6723,23 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/unrs/unrs-resolver
 
+### update-browserslist-db@1.2.3
+
+- License: MIT
+- Copyright: Andrey Sitnik
+- Homepage: https://github.com/browserslist/update-db#readme
+
 ### uri-js@4.4.1
 
 - License: BSD-2-Clause
 - Copyright: Gary Court
 - Homepage: https://github.com/garycourt/uri-js
+
+### vite@6.4.3
+
+- License: MIT
+- Copyright: Evan You
+- Homepage: https://vite.dev
 
 ### vite-node@3.0.9
 
@@ -6808,6 +6800,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/chalk/wrap-ansi#readme
+
+### yallist@3.1.1
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/yallist#readme
 
 ### yocto-queue@0.1.0
 

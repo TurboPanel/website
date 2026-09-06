@@ -207,6 +207,10 @@ export function pnpmCliPath(env) {
   return execPath
 }
 
+function isJavascriptPnpmCli(cli) {
+  return /\.[cm]?js$/i.test(cli)
+}
+
 /**
  * @param {string} root
  * @param {boolean} prodOnly
@@ -230,9 +234,16 @@ export function loadPnpmLicenses(
       'generate-notices: no pnpm CLI in npm_execpath — run `pnpm notices:generate` or `pnpm notices:check`',
     )
   }
-  const args = [cli, 'licenses', 'list', '--json', '--long']
+  // pnpm 12 ships a native binary (`pnpm-native`). Spawn that directly;
+  // `node <elf>` throws SyntaxError. Older JS CLIs (`.cjs` / `.js` / `.mjs`)
+  // still run through `process.execPath`.
+  const jsCli = isJavascriptPnpmCli(cli)
+  const command = jsCli ? process.execPath : cli
+  const args = jsCli
+    ? [cli, 'licenses', 'list', '--json', '--long']
+    : ['licenses', 'list', '--json', '--long']
   if (prodOnly) args.push('--prod')
-  const result = spawn(process.execPath, args, { cwd: root, encoding: 'utf8' })
+  const result = spawn(command, args, { cwd: root, encoding: 'utf8' })
   if (result.status !== 0) {
     throw new Error(
       `generate-notices: pnpm licenses list failed (${result.status}): ${result.stderr || result.stdout || 'no output'}`,

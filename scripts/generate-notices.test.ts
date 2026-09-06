@@ -107,6 +107,22 @@ describe('loadPnpmLicenses', () => {
     expect(parsed).toEqual({ MIT: [] })
   })
 
+  it('spawns a native pnpm binary directly instead of through Node', () => {
+    let command = ''
+    let args: string[] = []
+    const parsed = loadPnpmLicenses('/repo', false, {
+      env: { npm_execpath: '/opt/pnpm/pnpm-native' },
+      spawn: (cmd: string, spawnArgs: readonly string[]) => {
+        command = cmd
+        args = [...spawnArgs]
+        return { status: 0, stdout: '{"MIT":[]}', stderr: '' }
+      },
+    })
+    expect(command).toBe('/opt/pnpm/pnpm-native')
+    expect(args).toEqual(['licenses', 'list', '--json', '--long'])
+    expect(parsed).toEqual({ MIT: [] })
+  })
+
   it('throws when npm_execpath is not a pnpm CLI', () => {
     expect(() => loadPnpmLicenses('/repo', false, { env: {} })).toThrow(
       /no pnpm CLI in npm_execpath/,
