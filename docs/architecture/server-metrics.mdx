@@ -135,7 +135,7 @@ One AE data point holds only 20 doubles, so a v4 sample writes **two or more** d
 
 `managed.ingress` and `managed.database_proxy` have no paging concept — one unpaged row per source entry, since a managed-service sidecar count is small and unbounded paging would add no value. `cpu.detail`/`memory.detail` are single fixed-shape rows. `cpu.core.live` pages the same way as the entity families above, only on a live sample.
 
-The dataset name is **`turbopanel_server_metrics_v4`** — a distinct dataset from the retired v3 `turbopanel_server_host_metrics` layout, since AE datasets can't be deleted or truncated and a positional-layout change always needs a new name.
+The dataset name is **`turbopanel_server_metrics_v4`**. The Wrangler binding is **`SERVER_METRICS_V4`**.
 
 | Slot | Content |
 | ---- | ------- |
@@ -159,7 +159,7 @@ The dataset name is **`turbopanel_server_metrics_v4`** — a distinct dataset fr
 | `blob17` | `"status"` rows: transition reason. `"event"` rows: the event's severity. Empty on `"metrics"` rows |
 | `blob18` … `blob20` | Reserved empty on every row kind |
 
-AE doubles have no null. Missing metrics store **`AE_V4_MISSING_METRIC_SENTINEL = -1e308`** — the same literal and rationale as v3, declared independently since this dataset has no dependency on the v3 layout. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`**.
+AE doubles have no null. Missing metrics store **`AE_V4_MISSING_METRIC_SENTINEL = -1e308`**. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`**.
 
 ### Connection-status event stream (`blob1 = "status"`)
 
@@ -178,9 +178,9 @@ Every genuine online/offline transition on a `server` row also writes **one stat
 
 ## DuckDB + Parquet schema (self-hosted)
 
-The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION`, currently **6** — open creates the current layout on a new file; see [Metrics deployment](/docs/deployment/metrics)).
+The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION` **6**). A missing, corrupt, or non-6 marker discards those files and the current store is created on the next open — there is no in-place migration. See [Metrics deployment](/docs/deployment/metrics).
 
-**One real typed table per family — no positional layout, no sentinel.** Missing metrics are genuine SQL `NULL`s. This replaces v3's single wide `server_metric_samples` table with a dedicated table per entity type:
+**One real typed table per family — no positional layout, no sentinel.** Missing metrics are genuine SQL `NULL`s. The current layout is one dedicated table per entity type:
 
 | Table | Family |
 | ----- | ------ |
@@ -243,7 +243,7 @@ Metrics ingestion runs on the normal Worker isolate (or Deno process) and **no l
 | **Retention** | **3 months** | **3 months** |
 | Per `writeDataPoint` | ≤ 250 data points/invocation; ≤ 20 doubles, 20 blobs, 1 index; blobs ≤ 16 KB; index ≤ 96 B | same |
 
-The write-volume formula itself is unchanged from v3 (`rowsPerSample × samplesPerDay`) — what changed is what drives `rowsPerSample`: instead of 2–4 rows keyed to four fixed wire parts, it now ranges from **2** (the universal baseline) up to however many pages a host's presence-gated entity counts require. The table below gives exact, test-verified row counts for 16 representative machine shapes (`turbopanel/src/daemon/metrics/testing/representative-machines.ts`):
+Every sample writes **two or more** Analytics Engine data points depending on which families are present (`rowsPerSample × samplesPerDay`). `rowsPerSample` ranges from **2** (the universal baseline) up to however many pages a host's presence-gated entity counts require. The table below gives exact, test-verified row counts for 16 representative machine shapes (`turbopanel/src/daemon/metrics/testing/representative-machines.ts`):
 
 | Machine shape | AE rows/sample | Why |
 | ------------- | ---------------- | --- |

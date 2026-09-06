@@ -55,9 +55,9 @@ An adapter that throws or returns nothing for a tick omits that source from the 
 
 ## Self-hosted schema
 
-On every open the self-hosted store runs `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` for the current layout. Pre-MVP does not migrate older DuckDB files. If a local store predates the current columns, delete `metrics.duckdb` (and `parquet/` for a clean archive) and let the next open create a fresh file.
+On every open the self-hosted store checks the sidecar `schema-version` marker against `DUCKDB_SCHEMA_MARKER_VERSION` (**6**). A missing, corrupt, or non-6 marker discards `metrics.duckdb`, `parquet/`, `tmp/`, and `schema-version` before creating the current layout. There is no in-place migration and no supported operator path for older DuckDB files.
 
-Configured retention still expires old points (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`, default 90). The sidecar `schema-version` marker is written after a successful open.
+Configured retention still expires old points (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`, default 90). The sidecar `schema-version` marker is written after a successful open of the current store.
 
 ## DuckDB + Parquet resources (self-hosted)
 
@@ -70,7 +70,7 @@ Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default
 | `metrics.duckdb` | Hot database — one typed table per family (see [Server metrics architecture](/docs/architecture/server-metrics#duckdb--parquet-schema-self-hosted)) plus status events |
 | `parquet/<family>/year=YYYY/month=MM/day=DD/metrics.parquet` | Daily sealed archive, per family — each completed UTC day exported out of that family's hot table independently |
 | `tmp/` | DuckDB spill plus in-flight Parquet exports (swept on restart; never mistaken for sealed partitions) |
-| schema marker (sidecar) | Written after a successful open (`DUCKDB_SCHEMA_MARKER_VERSION`) |
+| schema marker (sidecar) | Written after a successful open of schema **6** (`DUCKDB_SCHEMA_MARKER_VERSION`) |
 
 Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` (default **2**) and `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` (default **128** MiB) bound the embedded engine's footprint.
 
