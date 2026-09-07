@@ -9,7 +9,10 @@ Contributor reference for [TurboPanel/website](https://github.com/TurboPanel/web
 
 ## Prerequisites
 
-- Node.js and `pnpm` (see `packageManager` in `package.json`)
+- Node.js and `pnpm` (see `packageManager` in `package.json`). Cloudflare
+  Workers Builds runs `pnpm install --frozen-lockfile`; `pnpm-workspace.yaml`
+  must `allowBuilds` wrangler native postinstalls (`esbuild`, `workerd`,
+  `sharp`, …) or pnpm 12 fails with `ERR_PNPM_IGNORED_BUILDS`.
 - Cloudflare account with Workers deploy access
 - `wrangler` authenticated (`pnpm cf-typegen` after binding changes)
 

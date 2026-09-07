@@ -15,14 +15,14 @@ TurboPanel collects **host metrics** from connected daemons via authenticated `P
 
 ## Overview
 
-One **versioned wire contract** (`METRICS_SCHEMA_VERSION_V4 = 4`) is mirrored in the daemon and instance repos (not build-coupled). v4 groups metrics **by entity** (host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy) instead of a flat key list — every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION_V5 = 4`) is mirrored in the daemon and instance repos (not build-coupled). v5 groups metrics **by entity** (host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy) instead of a flat key list — every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
 
 | Runtime | Store | Backend |
 | ------- | ----- | ------- |
-| Cloudflare Workers | Analytics Engine | `SERVER_METRICS_V4` binding → `turbopanel_server_metrics_v4` dataset |
+| Cloudflare Workers | Analytics Engine | `SERVER_METRICS_V5` binding → `turbopanel_server_metrics_v5` dataset |
 | Self-hosted Deno | DuckDB + Parquet | one typed table per family (embedded, no port) |
 
-Store selection: `resolveServerMetricsStoreV4` (always on — Workers → Analytics Engine, Deno → DuckDB + Parquet).
+Store selection: `resolveServerMetricsStoreV5` (always on — Workers → Analytics Engine, Deno → DuckDB + Parquet).
 
 ```mermaid
 graph LR
@@ -37,9 +37,9 @@ graph LR
     UI["Server metrics UI"] --> API
 ```
 
-Every sample writes **two mandatory rows** — `host.system` and `host.io` — plus zero or more rows for whichever additional families are actually **present** on that host this tick. See [Metrics v4 contract](#metrics-v4-contract) below.
+Every sample writes **two mandatory rows** — `host.system` and `host.io` — plus zero or more rows for whichever additional families are actually **present** on that host this tick. See [Metrics v5 contract](#metrics-v5-contract) below.
 
-HTTP request body (schema v4 — illustrative subset). The minimal shape (a VM with one NIC, no GPU, no managed-service sidecars):
+HTTP request body (schema v5 — illustrative subset). The minimal shape (a VM with one NIC, no GPU, no managed-service sidecars):
 
 ```json
 {
@@ -84,9 +84,9 @@ A bare-metal host with a GPU, hosting-ingress Caddy, and hardware sensors declar
 
 Scheduling: first sample POSTs immediately on connect (including the co-located self-hosted daemon), a primed second sample ~**2 s** later fills rate metrics (CPU / disk / net), then a **60 s** baseline interval with ≤**5 s** deterministic per-`serverId` phase jitter. On top of the baseline, a UI-requested **live-mode lease** switches the daemon to a **10 s** sampling cadence (`collectionMode: "live"`) for the duration of the lease — capped at **60 minutes** by default, with expiry enforced daemon-side so an abandoned browser tab cannot hold a server in fast sampling. Monotonic process-local `metadata.sequence` (resets on daemon restart). Independent of cell ping/`heartbeat` liveness — see daemon `AGENTS.md`. Host metrics are ingested **only** via authenticated `POST /api/daemon/v1/metrics`; WebSocket `{ type: "metrics" }` frames are no longer accepted.
 
-## Metrics v4 contract
+## Metrics v5 contract
 
-v4 has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics are grouped into **families** (`HostedFamilyV4` in `metric-descriptors-v4.ts`), each one either **universal** (always emitted, even if every value is null), **presence-gated** (emitted only when the source entity array is non-empty), or **capability-gated** (emitted only when the resolved `MetricsCapabilityPlan` enables it).
+v5 has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics are grouped into **families** (`HostedFamilyV5` in `metric-descriptors-v5.ts`), each one either **universal** (always emitted, even if every value is null), **presence-gated** (emitted only when the source entity array is non-empty), or **capability-gated** (emitted only when the resolved `MetricsCapabilityPlan` enables it).
 
 | Family | Gating | Entity scope | Metrics |
 | ------ | ------ | ------------ | ------- |
@@ -119,11 +119,11 @@ Every stored row also carries the sample's own `topologyGeneration`, so a UI can
 
 ## Events
 
-A closed catalog of ~37 discrete state-change/fault kinds (`MetricEventKindV4`) is distinct from the continuous numeric families above — OOM kills, hung tasks, filesystem state changes, SMART/NVMe/RAID faults, NIC link flaps, TurboFabric mesh state, fan/thermal/PSU/voltage/ECC faults, GPU Xid/ECC/retirement/thermal faults, clock-sync loss, and topology/boot-generation bumps. Each kind is classified once as a physical-hardware-health signal or not (`HARDWARE_HEALTH_EVENT_KIND_V4`) — the split `hardwareHealthEventsEnabled` in the capability plan actually gates; OS/kernel conditions, filesystem state, TurboFabric state, clock-sync state, and generation bumps always survive a plan that disables hardware-health events. Every event writes its own `"event"`-kind AE row (see the envelope table below), and self-hosted Deno writes them to a dedicated `server_metric_events` table.
+A closed catalog of ~37 discrete state-change/fault kinds (`MetricEventKindV5`) is distinct from the continuous numeric families above — OOM kills, hung tasks, filesystem state changes, SMART/NVMe/RAID faults, NIC link flaps, TurboFabric mesh state, fan/thermal/PSU/voltage/ECC faults, GPU Xid/ECC/retirement/thermal faults, clock-sync loss, and topology/boot-generation bumps. Each kind is classified once as a physical-hardware-health signal or not (`HARDWARE_HEALTH_EVENT_KIND_V5`) — the split `hardwareHealthEventsEnabled` in the capability plan actually gates; OS/kernel conditions, filesystem state, TurboFabric state, clock-sync state, and generation bumps always survive a plan that disables hardware-health events. Every event writes its own `"event"`-kind AE row (see the envelope table below), and self-hosted Deno writes them to a dedicated `server_metric_events` table.
 
 ## Analytics Engine mapping (Workers)
 
-One AE data point holds only 20 doubles, so a v4 sample writes **two or more** data points depending on which families are present. `host.system` and `host.io` are always emitted — one row each, even if every value is missing. Every other family pages `AE_V4_METRIC_DOUBLE_SLOT_COUNT = 19` metric-value slots per row: `entitiesPerPage = floor(19 / fieldsPerEntity)`, so a family whose entities need more double slots fits fewer per page.
+One AE data point holds only 20 doubles, so a v5 sample writes **two or more** data points depending on which families are present. `host.system` and `host.io` are always emitted — one row each, even if every value is missing. Every other family pages `AE_V5_METRIC_DOUBLE_SLOT_COUNT = 19` metric-value slots per row: `entitiesPerPage = floor(19 / fieldsPerEntity)`, so a family whose entities need more double slots fits fewer per page.
 
 | Family | Fields per entity | Entities per page | Page-count formula |
 | ------ | ------------------ | ------------------ | ------------------- |
@@ -135,7 +135,7 @@ One AE data point holds only 20 doubles, so a v4 sample writes **two or more** d
 
 `managed.ingress` and `managed.database_proxy` have no paging concept — one unpaged row per source entry, since a managed-service sidecar count is small and unbounded paging would add no value. `cpu.detail`/`memory.detail` are single fixed-shape rows. `cpu.core.live` pages the same way as the entity families above, only on a live sample.
 
-The dataset name is **`turbopanel_server_metrics_v4`**. The Wrangler binding is **`SERVER_METRICS_V4`**.
+The dataset name is **`turbopanel_server_metrics_v5`**. The Wrangler binding is **`SERVER_METRICS_V5`**.
 
 | Slot | Content |
 | ---- | ------- |
@@ -143,7 +143,7 @@ The dataset name is **`turbopanel_server_metrics_v4`**. The Wrangler binding is 
 | `double1` … `double19` | `"metrics"` rows: that row's metric values in the family's declared field order (backend-private); unused trailing slots are sentinel-filled, never left as array holes. `host.io` additionally embeds its two normal-NIC-slot readings (3 values each — receive bytes/s, transmit bytes/s, a combined problem-packets/s figure) at `double12`..`double17`, on top of its 11 descriptor-owned slots at `double1`..`double11` |
 | `double20` | Every `"metrics"` row: the sample's `intervalSeconds` — the weighting term for `weighted-average` / `last` / `max` aggregates |
 | `blob1` | Row-kind discriminator — `"metrics"` / `"event"` / `"status"` |
-| `blob2` | `"metrics"` rows: the `HostedFamilyV4`; `"event"` rows: the event's kind; empty on `"status"` rows |
+| `blob2` | `"metrics"` rows: the `HostedFamilyV5`; `"event"` rows: the event's kind; empty on `"status"` rows |
 | `blob3` | Schema version (string, every row kind) |
 | `blob4` | Collection mode (`"baseline"` / `"live"`); empty on `"status"` rows |
 | `blob5` | `"metrics"` rows: `metadata.sampledAt`; `"event"` rows: the event's own `at`; empty on `"status"` rows (AE stamps its own ingestion timestamp there) |
@@ -159,11 +159,11 @@ The dataset name is **`turbopanel_server_metrics_v4`**. The Wrangler binding is 
 | `blob17` | `"status"` rows: transition reason. `"event"` rows: the event's severity. Empty on `"metrics"` rows |
 | `blob18` … `blob20` | Reserved empty on every row kind |
 
-AE doubles have no null. Missing metrics store **`AE_V4_MISSING_METRIC_SENTINEL = -1e308`**. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`**.
+AE doubles have no null. Missing metrics store **`AE_V5_MISSING_METRIC_SENTINEL = -1e308`**. All host metrics are ≥ 0, so the sentinel cannot collide. On the AE SQL read path, compare against **`-pow(10, 308)`**.
 
 ### Connection-status event stream (`blob1 = "status"`)
 
-Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v4` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
+Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v5` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
 
 <Callout type="warn" title="History-only — never authoritative for liveness">
   This event stream (and the `/metrics/connection` endpoint built on it) exists purely for
@@ -222,7 +222,7 @@ Session + server read grant required. **One combined backend query** per `(serve
 
 **Resolution ladder:** range ≤ 10 min → 10 s; ≤ 1 h → 60 s; ≤ 6 h → 300 s; ≤ 24 h → 900 s; ≤ 7 d → 3600 s; ≤ 30 d → 21600 s; else 43200 s. Max **`MAX_METRICS_POINTS` = 1500** points; range ≤ **90 days**.
 
-**Chart cache:** key includes authorized `serverId`, bucket-rounded range, sorted metrics, resolution, backend, and `v{schemaVersion}` (schema v4) — plus the sample's `topologyGeneration` when a caller scopes a request to one generation, so cache entries never blur rows from two different topology shapes together. TTL: live **45 s** / historical **300 s**.
+**Chart cache:** key includes authorized `serverId`, bucket-rounded range, sorted metrics, resolution, backend, and `v{schemaVersion}` (schema v5) — plus the sample's `topologyGeneration` when a caller scopes a request to one generation, so cache entries never blur rows from two different topology shapes together. TTL: live **45 s** / historical **300 s**.
 
 ## Cost model
 

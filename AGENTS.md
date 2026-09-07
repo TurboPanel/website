@@ -90,7 +90,7 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
 | `pnpm cf-typegen` | `wrangler types` → `cloudflare-env.d.ts` |
 
-Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only.
+Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only. `pnpm-workspace.yaml` `allowBuilds` must keep wrangler native postinstalls (`esbuild`, `workerd`, `sharp`, …) approved; pnpm 12 `strictDepBuilds` otherwise fails Cloudflare Builds with `ERR_PNPM_IGNORED_BUILDS`.
 
 **Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
 Run lint/typecheck/tests **inside the Vagrant guest** from the host `dev`
