@@ -1,0 +1,81 @@
+---
+title: License tiers
+description: The S1–S7/SX ladder on TurboPanel High Availability — how a server is placed, what a tier watches, what happens when a machine outgrows its license, and why self-hosted has none of this
+---
+
+# License tiers
+
+On **TurboPanel High Availability**, every connected server sits on one tier, **S1** to **S7**, with **SX** above the ladder for machines that do not fit. The tier is set by the **machine**, not by a feature list: cores and RAM decide where a server must sit, and the tier in turn decides how many of that server's devices the metrics pipeline watches. Planned prices are on [turbopanel.io/pricing](https://turbopanel.io/pricing).
+
+<Callout type="info" title="Self-hosted has no tiers">
+  A self-hosted control plane is free and uncapped. It never truncates a sample, never places a
+  server on a tier, and never sends a tier notice. Everything on this page is about TurboPanel High
+  Availability. See [Self-hosted](/docs/deployment/self-hosted).
+</Callout>
+
+## The ladder
+
+| Tier | Cores (physical) | RAM | NICs watched | Drives watched | GPUs watched | Extra filesystems |
+| ---- | ---------------- | --- | ------------ | -------------- | ------------ | ----------------- |
+| S1 | ≤ 4 | ≤ 16 GiB | 2 | 2 | 2 | 0 |
+| S2 | ≤ 10 | ≤ 32 GiB | 2 | 4 | 2 | 9 |
+| S3 | ≤ 16 | ≤ 64 GiB | 5 | 6 | 2 | 9 |
+| S4 | ≤ 32 | ≤ 128 GiB | 5 | 8 | 4 | 9 |
+| S5 | ≤ 64 | ≤ 256 GiB | 8 | 12 | 4 | 18 |
+| S6 | ≤ 128 | ≤ 512 GiB | 8 | 16 | 6 | 18 |
+| S7 | ≤ 256 | ≤ 1 TiB | 11 | 20 | 8 | 18 |
+| SX | more | more | 11 | 24 | 8 | 18 |
+
+The first two columns are the **hard floor**. The rest are **watched-device counts** — the slot entitlements the tier row carries, mapped onto the server's metrics capability plan. Tiers are rows in the platform catalogue, not an enum: a re-price is a new generation of rows, and an existing license keeps pointing at the row it was sold on.
+
+Two details on the watched counts: the NIC column is bounded by the daemon's own ceiling of **11** monitored NICs per server, which S7 and SX watch in full, and the first two monitored NICs ride inside the host sample rather than as separate rows. The extra-filesystem count is for mounts beyond `/` — root capacity is always reported.
+
+## Two placement rules
+
+**Cores and RAM are a hard floor.** A server *requires* the tier its physical core count and RAM total land in — whichever of the two is higher. Only physical cores count: an 8-core, 16-thread CPU is 8 cores. Hyperthreading never promotes a machine.
+
+**NICs, drives, and GPUs only raise the recommended tier.** Each has its own soft band (NICs follow the ladder's own NIC column — ≤ 2 / 2 / 5 / 5 / 8 / 8 / 11 for S1…S7; drives ≤ 2 / 4 / 6 / 8 / 12 / 16 / 20; GPUs ≤ 2 / 4 / 6 / 8, else SX). The *recommended* tier is the higher of the required tier and those device bands, so the NIC band always lands on a tier that watches that many NICs. Reducing a device count can lower the recommendation; it can never lower the requirement.
+
+**NICs count what the server monitors, not what it has.** The NIC band reads the operator's monitored-NIC selection (the NIC slots pinned in the server's hardware profile, or the default-route uplink when none is pinned) — the same list the daemon samples and hosted ingest truncates. A six-port machine watching only its gateway NIC is recommended by that one NIC; pinning more slots than the license watches raises the recommendation, and the slots beyond the license's count are reported as unwatched until the tier covers them. Drives and GPUs have no operator selection, so their bands count every device discovered.
+
+| Machine | Required | Recommended | Why |
+| ------- | -------- | ----------- | --- |
+| 4 cores, 16 GiB, 1 NIC, 1 drive | S1 | S1 | Everything inside S1 |
+| 4 cores, 16 GiB, 6 NICs, 1 monitored | S1 | S1 | Only the monitored NIC counts; the other five are listed as unwatched, not recommended for |
+| 4 cores, 16 GiB, 6 NICs, all 6 pinned | S1 | S5 | Six monitored NICs need S5's 8 slots; on S1 only the first two pinned slots are watched |
+| 4 cores, 16 GiB, 6 drives | S1 | S3 | Drives push the recommendation; cores and RAM do not |
+| 8 cores / 16 threads, 32 GiB | S2 | S2 | Threads are ignored |
+| 12 cores, 32 GiB | S3 | S3 | 12 cores exceed S2's 10; RAM alone would allow S2 |
+| 32 cores, 512 GiB | S6 | S6 | RAM sets the floor |
+| 64 cores, 256 GiB, 4 GPUs | S5 | S5 | Cores and RAM already set S5; the four-GPU band sits below it and changes nothing |
+
+## What happens when a machine outgrows its license
+
+The two rules fail differently, on purpose.
+
+**Below the required tier — access is refused.** When a server enrolls, the control plane evaluates the hard floor against the hardware the daemon reports. A license whose tier ranks below the required tier is refused with `License tier below required` (a license with no tier at all gets `License tier not assigned`); the daemon treats both as permanent and parks. The same check runs at **session issuance**, so a server whose cores or RAM grow past its tier after a resize loses access on its next session rather than mid-stream — the metrics ingest path and the WebSocket hello never apply the floor, because refusing samples would hide an incident rather than bill for it. Assigning a higher tier to the license restores access on the next session.
+
+**Above the recommended tier — nothing blocks.** A server with more NICs, drives, or GPUs than its tier watches still connects and still reports. Hosted ingest simply truncates each family to the tier's slot count; the devices beyond it are **unwatched**, and the server's detail page names them. This is a metrics-depth question, not an access question.
+
+## The daily notice
+
+Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — a license a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The console shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
+
+Nothing is sent for a server that satisfies its recommendation, and nothing is sent on self-hosted.
+
+## What a tier changes in the metrics you see
+
+Depth is the same at every tier. Host CPU, memory, storage I/O, network health, the merged diagnostics row, storage accounting, the ingress and router rows, and the database-proxy row are all on from S1. What the tier changes is **cardinality** — how many per-device charts exist — plus three entry-tier carve-outs:
+
+- **S1 has no Docker breakdown.** The Docker data-root total still shows under [Storage usage](/docs/metrics/managed-storage); the layer / container / volume / build-cache split ([Docker](/docs/metrics/managed-docker)) is granted from S2, and the console shows a one-line notice in its place on S1.
+- **S1 watches no extra filesystems.** Root capacity is always reported; additional mounts appear from S2.
+- **S1 physical machines get 11 sensor slots** instead of 19 — enough for the CPU package, board, and a couple of drives.
+
+The row-by-row inventory each tier produces, and what it costs to store, is in [Server metrics architecture](/docs/architecture/server-metrics#rows-per-sample-by-tier). This page does not restate those figures.
+
+## Related
+
+- [Server metrics operations](/docs/deployment/metrics) — capability plan resolution, adapters, troubleshooting
+- [Server metrics architecture](/docs/architecture/server-metrics) — the v6 contract, per-tier row inventory, cost model
+- [Server metrics](/docs/metrics) — what each console chart means
+- [Pricing](https://turbopanel.io/pricing) — the planned per-tier prices

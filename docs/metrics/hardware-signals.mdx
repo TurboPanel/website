@@ -1,33 +1,35 @@
 ---
 title: Physical signal metrics
-description: Board, CPU package, disk, and other hardware sensor readings with optional warning and critical thresholds
+description: Board, CPU package, drive, and GPU temperature and power readings with optional warning and critical thresholds
 ---
 
 # Physical signal metrics
 
-This group is one chart per hardware sensor the daemon trusts enough to export: CPU package temperature or power, board and ambient temps, storage temps, and similar. Chart titles use operator-facing names — kernel strings such as `Package id 0` (coretemp socket temperature) and `package-0` (RAPL CPU package energy) become **CPU package temperature** and **CPU package power**. `signalId` still uses the kernel `chip:label` identity. RAPL package power is the whole CPU package (cores plus iGPU); iGPU-only watts live on [GPU](/docs/metrics/gpu). Virtual machines default to **zero** signal slots — no group — because those probes usually are not real.
+This group is one chart per hardware sensor the daemon trusts enough to export: CPU package temperature and power, board and ambient temperatures, every service drive's temperature, and every GPU's core temperature, memory temperature, and power. Chart titles use operator-facing names — kernel strings such as `Package id 0` (coretemp socket temperature) and `package-0` (RAPL CPU package energy) become **CPU package temperature** and **CPU package power**, and a drive's or GPU's reading is captioned with that device's name (`nvme0n1 temperature`). `signalId` still uses the kernel `chip:label` identity. RAPL package power is the whole CPU package (cores plus iGPU); a discrete GPU's watts are its own signal here.
 
-Fan RPM and GPU temp/power do **not** live here. GPU readings are on [GPU](/docs/metrics/gpu). Fan faults still appear as [events](/docs/metrics/events#fan_fault).
+**Every temperature and power reading in the contract is a signal.** Since schema v6 the GPU and block-device rows carry no thermal fields of their own — a drive or GPU thermal reading arrives only here. Virtual machines get **no** signal slots and no group, because those probes usually are not real; on a VM the absence is the answer, and no "no thermal data" placeholder is shown.
 
-The default physical-host plan allows up to 19 signals. A physical host with no working sensors still emits nothing — expected, not an error.
+**Fan is not in the sensor catalogue.** The read path never implemented fan RPM as a metric, so v6 removed the slot entirely rather than carry an empty one; there is no RPM chart. Fan *faults* are a separate mechanism — [`fan_fault` and `fan_alarm` events](/docs/metrics/events#fan_fault) — and are unaffected.
+
+The physical-host plan allows up to 19 signals (11 on the entry tier). A physical host with no working sensors still emits nothing — expected, not an error.
 
 ## The reading [#value]
 
-`hardwareSignal.value` — a single number whose **unit** comes from the sensor (`celsius`, `watts`, `rpm`, `percent`, or other).
+`hardwareSignal.value` — a single number whose **unit** comes from the sensor: `celsius`, `watts`, or `percent`.
 
 Temperatures are stored in Celsius. The axis and tooltip convert to the organization's display unit (Celsius or Fahrenheit) at render time. A reference line, when present, is the sensor's **critical** threshold, or **warning** if no critical is set. Compare against that line in the stored unit; only the label text converts.
 
 | Unit | How to read it |
 | ---- | -------------- |
-| Celsius (shown as °C or °F) | Package and board heat. Crossing the critical line is the vendor's limit, not a TurboPanel policy |
-| Watts | Package or rail power. A sudden drop with load still high can mean a cap or a failed sensor |
-| RPM | When a tachometer is exported as a signal (uncommon here). Zero on a fan that should be spinning is a fault — also see `fan_fault` events |
-| Percent | Vendor-normalized readings (some “utilization” or “capacity” probes) |
+| Celsius (shown as °C or °F) | Package, board, drive, and GPU heat. Crossing the critical line is the vendor's limit, not a TurboPanel policy. A drive running hot with rising [latency](/docs/metrics/block-devices#latency) is thermal throttling; a GPU running hot with a rising [throttle](/docs/metrics/gpu#throttle) line is the card protecting itself |
+| Watts | Package, rail, or GPU board power. A sudden drop with load still high can mean a cap or a failed sensor; a GPU stuck well below its usual draw while busy is often power-limited |
+| Percent | Vendor-normalized readings (some "utilization" or "capacity" probes) |
 
 A missing chart for a sensor you expect usually means the daemon could not read it this tick (driver, permissions, or the probe disappeared). A `temp_alarm` / `temp_critical` / `psu_fault` / `voltage_alarm` [event](/docs/metrics/events#temp_alarm) is the discrete companion to these gauges.
 
 ## Related
 
-- [GPU temperature and power](/docs/metrics/gpu#temperature)
-- [Block device temperature](/docs/metrics/block-devices#temperature)
+- [GPU](/docs/metrics/gpu) — utilization, memory, PCIe, and throttle for the cards whose thermals live here
+- [Block devices](/docs/metrics/block-devices) — throughput, IOPS, and latency for the drives whose temperatures live here
 - [Hardware events](/docs/metrics/events#temp_alarm)
+- [License tiers](/docs/deployment/tiers) — signal slots per tier

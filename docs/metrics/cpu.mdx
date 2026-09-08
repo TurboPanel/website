@@ -1,6 +1,6 @@
 ---
 title: CPU metrics
-description: CPU utilization modes, Pressure Stall Information (PSI), busiest core, process counts, and optional CPU detail
+description: CPU utilization modes, Pressure Stall Information (PSI), saturated cores, process counts, and CPU diagnostics
 ---
 
 # CPU metrics
@@ -37,7 +37,7 @@ This is the chart to open when the host feels slow but utilization looks modest.
 | ------------ | --------------- |
 | Near 0% | The run queue is keeping up |
 | Spikes that return to zero | Short bursts — a deploy, a backup, a cron |
-| Sustained double digits | Tasks are regularly queued. Check [Busiest core](#cpu-max-core): one pegged core can stall a single-threaded app while the average looks fine |
+| Sustained double digits | Tasks are regularly queued. Check [Cores saturated](#cpu-saturated-cores): one pegged core can stall a single-threaded app while the average looks fine |
 | High PSI + moderate busy % | Too many runnable tasks for the cores you have, or steal from a noisy neighbor |
 | High PSI + high busy % | The machine is saturated the obvious way |
 
@@ -45,11 +45,11 @@ CPU PSI has **no Full series**. Memory and I/O can stall every non-idle task at 
 
 The chart hides when the kernel does not export `/proc/pressure/cpu`.
 
-## Busiest core [#cpu-max-core]
+## Cores saturated [#cpu-saturated-cores]
 
-`host.cpu.maxCoreBusyPercent` — the single most occupied logical CPU in that sample.
+`host.cpu.saturatedCoreCount` — how many logical CPUs were at or above **90% busy** in that sample.
 
-Averages hide hotspots. A 16-core host at 10% busy can still have one core at 100% (a single-threaded runtime, a stuck process, a poorly pinned interrupt). If PSI is up and this line is near 100% while the stacked utilization chart looks calm, the problem is concentration, not fleet-wide load.
+Averages hide hotspots. A 16-core host at 10% busy can still have one core at 100% (a single-threaded runtime, a stuck process, a poorly pinned interrupt). If PSI is up and this count is 1 or 2 while the stacked utilization chart looks calm, the problem is concentration, not fleet-wide load. A count near the core total with high PSI is the machine saturated the obvious way. This is a single host scalar so a 64-core host costs the same to store as a 2-core one; there is no per-core series.
 
 ## Processes [#cpu-processes]
 
@@ -63,13 +63,13 @@ The overview tile **Processes** is the latest `processCount`. Runnable much larg
 
 ## CPU detail [#cpu-detail]
 
-These charts appear only when the organization's or server's metrics capability plan has **CPU detail** enabled. Otherwise the group is hidden.
+These charts are the CPU half of the host **diagnostics** row (`host.diagnostics`), reported by every Linux host at every license tier — S1 included — and on self-hosted. They are no longer an organization or server capability toggle; there is nothing to enable. The group hides only when the host cannot export the underlying counters.
 
 ### CPU frequency [#cpu-detail-frequency]
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Min / avg / max | `cpuDetail.minimumFrequencyMHz`, `averageFrequencyMHz`, `maximumFrequencyMHz` | Observed clock across cores in that sample |
+| Min / avg / max | `diagnostics.minimumFrequencyMHz`, `averageFrequencyMHz`, `maximumFrequencyMHz` | Observed clock across cores in that sample |
 
 A max that never leaves the floor can mean thermal or power limits — pair with [physical signals](/docs/metrics/hardware-signals) and [GPU throttle](/docs/metrics/gpu#throttle) when those exist. Missing on hosts that do not export frequency.
 
@@ -77,22 +77,18 @@ A max that never leaves the floor can mean thermal or power limits — pair with
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Context switches | `cpuDetail.contextSwitchesPerSecond` | How often the kernel swapped which task runs. A sudden jump often means too many threads fighting for cores |
-| Interrupts | `cpuDetail.interruptsPerSecond` | Hardware interrupt rate. A jump with SoftIRQ and network errors often means packet flood or a NIC problem |
+| Context switches | `diagnostics.contextSwitchesPerSecond` | How often the kernel swapped which task runs. A sudden jump often means too many threads fighting for cores |
+| Interrupts | `diagnostics.interruptsPerSecond` | Hardware interrupt rate. A jump with SoftIRQ and network errors often means packet flood or a NIC problem |
 
 ### Process forks [#cpu-detail-forks]
 
-`cpuDetail.forksPerSecond` — new processes created per second. Short spikes are normal (shells, deploys). A sustained climb can be a fork bomb, a crashing service in a restart loop, or a CI host spawning work.
+`diagnostics.forksPerSecond` — new processes created per second. Short spikes are normal (shells, deploys). A sustained climb can be a fork bomb, a crashing service in a restart loop, or a CI host spawning work.
 
 ### IRQ time [#cpu-detail-irq]
 
-`cpuDetail.cpuIrqPercent` — share of CPU time in hard interrupt handlers. Complements SoftIRQ on the utilization stack. High IRQ with high interrupt rate is the NIC or a device spending CPU in the interrupt path.
+`diagnostics.cpuIrqPercent` — share of CPU time in hard interrupt handlers. Complements SoftIRQ on the utilization stack. High IRQ with high interrupt rate is the NIC or a device spending CPU in the interrupt path.
 
-## Per-core (live sessions) [#cpu-core-live]
-
-While a **live** session is active (5 or 10 minute range), TurboPanel can chart each logical core: busy %, iowait %, steal %. These rows exist only during the lease — they are not stored as a long-term per-core history at the 60 second cadence.
-
-Use them to confirm the [Busiest core](#cpu-max-core) hotspot: which `cpuN` is pegged, and whether that core is busy with work, waiting on I/O, or stolen by the hypervisor.
+There is no per-core chart, in live sessions or otherwise: the per-core family was removed in schema v6 so that core count never changes what a server costs to store. [Cores saturated](#cpu-saturated-cores) is the host-level answer to "is one core pegged".
 
 ## Related
 

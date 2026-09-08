@@ -1,6 +1,6 @@
 ---
 title: Server metrics operations
-description: Host metrics storage, embedded DuckDB, Parquet archive, retention, topology/capability plan, ingress/database-proxy adapters, troubleshooting, and privacy
+description: Host metrics storage, embedded DuckDB, Parquet archive, retention, topology/capability plan, ingress/router/database-proxy adapters, troubleshooting, and privacy
 ---
 
 # Server metrics operations
@@ -21,7 +21,7 @@ Host/server metrics are a **core** control-plane feature — always on, **dispos
 
 The self-hosted Deno path constructs the DuckDB store directly against an internal path (`resolveMetricsDir()`), so it needs no operator-supplied credentials — it falls back to a temporary no-op store (with a one-time boot warning) only when the metrics directory cannot be created or opened.
 
-**Workers (hosted):** add the `SERVER_METRICS_V4` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the hosted query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
+**Workers (hosted):** add the `SERVER_METRICS` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the hosted query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
 
 **Deno (self-hosted):** metrics persist to embedded DuckDB + Parquet automatically. Query failures return **503** `metrics_backend_unavailable`.
 
@@ -36,26 +36,27 @@ Organizations set a display unit independent of storage: `GET`/`PUT /api/client/
 Two backend-neutral models replace v3's hardware-profile/sensors round trip:
 
 - **Topology** (daemon-side, `turbopaneld/src/metrics/topology/`) assigns every NIC, GPU, filesystem, block device, and hardware signal a stable logical id and tracks generation bumps — a `topologyGeneration` counter that advances only when the enumerated entity set's shape actually changes, plus a `bootGeneration` for daemon restarts. The control plane resolves a `SlotMapping` from a sample's `topologyGeneration` (`client/servers/topology-slot-mapping.ts`) and threads it through packing so paged families stay identity-addressed instead of positional.
-- **`MetricsCapabilityPlanV4`** (control-plane, `src/daemon/metrics/capability-plan.ts`) is the backend-neutral entitlement model for how much of the contract a server is allowed to report/store — slot counts and feature toggles only, no pricing-tier names. It layers **platform default → org override → server override**: platform defaults come from `platformDefaultMetricsCapabilityPlan(machineClass)` (`normalNicSlots: 2`, `gpuSlots: 1`, `physicalHardwareSignalSlots: 19` on physical / `0` on virtual, `turboFabricEnabled`/`managedIngressEnabled`/`databaseProxyMetricsEnabled`/`hardwareHealthEventsEnabled` all on by default, `cpuDetailEnabled`/`memoryDetailEnabled` off by default); an org-wide override lives in `organization.options.metricsCapabilityPlan`; an optional per-server override lives in `server.options.metricsCapabilityPlan`. `POST /api/daemon/v1/metrics` resolves the effective plan for the reporting server and calls `truncateSampleToCapabilityPlanV4` on the incoming sample **before** it reaches the store — a plan change takes effect on the very next ingested sample, no daemon restart required.
+- **`MetricsCapabilityPlan`** (control-plane, `src/daemon/metrics/capability-plan.ts`) is the backend-neutral entitlement model for how much of the contract a server is allowed to report/store — slot counts and feature toggles only, no pricing-tier names. On **TurboPanel High Availability** the base plan resolves from the server's **license → tier**: the `tier` row's entitlement columns (`nic_slots`, `drive_slots`, `gpu_slots`, `filesystem_slots`, plus its rank) map onto `normalNicSlots`, `detailedBlockDeviceSlots`, `gpuSlots`, `extraFilesystemSlots`, and `managedDockerEnabled`; the entry tier (rank 1) carves extra filesystems to `0`, physical sensor slots to `11`, and Docker off. An unassigned seat falls back to the platform default (`normalNicSlots: 2`, `detailedBlockDeviceSlots: 2`, `gpuSlots: 1`, `physicalHardwareSignalSlots: 19` on physical / `0` on virtual, every feature toggle on). An org-wide override in `organization.options.metricsCapabilityPlan` and an optional per-server override in `server.options.metricsCapabilityPlan` still layer on top of that base. `POST /api/daemon/v1/metrics` resolves the effective plan for the reporting server and calls `truncateSampleToCapabilityPlan` on the incoming sample **before** it reaches the store — a plan or tier change takes effect on the very next ingested sample, no daemon restart required. **Self-hosted is uncapped:** the branch happens before truncation, so a self-hosted instance stores whatever the daemon reports — no truncation, no decimation, and the monitored-NIC default is the ceiling (11) rather than the hosted 2. There is no `cpuDetailEnabled`/`memoryDetailEnabled` any more: diagnostics ride the always-on `host.diagnostics` family at every tier, hosted or self-hosted. See [License tiers](/docs/deployment/tiers) for what each tier entitles and how a server is placed.
 
-`machineClass` (`"physical"` | `"virtual"`) is required, not defaulted, specifically so a virtual server can never silently inherit the physical hardware-signal baseline.
+`machineClass` (`"physical"` | `"virtual"`) is required, not defaulted, specifically so a virtual server can never silently inherit the physical hardware-signal baseline. The declared `server.machine_class` column wins; only while it is null does the daemon's topology snapshot (any host-level sensor discovered → physical) decide.
 
-A server whose plan grants a slot but whose daemon never reports that entity (e.g. `gpuSlots: 1` on a host with no GPU) simply emits nothing for that family — this is expected, not a misconfiguration to chase down. See [Server metrics architecture](/docs/architecture/server-metrics#metrics-v4-contract) for the entitlement-vs-emission distinction.
+A server whose plan grants a slot but whose daemon never reports that entity (e.g. `gpuSlots: 2` on a host with no GPU) simply emits nothing for that family — this is expected, not a misconfiguration to chase down. See [Server metrics architecture](/docs/architecture/server-metrics#metrics-v6-contract) for the entitlement-vs-emission distinction.
 
-## Ingress & database-proxy adapters
+## Ingress, router & database-proxy adapters
 
-Two independent, loopback-only adapter domains feed `managed.ingress` / `managed.database_proxy` — each source resolves independently, and one being unreachable never blocks another:
+Three independent, loopback-only adapter domains feed `managed.ingress` / `managed.router` / `managed.database_proxy` — each source resolves independently, and one being unreachable never blocks another:
 
-- **Ingress** (`turbopaneld/src/metrics/collector/ingress/`) reads every configured adapter each tick in parallel and includes whichever ones answer:
-  - **Caddy** (`caddy-v4.ts`) scrapes the `site-caddy` role's admin listener (`site_caddy_admin_addr`, `127.0.0.1:2039` — the unprivileged per-site Caddy, not the separate hosting-ingress Caddy) via its Prometheus `/metrics` exposition. **No-double-count rule:** every handler in a request's Caddy handler chain (the site's top-level `subroute` plus any nested `handle`/`reverse_proxy`/`file_server` terminal) is independently instrumented, so summing every `(server, handler)` group would double- or n-count each request. The adapter instead picks, per server, the `(server, handler)` group with the **largest** `caddy_http_requests_total` — the outermost handler every request passes through — as the sole source for every normalized field; ties (the normal shape of a single-terminal site) break deterministically by handler name.
-  - **Traefik** (`traefik.ts`) reads its own Prometheus exposition independently — no shared no-double-count concern, since Traefik's exposition is not chain-instrumented the way Caddy's is.
-- **Database proxy** (`turbopaneld/src/metrics/collector/database-proxy/`) reads the **ProxySQL** adapter (`proxysql-v4.ts`) against its unauthenticated REST metrics endpoint, published loopback-only (`admin-restapi_enabled`, `127.0.0.1:6070`) the same way the admin MySQL-protocol port is.
+- **Ingress** (`turbopaneld/src/metrics/collector/ingress/`) is **Caddy only** since schema v6. The **Caddy** adapter (`caddy.ts`) scrapes the `site-caddy` role's admin listener (`site_caddy_admin_addr`, `127.0.0.1:2039` — the unprivileged per-site Caddy, not the separate hosting-ingress Caddy) via its Prometheus `/metrics` exposition. **No-double-count rule:** every handler in a request's Caddy handler chain (the site's top-level `subroute` plus any nested `handle`/`reverse_proxy`/`file_server` terminal) is independently instrumented, so summing every `(server, handler)` group would double- or n-count each request. The adapter instead picks, per server, the `(server, handler)` group with the **largest** `caddy_http_requests_total` — the outermost handler every request passes through — as the sole source for every normalized field; ties (the normal shape of a single-terminal site) break deterministically by handler name. The six latency buckets come straight off Caddy's default histogram bounds; the daemon ships the raw duration sum and the bucket counts, never a percentile.
+- **Router** (`turbopaneld/src/metrics/collector/router/`) reads the **shared hosting Traefik** (`traefik.ts`) — the loopback proxy behind the hosting Caddy that fronts Docker-hosted sites — from the dedicated `metrics` entrypoint the deploy configures. It is a host-wide singleton, not an ingress source: v5 forced Traefik onto the Caddy layout, which fit neither side. The collector's own scrape traffic on the metrics entrypoint is excluded from open-connection counts.
+- **Database proxy** (`turbopaneld/src/metrics/collector/database-proxy/`) reads the **ProxySQL** adapter (`proxysql.ts`) against its unauthenticated REST metrics endpoint, published loopback-only (`admin-restapi_enabled`, `127.0.0.1:6070`) the same way the admin MySQL-protocol port is.
 
-An adapter that throws or returns nothing for a tick omits that source from the array entirely (never an all-null placeholder row) and invalidates that source's counter-baseline namespace so the next successful read re-origins instead of diffing across the gap.
+An adapter that throws or returns nothing for a tick omits that source entirely (never an all-null placeholder row) and invalidates that source's counter-baseline namespace so the next successful read re-origins instead of diffing across the gap.
+
+Three further host-wide readings are collected on their own slow timers and read synchronously by the sample tick: **storage accounting** (`managed.storage`, `collector/directory-usage.ts`, a 15-minute walk of the hosting, backup, and log roots, or a plain `statfs` when the path is its own mount), **Docker usage** (`managed.docker`, `collector/docker-usage.ts`, Docker's `GET /system/df` every 5 minutes), and the **managed-engine census** (the per-engine fields of `managed.storage`, `collector/managed-engines.ts`, every 5 minutes: the managed engine containers found by their `tp.managed.engine` label over the Docker socket, each running instance probed for readiness and connection count through `docker exec`). None runs on the 60 s tick; a bounded walk that hits its limit reports `null` rather than a partial total, and an engine the host does not run reports `null` rather than zero.
 
 ## Self-hosted schema
 
-On every open the self-hosted store checks the sidecar `schema-version` marker against `DUCKDB_SCHEMA_MARKER_VERSION` (**6**). A missing, corrupt, or non-6 marker discards `metrics.duckdb`, `parquet/`, `tmp/`, and `schema-version` before creating the current layout. There is no in-place migration and no supported operator path for older DuckDB files.
+On every open the self-hosted store checks the sidecar `schema-version` marker against `DUCKDB_SCHEMA_MARKER_VERSION` (**8**). That number is the on-disk **layout generation** of the self-hosted store, not the metrics wire schema: the daemon ↔ instance contract is **v6** (`METRICS_SCHEMA_VERSION = 6`), and v6 samples are stored in layout **8**. The two counters are independent by design — the marker bumps whenever DDL adds or widens a table (the `managed.storage` / `managed.docker` tables took it from 7 to 8, which is why a v6 store is marker 8), while the wire version only moves when the sample shape changes. A missing, corrupt, or non-matching marker discards `metrics.duckdb`, `parquet/`, `tmp/`, and `schema-version` before creating the current layout. There is no in-place migration and no supported operator path for older DuckDB files. Layout 8 is the first carrying the `server_storage_samples`, `server_docker_samples`, and `server_router_samples` tables, the merged diagnostics columns, and the widened ingress and database-proxy tables.
 
 Configured retention still expires old points (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`, default 90). The sidecar `schema-version` marker is written after a successful open of the current store.
 
@@ -67,10 +68,10 @@ Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default
 
 | Path | Role |
 | ---- | ---- |
-| `metrics.duckdb` | Hot database — one typed table per family (see [Server metrics architecture](/docs/architecture/server-metrics#duckdb--parquet-schema-self-hosted)) plus status events |
+| `metrics.duckdb` | Hot database — one typed table per family (see [Server metrics architecture](/docs/architecture/server-metrics#duckdb--parquet-schema-self-hosted)): the wide host table (host, I/O, and CPU diagnostics columns), `server_memory_diagnostics_samples`, per-entity tables for network / filesystem / block / GPU / hardware signals, the ingress and database-proxy tables, the `server_router_samples` / `server_storage_samples` / `server_docker_samples` singletons, metric events, and status events |
 | `parquet/<family>/year=YYYY/month=MM/day=DD/metrics.parquet` | Daily sealed archive, per family — each completed UTC day exported out of that family's hot table independently |
 | `tmp/` | DuckDB spill plus in-flight Parquet exports (swept on restart; never mistaken for sealed partitions) |
-| schema marker (sidecar) | Written after a successful open of schema **6** (`DUCKDB_SCHEMA_MARKER_VERSION`) |
+| schema marker (sidecar) | Written after a successful open of on-disk layout **8** (`DUCKDB_SCHEMA_MARKER_VERSION`) — the store layout counter, distinct from the **v6** wire schema it holds |
 
 Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` (default **2**) and `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` (default **128** MiB) bound the embedded engine's footprint.
 
@@ -83,6 +84,8 @@ Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_TH
 
 The same daily archive tick prunes both expired Parquet partitions and any hot/status rows past the cutoff, independently per family — change retention via env on the instance unit and it applies on the next tick.
 
+**Live samples are never stored.** While a live lease (10 s cadence) is active, each sample is held in a short-lived buffer the live chart reads from and the durable write is skipped on both backends. Retention, archive sizes, and the cost figures in the architecture doc therefore describe **baseline-cadence data only** — a long live session adds nothing to disk or to the Analytics Engine write count.
+
 ## Troubleshooting ingestion
 
 | Symptom | Likely cause | Action |
@@ -94,11 +97,14 @@ The same daily archive tick prunes both expired Parquet partitions and any hot/s
 | Workers charts 503 `metrics_backend_unavailable` | AE SQL API rejected the query or token | Token must be **Account → Account Analytics → Read**. Check Worker logs for `metrics queryHostSeries failed …` (includes the Cloudflare/SQL error). Confirm `CLOUDFLARE_ACCOUNT_ID` matches the TurboPanel account |
 | Daemon connected, no metrics | Unsupported OS collector | Internal to `turbopaneld`: logs `metrics unsupported: unsupported_os:<os>`, stops periodic metrics for that attach, and does **not** send a metrics sample — check daemon logs |
 | Gap after connect | Normal warm-up | First sample is immediate (gauges); rate metrics (CPU / disk / net) follow on the primed ~2 s snapshot |
-| A whole family missing entirely | Expected — presence-gated | A family with no source entities (no GPU, no hardware signals, no managed-service sidecar) never emits rows; there is nothing to configure and no error to chase. See [entitlement vs. emission](/docs/architecture/server-metrics#metrics-v4-contract) |
+| A whole family missing entirely | Expected — presence-gated | A family with no source entities (no GPU, no hardware signals, no managed-service sidecar) never emits rows; there is nothing to configure and no error to chase. See [entitlement vs. emission](/docs/architecture/server-metrics#metrics-v6-contract) |
 | GPU family missing despite `gpuSlots` entitlement | Entitlement is not presence | A capability plan granting `gpuSlots` only raises the cap on how many GPUs *may* be reported — it does not fabricate a `gpu` row when `gpus[]` is empty |
-| Ingress/database-proxy family missing | Sidecar not running or its metrics endpoint unreachable | Each source resolves independently — check the site Caddy admin listener (`127.0.0.1:2039`, global `metrics` option set), Traefik's exposition, and the ProxySQL REST API (`admin-restapi_enabled`, `127.0.0.1:6070`) separately; one being down never blocks another |
+| Ingress/router/database-proxy family missing | Sidecar not running or its metrics endpoint unreachable | Each source resolves independently — check the site Caddy admin listener (`127.0.0.1:2039`, global `metrics` option set), the hosting Traefik's `metrics` entrypoint, and the ProxySQL REST API (`admin-restapi_enabled`, `127.0.0.1:6070`) separately; one being down never blocks another |
+| Storage usage group empty on a fresh daemon | Walker has not completed | `managed.storage` is absent until the daemon's first 15-minute directory walk lands; a hosting root that hits the walk bound reports `null` rather than a partial total |
+| Docker group replaced by a notice | Entry-tier license | `managed.docker` is granted from S2; on S1 the console shows a one-line notice instead of the group. Self-hosted and unassigned seats keep it (platform default) |
+| More devices than the tier watches | Recommended tier above the license | Extra NICs/drives/GPUs are dropped by hosted truncation, never refused; org owners get a daily note naming the unwatched devices — see [License tiers](/docs/deployment/tiers) |
 | Chart segments unexpectedly at a point in time | Topology generation changed | A NIC/GPU/filesystem/block-device/hardware-signal set actually changed shape (added/removed/replaced) — not a bug; the UI intentionally breaks the line rather than drawing a misleading continuous series across a topology change |
-| Capability-plan change not reflected | Stale expectation, not a bug | The effective plan is resolved per ingested sample at `POST /api/daemon/v1/metrics` time — a plan edit takes effect on the very next sample, but nothing retroactively reshapes already-stored rows |
+| Tier or plan change not reflected | Stale expectation, not a bug | The effective plan (tier base plus any org/server override) is resolved per ingested sample at `POST /api/daemon/v1/metrics` time — a change takes effect on the very next sample, but nothing retroactively reshapes already-stored rows. Self-hosted has no plan to change: it is uncapped |
 
 Writes are fire-and-forget at the ingest boundary — ingestion errors do not block daemon liveness.
 
@@ -122,7 +128,7 @@ Use `sampleCount`, `expectedSampleCount`, and `gapCount` from the series API —
 Metrics stores:
 
 - **`serverId`** (authenticated UUID index) — from server context after auth, not client-supplied identity
-- **Low-cardinality dimensions:** collection mode and `topologyGeneration` — daemon version, OS name, architecture, kernel release, and resolved entity identities are **not** stored as free-form metrics rows; stable logical entity ids (e.g. `deviceId`, `gpuId`) are the only per-entity identifiers persisted
+- **Low-cardinality dimensions:** `topologyGeneration` and the capability-plan generation — daemon version, OS name, architecture, kernel release, and resolved entity identities are **not** stored as free-form metrics rows; stable logical entity ids (e.g. `deviceId`, `gpuId`) are the only per-entity identifiers persisted
 
 Metrics does **not** store organization names, account emails, hostnames, client IPs, license tokens, or secrets. Query endpoints require session + server read grant — never bare UUID access. (Internally, DuckDB stores missing values as plain SQL `NULL` columns while Analytics Engine uses a missing-value sentinel — a backend implementation detail with no user-facing impact.)
 
@@ -130,5 +136,6 @@ Metrics does **not** store organization names, account emails, hostnames, client
 
 - [Server metrics](/docs/metrics) — what each console chart means
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, mappings, cost model
+- [License tiers](/docs/deployment/tiers) — the S1–S7/SX ladder, placement rules, and what each tier watches
 - [Control plane deployment](/docs/deployment/control-plane) — instance + co-located daemon
 - [Daemon setup](/docs/deployment/daemon-setup) — remote node install

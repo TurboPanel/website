@@ -9,7 +9,7 @@ This group is one card set per **service** disk the daemon reports (`isServiceDe
 
 Host-wide totals and the single busiest-device percent stay on [Storage](/docs/metrics/storage). Use this group when you need to know *which* disk.
 
-The default capability plan includes one detailed block-device slot; extra disks need a higher slot count. Temperature is stored in Celsius and shown in the organization's display unit.
+Every license tier watches at least two drives; more disks need a higher tier (see [License tiers](/docs/deployment/tiers)). A drive's temperature is not on this row — it is a [physical signal](/docs/metrics/hardware-signals), captioned with the drive's name.
 
 ## Throughput [#throughput]
 
@@ -40,15 +40,15 @@ The first chart to check when [I/O PSI](/docs/metrics/storage#storage-io-pressur
 
 ## Utilization [#utilization]
 
-`block.utilizationPercent` — percent of time this device had outstanding I/O (the per-disk version of [Busiest block device](/docs/metrics/storage#disk-max-util)).
+`block.utilizationPercent` — percent of time this device had outstanding I/O (there is no host-wide "busiest disk" rollup any more — this per-disk chart is where to look).
 
 Near 100% for minutes means the device is busy, not necessarily that bytes/s hit a vendor spec. Queue depth and latency tell you whether it is keeping up or falling behind.
 
 ## Temperature [#temperature]
 
-`block.temperatureCelsius` — drive temperature when SMART/NVMe exports it. The chart hides when there is no probe.
+Drive temperature, when SMART/NVMe exports it, is reported as a [physical signal](/docs/metrics/hardware-signals) named for the device (`nvme0n1 temperature`) — not as a `block.*` field, and not in this group. There is no chart when there is no probe, and none on a VM.
 
-Rising temperature with rising latency can be thermal throttling. Discrete SMART/NVMe faults are [events](/docs/metrics/events#smart_critical), not this gauge.
+Rising temperature with rising [latency](#latency) can be thermal throttling. Discrete SMART/NVMe faults are [events](/docs/metrics/events#smart_critical), not a gauge.
 
 ## Queue depth [#queue-depth]
 
@@ -59,5 +59,5 @@ A deeper queue with stable latency is the device absorbing burst. A deeper queue
 ## Related
 
 - [Storage](/docs/metrics/storage) — host-wide I/O and root filesystem
-- [Physical signals](/docs/metrics/hardware-signals) — other temperature probes
+- [Physical signals](/docs/metrics/hardware-signals) — this drive's temperature, alongside the other probes
 - [Disk events](/docs/metrics/events#smart_critical) — SMART, NVMe, RAID

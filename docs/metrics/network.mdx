@@ -13,7 +13,7 @@ There is no host-level “total network throughput” tile. v4 tracks **health**
 
 `host.network.tcpRetransmitPercent` — share of TCP segments that had to be sent again.
 
-Retransmits mean a packet did not get an ACK in time: congestion, a lossy path, a overloaded receiver, or a middlebox dropping traffic. Brief spikes happen. A rate that stays up is users hitting latency and stalls — pair with [ingress duration](/docs/metrics/ingress#duration) if this host terminates HTTP.
+Retransmits mean a packet did not get an ACK in time: congestion, a lossy path, a overloaded receiver, or a middlebox dropping traffic. Brief spikes happen. A rate that stays up is users hitting latency and stalls — pair with [ingress latency](/docs/metrics/ingress#latency-percentiles) if this host terminates HTTP.
 
 The chart hides when the host cannot export the counter.
 
@@ -58,5 +58,6 @@ Errors are usually a cable, NIC, or offload problem. Drops are usually capacity 
 
 ## Related
 
-- [Ingress](/docs/metrics/ingress) — HTTP-level rates on Caddy or Traefik
+- [Ingress](/docs/metrics/ingress) — HTTP-level rates on the site Caddy
+- [Router](/docs/metrics/router) — the shared hosting Traefik behind it
 - [Events](/docs/metrics/events) — link flaps, TurboFabric mesh state, conntrack exhaustion

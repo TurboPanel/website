@@ -5,12 +5,15 @@
     "cpu",
     "memory",
     "storage",
+    "managed-storage",
+    "managed-docker",
     "network",
     "gpu",
     "filesystems",
     "block-devices",
     "hardware-signals",
     "ingress",
+    "router",
     "database-proxy",
     "events"
   ]

@@ -1,0 +1,86 @@
+---
+title: Storage usage metrics
+description: Where the host's bytes went — hosting, backup, Docker, and log directory usage with the free space left to grow into, plus the managed-database census
+---
+
+# Storage usage metrics
+
+The **Storage usage** group answers a different question from [Storage](/docs/metrics/storage). Storage is how the disk is *behaving* — pressure, throughput, latency, root capacity. Storage usage is what is *consuming* it: the hosting root, the backup root, the Docker data root, and the log directory, each with the free space left on the filesystem it lives on. Granted at **every tier**, including S1, and on self-hosted.
+
+The group appears once the daemon's first directory walk completes — a freshly started daemon shows nothing here for up to fifteen minutes rather than a row of zeros.
+
+<Callout type="info" title="Directory usage, not disk usage">
+  Used bytes are a **directory walk** (or a plain filesystem read when the path is its own mount), refreshed every 15 minutes on the daemon's own timer — never on the 60 second sample tick. Free bytes are the containing filesystem's. A walk that hits its size bound reports nothing rather than a partial number, because an under-count of a filling disk is worse than a gap.
+</Callout>
+
+## Hosting root [#managed-storage-hosting]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Used | `storage.hostingUsedBytes` | Bytes under the hosting root — every site and app the panel hosts on this server. Operators can point this at a specific filesystem from the server's hardware profile; it defaults to the tenant home root |
+| Free on filesystem | `storage.hostingFreeBytes` | Space left on the filesystem the hosting root lives on |
+
+Read the pair as **can this grow**. Used climbing while free falls toward zero is the hosting volume filling; used flat while free falls is something *else* on the same filesystem eating it (logs, Docker, a database on `/`).
+
+## Backups [#managed-storage-backup]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Used | `storage.backupUsedBytes` | Bytes under the backup root (`/backup` by default) |
+| Free on filesystem | `storage.backupFreeBytes` | Space left on the filesystem holding the backups |
+
+A backup root on its own attached disk reads straight from the filesystem, so the number is exact. Used growing in steps is the retention schedule; used growing steadily with no steps down means retention is not pruning.
+
+## Docker data root [#managed-storage-docker]
+
+`storage.dockerUsedBytes` — the total bytes Docker holds: image layers, container writable layers, volumes, and build cache. This is the one figure shared with [Docker](/docs/metrics/managed-docker); that group's breakdown sums to it.
+
+The wire carries no Docker free-bytes field. The console joins the free side at render time from the filesystem that carries the **docker** role in the server's inventory (root when Docker lives on `/`), which is exactly what the other three free series mean. With no docker-role filesystem known, the chart shows used only.
+
+On **S1** this total is all the Docker accounting you get — the layer / container / volume / build-cache split is a separate family granted from S2. See [Docker](/docs/metrics/managed-docker).
+
+## Logs [#managed-storage-logs]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Used | `storage.logsUsedBytes` | Bytes under the log directory |
+| Free on filesystem | `storage.logsFreeBytes` | Space left on the filesystem holding logs |
+
+A log directory that grows without steps is a service logging without rotation. When logs share the root filesystem, this is the usual answer to "why is `/` filling up".
+
+## Managed databases [#managed-storage-engines]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Running / healthy | `storage.postgresInstancesRunning`, `postgresInstancesHealthy` (and the `mysql*` / `mariadb*` pairs) | Managed engine instances on this host, and how many pass their health check |
+
+Running above healthy is an instance that is up but failing its check — usually a database still recovering after a restart, or one refusing connections.
+
+## Managed database connections [#managed-storage-connections]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Used / max | `storage.postgresConnectionsUsed`, `postgresConnectionsMax` (and the `mysql*` / `mariadb*` pairs) | Connections in use across this host's instances of that engine, against the configured ceiling |
+
+Used approaching max means new connections will be refused at the engine, whether or not a [proxy](/docs/metrics/database-proxy) sits in front.
+
+<Callout type="info" title="Where the census comes from">
+  The daemon takes the census every five minutes, on its own timer rather than the metrics tick:
+  it lists the managed engine containers on the host through the Docker socket (running = Docker's
+  own container state) and asks each running instance the engine's readiness probe plus its
+  connection count against `max_connections`. An engine the host does not run stays a missing
+  value, so its series are hidden; an engine with instances present reports real numbers, including
+  zero running. A MySQL or MariaDB instance that answers its probe but refuses the connection query
+  shows as healthy with no connection figures.
+</Callout>
+
+## Inodes for these roles [#managed-storage-inodes]
+
+Bytes are only half of "can this grow". The console also shows **free inodes** for each filesystem that carries a hosting, backup, docker, or logs role in the server's inventory — the roles are the join key, since the wire carries no filesystem id on this row. A role that lives on `/` reuses [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes); one filesystem carrying several roles joins once. A hosting root full of small files can run out of inodes with gigabytes still free.
+
+## Related
+
+- [Docker](/docs/metrics/managed-docker) — the breakdown behind the Docker total (S2 and up)
+- [Storage](/docs/metrics/storage) — I/O pressure, throughput, latency, root capacity
+- [Filesystems](/docs/metrics/filesystems) — available bytes and inodes per extra mount
+- [License tiers](/docs/deployment/tiers) — what S1 does and does not include

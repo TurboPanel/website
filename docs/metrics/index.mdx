@@ -22,6 +22,8 @@ A connected Linux daemon posts one sample about every **60 seconds**. The first 
 | 24 hours | 5 minute refresh |
 | 7 / 30 / 90 days | Historical buckets; no auto-refresh |
 
+Live-mode samples are streamed to the chart and never stored: once the lease ends, history for that window is the normal one-minute data. Every chart group is collected on every sample — there is no slower cadence for any group.
+
 Charts are not wall-clock real time below that ~60 second baseline. A gap in the line is a **missing sample**, not zero usage — amber bands mark those holes. A solid vertical divider is a **topology change** (a NIC, disk, GPU, or sensor was added, removed, or replaced). The line breaks there on purpose so two different devices never look like one continuous trend.
 
 Metrics are Linux-only. A non-Linux server shows an unsupported-OS state instead of empty charts.
@@ -33,7 +35,7 @@ The five numbers above the charts are the **latest** values, not a plotted serie
 | Tile | What it is |
 | ---- | ---------- |
 | **CPU utilization** | Share of CPU time that was busy (`host.cpu.busyPercent`). See [CPU](/docs/metrics/cpu#overview-tile). |
-| **Memory used** | Used RAM as a percent of capacity (derived from available bytes). See [Memory](/docs/metrics/memory#overview-tile). |
+| **Memory used** | Used RAM as a percent of capacity (derived from used bytes). See [Memory](/docs/metrics/memory#overview-tile). |
 | **Hosting storage used** | Used percent of the filesystem marked for hosting, or the root filesystem if none is. See [Storage](/docs/metrics/storage#overview-tile). |
 | **Running / blocked** | Tasks on a CPU right now vs tasks waiting on I/O. See [Processes](/docs/metrics/cpu#cpu-processes). |
 | **Uptime** | Time this server has been connected in the selected range, from connection history — not a metrics-store series. History only; the Servers list is what says whether the host is online **right now**. See [Uptime](#uptime). |
@@ -44,7 +46,7 @@ The **Uptime** tile is not a plotted series. It is time this server was connecte
 
 ## A chart is missing
 
-Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts. A host whose kernel does not export Pressure Stall Information has no PSI charts. Capability-gated groups (**CPU detail**, **Memory detail**) stay hidden until that capability is enabled for the organization or server.
+Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. The one group hidden by **license tier** rather than by presence is **Docker**: on an S1 license the console shows a one-line notice in its place, since the Docker breakdown is granted from S2 (see [License tiers](/docs/deployment/tiers)). Self-hosted servers see every group their hardware supports.
 
 Empty is not the same as zero. A metric the host cannot measure stays blank; a metric that is legitimately zero (no swap configured, no retransmits) plots at 0%.
 
@@ -75,7 +77,7 @@ Rules of thumb, not product alert thresholds:
 | Flat near 0% | The resource is keeping up |
 | Some in the low single digits, brief spikes | Normal under bursty load |
 | Some in double digits for minutes | Saturation — tasks are regularly waiting |
-| Some high while busy % is only moderate | Mismatch: too many threads, a few pegged cores, or a noisy neighbor (check [Busiest core](/docs/metrics/cpu#cpu-max-core) and steal %) |
+| Some high while busy % is only moderate | Mismatch: too many threads, a few pegged cores, or a noisy neighbor (check [Cores saturated](/docs/metrics/cpu#cpu-saturated-cores) and steal %) |
 | Memory or I/O **Full** above 0% for more than a blip | Severe — the host stalled. Pair memory Full with [swap I/O](/docs/metrics/memory#memory-swap-io); pair I/O Full with [disk latency](/docs/metrics/storage#disk-latency) |
 
 PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; Debian 13 does). If those files are missing — some older kernels, some containers — the PSI charts hide instead of plotting zero.
@@ -85,16 +87,19 @@ The kernel name is **Pressure Stall Information**. TurboPanel labels it **PSI** 
 ## Catalog
 
 <Cards>
-  <Card title="CPU" description="Busy modes, PSI, busiest core, processes, and optional CPU detail" href="/docs/metrics/cpu" />
-  <Card title="Memory" description="Available RAM, swap, PSI, paging, and optional memory detail" href="/docs/metrics/memory" />
+  <Card title="CPU" description="Busy modes, PSI, saturated cores, processes, and CPU diagnostics" href="/docs/metrics/cpu" />
+  <Card title="Memory" description="Used vs cached, swap, PSI, paging, and memory diagnostics" href="/docs/metrics/memory" />
   <Card title="Storage" description="I/O PSI, disk throughput and latency, root filesystem" href="/docs/metrics/storage" />
+  <Card title="Storage usage" description="Hosting, backup, Docker, and log usage with free space; managed-database census" href="/docs/metrics/managed-storage" />
+  <Card title="Docker" description="Image layers, containers, volumes, build cache, and what a prune reclaims (S2+)" href="/docs/metrics/managed-docker" />
   <Card title="Network" description="TCP retransmits, softnet drops, kernel tables, extra NICs" href="/docs/metrics/network" />
-  <Card title="GPU" description="Utilization, memory, temperature, power, PCIe, throttle" href="/docs/metrics/gpu" />
+  <Card title="GPU" description="Utilization, memory, PCIe, throttle" href="/docs/metrics/gpu" />
   <Card title="Filesystems" description="Non-root mounts — available bytes and free inodes" href="/docs/metrics/filesystems" />
   <Card title="Block devices" description="Per-disk throughput, IOPS, latency, utilization, queue" href="/docs/metrics/block-devices" />
-  <Card title="Physical signals" description="Board, CPU package, disk, and other hardware sensors" href="/docs/metrics/hardware-signals" />
-  <Card title="Ingress" description="Caddy or Traefik request rates, status classes, latency" href="/docs/metrics/ingress" />
-  <Card title="Database proxy" description="ProxySQL queries, connections, and backends" href="/docs/metrics/database-proxy" />
+  <Card title="Physical signals" description="Board, CPU package, drive, and GPU temperature and power sensors" href="/docs/metrics/hardware-signals" />
+  <Card title="Ingress (Caddy)" description="Site Caddy request rates, status classes, latency percentiles and buckets" href="/docs/metrics/ingress" />
+  <Card title="Router (Traefik)" description="Shared hosting router — backends reachable, retries, 5xx, config reloads, TLS expiry" href="/docs/metrics/router" />
+  <Card title="Database proxy" description="ProxySQL queries, latency, connection churn, rejections, backends" href="/docs/metrics/database-proxy" />
   <Card title="Events" description="OOM, disk faults, NIC flaps, GPU Xid, clock sync, and more" href="/docs/metrics/events" />
 </Cards>
 
@@ -106,13 +111,13 @@ Each heading below uses the same `id` as the console chart. A later console clic
 | ---------------- | ---- |
 | `cpu-modes` | [CPU utilization](/docs/metrics/cpu#cpu-modes) |
 | `cpu-pressure` | [CPU pressure (PSI)](/docs/metrics/cpu#cpu-pressure) |
-| `cpu-max-core` | [Busiest core](/docs/metrics/cpu#cpu-max-core) |
+| `cpu-saturated-cores` | [Cores saturated](/docs/metrics/cpu#cpu-saturated-cores) |
 | `cpu-processes` | [Processes](/docs/metrics/cpu#cpu-processes) |
 | `cpu-detail-frequency` | [CPU frequency](/docs/metrics/cpu#cpu-detail-frequency) |
 | `cpu-detail-scheduling` | [Context switches & interrupts](/docs/metrics/cpu#cpu-detail-scheduling) |
 | `cpu-detail-forks` | [Process forks](/docs/metrics/cpu#cpu-detail-forks) |
 | `cpu-detail-irq` | [IRQ time](/docs/metrics/cpu#cpu-detail-irq) |
-| `memory-available` | [Memory available](/docs/metrics/memory#memory-available) |
+| `memory-breakdown` | [Memory breakdown](/docs/metrics/memory#memory-breakdown) |
 | `memory-percent` | [Memory used](/docs/metrics/memory#memory-percent) |
 | `swap-bytes` | [Swap used](/docs/metrics/memory#swap-bytes) |
 | `swap-percent` | [Swap used %](/docs/metrics/memory#swap-percent) |
@@ -122,21 +127,37 @@ Each heading below uses the same `id` as the console chart. A later console clic
 | `memory-detail-primary` | [Free & cached memory](/docs/metrics/memory#memory-detail-primary) |
 | `memory-detail-slab` | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
 | `memory-detail-dirty` | [Dirty & writeback pages](/docs/metrics/memory#memory-detail-dirty) |
-| `memory-detail-other-gauges` | [Shared, page table & kernel stack](/docs/metrics/memory#memory-detail-other-gauges) |
+| `memory-detail-other-gauges` | [Shared memory](/docs/metrics/memory#memory-detail-other-gauges) |
 | `memory-detail-commit` | [Committed memory](/docs/metrics/memory#memory-detail-commit) |
-| `memory-detail-active-inactive` | [Active & inactive pages](/docs/metrics/memory#memory-detail-active-inactive) |
 | `memory-detail-reclaim` | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) |
 | `memory-detail-compaction` | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) |
 | `storage-io-pressure` | [I/O pressure (PSI)](/docs/metrics/storage#storage-io-pressure) |
 | `disk-throughput` | [Disk throughput](/docs/metrics/storage#disk-throughput) |
 | `disk-latency` | [Disk latency](/docs/metrics/storage#disk-latency) |
-| `disk-max-util` | [Busiest block device](/docs/metrics/storage#disk-max-util) |
 | `root-filesystem-bytes` | [Root filesystem available](/docs/metrics/storage#root-filesystem-bytes) |
 | `root-filesystem-percent` | [Root filesystem used](/docs/metrics/storage#root-filesystem-percent) |
 | `root-filesystem-inodes` | [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes) |
+| `managed-storage-hosting` | [Hosting root](/docs/metrics/managed-storage#managed-storage-hosting) |
+| `managed-storage-backup` | [Backups](/docs/metrics/managed-storage#managed-storage-backup) |
+| `managed-storage-docker` | [Docker data root](/docs/metrics/managed-storage#managed-storage-docker) |
+| `managed-storage-logs` | [Logs](/docs/metrics/managed-storage#managed-storage-logs) |
+| `managed-storage-engines` | [Managed databases](/docs/metrics/managed-storage#managed-storage-engines) |
+| `managed-storage-connections` | [Managed database connections](/docs/metrics/managed-storage#managed-storage-connections) |
+| `managed-docker-layers` | [Image layers](/docs/metrics/managed-docker#managed-docker-layers) |
+| `managed-docker-containers` | [Container writable layers](/docs/metrics/managed-docker#managed-docker-containers) |
+| `managed-docker-volumes` | [Volumes](/docs/metrics/managed-docker#managed-docker-volumes) |
+| `managed-docker-build-cache` | [Build cache](/docs/metrics/managed-docker#managed-docker-build-cache) |
+| `managed-docker-counts` | [Object counts](/docs/metrics/managed-docker#managed-docker-counts) |
 | `network-retransmit` | [TCP retransmit rate](/docs/metrics/network#network-retransmit) |
 | `network-softnet-drops` | [Softnet drops](/docs/metrics/network#network-softnet-drops) |
 | `kernel-resources` | [Kernel resource usage](/docs/metrics/network#kernel-resources) |
+| `router-backend-requests` | [Backend requests](/docs/metrics/router#router-backend-requests) |
+| `router-backend-latency` | [Backend latency](/docs/metrics/router#router-backend-latency) |
+| `router-backends` | [Backends & services](/docs/metrics/router#router-backends) |
+| `router-connections` | [Open connections](/docs/metrics/router#router-connections) |
+| `router-config` | [Config reloads](/docs/metrics/router#router-config) |
+| `router-config-age` | [Since last config reload](/docs/metrics/router#router-config-age) |
+| `router-tls-expiry` | [Soonest TLS expiry](/docs/metrics/router#router-tls-expiry) |
 
 Per-device charts (GPU, extra NICs, filesystems, block devices, sensors, ingress, ProxySQL) use the group page, not a per-device heading.
 
@@ -144,3 +165,4 @@ Per-device charts (GPU, extra NICs, filesystems, block devices, sensors, ingress
 
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, storage backends, cost model
 - [Metrics operations](/docs/deployment/metrics) — retention, capability plan, troubleshooting
+- [License tiers](/docs/deployment/tiers) — what each tier watches, and why S1 shows a Docker notice

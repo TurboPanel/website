@@ -5,7 +5,7 @@ description: I/O Pressure Stall Information, host disk throughput and latency, b
 
 # Storage metrics
 
-Host storage charts are the **whole machine's** disk picture: pressure, combined throughput and latency, the busiest device, and the root filesystem. Individual disks have their own group — [Block devices](/docs/metrics/block-devices). Extra mounts (not `/`) live under [Filesystems](/docs/metrics/filesystems).
+Host storage charts are the **whole machine's** disk picture: pressure, combined throughput and latency, and the root filesystem — how the disk is *behaving*. What is *consuming* it (hosting, backups, Docker, logs) is a different question, answered by [Storage usage](/docs/metrics/managed-storage). Individual disks have their own group — [Block devices](/docs/metrics/block-devices). Extra mounts (not `/`) live under [Filesystems](/docs/metrics/filesystems).
 
 ## Overview tile [#overview-tile]
 
@@ -22,7 +22,7 @@ This tile is about **capacity**, not speed. A disk can be 20% full and still sat
 | Some | `host.storage.ioPressureSomePercent` | At least one task waited on I/O |
 | Full | `host.storage.ioPressureFullPercent` | Every non-idle task waited on I/O — the host stalled on disk |
 
-Utilization and throughput can look modest while PSI is high: many small waits, a saturated queue, or a single slow device holding everyone. **Full** leaving zero is the serious case — pair it with [disk latency](#disk-latency) and [Busiest block device](#disk-max-util) to see which disk.
+Utilization and throughput can look modest while PSI is high: many small waits, a saturated queue, or a single slow device holding everyone. **Full** leaving zero is the serious case — pair it with [disk latency](#disk-latency), then open [Block devices](/docs/metrics/block-devices) to see which disk.
 
 The chart hides when `/proc/pressure/io` is missing.
 
@@ -39,18 +39,9 @@ Per-disk bytes are on [Block devices](/docs/metrics/block-devices).
 
 ## Disk latency [#disk-latency]
 
-| Series | Wire name | What it is |
-| ------ | --------- | ---------- |
-| Read | `host.storage.diskReadLatencyMs` | Average host-wide read service time, milliseconds |
-| Write | `host.storage.diskWriteLatencyMs` | Average host-wide write service time, milliseconds |
+`host.storage.diskLatencyMs` — average host-wide I/O service time in milliseconds, reads and writes combined. The per-direction split is on each drive's own [latency chart](/docs/metrics/block-devices#latency).
 
-Latency is usually the better saturation signal than bytes/s. An SSD that was at 0.2 ms and is now at 5–20 ms is hurting even if throughput has not grown. Spinning disks and busy RAID rebuilds sit higher by nature — compare a host to its own baseline, not to a generic number.
-
-## Busiest block device [#disk-max-util]
-
-`host.storage.maxBlockDeviceUtilPercent` — utilization of the single busiest service disk in that sample (percent of time the device had outstanding I/O).
-
-Like [Busiest core](/docs/metrics/cpu#cpu-max-core), this catches one pegged disk hiding inside a calm host average. Near 100% for minutes means that device cannot take more work; PSI and latency should agree.
+Latency is usually the better saturation signal than bytes/s. An SSD that was at 0.2 ms and is now at 5–20 ms is hurting even if throughput has not grown. Spinning disks and busy RAID rebuilds sit higher by nature — compare a host to its own baseline, not to a generic number. There is no host-level "busiest disk" rollup any more: per-disk utilization is on [Block devices](/docs/metrics/block-devices#utilization), and every tier watches at least two.
 
 ## Root filesystem available [#root-filesystem-bytes]
 
@@ -72,6 +63,7 @@ Each file, directory, and symlink consumes an inode. A host that creates million
 
 ## Related
 
+- [Storage usage](/docs/metrics/managed-storage) — what is consuming the disk: hosting, backups, Docker, logs
 - [Block devices](/docs/metrics/block-devices) — per-disk charts
 - [Filesystems](/docs/metrics/filesystems) — extra mounts
 - [Pressure Stall Information](/docs/metrics#pressure-stall-information)

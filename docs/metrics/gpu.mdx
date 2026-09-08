@@ -5,9 +5,9 @@ description: Per-GPU utilization, memory, temperature, power, PCIe throughput, a
 
 # GPU metrics
 
-This group appears when the daemon reports at least one GPU. Each card is titled from vendor and chip (for example `NVIDIA H100`). Temperatures are stored in Celsius and shown in the organization's display unit.
+This group appears when the daemon reports at least one GPU. Each card is titled from vendor and chip (for example `NVIDIA H100`).
 
-A capability plan can *allow* GPU reporting (the default includes one GPU slot) without a machine *having* a GPU. No GPU in inventory means no group — that is expected, not a misconfiguration.
+A license tier can *allow* GPU reporting (every tier watches at least two) without a machine *having* a GPU. No GPU in inventory means no group — that is expected, not a misconfiguration. A card's **temperature and power** are not on the GPU row any more — they are [physical signals](/docs/metrics/hardware-signals), captioned with the card's name.
 
 ## Utilization [#utilization]
 
@@ -26,16 +26,13 @@ GPUs do not overcommit the way Linux RAM does. Approaching the card's capacity f
 
 ## Temperature [#temperature]
 
-| Series | Wire name | What it is |
-| ------ | --------- | ---------- |
-| Core | `gpu.temperatureCelsius` | GPU die / package temperature |
-| Memory | `gpu.memoryTemperatureCelsius` | HBM or equivalent memory temperature when the vendor exports it |
+A GPU's **core temperature** and, when the vendor exports it, **memory temperature** are reported as [physical signals](/docs/metrics/hardware-signals), one chart each, captioned with the card's name. They are not fields on the `gpu.*` row. A VM reports no signals at all, so a passed-through GPU in a VM has no temperature chart.
 
-The memory series hides when the card has no memory probe. Rising temperature with a rising [throttle](#throttle) line is the card protecting itself — performance drops on purpose. Critical thermal events are listed under [Events](/docs/metrics/events#gpu_thermal_critical).
+Rising temperature with a rising [throttle](#throttle) line is the card protecting itself — performance drops on purpose. Critical thermal events are listed under [Events](/docs/metrics/events#gpu_thermal_critical).
 
 ## Power draw [#power]
 
-`gpu.powerWatts` — instantaneous board power. Hides when the vendor does not export power. Intel iGPUs typically have no `i915` hwmon wattage; the daemon then uses RAPL PP1 (`uncore` / `energy-gpu`) energy over the sampling interval, the same RAPL GPU energy `btop` reads. Kernel RAPL `energy_uj` is root-only; TurboPanel grants the daemon group read access on install/converge so those watts appear without running the daemon as root.
+Instantaneous board power is likewise a [physical signal](/docs/metrics/hardware-signals) in watts, not a `gpu.*` field. It is absent when the vendor does not export power. Intel iGPUs typically have no `i915` hwmon wattage; the daemon then uses RAPL PP1 (`uncore` / `energy-gpu`) energy over the sampling interval, the same RAPL GPU energy `btop` reads. Kernel RAPL `energy_uj` is root-only; TurboPanel grants the daemon group read access on install/converge so those watts appear without running the daemon as root.
 
 A card stuck well below its usual draw while utilization is high can mean a power cap or a throttle. A card at the cap with utilization below 100% is often power-limited, not compute-limited.
 
@@ -52,9 +49,9 @@ Sustained high PCIe with modest GPU utilization often means the job is bottlenec
 
 `gpu.throttlePercent` — share of time the GPU was throttling (thermal, power, or other clocks-down).
 
-Any sustained value above zero is lost performance. Pair with [temperature](#temperature) and [power](#power) to see whether heat or a power limit is the cause. A `gpu_thermal_critical` event is the discrete “this went past a chart.”
+Any sustained value above zero is lost performance. Pair with the card's [temperature and power signals](/docs/metrics/hardware-signals) to see whether heat or a power limit is the cause. A `gpu_thermal_critical` event is the discrete “this went past a chart.”
 
 ## Related
 
-- [Physical signals](/docs/metrics/hardware-signals) — board and package sensors that are not the GPU's own readings
+- [Physical signals](/docs/metrics/hardware-signals) — this card's temperature and power, alongside the board and package sensors
 - [GPU events](/docs/metrics/events#gpu_xid) — Xid, ECC, retirement, fallen-off-bus

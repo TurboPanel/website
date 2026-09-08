@@ -41,10 +41,44 @@ const COST_OF_OWN = [
   },
 ] as const
 
+/**
+ * Planned per-server tier ladder for TurboPanel High Availability. Values
+ * mirror the control-plane catalogue (`turbopanel/src/lib/billing/catalogue.ts`
+ * + `src/lib/tiers/tier-placement.ts`). Informational only — see
+ * `AGENTS.md` → Pricing: the CTA stays the waitlist, never a purchase path.
+ */
+const TIERS = [
+  { tier: 'S1', machine: 'Up to 4 cores / 16 GB', price: '$5.00', example: 'A small VM, 4 cores and 16 GB' },
+  { tier: 'S2', machine: 'Up to 10 cores / 32 GB', price: '$7.50', example: 'A mid-size VM or an 8-core mini PC' },
+  { tier: 'S3', machine: 'Up to 16 cores / 64 GB', price: '$10.00', example: 'A 16-core workstation-class box' },
+  { tier: 'S4', machine: 'Up to 32 cores / 128 GB', price: '$15.00', example: 'A single-socket rack server' },
+  { tier: 'S5', machine: 'Up to 64 cores / 256 GB', price: '$20.00', example: 'A dual-socket rack server' },
+  { tier: 'S6', machine: 'Up to 128 cores / 512 GB', price: '$35.00', example: 'A large dual-socket server' },
+  { tier: 'S7', machine: 'Up to 256 cores / 1 TB', price: '$50.00', example: 'A high-core-count server' },
+  { tier: 'SX', machine: 'More than 256 cores or 1 TB', price: 'Contact us', example: 'Anything beyond the ladder' },
+] as const
+
+const PLACEMENT_RULES = [
+  {
+    title: 'Cores and RAM are a hard floor.',
+    detail:
+      'A server needs the tier its physical cores and RAM land in. Only physical cores count — an 8-core, 16-thread CPU counts as 8 cores.',
+  },
+  {
+    title: 'NICs, drives, and GPUs only raise the recommended tier.',
+    detail:
+      'Extra devices never block access. Each tier watches a set number of NICs, drives, and GPUs; anything beyond that goes unwatched and you get a daily note saying which devices, and which tier would cover them.',
+  },
+] as const
+
 const FAQ = [
   {
     q: 'What am I paying for on TurboPanel High Availability?',
     a: 'TurboPanel High Availability is in private alpha and not yet publicly available. Join the waitlist and we will reach out as access opens, with a control plane that runs on a global edge network — fast and always on — plus accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
+  },
+  {
+    q: 'How is a server placed on the S1–S7 ladder?',
+    a: 'By the machine, not by a feature list. Physical cores and RAM set the tier a server needs — that part is a hard floor, and a license below it cannot enroll that server. NICs, drives, and GPUs only raise the recommended tier: a server with more devices than its tier watches still connects, and you get a daily note listing what is unwatched. Prices are planned; nothing is purchasable during the private alpha.',
   },
   {
     q: 'When does self-hosted still make sense?',
@@ -102,7 +136,7 @@ export default function PricingPage() {
               Join the waitlist
             </p>
             <p className="mt-1 text-sm text-[var(--tp-text-muted)]">
-              Pricing details shared as we get closer to beta
+              Planned S1–S7 pricing is published below. Nothing is purchasable during the private alpha.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
               The easiest TurboPanel is the one you never have to run. Your panel lives on a global
@@ -147,6 +181,52 @@ export default function PricingPage() {
             </div>
           </article>
         </div>
+      </MarketingSection>
+
+      <MarketingSection>
+        <header className="mb-8 max-w-2xl sm:mb-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="tp-eyebrow">TurboPanel High Availability · Planned pricing</p>
+            <span className="rounded-full border border-[var(--tp-green)]/40 bg-[var(--tp-green)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text)]">
+              Private alpha · Not yet available
+            </span>
+          </div>
+          <h2 className="tp-section-title mt-3">One price per server, set by the machine.</h2>
+          <p className="mt-3 text-base leading-relaxed text-[var(--tp-text-muted)] sm:text-lg">
+            Every connected server sits on one tier, S1 to S7, by its cores and RAM. Larger
+            machines get more watched devices. Self-hosted stays free with unlimited servers —
+            this ladder is for the panel we run for you.
+          </p>
+        </header>
+        <div className="overflow-x-auto rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
+          <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+            <thead className="bg-[var(--tp-surface-muted)]/80">
+              <tr>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Tier</th>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Machine</th>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Per server / month</th>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text-muted)]">For example</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TIERS.map((row) => (
+                <tr key={row.tier} className="border-t border-[var(--tp-border)]">
+                  <td className="px-5 py-4 font-mono font-semibold text-[var(--tp-green)]">{row.tier}</td>
+                  <td className="px-5 py-4 text-[var(--tp-text)]">{row.machine}</td>
+                  <td className="px-5 py-4 font-mono font-semibold text-[var(--tp-text)]">{row.price}</td>
+                  <td className="px-5 py-4 text-[var(--tp-text-muted)]">{row.example}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <ul className="mt-6 grid gap-4 md:grid-cols-2">
+          {PLACEMENT_RULES.map((rule) => (
+            <li key={rule.title} className="text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-[15px]">
+              <span className="font-semibold text-[var(--tp-text)]">{rule.title}</span> {rule.detail}
+            </li>
+          ))}
+        </ul>
       </MarketingSection>
 
       <MarketingSection>

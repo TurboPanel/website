@@ -1,13 +1,13 @@
 ---
 title: Database proxy metrics
-description: ProxySQL query rates, slow queries, connection errors, client and backend connections, and backends up
+description: ProxySQL query rates, query vs backend latency, transactions, client and backend connection churn, max-connection rejections, backends up vs total, and byte flow
 ---
 
 # Database proxy metrics
 
-This group appears when the daemon can scrape **ProxySQL** on the host (the managed database ingress sidecar). The title is **ProxySQL**. A host that runs Postgres or MySQL **without** that proxy has no group — engine process metrics are not this surface.
+This group appears when the daemon can scrape **ProxySQL** on the host (the managed database ingress sidecar). The title is **ProxySQL**. A host that runs Postgres or MySQL **without** that proxy has no group — engine process metrics are not this surface; the managed-engine census is on [Storage usage](/docs/metrics/managed-storage#managed-storage-engines).
 
-Counters are per interval (how many happened), matching [ingress](/docs/metrics/ingress). Connection gauges are point-in-time.
+Counters are per interval (how many happened), matching [ingress](/docs/metrics/ingress). Connection gauges are point-in-time. The layout is adapter-agnostic — a future PgBouncer proxy would report the same shape — so nothing below is ProxySQL-specific except the source it is read from. Unlike ingress, this family carries **means but no percentiles**: ProxySQL exposes cumulative time counters and no histogram to derive them from.
 
 ## Queries [#queries]
 
@@ -16,30 +16,82 @@ Counters are per interval (how many happened), matching [ingress](/docs/metrics/
 | Queries | `databaseProxy.queries` | Statements the proxy handled in the interval |
 | Slow queries | `databaseProxy.slowQueries` | Statements the proxy classified as slow |
 
-A rising slow-query line with a flat query line is the database (or the network to it) getting slower, not busier. Pair with [backend connections](#connections) and the managed engine's own status — this chart cannot see inside Postgres.
+A rising slow-query line with a flat query line is the database (or the network to it) getting slower, not busier. Pair with [latency](#latency) to see where the time goes.
 
-## Connection errors [#connection-errors]
+## Query vs backend latency [#latency]
 
-`databaseProxy.connectionErrors` — failed client or backend connects in the interval.
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Query | `databaseProxy.queryLatencyMsAvg` | Mean time from a client's statement arriving to its result leaving, milliseconds |
+| Backend | `databaseProxy.backendLatencyMsAvg` | Mean time the proxy waited on the database for that statement |
 
-Spikes at deploy or failover can be expected. A sustained rate is refused connections, a full connection table, TLS mismatches, or backends that are down. See [conntrack](/docs/metrics/network#kernel-resources) if this host NATs heavily.
+**The gap between the two lines is proxy overhead** — queueing for a backend connection, routing, result buffering. Both rising together is the database. Query rising while backend stays flat is the proxy: usually a connection pool that is full, so statements wait for a backend slot. Check [backend connections](#connections) and [rejected connections](#rejected).
+
+## Active transactions [#transactions]
+
+`databaseProxy.activeTransactions` — transactions open across the proxy right now.
+
+A steady floor above zero on a quiet system is something that opened a transaction and never committed — an idle-in-transaction session holding locks. A **rising floor** is that pattern accumulating: connections pile up behind the locks, latency follows, and eventually the pool fills.
 
 ## Connections [#connections]
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Client | `databaseProxy.clientConnections` | Connections from apps into ProxySQL right now |
-| Backend | `databaseProxy.backendConnections` | Connections from ProxySQL into the database(s) right now |
+| Client | `databaseProxy.clientConnections` | Connections from apps into the proxy right now |
+| Backend | `databaseProxy.backendConnections` | Connections from the proxy into the database(s) right now |
 
-Many more client connections than backend connections is pooling doing its job. Both climbing together toward a known ceiling is the pool filling. Client high with backend near zero and errors up is “the proxy is up, the database is not accepting.”
+Many more client connections than backend connections is pooling doing its job. Both climbing together toward a known ceiling is the pool filling. Client high with backend near zero and errors up is "the proxy is up, the database is not accepting."
 
-## Backends up [#backends-up]
+## Client connection churn [#client-churn]
 
-`databaseProxy.backendsUp` — how many database backends the proxy currently considers available.
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Created | `databaseProxy.clientConnectionsCreated` | New client connections opened in the interval |
+| Aborted | `databaseProxy.clientConnectionsAborted` | Client connections that ended abnormally in the interval |
 
-A drop is the discrete “a replica or primary disappeared from the proxy's point of view.” That may be a planned failover or a real outage — check managed failover history and the server's [events](/docs/metrics/events) list in the same range.
+Compare churn with the [concurrency](#connections) gauge. High created with flat concurrency is an application opening a connection per request instead of pooling — every one pays a handshake. Aborted rising is clients timing out or being dropped; if [rejected](#rejected) rises with it, they were turned away.
+
+## Rejected at max connections [#rejected]
+
+`databaseProxy.connectionsRejectedMaxConns` — client connections the proxy refused because it was at its connection limit.
+
+**This is the most actionable number here.** Anything above zero is an application that got an error instead of a connection. Raise the proxy's limit, fix the client that is not releasing connections, or add capacity — but do not leave it non-zero. A [connection error](#connection-errors) spike that coincides with this is refusals, not network trouble.
+
+## Backend connection churn [#backend-churn]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Created | `databaseProxy.backendConnectionsCreated` | New connections the proxy opened to a database in the interval |
+| Aborted | `databaseProxy.backendConnectionsAborted` | Backend connections that ended abnormally in the interval |
+
+Backend connections should be long-lived and reused. Created climbing steadily is the pool being rebuilt — a backend restarting, a failover, or a connection lifetime set too short. Aborted with [backends up](#backends-up) dropping is a database going away underneath the proxy.
+
+## Connection errors [#connection-errors]
+
+`databaseProxy.connectionErrors` — failed client or backend connects in the interval.
+
+Spikes at deploy or failover can be expected. A sustained rate is refused connections, a full connection table, TLS mismatches, or backends that are down. See [conntrack](/docs/metrics/network#kernel-resources) if this host NATs heavily, and [rejected](#rejected) for the proxy-limit case specifically.
+
+## Backends up vs total [#backends-up]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Up | `databaseProxy.backendsUp` | Database backends the proxy currently considers available |
+| Total | `databaseProxy.backendsTotal` | Database backends configured |
+
+Read it as "3 of 4". Up dropping below total is the discrete "a replica or primary disappeared from the proxy's point of view." That may be a planned failover or a real outage — check managed failover history and the server's [events](/docs/metrics/events) list in the same range.
+
+## Bytes from and to backends [#bytes]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| From backends | `databaseProxy.bytesFromBackends` | Result-set bytes the databases sent back through the proxy in the interval |
+| To backends | `databaseProxy.bytesToBackends` | Query bytes the proxy sent to the databases in the interval |
+
+From is **result volume**, to is **query volume**. From far above to is the normal read-heavy shape. To growing on its own is bulk inserts or very large statements. From growing with a flat query count is queries returning more rows each — a missing `LIMIT`, a table that grew, or a report that scans.
 
 ## Related
 
 - [Managed database ingress](/docs/architecture/managed-database-ingress) — ports, TLS, replica semantics
-- [Ingress](/docs/metrics/ingress) — HTTP proxy charts (Caddy / Traefik)
+- [Storage usage](/docs/metrics/managed-storage#managed-storage-engines) — managed engine instances and connections at the engine
+- [Ingress](/docs/metrics/ingress) — HTTP proxy charts (Caddy)

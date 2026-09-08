@@ -1,16 +1,16 @@
 ---
 title: Ingress metrics
-description: Caddy and Traefik request rates, status classes, throughput, duration, latency buckets, upstreams, and retries
+description: Caddy request rates, status classes, throughput, latency percentiles and buckets, upstreams, and retries
 ---
 
 # Ingress metrics
 
-This group appears when the daemon can scrape a **site** ingress adapter — Caddy or Traefik — on the host. Titles are **Caddy** or **Traefik**. A host with no site proxy has no group.
+This group appears when the daemon can scrape the **site Caddy** on the host. The title is **Caddy**. A host with no site proxy has no group.
 
-These are HTTP-level counters for the interval, not host network bytes. The daemon reads each adapter independently; one being down does not hide the other.
+These are HTTP-level counters for the interval, not host network bytes. The shared hosting router behind Caddy is a separate group — [Router](/docs/metrics/router) — because its backend / service view has no Caddy equivalent.
 
 <Callout type="info" title="Caddy counts each request once">
-  Caddy instruments every handler in the chain. TurboPanel uses the outermost handler (the largest request total) so a request is not counted once per nested `handle` / `reverse_proxy`. Traefik's exposition does not have that chain problem.
+  Caddy instruments every handler in the chain. TurboPanel uses the outermost handler (the largest request total) so a request is not counted once per nested `handle` / `reverse_proxy`.
 </Callout>
 
 ## Requests [#requests]
@@ -31,9 +31,9 @@ Stacked counts in the interval:
 | 2xx | `ingress.responses2xx` | Success |
 | 3xx | `ingress.responses3xx` | Redirects |
 | 4xx | `ingress.responses4xx` | Client errors (auth, not found, bad request) |
-| 5xx | `ingress.responses5xx` | Server / upstream errors |
+| 5xx | `ingress.responses5xx` | Server / upstream errors, as the client saw them |
 
-A 4xx pile after a deploy is often a bad path or a probe. A 5xx pile is the host or an upstream failing — check [upstreams](#upstreams) and the app, not just CPU.
+A 4xx pile after a deploy is often a bad path or a probe. A 5xx pile is the host or an upstream failing — check [upstreams](#upstreams), the [router's container 5xx](/docs/metrics/router#router-backend-requests), and the app, not just CPU. Caddy's 5xx minus the router's 5xx is failures in the proxy path rather than in the application.
 
 ## Throughput [#throughput]
 
@@ -44,24 +44,34 @@ A 4xx pile after a deploy is often a bad path or a probe. A 5xx pile is the host
 
 Large response bytes with modest request counts is downloads or big API payloads. This is not the same as [NIC throughput](/docs/metrics/network#network-throughput) (headers, other ports, and non-HTTP sit on the NIC).
 
-## Avg request duration [#duration]
+## Request latency [#latency-percentiles]
 
-`ingress.requestDurationSecondsAvg` — mean request duration in the interval. The console draws it in milliseconds.
+Three series — **p50**, **p90**, **p99** — in milliseconds. Half of requests finished under the p50 line, nine in ten under p90, ninety-nine in a hundred under p99.
 
-Averages hide tails. Use this as a trend, then confirm with [requests under threshold](#latency-buckets). A rising average with a stable request rate is the typical “the app got slower” signal.
+None of these is stored. The daemon ships one raw number, `ingress.requestDurationSecondsSum` (total request time in the interval), plus the six bucket counters below. The control plane computes the percentiles — and the mean, `sum / requests` — **at read time** from those.
+
+<Callout type="info" title="Why percentiles are computed, never stored">
+  Percentiles do not add up across time. If each minute stored its own p99, a five-minute chart would have to average five p99s, and the average of per-minute p99s is not the five-minute p99 — it is a number with no meaning. A duration **sum** and a set of bucket **counts** both add cleanly, so a 5-minute view and a 24-hour view derive from the same math. The same reasoning is why the old stored average is gone.
+</Callout>
+
+Six buckets topping out at five seconds cannot resolve a p999 — the number would be dominated by the last bound — so **no p999 is offered** at this resolution.
+
+A rising p50 with a stable request rate is the typical "the app got slower" signal. A rising p99 with a flat p50 is a tail: a few slow endpoints, a lock, or garbage collection. Confirm which endpoint with the [router's backend latency](/docs/metrics/router#router-backend-latency).
 
 ## Requests under threshold [#latency-buckets]
 
-Counts of requests that finished faster than each cutoff. A request under 100 ms is also under 500 ms, 1 s, and 5 s — the bands are **cumulative**, not exclusive buckets.
+Counts of requests that finished faster than each cutoff. A request under 10 ms is also under 50 ms, 100 ms, and every larger bound — the bands are **cumulative**, not exclusive buckets. These are the raw counters the percentiles above are derived from.
 
 | Series | Wire name | Cutoff |
 | ------ | --------- | ------ |
-| &lt;100ms | `ingress.requestsUnder100ms` | 100 milliseconds |
-| &lt;500ms | `ingress.requestsUnder500ms` | 500 milliseconds |
-| &lt;1s | `ingress.requestsUnder1s` | 1 second |
-| &lt;5s | `ingress.requestsUnder5s` | 5 seconds |
+| ≤10ms | `ingress.bucket10ms` | 10 milliseconds |
+| ≤50ms | `ingress.bucket50ms` | 50 milliseconds |
+| ≤100ms | `ingress.bucket100ms` | 100 milliseconds |
+| ≤500ms | `ingress.bucket500ms` | 500 milliseconds |
+| ≤1s | `ingress.bucket1s` | 1 second |
+| ≤5s | `ingress.bucket5s` | 5 seconds |
 
-When total requests stay flat but the &lt;100ms line falls while &lt;1s holds, work moved from fast to merely okay. When even &lt;5s falls relative to [requests](#requests), a growing share is slower than five seconds.
+The two smallest bounds are new in schema v6: with 100 ms as the first cutoff, every request on a healthy site landed in the first bucket and the p50 was meaningless. When total requests stay flat but the ≤10ms line falls while ≤100ms holds, work moved from fast to merely okay. When even ≤5s falls relative to [requests](#requests), a growing share is slower than five seconds.
 
 ## Upstreams & in-flight [#upstreams]
 
@@ -71,7 +81,7 @@ When total requests stay flat but the &lt;100ms line falls while &lt;1s holds, w
 | Healthy upstreams | `ingress.upstreamsHealthy` | Backends the proxy currently considers up |
 | Total upstreams | `ingress.upstreamsTotal` | Backends configured |
 
-In-flight climbing with duration is a backup forming — the proxy is holding connections. Healthy falling below total is an upstream marked down; 5xx usually follows.
+In-flight climbing with latency is a backup forming — the proxy is holding connections. Healthy falling below total is an upstream marked down; 5xx usually follows.
 
 ## Retries [#retries]
 
@@ -81,5 +91,6 @@ Retries hide backend blips from clients and multiply load on the remaining healt
 
 ## Related
 
+- [Router](/docs/metrics/router) — the shared hosting Traefik behind Caddy
 - [Network](/docs/metrics/network) — TCP retransmits and kernel tables
 - [Database proxy](/docs/metrics/database-proxy) — ProxySQL, not HTTP

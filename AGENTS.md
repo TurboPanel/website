@@ -21,7 +21,9 @@ Marketing and docs **must** match live product pages. Canonical public page: **h
 | **TurboPanel High Availability** | **Private alpha · Not yet available** — no dollar figures on marketing pages; single CTA is **`Join the waitlist`** (`/sign-up`), never "request access now" / "get started now" phrasing |
 | **Self-hosted control plane** | **Private alpha · Not yet available** — planned to be **free, unlimited servers** once it ships; CTA is **`Preview self-hosted docs`** (`/docs/deployment/self-hosted`), not "install now" / "self-host today" phrasing |
 
-Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**`. Do not use CTA copy that implies either path is usable today (e.g. "Get started now", "Request early access", "Start on TurboPanel High Availability", "Install self-hosted") — use waitlist / preview-docs language instead. On the roadmap, the internal `Complete` phase status maps to the public label **Built**, not "Shipped" (see `design-system/turbopanel-website/pages/roadmap.md`) — no status label should imply a public release has happened yet.
+**Exception — the tier ladder:** the S1–S7/SX per-server **price ladder** (`$X.XX` per tier plus the hard-floor / recommended placement rules) may appear on `/pricing` as *planned* pricing for TurboPanel High Availability. This is the one place dollar figures are permitted on a marketing page. It does not change maturity status or the CTA: the card and the tier table keep the **Private alpha · Not yet available** label, the CTA stays **`Join the waitlist`**, and no copy next to the table may imply a purchase path ("Buy now", "Subscribe", "Choose S3", "Start on S1"). The ladder is informational; `/pricing` is not a checkout. The ladder never applies to self-hosted — that card stays "Free, unlimited servers" with no dollar figures. Canonical ladder values (cores/RAM ceilings, prices, slot entitlements) come from the control-plane repo (`turbopanel/src/lib/billing/catalogue.ts` and `src/lib/tiers/tier-placement.ts`); the page override is `design-system/turbopanel-website/pages/pricing.md`; the operator-facing explanation is [`docs/deployment/tiers.mdx`](docs/deployment/tiers.mdx).
+
+Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**` outside the tier ladder above. Do not use CTA copy that implies either path is usable today (e.g. "Get started now", "Request early access", "Start on TurboPanel High Availability", "Install self-hosted") — use waitlist / preview-docs language instead. On the roadmap, the internal `Complete` phase status maps to the public label **Built**, not "Shipped" (see `design-system/turbopanel-website/pages/roadmap.md`) — no status label should imply a public release has happened yet.
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 
@@ -53,7 +55,7 @@ Voice rules:
 | --- | --- | --- |
 | `/` | `src/app/page.tsx` | Home |
 | `/setups` | `src/app/setups/page.tsx` | Architecture patterns (single server → unlimited mesh); nav label "Patterns" |
-| `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning |
+| `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning + the planned S1–S7/SX tier ladder |
 | `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
 | `/open-source` | `src/app/open-source/page.tsx` | License table (incl. per-release third-party notices), repo map, third-party marks, FAQ |
 | `/security` | `src/app/security/page.tsx` | Supported versions, private reporting |
@@ -143,7 +145,7 @@ Skip the skill for pure content/MDX copy, API/config wiring, Workers/deploy scri
 | Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
 | Cursor rule | [`.cursor/rules/ui-ux-pro-max.mdc`](.cursor/rules/ui-ux-pro-max.mdc) |
 | Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) |
-| Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `home.md`, `setups.md`, `roadmap.md`, `about-logo.md`, `docs.md`; page wins over Master) |
+| Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `home.md`, `setups.md`, `pricing.md`, `roadmap.md`, `about-logo.md`, `docs.md`; page wins over Master) |
 | CSS tokens | `src/app/globals.css` (`--tp-*`, `--tp-glass-*`, `--font-display`) |
 | Shared CTAs | `src/components/marketing/MarketingPrimaryCta.tsx` (+ secondary / primitives nearby) |
 

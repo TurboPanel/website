@@ -1,0 +1,73 @@
+---
+title: Router metrics
+description: The shared hosting router — backends reachable, retries, container 5xx, backend latency, open connections, config reloads and their age, soonest TLS expiry
+---
+
+# Router metrics
+
+The **Router** group is the shared **hosting Traefik** on this host: the loopback proxy behind the hosting Caddy that routes each request to the right container. Every Docker-hosted site on the server passes through it once, so there is exactly one row per sample regardless of how many sites the host runs. It appears when the daemon can scrape that router's metrics entrypoint; a host not running the shared hosting ingress has no group.
+
+<Callout type="info" title="Only the hosting router is metered">
+  The path is **hosting Caddy → Traefik → container**. This group is the middle hop. Any other Traefik on the host — a per-service proxy inside a tenant's own stack — is not read here. The site-level Caddy is on [Ingress](/docs/metrics/ingress).
+</Callout>
+
+The group header shows **backends reachable** as `N of M` whether or not the section is expanded — a low figure, not a high one, is the fault.
+
+## Backend requests [#router-backend-requests]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Requests | `router.backendRequests` | Requests the router forwarded to a backend in the interval |
+| 5xx | `router.backendErrors5xx` | Responses in the 5xx class **from the container** |
+| Retries | `router.retries` | Times the router retried a request against another backend |
+
+Compare the 5xx line with [Caddy's 5xx](/docs/metrics/ingress#responses). Caddy counts every 5xx a client saw; this counts only those a container produced. The gap between them is failures inside the proxy path itself — a backend that never answered, a connection the router could not open — rather than application errors.
+
+Retries hide backend blips from clients and multiply load on whichever backends remain. A retry spike with backends dropping below total is the cascade to watch.
+
+## Backend latency [#router-backend-latency]
+
+`router.backendLatencyMsAvg` — mean time the router waited on a backend in the interval, in milliseconds.
+
+This is container time, measured from the router's side. Rising here while [Caddy's percentiles](/docs/metrics/ingress#latency-percentiles) hold is unusual; rising in both is the application getting slower. Flat here while Caddy's rise points at the hop in between or at Caddy itself.
+
+## Backends & services [#router-backends]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Backends up | `router.backendsUp` | Backend servers the router currently considers reachable |
+| Backends total | `router.backendsTotal` | Backend servers configured |
+| Services | `router.servicesTotal` | Services (load-balanced backend groups) in the running configuration |
+| Routers | `router.routersTotal` | Routing rules in the running configuration |
+
+**Up falling below total** is a container the router has marked down; 5xx or retries usually follow. `0 of 0` is nothing configured, not an outage. Services and routers change only when sites are added, removed, or reconfigured — a step here with a [config reload](#router-config) is a deploy; a step without one is worth a look.
+
+## Open connections [#router-connections]
+
+`router.httpOpenConnections` — client connections the router is holding open right now, excluding the collector's own scrape traffic.
+
+Connections climbing together with backend latency is a backlog forming: requests are being held while containers catch up. Compare with Caddy's [in-flight](/docs/metrics/ingress#upstreams) count on the hop in front.
+
+## Config reloads [#router-config]
+
+`router.configReloads` — how many times the router reloaded its configuration in the interval.
+
+The router watches for site changes and reloads on its own. A reload per deploy is expected. A steady stream with no deploys is something rewriting the configuration in a loop.
+
+## Since last config reload [#router-config-age]
+
+`router.configLastReloadAgeSeconds` — how long the running configuration has been in place.
+
+This is a gauge, kept off the reload-count chart on purpose. The legend's latest value is the "how stale is the running config" answer: a large age on a host whose sites change often means the watcher has stopped picking up edits, and new sites are not being routed.
+
+## Soonest TLS expiry [#router-tls-expiry]
+
+`router.tlsCertSoonestExpiryDays` — days until the **earliest-expiring** certificate the router serves lapses.
+
+A minimum across every certificate, not a mean — one certificate about to expire matters regardless of how healthy the others are. Renewal normally keeps this well above zero; a line that keeps falling is a renewal that is failing.
+
+## Related
+
+- [Ingress](/docs/metrics/ingress) — the site Caddy in front of this router
+- [Network](/docs/metrics/network) — TCP retransmits and kernel tables on the host
+- [Events](/docs/metrics/events) — the discrete companions to these gauges

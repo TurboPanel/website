@@ -1,0 +1,63 @@
+---
+title: Docker metrics
+description: Docker's own disk breakdown — image layers, containers, volumes, and build cache, with what a prune would reclaim
+---
+
+# Docker metrics
+
+The **Docker** group is Docker's own accounting of its data root: layers, images, containers, volumes, and build cache, each with the share a prune would free. It is read from the Engine's disk-usage report every five minutes on the daemon's own timer, never on the sample tick, and the whole breakdown sums to the Docker total on [Storage usage](/docs/metrics/managed-storage#managed-storage-docker).
+
+<Callout type="info" title="Granted from S2">
+  On TurboPanel High Availability this family is part of the **S2 and higher** entitlement. An S1 server still shows the Docker data-root total under Storage usage; in place of this group the console shows a one-line notice saying the tier does not include it. Self-hosted and seats with no tier assigned keep the group. See [License tiers](/docs/deployment/tiers).
+</Callout>
+
+A host with no Docker socket, or whose Engine is unhealthy this minute, reports nothing — absent, not zero.
+
+## Image layers [#managed-docker-layers]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Layers | `dockerUsage.layersBytes` | Bytes in image layers on disk |
+| Reclaimable (dangling) | `dockerUsage.imagesReclaimableBytes` | Bytes in images no container references — what an image prune frees |
+
+Layers grow with every deploy that pulls a new image. A large reclaimable share is old images nothing uses any more; a small one means the space is in images that are still running.
+
+## Container writable layers [#managed-docker-containers]
+
+`dockerUsage.containersBytes` — bytes containers have written to their own writable layer, on top of the image.
+
+This should stay small. A container writing gigabytes into its writable layer is logging or caching to the wrong place — data that belongs in a volume, and that disappears when the container is recreated.
+
+## Volumes [#managed-docker-volumes]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Volumes | `dockerUsage.volumesBytes` | Bytes in named and anonymous volumes |
+| Reclaimable (unreferenced) | `dockerUsage.volumesReclaimableBytes` | Bytes in volumes no container references |
+
+Volumes are where databases and uploads live, so used growing is usually the application growing. Reclaimable volumes are leftovers from removed containers — safe to prune only if nothing needs that data back.
+
+## Build cache [#managed-docker-build-cache]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Build cache | `dockerUsage.buildCacheBytes` | Bytes held by the builder's cache |
+| Reclaimable (not in use) | `dockerUsage.buildCacheReclaimableBytes` | Cache entries no recent build touched |
+
+A host that builds images on deploy accumulates cache quickly. Almost all of it is reclaimable at the cost of slower next builds.
+
+## Object counts [#managed-docker-counts]
+
+| Series | Wire name | What it is |
+| ------ | --------- | ---------- |
+| Images | `dockerUsage.imagesCount` | Images on disk |
+| Containers | `dockerUsage.containersCount` | Containers, running or stopped |
+| Volumes | `dockerUsage.volumesCount` | Volumes |
+
+Counts rising while bytes stay flat is many small objects — usually stopped containers or dangling images from repeated deploys. Every reclaimable series above is what a prune would free — dangling images, unreferenced volumes, unused cache — never a projection of deleting live objects.
+
+## Related
+
+- [Storage usage](/docs/metrics/managed-storage) — the Docker total alongside hosting, backup, and logs
+- [Storage](/docs/metrics/storage) — how the disk underneath is behaving
+- [License tiers](/docs/deployment/tiers) — why S1 shows a notice here

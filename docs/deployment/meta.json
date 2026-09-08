@@ -10,6 +10,7 @@
     "upgrade",
     "uninstall",
     "metrics",
+    "tiers",
     "security",
     "troubleshooting"
   ]
