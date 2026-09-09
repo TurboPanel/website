@@ -1,16 +1,18 @@
 ---
 title: License tiers
-description: The S1–S7/SX ladder on TurboPanel High Availability — how a server is placed, what a tier watches, what happens when a machine outgrows its license, and why self-hosted has none of this
+description: The S1–S7/SX ladder on TurboPanel High Availability — how a server is placed, what a tier watches, what happens when a machine outgrows its license, and why self-hosted buys none of it
 ---
 
 # License tiers
 
-On **TurboPanel High Availability**, every connected server sits on one tier, **S1** to **S7**, with **SX** above the ladder for machines that do not fit. The tier is set by the **machine**, not by a feature list: cores and RAM decide where a server must sit, and the tier in turn decides how many of that server's devices the metrics pipeline watches. Planned prices are on [turbopanel.io/pricing](https://turbopanel.io/pricing).
+On **TurboPanel High Availability**, every connected server sits on one tier, **S1** to **S7**, with **SX** above the ladder for machines that do not fit. The tier is set by the **machine**, not by a feature list: cores and RAM decide where a server must sit, and the tier in turn decides how many of that server's devices the metrics pipeline watches. An organization buys **licenses per tier** — "two at S1, one at S3" — and TurboPanel places each connected server on the smallest purchased tier that covers it; nobody assigns a tier to a server by hand. Planned prices are on [turbopanel.io/pricing](https://turbopanel.io/pricing).
 
-<Callout type="info" title="Self-hosted has no tiers">
-  A self-hosted control plane is free and uncapped. It never truncates a sample, never places a
-  server on a tier, and never sends a tier notice. Everything on this page is about TurboPanel High
-  Availability. See [Self-hosted](/docs/deployment/self-hosted).
+<Callout type="info" title="Self-hosted buys nothing">
+  A self-hosted control plane is free and uncapped. It never truncates a sample and never sends a
+  tier notice, and there is nothing to buy: every server it licenses is entitled to **SX**
+  automatically, which is why nothing on this page ever appears in a self-hosted console. The
+  prices, the purchasing and the placement across S1–S7 are TurboPanel High Availability. See
+  [Self-hosted](/docs/deployment/self-hosted).
 </Callout>
 
 ## The ladder
@@ -26,7 +28,7 @@ On **TurboPanel High Availability**, every connected server sits on one tier, **
 | S7 | ≤ 256 | ≤ 1 TiB | 11 | 20 | 8 | 18 |
 | SX | more | more | 11 | 24 | 8 | 18 |
 
-The first two columns are the **hard floor**. The rest are **watched-device counts** — the slot entitlements the tier row carries, mapped onto the server's metrics capability plan. Tiers are rows in the platform catalogue, not an enum: a re-price is a new generation of rows, and an existing license keeps pointing at the row it was sold on.
+The first two columns are the **hard floor**. The rest are **watched-device counts** — the slot entitlements the ladder grants each label, mapped onto the server's metrics capability plan. The ladder is fixed in the control plane's code; what a superadmin sets is only which billing product each label sells through, and the price lives with the product.
 
 Two details on the watched counts: the NIC column is bounded by the daemon's own ceiling of **11** monitored NICs per server, which S7 and SX watch in full, and the first two monitored NICs ride inside the host sample rather than as separate rows. The extra-filesystem count is for mounts beyond `/` — root capacity is always reported.
 
@@ -53,13 +55,13 @@ Two details on the watched counts: the NIC column is bounded by the daemon's own
 
 The two rules fail differently, on purpose.
 
-**Below the required tier — access is refused.** When a server enrolls, the control plane evaluates the hard floor against the hardware the daemon reports. A license whose tier ranks below the required tier is refused with `License tier below required` (a license with no tier at all gets `License tier not assigned`); the daemon treats both as permanent and parks. The same check runs at **session issuance**, so a server whose cores or RAM grow past its tier after a resize loses access on its next session rather than mid-stream — the metrics ingest path and the WebSocket hello never apply the floor, because refusing samples would hide an incident rather than bill for it. Assigning a higher tier to the license restores access on the next session.
+**Below the required tier — access is refused.** When a server connects and reports its hardware, the control plane re-places every licensed server in the organization: servers are taken in the order they were added, each on the smallest purchased tier that covers its cores and RAM, and a server that fits under nothing is left uncovered — always the newest, so adding a machine never knocks an earlier one off its tier. An uncovered server is refused at its next **session issuance** with `License tier below required` (an organization that has bought nothing is refused at enroll with `License tier not assigned`); the daemon treats both as permanent and parks. A server whose cores or RAM grow past what is purchased after a resize loses access on its next session rather than mid-stream — the metrics ingest path and the WebSocket hello never apply the floor, because refusing samples would hide an incident rather than bill for it. Buying a license at a tier that covers the machine restores access on the next session.
 
 **Above the recommended tier — nothing blocks.** A server with more NICs, drives, or GPUs than its tier watches still connects and still reports. Hosted ingest simply truncates each family to the tier's slot count; the devices beyond it are **unwatched**, and the server's detail page names them. This is a metrics-depth question, not an access question.
 
 ## The daily notice
 
-Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — a license a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The console shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
+Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — placed a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The console shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
 
 Nothing is sent for a server that satisfies its recommendation, and nothing is sent on self-hosted.
 

@@ -69,9 +69,10 @@ These charts are the CPU half of the host **diagnostics** row (`host.diagnostics
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Min / avg / max | `diagnostics.minimumFrequencyMHz`, `averageFrequencyMHz`, `maximumFrequencyMHz` | Observed clock across cores in that sample |
+| Average | `diagnostics.averageFrequencyMHz` | The line and the headline — typical clock across cores in that sample |
+| Min / max | `diagnostics.minimumFrequencyMHz`, `maximumFrequencyMHz` | The filled area behind the average — the clock range in that sample |
 
-A max that never leaves the floor can mean thermal or power limits — pair with [physical signals](/docs/metrics/hardware-signals) and [GPU throttle](/docs/metrics/gpu#throttle) when those exist. Missing on hosts that do not export frequency.
+A range that never leaves the floor can mean thermal or power limits — pair with [physical signals](/docs/metrics/hardware-signals) and [GPU throttle](/docs/metrics/gpu#throttle) when those exist. Missing on hosts that do not export frequency.
 
 ### Context switches & interrupts [#cpu-detail-scheduling]
 
