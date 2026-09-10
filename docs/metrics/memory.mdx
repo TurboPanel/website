@@ -1,6 +1,6 @@
 ---
 title: Memory metrics
-description: Memory breakdown, used percent, swap, memory PSI, paging, and memory diagnostics
+description: Memory breakdown, used percent, swap, memory PSI, paging, and what Memory detail (free, slab, dirty, shared, commit, reclaim, compaction) means
 ---
 
 # Memory metrics
@@ -40,7 +40,7 @@ Some swap on a long-lived host is common (idle pages pushed out). A climbing lin
 
 ## Memory pressure (PSI) [#memory-pressure]
 
-[PSI](/docs/metrics#pressure-stall-information) for RAM. Two series:
+[PSI](/docs/metrics#pressure-stall-information) for RAM — share of **this sample's wall clock** that tasks spent waiting on memory, not how full RAM is. Used % can sit high with this chart at zero (a healthy cache). Two series:
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
@@ -76,60 +76,116 @@ A burst at process start is normal (demand paging). A sustained rate, especially
 
 ## Memory detail [#memory-detail]
 
-These charts are the memory half of the host **diagnostics** row (`host.diagnostics`), reported by every Linux host at every license tier — S1 included — and on self-hosted. They are no longer an organization or server capability toggle; there is nothing to enable. They break RAM into kernel accounting buckets from `/proc/meminfo` and `/proc/vmstat`.
+These charts are the memory half of the host **diagnostics** row (`host.diagnostics`), reported by every Linux host at every license tier — S1 included — and on self-hosted. There is nothing to enable.
 
-Schema v6 dropped seven of the old detail fields — page tables, kernel stack, the commit limit, and the four active/inactive anonymous/file splits — so the merged row fits alongside the CPU diagnostics. The charts below are what remains.
+They answer a different question from the Memory group above. **Used % and PSI** tell you whether the host is short of RAM. **Memory detail** tells you **what that RAM is made of** and **whether the kernel is working to free some**. You open this group when used looks wrong (high used, tiny processes), when a flush or leak is suspected, or when memory PSI is up and you want to see reclaim happening.
+
+The numbers come from `/proc/meminfo` (bytes in RAM right now) and `/proc/vmstat` (how hard the kernel scanned or compacted in this sample). Schema v6 dropped seven older detail fields — page tables, kernel stack, the commit limit, and the four active/inactive splits — so this row fits next to CPU diagnostics. The seven charts below are what remains.
 
 ### Free & cached memory [#memory-detail-primary]
 
+How RAM is split **right now**, before you look at kernel caches and writeback.
+
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Free | `diagnostics.memoryFreeBytes` | Truly unused pages. Low free with a modest [used](#memory-breakdown) figure is normal |
-| Cached | `diagnostics.cachedBytes` | Page cache — file data the kernel kept. Reclaimable under pressure |
-| Anonymous | `diagnostics.anonPagesBytes` | Process heap/stack pages. Not file-backed; these become swap |
+| Free | `diagnostics.memoryFreeBytes` | Pages sitting unused. Linux treats idle RAM as wasted, so **low Free is normal** on a machine that has been up a while |
+| Cached | `diagnostics.cachedBytes` | File data kept in RAM because nothing else needed the pages. The kernel can drop this under pressure |
+| Anonymous | `diagnostics.anonPagesBytes` | Process heap, stack, and similar — not backed by a file. This is the line that becomes swap, and the usual leak signature if it only goes up |
 
-Anonymous growing without bound is the usual leak signature. Cached growing while used stays flat is the kernel doing its job.
+**Cached here is not the same series as [Cached files](#memory-breakdown) on the overview.** Overview Cached files is the reclaimable file-cache total (page cache + buffers + reclaimable slab, minus shared memory). This Cached line is the kernel's raw `Cached` counter, which still includes some `tmpfs` / shared pages. They will not match; that is expected.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Low Free, large Cached, steady Anonymous | Healthy — Linux spent idle RAM on cache |
+| Anonymous climbing, Cached shrinking | Processes are eating the working set. Pair with [used %](#memory-percent) and [PSI](#memory-pressure) |
+| Anonymous climbing without bound | Leak (or a working set that does not fit). Check the process, not Free |
+| High Free and low Cached on a long-lived host | Cache was flushed (drop_caches, a huge file read that aged out) or the box is idle after boot |
 
 ### Slab memory [#memory-detail-slab]
 
+Kernel object caches — dentries, inodes, network buffers — not your application heap.
+
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Reclaimable | `diagnostics.slabReclaimableBytes` | Kernel caches it can drop (dentries, inodes) |
-| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects it cannot drop without freeing the owner |
+| Reclaimable | `diagnostics.slabReclaimableBytes` | Kernel caches it can drop (directory and inode caches, and similar). Same idea as file cache: useful until RAM is needed |
+| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects that stay until their owner is gone (sockets, file structs). **Does not shrink just because a user process exits** |
 
-A large unreclaimable slab can mean many connections, files, or kernel objects. It does not shrink just because user processes exit.
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Modest reclaimable, flat unreclaimable | Normal |
+| Reclaimable large, PSI still ~0 | Harmless — extra kernel cache |
+| Unreclaimable climbing for hours | Lots of kernel objects: connections, open files, or a leak in a kernel path. This is RAM you cannot get back without closing those owners |
 
 ### Dirty & writeback pages [#memory-detail-dirty]
+
+File pages waiting to hit disk, then the ones the kernel is writing **right now**.
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
 | Dirty | `diagnostics.dirtyBytes` | File pages modified in RAM, not yet written |
-| Writeback | `diagnostics.writebackBytes` | Pages the kernel is writing right now |
+| Writeback | `diagnostics.writebackBytes` | Pages in flight to disk this instant |
 
-A large dirty pile followed by writeback and [I/O PSI](/docs/metrics/storage#storage-io-pressure) is a flush storm — backups, logging, or a write-heavy database.
+A quiet host sits near zero on both. Writers (databases, logs, backups, unpacking a tarball) dirty pages; the kernel later writes them.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Small Dirty, Writeback ~0 | Normal |
+| Dirty spike, then Writeback, then both fall | A flush — backup, log rotate, a write burst. Expected |
+| Dirty staying large, Writeback stuck, [I/O PSI](/docs/metrics/storage#storage-io-pressure) up | The disk cannot keep up. Look at [disk latency](/docs/metrics/storage#disk-latency) and [block devices](/docs/metrics/block-devices) |
 
 ### Shared memory [#memory-detail-other-gauges]
 
-`diagnostics.shmemBytes` — `tmpfs`, POSIX shared memory, and some container overlays. It counts as used but is not owned by any one process, so a host whose used line grows while every process looks small is often filling a `tmpfs` (a `/dev/shm` cache, a build directory on RAM) rather than leaking.
+`diagnostics.shmemBytes` — RAM used as **shared** pages: `tmpfs` (`/dev/shm`, a RAM disk), POSIX shared memory, and some container overlay backing.
+
+It counts toward used memory but does not show up as any one process's RSS, which is why used can grow while every process still looks small.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Small and flat | Normal |
+| Climbing with used, processes still small | A `tmpfs` or `/dev/shm` cache is filling — a build directory on RAM, a session store, Docker overlay pressure — not a userspace leak |
+| Jump then flat | Something mounted a RAM disk or allocated a shared segment and is holding it |
 
 ### Committed memory [#memory-detail-commit]
 
-`diagnostics.committedAsBytes` — memory the kernel has promised to processes, overcommit-aware.
+`diagnostics.committedAsBytes` — virtual memory the kernel has **promised** to processes (Linux `Committed_AS`), not how much is sitting in RAM this second.
 
-Committed can exceed physical RAM on a host that over-allocates (JVMs, databases with huge `mmap`). Watch it as a trend against the machine's total: a committed figure climbing well past RAM plus swap is the shape that ends in an [OOM kill](/docs/metrics/events#oom_kill) even while used % still looks fine.
+Linux overcommits: a process can `mmap` more than the machine has, and only pay when it touches those pages. JVMs, databases, and language runtimes do this on purpose. Committed can therefore sit **above** physical RAM while [used %](#memory-percent) still looks fine.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Near Anonymous, well under RAM | Conservative allocators — nothing to do |
+| Above RAM, used % still comfortable | Overcommit. Fine until the promises are cashed in |
+| Climbing past RAM **plus** swap | The shape that ends in an [OOM kill](/docs/metrics/events#oom_kill) even while used % still looks fine. The kernel promised more than it can ever place |
 
 ### Page reclaim [#memory-detail-reclaim]
 
+How hard the kernel scanned page lists this sample to **free RAM**. These are rates (`/s`), not bytes in RAM.
+
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Direct scan | `diagnostics.pageScanDirectPerSecond` | A process scanned pages itself because it needed memory *now* — this stalls that process |
-| kswapd scan | `diagnostics.pageScanKswapdPerSecond` | Background reclaim. Healthier than direct scan |
+| Direct scan | `diagnostics.pageScanDirectPerSecond` | A process needed a page *now* and had to scan itself. That process stalls until reclaim finishes |
+| kswapd scan | `diagnostics.pageScanKswapdPerSecond` | Background reclaim (`kswapd`). The kernel is topping up Free so the next allocation does not stall. Healthier than direct scan |
 
-Direct scan rising with memory Some PSI is the kernel stealing time from applications to free RAM.
+Zero on both is a host that is not under memory pressure. kswapd doing a little work is the kernel keeping a cushion. Direct scan is the expensive path.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| Both ~0 | No reclaim — RAM is keeping up |
+| kswapd only, small | Background housekeeping. Fine |
+| Direct scan rising with memory Some [PSI](#memory-pressure) | The kernel is stealing time from applications to free RAM. Shed load or add RAM |
+| Direct scan high, Full PSI leaving zero | Thrashing. Pair with [swap I/O](#memory-swap-io) and [major faults](#memory-major-faults) |
 
 ### Compaction stalls [#memory-detail-compaction]
 
-`diagnostics.compactionStallsPerSecond` — times the kernel stalled a process to compact fragmented pages (needed for huge pages or large contiguous allocations). Occasional spikes are normal. A sustained rate means fragmentation is costing latency.
+`diagnostics.compactionStallsPerSecond` — times this sample the kernel **paused a process** to shuffle fragmented pages into a contiguous block (needed for huge pages or a large contiguous allocation).
+
+This is not “how fragmented is RAM” as a gauge. It is **how often fragmentation cost a wait**. Occasional spikes (a database starting, a huge-page pool filling) are normal. A sustained rate means fragmentation is adding latency even if used % looks fine.
+
+| What you see | Typical reading |
+| ------------ | --------------- |
+| 0/s | Nothing waited on compaction |
+| Brief spikes | A large allocation or huge-page setup. Fine |
+| Sustained, especially with Direct scan | Fragmentation is in the way. Memory PSI and reclaim will usually be up too |
 
 ## Related
 

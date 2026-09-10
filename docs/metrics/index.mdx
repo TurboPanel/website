@@ -54,17 +54,19 @@ Empty is not the same as zero. A metric the host cannot measure stays blank; a m
 
 **PSI** is the Linux kernel's answer to “are tasks waiting?” It is the most important number on the Metrics screen when CPU busy % looks fine but the machine still feels slow.
 
+Each PSI reading is a **percent of that sample's wall clock** during which tasks were stalled on the resource — not how busy the resource was, and not a load average. The daemon derives it from the kernel's cumulative stall-time counter (`total` in `/proc/pressure/{cpu,memory,io}`), so a 20% Some value means tasks spent a fifth of that minute waiting. TurboPanel does **not** store the kernel's `avg10` / `avg60` / `avg300` rolling averages.
+
 <Callout type="info" title="Busy percent vs pressure">
   **Busy percent** is how much of the CPU (or disk) was occupied. **Pressure** is how often work **waited** for that resource. A host can be 40% busy and still have high CPU pressure if too many tasks are queued behind too few cores. It can also be 95% busy with almost no pressure if the work is well matched to the hardware.
 </Callout>
 
-Linux tracks three resources: **CPU**, **memory**, and **I/O**. TurboPanel charts them as a percent of time in the sampling window:
+Linux tracks three resources. TurboPanel collects **five** percentages from them:
 
-| Resource | Charts | Some | Full |
-| -------- | ------ | ---- | ---- |
-| CPU | [CPU pressure (PSI)](/docs/metrics/cpu#cpu-pressure) | At least one task waited for a CPU | CPU has no Full series — the CPU is never completely stalled the way memory and disk can be |
-| Memory | [Memory pressure (PSI)](/docs/metrics/memory#memory-pressure) | At least one task waited for memory (reclaim or swap) | **Every** non-idle task waited — the machine stalled |
-| I/O | [I/O pressure (PSI)](/docs/metrics/storage#storage-io-pressure) | At least one task waited on storage | Every non-idle task waited on storage |
+| Resource | Chart | Some | Full |
+| -------- | ----- | ---- | ---- |
+| CPU | [CPU pressure (PSI)](/docs/metrics/cpu#cpu-pressure) | `host.cpu.pressureSomePercent` — at least one task waited for a CPU | not collected — a CPU is never completely stalled the way memory and disk can be (some task is always running if there is work) |
+| Memory | [Memory pressure (PSI)](/docs/metrics/memory#memory-pressure) | `host.memory.pressureSomePercent` — at least one task waited for RAM (reclaim, compaction, or swap) | `host.memory.pressureFullPercent` — **every** non-idle task waited — the machine stalled |
+| I/O | [I/O pressure (PSI)](/docs/metrics/storage#storage-io-pressure) | `host.storage.ioPressureSomePercent` — at least one task waited on storage | `host.storage.ioPressureFullPercent` — every non-idle task waited on storage |
 
 **Some** answers “is anyone stuck?” **Full** answers “did the whole machine stop?” A rising Some line is contention. A Full line that leaves zero is a stall — memory thrashing or a disk that cannot keep up.
 
@@ -80,9 +82,7 @@ Rules of thumb, not product alert thresholds:
 | Some high while busy % is only moderate | Mismatch: too many threads, a few pegged cores, or a noisy neighbor (check [Cores saturated](/docs/metrics/cpu#cpu-saturated-cores) and steal %) |
 | Memory or I/O **Full** above 0% for more than a blip | Severe — the host stalled. Pair memory Full with [swap I/O](/docs/metrics/memory#memory-swap-io); pair I/O Full with [disk latency](/docs/metrics/storage#disk-latency) |
 
-PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; Debian 13 does). If those files are missing — some older kernels, some containers — the PSI charts hide instead of plotting zero.
-
-The kernel name is **Pressure Stall Information**. TurboPanel labels it **PSI** on the chart title and stores it as `pressureSomePercent` / `pressureFullPercent` (CPU and memory) or `ioPressureSomePercent` / `ioPressureFullPercent` (storage).
+PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; Debian 13 does). If those files are missing — some older kernels, some containers — the PSI charts hide instead of plotting zero. A missing chart is not the same as 0%.
 
 ## Catalog
 

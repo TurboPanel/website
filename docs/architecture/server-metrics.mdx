@@ -8,7 +8,7 @@ description: Shared host-metrics contract (schema v6), Analytics Engine and Duck
 TurboPanel collects **host metrics** from connected daemons via authenticated `POST /api/daemon/v1/metrics` — one sample per minute per server, every family on every sample. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
 
 <Callout type="info" title="Canonical source">
-  What each console chart means: [Server metrics](/docs/metrics).
+  What each console chart means: [Server metrics](/docs/metrics). The five PSI stall-time percentages are explained there under [Pressure Stall Information](/docs/metrics#pressure-stall-information).
   Agent maintenance detail lives in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">instance/src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
   Operations: [Metrics deployment](/docs/deployment/metrics). Which tier a server lands on and what that entitles: [License tiers](/docs/deployment/tiers).
 </Callout>
@@ -117,7 +117,40 @@ The contract has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics ar
 
 **Entitlement vs. emission are distinct.** A capability-plan slot count (`gpuSlots: 2`) is what a server is *allowed* to report; whether it emits rows depends entirely on whether the daemon found that hardware. A server entitled to two GPUs with none installed emits zero `gpu` rows. Entitlement caps *how many* entities may be reported; presence decides *whether* a family is emitted at all this tick. The same split applies everywhere — `physicalHardwareSignalSlots` is 19 on a physical machine (11 on the entry tier) and 0 on a VM, but a physical host with no working sensors still emits nothing for `hardware.physical`. Hosted ingest enforces the ceiling with `truncateSampleToCapabilityPlan`; self-hosted ingest skips truncation entirely.
 
-**Missing values** are `null` on the wire — never coerced to `0`. First-sample rate metrics are `null` until a second delta exists; a metric a host genuinely doesn't support (no temperature probe, no swap configured) stays `null` permanently. The twelve per-engine census fields on `managed.storage` are `null` for an engine the host does not run, and for every engine until the daemon's first managed-engine census lands; an engine with instances present reports real counts, including `0` running.
+### Pressure Stall Information (PSI) [#pressure-stall-information]
+
+The five `*Pressure*Percent` fields on `host.system` and `host.io` are Linux **Pressure Stall Information**. They are **not** utilization: each is the share of that sample's wall clock during which tasks were stalled on CPU, memory, or disk (from the kernel `total` counter in `/proc/pressure/`, never the kernel's `avg10`/`avg60`/`avg300` windows).
+
+| Field | Means |
+| ----- | ----- |
+| `host.cpu.pressureSomePercent` | At least one task waited for a CPU |
+| `host.memory.pressureSomePercent` | At least one task waited for RAM (reclaim, compaction, or swap) |
+| `host.memory.pressureFullPercent` | Every non-idle task waited for RAM — the machine stalled |
+| `host.storage.ioPressureSomePercent` | At least one task waited on disk |
+| `host.storage.ioPressureFullPercent` | Every non-idle task waited on disk — the machine stalled |
+
+**Some** is contention. **Full** (memory and I/O only) is a stall. CPU has no Full series — a CPU is never completely stalled the way memory and disk can be. Unsupported kernels omit `/proc/pressure/` and those fields stay `null`. How to read the charts: [Pressure Stall Information](/docs/metrics#pressure-stall-information).
+
+### Memory diagnostics [#memory-diagnostics]
+
+The memory half of `host.diagnostics` is the **Memory detail** group — what RAM is made of, and whether the kernel is working to free some. These are **not** a second used-%: they are `/proc/meminfo` gauges and `/proc/vmstat` reclaim rates, reported on every Linux host. Operator reading: [Memory detail](/docs/metrics/memory#memory-detail).
+
+| Field | Chart | Means |
+| ----- | ----- | ----- |
+| `diagnostics.memoryFreeBytes` | [Free & cached](/docs/metrics/memory#memory-detail-primary) | Truly unused pages. Low free is normal — Linux spends idle RAM on cache |
+| `diagnostics.cachedBytes` | [Free & cached](/docs/metrics/memory#memory-detail-primary) | Raw page cache (`Cached`). Not the same series as overview `cachedFilesBytes` |
+| `diagnostics.anonPagesBytes` | [Free & cached](/docs/metrics/memory#memory-detail-primary) | Process heap/stack. The leak line; this is what becomes swap |
+| `diagnostics.slabReclaimableBytes` | [Slab](/docs/metrics/memory#memory-detail-slab) | Kernel caches it can drop |
+| `diagnostics.slabUnreclaimableBytes` | [Slab](/docs/metrics/memory#memory-detail-slab) | Kernel objects that stay until their owner is gone |
+| `diagnostics.dirtyBytes` | [Dirty & writeback](/docs/metrics/memory#memory-detail-dirty) | File pages modified in RAM, not yet written |
+| `diagnostics.writebackBytes` | [Dirty & writeback](/docs/metrics/memory#memory-detail-dirty) | Pages the kernel is writing to disk right now |
+| `diagnostics.shmemBytes` | [Shared memory](/docs/metrics/memory#memory-detail-other-gauges) | `tmpfs` / POSIX shm / some container overlays — used RAM no single process owns |
+| `diagnostics.committedAsBytes` | [Committed](/docs/metrics/memory#memory-detail-commit) | Virtual memory promised to processes (overcommit). Can exceed RAM |
+| `diagnostics.pageScanDirectPerSecond` | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) | A process had to reclaim for itself — that allocation stalls |
+| `diagnostics.pageScanKswapdPerSecond` | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) | Background reclaim. Healthier than direct scan |
+| `diagnostics.compactionStallsPerSecond` | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) | A process waited while the kernel packed fragmented pages |
+
+**Missing values** are `null` on the wire — never coerced to `0`. First-sample rate metrics are `null` until a second delta exists; a metric a host genuinely doesn't support (no temperature probe, no swap configured, no `/proc/pressure/`) stays `null` permanently. The twelve per-engine census fields on `managed.storage` are `null` for an engine the host does not run, and for every engine until the daemon's first managed-engine census lands; an engine with instances present reports real counts, including `0` running.
 
 **Retired since v4:** `host.cpu.maxCoreBusyPercent` → `saturatedCoreCount` (cores at or above 90% busy); `host.memory.availableBytes` → `usedBytes` + `cachedFilesBytes`; `host.storage.diskReadLatencyMs` + `diskWriteLatencyMs` → one `diskLatencyMs`; `host.storage.maxBlockDeviceUtilPercent` removed; `gpu.temperatureCelsius` / `memoryTemperatureCelsius` / `powerWatts` and `block.temperatureCelsius` moved to `hardware.physical`; `cpu.detail` + `memory.detail` merged into `host.diagnostics` (seven memory fields dropped: page tables, kernel stack, commit limit, and the four active/inactive splits); `cpu.core.live` and the NUMA reservation deleted outright; `collectionMode` removed from the metadata.
 

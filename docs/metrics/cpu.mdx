@@ -29,7 +29,7 @@ TurboPanel does not chart a leftover “nice” or hard-IRQ bucket — those mod
 
 ## CPU pressure (PSI) [#cpu-pressure]
 
-Share of time **at least one task waited for a CPU**. Wire name: `host.cpu.pressureSomePercent`. Series label: **Some**.
+Share of **this sample's wall clock** during which **at least one task waited for a CPU** — queued behind cores that were already busy. That is pressure, not utilization: the processor can look half-idle on [CPU utilization](#cpu-modes) while this line is high. Wire name: `host.cpu.pressureSomePercent`. Series label: **Some**.
 
 This is the chart to open when the host feels slow but utilization looks modest.
 

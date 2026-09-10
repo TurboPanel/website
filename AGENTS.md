@@ -27,7 +27,7 @@ Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**` outside
 
 **Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
 
-**Operator metric glossary:** [`docs/metrics/`](docs/metrics/) — what each Metrics-screen chart and event means. Heading ids match console chart ids (`cpu-pressure`, `memory-pressure`, …) so a later console click can open `/docs/metrics/<group>#<chart-id>`. Add or update a heading in the same change as a new console metric. Architecture/cost stays in `docs/architecture/server-metrics.mdx`; storage/ops stays in `docs/deployment/metrics.mdx`.
+**Operator metric glossary:** [`docs/metrics/`](docs/metrics/) — what each Metrics-screen chart and event means. Heading ids match console chart ids (`cpu-pressure`, `memory-pressure`, …) so a later console click can open `/docs/metrics/<group>#<chart-id>`. Add or update a heading in the same change as a new console metric. **PSI** is explained on [`/docs/metrics#pressure-stall-information`](docs/metrics/index.mdx). **Memory detail** (free/cached/anon, slab, dirty/writeback, shared, committed, reclaim, compaction) is explained on [`/docs/metrics/memory#memory-detail`](docs/metrics/memory.mdx). Architecture/cost stays in `docs/architecture/server-metrics.mdx`; storage/ops stays in `docs/deployment/metrics.mdx`.
 
 ## Messaging (brand voice source of truth)
 
