@@ -194,10 +194,12 @@ describe('scalarSessionCookieNameRowCss', () => {
 
 describe('installScalarSessionCookieNameRowLock', () => {
   let mutationCallbacks: Array<() => void> = []
+  let observerDisconnects = 0
 
   beforeEach(() => {
     vi.useFakeTimers()
     mutationCallbacks = []
+    observerDisconnects = 0
 
     vi.stubGlobal(
       'requestAnimationFrame',
@@ -216,7 +218,9 @@ describe('installScalarSessionCookieNameRowLock', () => {
 
         observe(): void {}
 
-        disconnect(): void {}
+        disconnect(): void {
+          observerDisconnects += 1
+        }
       },
     )
   })
@@ -330,6 +334,15 @@ describe('installScalarSessionCookieNameRowLock', () => {
 
     vi.runAllTimers()
     cleanup()
+    expect(observerDisconnects).toBe(0)
+  })
+
+  it('disconnects the mutation observer when an auth host was observed', () => {
+    const { root } = createScalarDom()
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    expect(mutationCallbacks).toHaveLength(1)
+    cleanup()
+    expect(observerDisconnects).toBe(1)
   })
 
   it('falls back to the introduction card when intro auth is absent', () => {
@@ -601,5 +614,49 @@ describe('installScalarSessionCookieNameRowLock', () => {
 
     schedule()
     expect(rafCallbacks).toHaveLength(0)
+  })
+
+  it('does not rescan from a queued animation frame after cleanup', () => {
+    const rafCallbacks: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafCallbacks.push(callback)
+      return rafCallbacks.length
+    })
+
+    const { root, cookieRow } = createScalarDom()
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    const schedule = mutationCallbacks[0]
+    if (!schedule) throw new TypeError('expected mutation observer callback')
+    schedule()
+
+    cookieRow.attributes.delete(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)
+    cleanup()
+
+    rafCallbacks[0]?.(0)
+
+    expect(cookieRow.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(false)
+  })
+
+  it('locks a row whose label is not Name but the cell label is', () => {
+    const root = new MockNode('DIV')
+    const table = new MockNode('TABLE')
+    table.className = 'scalar-data-table'
+    root.appendChild(table)
+
+    const row = new MockNode('TR')
+    table.appendChild(row)
+    const label = new MockNode('LABEL')
+    label.textContent = 'Value'
+    row.appendChild(label)
+    const cellLabel = new MockNode('DIV')
+    cellLabel.className = 'text-c-1 flex items-center'
+    cellLabel.textContent = 'Name'
+    row.appendChild(cellLabel)
+
+    const cleanup = installScalarSessionCookieNameRowLock(root as unknown as Element)
+    vi.runAllTimers()
+    cleanup()
+
+    expect(row.hasAttribute(SCALAR_SESSION_COOKIE_NAME_ROW_ATTR)).toBe(true)
   })
 })

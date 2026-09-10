@@ -93,6 +93,12 @@ export function isExecutedAsCli(metaUrl = import.meta.url, argv1 = process.argv[
   return Boolean(argv1) && metaUrl === pathToFileURL(path.resolve(argv1)).href
 }
 
-if (isExecutedAsCli()) {
-  runVocabularyCheck()
+/**
+ * @param {() => boolean} [isCli]
+ * @param {() => unknown} [invoke]
+ */
+export function startCli(isCli = isExecutedAsCli, invoke = runVocabularyCheck) {
+  if (isCli()) invoke()
 }
+
+startCli()

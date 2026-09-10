@@ -135,6 +135,12 @@ export function installScalarSessionCookieNameRowLock(root: Element): () => void
     if (!disconnected) lockCookieNameRows(root)
   }
 
+  const disconnect = () => {
+    disconnected = true
+    observer?.disconnect()
+    for (const id of timeoutIds) globalThis.clearTimeout(id)
+  }
+
   run()
   for (const delay of [100, 400, 1200]) {
     timeoutIds.push(globalThis.setTimeout(run, delay))
@@ -145,11 +151,7 @@ export function installScalarSessionCookieNameRowLock(root: Element): () => void
     root.querySelector('.introduction-card-item')
 
   if (!authHost) {
-    return () => {
-      disconnected = true
-      observer?.disconnect()
-      for (const id of timeoutIds) globalThis.clearTimeout(id)
-    }
+    return disconnect
   }
 
   let scheduled = false
@@ -165,9 +167,5 @@ export function installScalarSessionCookieNameRowLock(root: Element): () => void
   observer = new MutationObserver(schedule)
   observer.observe(authHost, { childList: true, subtree: true })
 
-  return () => {
-    disconnected = true
-    observer?.disconnect()
-    for (const id of timeoutIds) globalThis.clearTimeout(id)
-  }
+  return disconnect
 }

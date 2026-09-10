@@ -141,17 +141,40 @@ export function run(options = {}) {
   return 0
 }
 
-function invokedAsCli() {
-  const entry = process.argv[1]
-  if (!entry) {
+/**
+ * @param {string} [argv1]
+ * @param {string} [href]
+ * @returns {boolean}
+ */
+export function isCliEntry(argv1 = process.argv[1], href = import.meta.url) {
+  if (!argv1) {
     return false
   }
-  return import.meta.url === pathToFileURL(path.resolve(entry)).href
+  return href === pathToFileURL(path.resolve(argv1)).href
 }
 
-if (invokedAsCli()) {
-  const code = run()
+/**
+ * Success returns without calling `exit` so a CLI import can fall through.
+ * A non-zero `run` status is forwarded to `exit` (default `process.exit`).
+ *
+ * @param {Parameters<typeof run>[0]} [opts]
+ * @param {(code?: number) => void} [exit]
+ * @returns {0 | 1}
+ */
+export function main(opts = {}, exit = process.exit) {
+  const code = run(opts)
   if (code !== 0) {
-    process.exit(code)
+    exit(code)
   }
+  return code
 }
+
+/**
+ * @param {() => boolean} [entry]
+ * @param {() => unknown} [invoke]
+ */
+export function startCli(entry = isCliEntry, invoke = main) {
+  if (entry()) invoke()
+}
+
+startCli()

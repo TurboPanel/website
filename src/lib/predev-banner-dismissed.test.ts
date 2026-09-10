@@ -68,4 +68,36 @@ describe('preDevBannerDismissedStore', () => {
     localStorage.setItem('predev-banner-dismissed', '1')
     expect(preDevBannerDismissedStore.getSnapshot()).toBe(false)
   })
+
+  it('is dismissed only when storage holds the exact true token', () => {
+    localStorage.setItem('predev-banner-dismissed', 'true')
+    expect(preDevBannerDismissedStore.getSnapshot()).toBe(true)
+
+    for (const value of ['', 'false', 'TRUE', 'True']) {
+      localStorage.setItem('predev-banner-dismissed', value)
+      expect(preDevBannerDismissedStore.getSnapshot()).toBe(false)
+    }
+  })
+
+  it('notifies every current subscriber and is a no-op with none', () => {
+    expect(() => notifyPreDevBannerDismissed()).not.toThrow()
+
+    const first = vi.fn()
+    const second = vi.fn()
+    const unsubscribeFirst = preDevBannerDismissedStore.subscribe(first)
+    const unsubscribeSecond = preDevBannerDismissedStore.subscribe(second)
+
+    persistPreDevBannerDismissed()
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(1)
+
+    unsubscribeFirst()
+    notifyPreDevBannerDismissed()
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(2)
+
+    unsubscribeSecond()
+    notifyPreDevBannerDismissed()
+    expect(second).toHaveBeenCalledTimes(2)
+  })
 })

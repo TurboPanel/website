@@ -11,6 +11,7 @@ import {
   fillMissingLicenses,
   fingerprintCommentValue,
   formatPolicyFailures,
+  licenseParenExprIsBalanced,
   mergeNoticePackages,
   needsLicenseLookup,
   noticesAreCurrent,
@@ -307,6 +308,14 @@ describe('renderThirdPartyNotices', () => {
     expect(markdown).toContain('## Upstream NOTICE files')
     expect(markdown).toContain('Copyright 2020 Example')
   })
+
+  it('omits the upstream NOTICE section when notice text is blank', () => {
+    const markdown = renderThirdPartyNotices(
+      [pkg({ name: 'foo', license: 'Apache-2.0', noticeText: '   ' })],
+      renderOpts,
+    )
+    expect(markdown).not.toContain('## Upstream NOTICE files')
+  })
 })
 
 describe('noticesAreCurrent', () => {
@@ -340,6 +349,17 @@ describe('helpers', () => {
     ])
     expect(merged).toHaveLength(1)
     expect(merged[0]?.role).toBe('production')
+  })
+
+  it('keeps the higher-ranked row when a later group is development-only', () => {
+    const merged = mergeNoticePackages([
+      [pkg({ name: 'yaml', license: 'ISC', role: 'production', homepage: 'https://yaml.example' })],
+      [pkg({ name: 'yaml', license: 'ISC', role: 'development', copyright: 'Ada' })],
+    ])
+    expect(merged).toHaveLength(1)
+    expect(merged[0]?.role).toBe('production')
+    expect(merged[0]?.homepage).toBe('https://yaml.example')
+    expect(merged[0]?.copyright).toBeUndefined()
   })
 
   it('attaches licenses from a lookup map', () => {
@@ -442,6 +462,7 @@ describe('defaultLicenseForPackageName', () => {
     expect(NOTICE_POLICY_REPO_LICENSE).toBe('Apache-2.0')
     expect(defaultLicenseForPackageName('khroma')).toBe('MIT')
     expect(defaultLicenseForPackageName('@vendor/khroma')).toBe('MIT')
+    expect(defaultLicenseForPackageName('@unknown/pkg')).toBeUndefined()
   })
 })
 
@@ -619,6 +640,25 @@ describe('mergeNoticePackages field fill-in', () => {
     expect(merged[0]?.copyright).toBe('Ada')
     expect(merged[0]?.homepage).toBe('https://example.test')
   })
+
+  it('keeps the incoming row attribution when promoting a complete production row', () => {
+    const merged = mergeNoticePackages([
+      [pkg({ name: 'yaml', license: 'ISC', role: 'development', noticeText: 'dev' })],
+      [
+        pkg({
+          name: 'yaml',
+          license: 'ISC',
+          role: 'production',
+          noticeText: 'prod notice',
+          copyright: 'Meta',
+          homepage: 'https://yaml.example',
+        }),
+      ],
+    ])
+    expect(merged[0]?.noticeText).toBe('prod notice')
+    expect(merged[0]?.copyright).toBe('Meta')
+    expect(merged[0]?.homepage).toBe('https://yaml.example')
+  })
 })
 
 describe('classifyLicense remaining classes', () => {
@@ -672,6 +712,26 @@ describe('classifyLicense remaining classes', () => {
     expect(classifyLicense('MIT AND (ISC AND Apache-2.0)', 'production')).toBeNull()
     expect(classifyLicense('(MIT) extra OR ISC', 'production')).toBeNull()
     expect(classifyLicense('(MIT)(ISC)', 'production')).toBe('custom')
+  })
+
+  it('unwraps stacked wrapping parens and skips empty AND operands', () => {
+    expect(classifyLicense('((MIT))', 'production')).toBeNull()
+    expect(classifyLicense('MIT AND  AND ISC', 'production')).toBeNull()
+  })
+})
+
+describe('licenseParenExprIsBalanced', () => {
+  it('rejects a closing paren before any opener', () => {
+    expect(licenseParenExprIsBalanced(')MIT(')).toBe(false)
+  })
+
+  it('rejects extra open parens that never close', () => {
+    expect(licenseParenExprIsBalanced('((MIT)')).toBe(false)
+  })
+
+  it('accepts a single wrapping group and empty input', () => {
+    expect(licenseParenExprIsBalanced('(MIT)')).toBe(true)
+    expect(licenseParenExprIsBalanced('')).toBe(true)
   })
 })
 

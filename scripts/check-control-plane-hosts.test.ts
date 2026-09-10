@@ -1,12 +1,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   actualFromWrangler,
   extractWranglerApiHostnames,
+  isCliEntry,
+  main,
   readApiHostnamesValue,
   run,
+  startCli,
 } from './check-control-plane-hosts.mjs'
 
 const ALIGNED = {
@@ -19,6 +22,7 @@ const ALIGNED = {
 const tempDirs: string[] = []
 
 afterEach(() => {
+  vi.restoreAllMocks()
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop()
     if (dir) {
@@ -211,6 +215,36 @@ describe('actualFromWrangler', () => {
     expect(actual.staging).toBeUndefined()
     expect(actual.live).toBeUndefined()
   })
+
+  it('leaves named env values unset when the env key is absent', () => {
+    const actual = actualFromWrangler(`{
+  "vars": {
+    "API_HOSTNAMES": "${ALIGNED.development}"
+  },
+  "env": {}
+}
+`)
+    assertRecord(actual)
+    expect(actual.development).toBe(ALIGNED.development)
+    expect(actual.testing).toBeUndefined()
+    expect(actual.staging).toBeUndefined()
+    expect(actual.live).toBeUndefined()
+  })
+
+  it('ignores a named env whose API_HOSTNAMES value cannot be read', () => {
+    const actual = actualFromWrangler(`{
+  "vars": {
+    "API_HOSTNAMES": "${ALIGNED.development}"
+  },
+  "env": {
+    "testing": { "vars": { "OTHER": "x" } }
+  }
+}
+`)
+    assertRecord(actual)
+    expect(actual.development).toBe(ALIGNED.development)
+    expect(actual.testing).toBeUndefined()
+  })
 })
 
 describe('run', () => {
@@ -288,5 +322,112 @@ describe('run', () => {
     expect(errors.some((line) => line.includes('mismatch for development'))).toBe(true)
     expect(errors.some((line) => line.includes('(missing)'))).toBe(true)
     expect(errors.some((line) => line.includes('mismatch for staging'))).toBe(true)
+  })
+
+  it('logs success through console when log is omitted', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    expect(
+      run({
+        hostsSource: hostsSourceFromMap(ALIGNED),
+        wranglerSource: wranglerSourceFromMap(ALIGNED),
+      }),
+    ).toBe(0)
+    expect(log).toHaveBeenCalledWith(
+      'check-control-plane-hosts: wrangler.jsonc matches control-plane-hosts.ts',
+    )
+  })
+
+  it('reports mismatches through console.error when error is omitted', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(
+      run({
+        hostsSource: hostsSourceFromMap(ALIGNED),
+        wranglerSource: wranglerSourceFromMap({
+          ...ALIGNED,
+          testing: 'other.example.test,Other',
+        }),
+      }),
+    ).toBe(1)
+    expect(error.mock.calls.some((args) => String(args[0]).includes('mismatch for testing'))).toBe(
+      true,
+    )
+  })
+
+  it('returns 0 against this checkout when sources are not injected', () => {
+    const { code, logs } = captureRun({})
+    expect(code).toBe(0)
+    expect(logs[0]).toContain('matches control-plane-hosts.ts')
+  })
+})
+
+describe('isCliEntry', () => {
+  it('is true only when argv[1] resolves to the module URL', () => {
+    const script = '/tmp/check-control-plane-hosts.mjs'
+    expect(isCliEntry(script, 'file:///tmp/check-control-plane-hosts.mjs')).toBe(true)
+    expect(isCliEntry('/tmp/other.mjs', 'file:///tmp/check-control-plane-hosts.mjs')).toBe(
+      false,
+    )
+    expect(isCliEntry('', 'file:///tmp/check-control-plane-hosts.mjs')).toBe(false)
+    expect(isCliEntry()).toBe(false)
+  })
+})
+
+describe('main', () => {
+  it('does not call exit on success', () => {
+    const exit = vi.fn()
+    expect(
+      main(
+        {
+          hostsSource: hostsSourceFromMap(ALIGNED),
+          wranglerSource: wranglerSourceFromMap(ALIGNED),
+          log: () => {},
+        },
+        exit,
+      ),
+    ).toBe(0)
+    expect(exit).not.toHaveBeenCalled()
+  })
+
+  it('forwards a mismatch status to process.exit', () => {
+    const exit = vi.fn()
+    expect(
+      main(
+        {
+          hostsSource: hostsSourceFromMap(ALIGNED),
+          wranglerSource: wranglerSourceFromMap({
+            ...ALIGNED,
+            live: 'other.example.test,Other',
+          }),
+          error: () => {},
+        },
+        exit,
+      ),
+    ).toBe(1)
+    expect(exit).toHaveBeenCalledWith(1)
+  })
+
+  it('uses process.exit when a mismatch omits the exit argument', () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(
+      main({
+        hostsSource: hostsSourceFromMap(ALIGNED),
+        wranglerSource: wranglerSourceFromMap({
+          ...ALIGNED,
+          live: 'other.example.test,Other',
+        }),
+      }),
+    ).toBe(1)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+})
+
+describe('startCli', () => {
+  it('invokes main only when the CLI predicate is true', () => {
+    const invoke = vi.fn()
+    startCli(() => false, invoke)
+    expect(invoke).not.toHaveBeenCalled()
+    startCli(() => true, invoke)
+    expect(invoke).toHaveBeenCalledOnce()
   })
 })

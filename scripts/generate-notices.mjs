@@ -306,6 +306,12 @@ export function isExecutedAsCli(metaUrl = import.meta.url, argv1 = process.argv[
   return Boolean(argv1) && metaUrl === pathToFileURL(path.resolve(argv1)).href
 }
 
-if (isExecutedAsCli()) {
-  runGenerateNotices()
+/**
+ * @param {() => boolean} [isCli]
+ * @param {() => unknown} [invoke]
+ */
+export function startCli(isCli = isExecutedAsCli, invoke = runGenerateNotices) {
+  if (isCli()) invoke()
 }
+
+startCli()

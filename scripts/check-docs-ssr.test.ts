@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DOCS_SSR_INTRODUCTION_SNIPPET,
@@ -13,6 +13,7 @@ import {
   isCliEntry,
   main,
   run,
+  startCli,
 } from './check-docs-ssr.mjs'
 
 const SCRIPT_PATH = fileURLToPath(new URL('./check-docs-ssr.mjs', import.meta.url))
@@ -52,6 +53,8 @@ describe('isCliEntry', () => {
 
   it('is true when argv points at this script', () => {
     expect(isCliEntry(SCRIPT_PATH)).toBe(true)
+    expect(isCliEntry(SCRIPT_PATH, pathToFileURL(SCRIPT_PATH).href)).toBe(true)
+    expect(isCliEntry(SCRIPT_PATH, 'file:///tmp/other.mjs')).toBe(false)
   })
 })
 
@@ -71,6 +74,21 @@ describe('run', () => {
     writeIntroductionHtml(rootDir, '<html><p>client shell only</p></html>')
     expect(run({ root: rootDir, error })).toBe(1)
     expect(error).toHaveBeenCalledWith(docsSsrFailureMessage('missing_body'))
+  })
+
+  it('returns 1 when the layout marker is missing or the shell is still loading', () => {
+    const error = vi.fn()
+    const rootDir = tempRoot()
+    writeIntroductionHtml(rootDir, `<p>${DOCS_SSR_INTRODUCTION_SNIPPET}</p>`)
+    expect(run({ root: rootDir, error })).toBe(1)
+    expect(error).toHaveBeenCalledWith(docsSsrFailureMessage('missing_layout'))
+
+    writeIntroductionHtml(
+      rootDir,
+      `<p>${DOCS_SSR_INTRODUCTION_SNIPPET}</p><div ${DOCS_SSR_LAYOUT_MARKER}>Loading…</div>`,
+    )
+    expect(run({ root: rootDir, error })).toBe(1)
+    expect(error).toHaveBeenCalledWith(docsSsrFailureMessage('loading_shell'))
   })
 
   it('returns 0 and logs success for valid introduction HTML', () => {
@@ -115,6 +133,24 @@ describe('run', () => {
     expect(readFileSync).toHaveBeenCalledWith(htmlPath, 'utf8')
     expect(log).toHaveBeenCalledOnce()
   })
+
+  it('logs success through console when log is omitted', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const rootDir = tempRoot()
+    writeIntroductionHtml(rootDir, okHtml())
+    expect(run({ root: rootDir })).toBe(0)
+    expect(log).toHaveBeenCalledWith(
+      'check-docs-ssr: introduction HTML includes server-rendered docs content',
+    )
+  })
+
+  it('reports a missing build through console.error when error is omitted', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(run({ root: tempRoot() })).toBe(1)
+    expect(error).toHaveBeenCalledWith(
+      `check-docs-ssr: missing ${INTRODUCTION_HTML_REL} — run \`pnpm build\` first`,
+    )
+  })
 })
 
 describe('main', () => {
@@ -132,5 +168,22 @@ describe('main', () => {
     writeIntroductionHtml(rootDir, okHtml())
     main({ root: rootDir, log }, exit)
     expect(exit).toHaveBeenCalledWith(0)
+  })
+
+  it('uses process.exit when the exit argument is omitted', () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    main({ root: tempRoot() })
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+})
+
+describe('startCli', () => {
+  it('invokes main only when the CLI predicate is true', () => {
+    const invoke = vi.fn()
+    startCli(() => false, invoke)
+    expect(invoke).not.toHaveBeenCalled()
+    startCli(() => true, invoke)
+    expect(invoke).toHaveBeenCalledOnce()
   })
 })

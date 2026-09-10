@@ -7,9 +7,14 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FORBIDDEN_PHRASES, VOCABULARY_PHRASE_SOURCE } from '@/lib/vocabulary'
-import { isExecutedAsCli, runVocabularyCheck, walk } from './check-vocabulary.mjs'
+import {
+  isExecutedAsCli,
+  runVocabularyCheck,
+  startCli,
+  walk,
+} from './check-vocabulary.mjs'
 
 const SELF = 'scripts/check-vocabulary.mjs'
 
@@ -58,6 +63,7 @@ function recordIo(): {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks()
   for (const dir of tempRoots.splice(0)) {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -201,6 +207,50 @@ describe('runVocabularyCheck', () => {
     expect(io.errors[2]).toContain('1 problem(s) found.')
   })
 
+  it('prints every formatted hit when several scanned files are dirty', () => {
+    const root = createTempRoot()
+    const phrase = FORBIDDEN_PHRASES[0]
+    writeTree(root, {
+      'docs/one.mdx': `The ${phrase} must not ship.\n`,
+      'docs/two.mdx': `Also the ${phrase} is forbidden.\n`,
+    })
+    const io = recordIo()
+
+    expect(
+      runVocabularyCheck({
+        root,
+        selfRel: SELF,
+        io,
+        exit: () => {},
+      }),
+    ).toBe(1)
+    expect(io.errors.filter((line) => line.includes('uses forbidden phrase'))).toHaveLength(
+      2,
+    )
+    expect(io.errors.some((line) => line.includes('2 problem(s) found.'))).toBe(true)
+  })
+
+  it('logs success through console when io is omitted', () => {
+    const root = createTempRoot()
+    writeTree(root, { 'docs/ok.mdx': 'the host daemon enrolls\n' })
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    expect(runVocabularyCheck({ root, selfRel: SELF, exit: () => {} })).toBe(0)
+    expect(log).toHaveBeenCalledWith('check-vocabulary: no forbidden phrasing found.')
+  })
+
+  it('calls process.exit(1) when a dirty tree omits exit', () => {
+    const root = createTempRoot()
+    const phrase = FORBIDDEN_PHRASES[0]
+    writeTree(root, { 'docs/bad.mdx': `The ${phrase} must not ship.\n` })
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    expect(runVocabularyCheck({ root, selfRel: SELF })).toBe(1)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(error).toHaveBeenCalled()
+  })
+
   it('throws ENOENT when the check root is missing', () => {
     const missing = path.join(createTempRoot(), 'does-not-exist')
     try {
@@ -227,5 +277,16 @@ describe('isExecutedAsCli', () => {
     expect(isExecutedAsCli('file:///tmp/check-vocabulary.mjs', script)).toBe(true)
     expect(isExecutedAsCli('file:///tmp/check-vocabulary.mjs', '/tmp/other.mjs')).toBe(false)
     expect(isExecutedAsCli('file:///tmp/check-vocabulary.mjs', '')).toBe(false)
+    expect(isExecutedAsCli('file:///tmp/check-vocabulary.mjs')).toBe(false)
+  })
+})
+
+describe('startCli', () => {
+  it('invokes the check only when the CLI predicate is true', () => {
+    const invoke = vi.fn()
+    startCli(() => false, invoke)
+    expect(invoke).not.toHaveBeenCalled()
+    startCli(() => true, invoke)
+    expect(invoke).toHaveBeenCalledOnce()
   })
 })

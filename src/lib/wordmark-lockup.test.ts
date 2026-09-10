@@ -102,6 +102,61 @@ describe('computeTurboPanelWordmarkLockup', () => {
     })
     expect(lockup.wordSize).toBe(1)
   })
+
+  it('treats explicit markOnly false like an omitted flag', () => {
+    const omitted = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    const explicit = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      markOnly: false,
+    })
+    expect(explicit).toEqual(omitted)
+    expect(explicit.lockupWidth).toBeGreaterThan(explicit.markWidth)
+  })
+
+  it('uses mark width when a crushed word is narrower than the mark', () => {
+    const lockup = computeTurboPanelWordmarkLockup({
+      size: 100,
+      wordBoostPx: -1000,
+      profile: 'website',
+    })
+    expect(lockup.wordSize).toBe(1)
+    expect(lockup.lockupWidth).toBe(lockup.markWidth)
+    expect(lockup.markWidth).toBeGreaterThan(lockup.wordSize)
+  })
+
+  it('treats a zero boost override as a value, not a missing profile boost', () => {
+    const withProfileBoost = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    const withZeroBoost = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      wordBoostPx: 0,
+    })
+    expect(withZeroBoost.wordSize).toBeLessThan(withProfileBoost.wordSize)
+    expect(withZeroBoost.wordBottomOffset).toBe(
+      -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+    )
+  })
+
+  it('treats a zero down offset override as a value, not a missing profile offset', () => {
+    const withProfileDown = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+    })
+    const withZeroDown = computeTurboPanelWordmarkLockup({
+      size: 30,
+      profile: 'website',
+      wordDownPx: 0,
+    })
+    expect(withZeroDown.wordBottomOffset).toBe(-0)
+    expect(withZeroDown.wordSize).toBe(withProfileDown.wordSize)
+  })
 })
 
 describe('websiteWordmarkLockup', () => {
@@ -124,6 +179,28 @@ describe('websiteWordmarkLockup', () => {
     expect(lockup.lockupWidth).toBe(lockup.markWidth)
     expect(lockup.lockupWidth).toBeLessThan(fullCompact.lockupWidth)
     expect(lockup.lockupHeight).toBe(fullCompact.lockupHeight)
+  })
+
+  it('maps explicit markOnly false to the matching website chrome size', () => {
+    const compact = websiteWordmarkLockup(true, false)
+    const defaultLockup = websiteWordmarkLockup(false, false)
+
+    expect(compact).toEqual(
+      computeTurboPanelWordmarkLockup({
+        size: TURBOPANEL_WORDMARK_CHROME_SIZE.website.compact,
+        markOnly: false,
+        profile: 'website',
+      }),
+    )
+    expect(defaultLockup).toEqual(
+      computeTurboPanelWordmarkLockup({
+        size: TURBOPANEL_WORDMARK_CHROME_SIZE.website.default,
+        markOnly: false,
+        profile: 'website',
+      }),
+    )
+    expect(compact.lockupWidth).toBeGreaterThan(compact.markWidth)
+    expect(defaultLockup.lockupWidth).toBeGreaterThan(defaultLockup.markWidth)
   })
 })
 

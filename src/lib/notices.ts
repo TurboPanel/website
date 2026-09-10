@@ -106,7 +106,8 @@ const KNOWN_PACKAGE_LICENSES: Record<string, string> = {
 }
 
 export function defaultLicenseForPackageName(name: string): string | undefined {
-  const base = name.includes('/') ? (name.split('/').pop() ?? name) : name
+  const slash = name.lastIndexOf('/')
+  const base = slash === -1 ? name : name.slice(slash + 1)
   if (KNOWN_PACKAGE_LICENSES[base]) return KNOWN_PACKAGE_LICENSES[base]
   if (name.startsWith('@std/')) return 'MIT'
   if (name.startsWith('@tamagui/')) return 'MIT'
@@ -393,7 +394,7 @@ function classifySpdxExpression(
     if (partResults.includes(null)) {
       return null
     }
-    return partResults[0] ?? 'custom'
+    return partResults[0] as LicensePolicyReason
   }
   const andParts = splitTopLevel(expr, ' AND ')
   if (andParts && andParts.length > 1) {
@@ -490,13 +491,18 @@ function stripWithException(token: string): string {
 
 function unwrapParens(expr: string): string {
   let current = expr.trim()
-  while (current.startsWith('(') && current.endsWith(')') && balanced(current)) {
+  while (
+    current.startsWith('(') &&
+    current.endsWith(')') &&
+    licenseParenExprIsBalanced(current)
+  ) {
     current = current.slice(1, -1).trim()
   }
   return current
 }
 
-function balanced(expr: string): boolean {
+/** True when `expr` is a single fully wrapped `(…)` group (no leftover tokens). */
+export function licenseParenExprIsBalanced(expr: string): boolean {
   let depth = 0
   for (let i = 0; i < expr.length; i += 1) {
     const ch = expr[i]
@@ -588,7 +594,11 @@ export function renderThirdPartyNotices(
     'Resolved after Expo prebuild (CocoaPods / Gradle / bundled resources). Absent from checkouts that do not contain generated `ios/` or `android/` trees.',
   )
 
-  const notices = sorted.filter((pkg) => pkg.noticeText?.trim())
+  const notices: { pkg: NoticePackage; text: string }[] = []
+  for (const pkg of sorted) {
+    const text = pkg.noticeText?.trim()
+    if (text) notices.push({ pkg, text })
+  }
   if (notices.length > 0) {
     lines.push(
       '## Upstream NOTICE files',
@@ -596,8 +606,8 @@ export function renderThirdPartyNotices(
       'The following Apache-2.0 (or similarly NOTICE-bearing) works require preservation of this attribution.',
       '',
     )
-    for (const pkg of notices) {
-      lines.push(`### ${noticePackageKey(pkg)}`, '', '```', pkg.noticeText?.trim() ?? '', '```', '')
+    for (const { pkg, text } of notices) {
+      lines.push(`### ${noticePackageKey(pkg)}`, '', '```', text, '```', '')
     }
   }
 

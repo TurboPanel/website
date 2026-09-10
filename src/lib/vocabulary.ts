@@ -115,14 +115,14 @@ export function scanTextForForbiddenPhrases(
   text: string,
 ): VocabularyFailure[] {
   const failures: VocabularyFailure[] = []
-  const lines = text.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? ''
+  let lineNumber = 0
+  for (const line of text.split('\n')) {
+    lineNumber += 1
     if (isAllowlisted(line)) continue
     const lower = line.toLowerCase()
     for (const phrase of FORBIDDEN_PHRASES) {
       if (lower.includes(phrase)) {
-        failures.push({ rel, line: i + 1, phrase })
+        failures.push({ rel, line: lineNumber, phrase })
       }
     }
   }

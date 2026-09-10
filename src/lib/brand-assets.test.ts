@@ -15,10 +15,35 @@ describe('BRAND_LOGO_VARIANTS', () => {
       for (const asset of variant.assets) {
         expect(asset.href.startsWith('/brand/')).toBe(true)
         expect(['SVG', 'PNG']).toContain(asset.format)
+        expect(asset.note).toBeUndefined()
         hrefs.push(asset.href)
       }
     }
     expect(new Set(hrefs).size).toBe(hrefs.length)
+  })
+
+  it('ships a landscape standard lockup and a square mark', () => {
+    const byId = new Map(BRAND_LOGO_VARIANTS.map((variant) => [variant.id, variant]))
+    const standard = byId.get('standard')
+    const square = byId.get('square')
+    if (!standard) {
+      throw new TypeError('expected standard brand logo variant')
+    }
+    if (!square) {
+      throw new TypeError('expected square brand logo variant')
+    }
+
+    expect(standard.previewAspect).toBe('landscape')
+    expect(standard.previewSrc).toBe('/brand/turbopanel-logo.svg')
+    expect(square.previewAspect).toBe('square')
+    expect(square.previewSrc).toBe('/brand/turbopanel-logo-square.svg')
+
+    const formats = (variant: (typeof BRAND_LOGO_VARIANTS)[number]) =>
+      new Set(variant.assets.map((asset) => asset.format))
+    expect(formats(standard).has('SVG')).toBe(true)
+    expect(formats(standard).has('PNG')).toBe(true)
+    expect(formats(square).has('SVG')).toBe(true)
+    expect(formats(square).has('PNG')).toBe(true)
   })
 })
 
@@ -30,6 +55,13 @@ describe('BRAND_COLORS', () => {
     for (const entry of BRAND_COLORS) {
       expect(entry.hex).toMatch(/^#[0-9A-F]{6}$/)
       expect(entry.role.length).toBeGreaterThan(0)
+      expect(entry.token.length).toBeGreaterThan(0)
     }
+
+    const byName = new Map(BRAND_COLORS.map((entry) => [entry.name, entry]))
+    expect(byName.get('Blue')?.hex).toBe('#3366CC')
+    expect(byName.get('Green')?.hex).toBe('#3DD68C')
+    expect(byName.get('Slate (mono)')?.hex).toBe('#0F172A')
+    expect(byName.get('White')?.hex).toBe('#FFFFFF')
   })
 })

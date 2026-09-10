@@ -34,5 +34,6 @@ describe('wordmarkFont', () => {
     })
     expect(wordmarkFont.variable).toBe('--font-wordmark')
     expect(wordmarkFont.className).toBe('mock-wordmark-font')
+    expect(wordmarkFont.style).toEqual({ fontFamily: 'Plus Jakarta Sans' })
   })
 })

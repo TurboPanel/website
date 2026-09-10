@@ -79,6 +79,12 @@ export function main(opts = {}, exit = process.exit) {
   exit(run(opts))
 }
 
-if (isCliEntry()) {
-  main()
+/**
+ * @param {() => boolean} [entry]
+ * @param {() => unknown} [invoke]
+ */
+export function startCli(entry = isCliEntry, invoke = main) {
+  if (entry()) invoke()
 }
+
+startCli()

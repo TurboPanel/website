@@ -19,4 +19,13 @@ describe('docsGithubBlobUrl', () => {
       `https://github.com/${DOCS_GITHUB.owner}/${DOCS_GITHUB.repo}/blob/${DOCS_GITHUB.sha}/docs/meta.json`,
     )
   })
+
+  it('keeps an empty path as a trailing slash-free blob URL', () => {
+    expect(docsGithubBlobUrl('')).toBe(
+      `https://github.com/${DOCS_GITHUB.owner}/${DOCS_GITHUB.repo}/blob/${DOCS_GITHUB.sha}/`,
+    )
+    expect(docsGithubBlobUrl('/')).toBe(
+      `https://github.com/${DOCS_GITHUB.owner}/${DOCS_GITHUB.repo}/blob/${DOCS_GITHUB.sha}/`,
+    )
+  })
 })

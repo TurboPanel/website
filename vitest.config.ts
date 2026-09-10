@@ -24,10 +24,10 @@ export default defineConfig({
       // ordinary churn passes and a real regression fails. Raise them when
       // coverage rises; do not lower them to make a red run go green.
       thresholds: {
-        statements: 97,
-        branches: 84,
+        statements: 98,
+        branches: 98,
         functions: 95,
-        lines: 97,
+        lines: 98,
       },
       exclude: [
         'src/**/*.test.ts',
