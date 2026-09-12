@@ -10,6 +10,10 @@ first**, then **datacenter gateways**, then **relay only when explicitly
 permitted**. A datacenter gateway is a routed peer — not the same class as an
 unrelated relay.
 
+What a datacenter *is* — a logical routing domain a server may belong to
+several of, with a `priority` and a `trusted` flag — lives on [Datacenter
+networks](/docs/architecture/datacenter-networks). This page assumes it.
+
 The control plane stamps diagnostics-only `paths[]` on each GET fabric relay
 (`peerServerId`, `selected`, optional `endpoint` / `viaServerId` /
 `lastHandshakeAt` / `latencyMs`, `degraded`). That summary is never hashed into
@@ -19,7 +23,7 @@ desired reconcile state.
 
 | `selected` | Meaning |
 | --- | --- |
-| `direct_lan` | Same-site / private LAN endpoint |
+| `direct_lan` | Same-site / private LAN endpoint **in a trusted shared datacenter** |
 | `direct_public` | Public endpoint on the peer |
 | `direct_nat` | NAT rendezvous after kernel-observed endpoints |
 | `gateway` | Routed via a datacenter gateway (`viaServerId`) |
@@ -29,13 +33,19 @@ desired reconcile state.
 ## Selection contract
 
 1. Prefer a healthy **direct** path (`direct_lan`, then `direct_public`).
+   `direct_lan` only considers datacenters **both** peers are pinned into
+   **and** that are marked `trusted`; when there is more than one, they are
+   tried in `(priority asc, id asc)` order. An untrusted shared datacenter is
+   skipped as if the pair did not share it.
 2. Try **NAT direct** (`direct_nat`) when a public/LAN endpoint is not enough.
    NAT rendezvous is already implemented in the control plane
    (`turbopanel/src/lib/fabric/rendezvous.ts`) and applied on the daemon with
    kernel-only probes (`wg set … endpoint` + `wg show dump` — never a userspace
    STUN socket). **Arbitrary symmetric NAT is not guaranteed to punch.**
 3. Fall back to a **datacenter gateway** (`gateway`) — typically leaf →
-   gateway → gateway → leaf across sites.
+   gateway → gateway → leaf across sites. The same trust filter and
+   `(priority asc, id asc)` ordering decide which of a leaf's datacenters
+   supplies its gateway when it belongs to several.
 4. Use **relay** only when org (and relay) `allowRelay` permits it.
 5. Otherwise the pair is **unreachable**.
 
@@ -79,3 +89,9 @@ sequenceDiagram
 Relay copy in the console: *Relay is a degraded fallback path and must be
 explicitly enabled. A datacenter gateway is not the same as an unrelated
 relay.*
+
+## Related
+
+- [Datacenter networks](/docs/architecture/datacenter-networks)
+- [Managed database ingress](/docs/architecture/managed-database-ingress)
+- [Network addressing](/docs/deployment/network-addressing)

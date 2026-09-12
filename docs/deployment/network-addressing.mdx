@@ -1,0 +1,153 @@
+---
+title: Network addressing
+description: Reserved ranges and Docker address pools, worked against a multi-NIC fleet with two datacenters, a corporate VPN allocation, and dockerd pools moved off it
+---
+
+# Network addressing
+
+This page is the operator walkthrough for the two address-policy knobs under
+**Network** — **Reserved ranges** and Docker **Host address pools** — and for
+how they sit next to datacenters. The model (priority, trust, the ladder, the
+collision codes) is on [Datacenter
+networks](/docs/architecture/datacenter-networks); this page applies it to one
+concrete fleet.
+
+## The example fleet
+
+Five servers. All five sit on the office LAN, which hands out addresses by
+DHCP. Three of them also have a second NIC on a statically addressed backhaul
+switch used for database replication and backups.
+
+| Server | Primary LAN (DHCP) | Backhaul (static) |
+| --- | --- | --- |
+| `web-1` | `192.168.10.21/24` | — |
+| `web-2` | `192.168.10.22/24` | — |
+| `db-1` | `192.168.10.31/24` | `10.40.0.1/24` |
+| `db-2` | `192.168.10.32/24` | `10.40.0.2/24` |
+| `backup-1` | `192.168.10.40/24` | `10.40.0.9/24` |
+
+Two other facts about this network matter to TurboPanel even though TurboPanel
+manages neither of them:
+
+- The company VPN hands remote staff addresses in `10.8.0.0/16`, and the
+  office router routes that block to the VPN concentrator.
+- Docker's built-in address pools start at `172.17.0.0/16` and, for
+  user-defined networks, walk up through `172.18.0.0/16`, `172.19.0.0/16`, …
+  and on into `192.168.0.0/20` slices — which is uncomfortably close to the
+  office LAN.
+
+## Two datacenters, not one
+
+Create **two** datacenters, because there are two routing domains:
+
+| Datacenter | Subnet | Members | Priority | Trusted |
+| --- | --- | --- | --- | --- |
+| **Primary LAN** | `192.168.10.0/24` | all five | `100` (default) | yes |
+| **Backhaul** | `10.40.0.0/24` | `db-1`, `db-2`, `backup-1` | `10` | yes |
+
+`db-1`, `db-2`, and `backup-1` are each one server in two datacenters. Create
+each datacenter from a server's reported private address on that NIC (the
+daemon reports the interface prefix, so the subnet is detected), then add the
+remaining members from the datacenter's **Member servers** panel — the picker
+only offers addresses inside that datacenter's subnets, so `web-1` cannot be
+pinned into Backhaul by mistake.
+
+Set **Backhaul** to priority `10` on its **Routing** panel. Lower wins, so any
+pair of servers that shares both datacenters — `db-1 ↔ db-2`, `db-1 ↔
+backup-1`, and so on — replicates and backs up over the backhaul switch, while
+`web-1 ↔ db-1` (which share only Primary LAN) stays on the office network. The
+Routing panel names the effect before you save: *"Backhaul (priority 10)
+currently wins over Primary LAN (100) for db-1 ↔ db-2."* A managed replica on
+`db-2` shows `Datacenter LAN · Backhaul (priority 10)` in its cluster row.
+
+Both datacenters are **trusted** here — you own both switches. Leave `trusted`
+on. The case for switching it off is a segment you do not control: a shared
+retail LAN, a provider-owned VLAN, a hotel network. Across an untrusted
+datacenter TurboPanel forces server-to-server traffic through TurboFabric, and
+it refuses to place a failover replica there at all (`422
+failover_requires_trusted_datacenter`); a read replica can still be added, and
+it will replicate over TurboFabric.
+
+## Declare the VPN block as a reserved range
+
+Nothing in TurboPanel knows about `10.8.0.0/16` yet, and two of its allocators
+could plausibly pick something inside it: the TurboFabric container pool
+defaults to `10.192.0.0/12` (safe here), but a future datacenter subnet, a
+Docker registration with an explicit `--subnet`, or a hand-picked address pool
+could all land in `10.8.x.x`. If one did, a remote colleague's VPN address
+would collide with a container's, and Caddy — or the published service behind
+it — would answer the wrong side.
+
+Under **Network → Reserved ranges**, add:
+
+| Name | CIDR |
+| --- | --- |
+| Corporate VPN | `10.8.0.0/16` |
+
+From then on the range is off-limits to every allocator and every operator
+write. A later attempt to add a `10.8.20.0/24` site subnet, register a Docker
+network on it, or point an address pool at it is refused with `409
+cidr_overlaps_reserved`, and the console shows the reserved range it hit.
+Reserved ranges are org-wide and carry no datacenter or host: the VPN is
+reachable from every office segment, so it has to be avoided everywhere.
+
+## Move Docker's address pools off the LAN
+
+With Docker's defaults, the tenth or so user-defined network on a busy host
+lands in `192.168.0.0/20` — and `192.168.10.0/24`, the office LAN, is inside
+that block. Rather than hoping no host ever gets that far, give dockerd its own
+range. Under **Network → Docker networks → Host address pools**:
+
+| Base | Size |
+| --- | --- |
+| `10.210.0.0/16` | `24` |
+
+Optionally set the **Default bridge** to `10.211.0.1/16`. Note the shape: that
+is the bridge's own **host** address with its prefix, exactly as dockerd's
+`bip` wants it — `10.211.0.0/16` (the network address) is rejected.
+
+What this does, precisely:
+
+- Every enrolled host merges the pools and the bridge address into
+  `/etc/docker/daemon.json` on its next daemon session and **restarts
+  dockerd**. Plan the save like any other daemon restart on the host.
+- Networks and containers that already exist **keep their addresses**. Pools
+  only affect networks created afterwards. Docker cannot re-range an existing
+  network; if you need an old network on the new range, remove and recreate
+  it.
+- The pool bases and the default bridge's network join the organization's
+  CIDR registry. A site subnet, a reserved range, or a Docker registration
+  may no longer overlap `10.210.0.0/16` or `10.211.0.0/16`
+  (`409 cidr_overlaps_docker_network`), and the TurboFabric allocators stay
+  clear of both. The bridge may not sit inside one of the pools either.
+- Clearing the pools and the bridge is applied the same way: hosts remove
+  `default-address-pools` and `bip` from `daemon.json` on their next daemon
+  session (dockerd restarts again) and Docker's built-in defaults take over.
+
+`size: 24` means each compose network that names no subnet is carved as a
+`/24` out of the `/16` — 256 networks per pool. Add a second pool row rather
+than widening the first if you need more; pools may not overlap each other.
+
+A registration that needs a specific range still can have one: **Register
+Docker network** accepts an optional subnet (plus IP range, gateway, and MTU
+inside it). That range goes through the same collision check, so it cannot
+land on the VPN block or the LAN.
+
+## Reading the result on a server
+
+Open any of the database servers → **Network**. The **Interfaces** panel lists
+the daemon's addresses grouped by interface — `eth0` with the DHCP lease, `eth1`
+with the static backhaul address — and, under each, which datacenter it is
+pinned into. TurboPanel observes those interfaces; it does not configure them.
+If the DHCP lease changes and exactly one new address appears in
+`192.168.10.0/24`, the pin follows it automatically. If none does, or more than
+one, the pin is marked **Stale** with the reason, keeps naming the last known
+address, and waits for you: unassign and re-add the server, or let the host
+report a usable address.
+
+## Related
+
+- [Datacenter networks](/docs/architecture/datacenter-networks)
+- [TurboFabric path model](/docs/architecture/turbofabric-path-model)
+- [Managed database ingress](/docs/architecture/managed-database-ingress)
+- [Daemon setup](/docs/deployment/daemon-setup)

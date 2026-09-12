@@ -8,6 +8,7 @@
     "daemon-cell",
     "server-metrics",
     "managed-database-ingress",
+    "datacenter-networks",
     "turbofabric-path-model",
     "storage-architecture",
     "deployment-logs",

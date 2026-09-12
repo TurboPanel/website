@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "verify:ci": "pnpm lint && pnpm check:hosts && pnpm check:vocabulary && pnpm notices:check && pnpm typecheck && pnpm test:coverage",
     "check:hosts": "node scripts/check-control-plane-hosts.mjs",
     "check:docs-ssr": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-docs-ssr.mjs",
     "check:vocabulary": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-vocabulary.mjs",

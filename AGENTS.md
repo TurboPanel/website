@@ -102,6 +102,7 @@ checkout (`../dev/AGENTS.md` → Testing). Do not run `pnpm typecheck` /
 ```bash
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm test'
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm test:coverage'
+vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm verify:ci'
 ```
 
 **CI:** `.github/workflows/verify.yml` runs lint, `check:hosts`, `check:vocabulary`, `notices:check`, typecheck, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`.
