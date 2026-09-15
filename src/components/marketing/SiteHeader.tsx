@@ -5,7 +5,18 @@ import { MobileNavMenu } from '@/components/marketing/MobileNavMenu'
 import { SignInButton } from '@/components/marketing/SignInButton'
 import { SocialNavLinks } from '@/components/marketing/SocialNavLinks'
 
-export type ActivePage = 'overview' | 'setups' | 'roadmap' | 'pricing' | 'docs' | 'open-source' | 'security' | 'changelog'
+export type ActivePage =
+  | 'overview'
+  | 'setups'
+  | 'roadmap'
+  | 'pricing'
+  | 'docs'
+  | 'open-source'
+  | 'security'
+  | 'changelog'
+  | 'terms'
+  | 'privacy'
+  | 'acceptable-use'
 
 type SiteHeaderProps = Readonly<{
   active?: ActivePage

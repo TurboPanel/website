@@ -59,7 +59,7 @@ The installer:
 
 ### Self-hosted control plane
 
-Add `TURBOPANEL_HOST` when the instance is not production Cloudflare:
+Add `TURBOPANEL_HOST` when the instance is not production Cloudflare. Use `:8443` by default; omit the port (or use `:443`) when `turbopanel_tls_mode=lets_encrypt`. Public TLS omits `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
 
 ```bash
 curl -fsSL turbopanel.sh | \

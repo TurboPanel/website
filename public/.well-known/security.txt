@@ -1,0 +1,6 @@
+Contact: mailto:security@turbopanel.io
+Contact: https://github.com/TurboPanel/turbopanel/security/advisories/new
+Expires: 2027-09-12T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://turbopanel.io/.well-known/security.txt
+Policy: https://turbopanel.io/security

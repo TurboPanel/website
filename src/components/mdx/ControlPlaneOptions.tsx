@@ -11,7 +11,7 @@ export function ControlPlaneOptions() {
         <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)]">
           Planned default when TurboPanel operates the control plane worldwide. Private alpha — not
           yet publicly available;{' '}
-          <a href="https://turbopanel.io/sign-up" className="text-[var(--tp-accent)] hover:underline">
+          <a href="https://turbopanel.app/sign-up" className="text-[var(--tp-accent)] hover:underline">
             join the waitlist
           </a>{' '}
           for access updates.

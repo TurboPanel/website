@@ -35,7 +35,7 @@ On the control plane host, a **co-located daemon** installs and updates the inst
 
 ```mermaid title="Self-hosted control plane traffic flow"
 graph TD
-    Browser --> Caddy["Caddy :8443 TLS"]
+    Browser --> Caddy["Caddy TLS (default :8443)"]
     DevBrowser["Dev browser :8880 HTTP"] --> Caddy
     Caddy --> Instance["Deno instance Unix socket"]
     Caddy --> UI["Expo web or static export"]
@@ -49,12 +49,30 @@ graph TD
 | Feature | Self-hosted (Deno) | TurboPanel High Availability |
 | ------- | ------------------ | ---------------------------- |
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
-| **TLS** | Caddy (platform CA) | Cloudflare-managed TLS |
+| **TLS** | Caddy (platform CA by default; Let's Encrypt or uploaded cert optional) | Cloudflare-managed TLS |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
 | **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
-| **Availability** | Private alpha — preview | Private alpha — [waitlist](https://turbopanel.io/sign-up) |
+| **Availability** | Private alpha — preview | Private alpha — [waitlist](https://turbopanel.app/sign-up) |
 | **Pricing (planned)** | Free, unlimited servers | See [pricing](https://turbopanel.io/pricing) when available |
+
+## Control-plane TLS modes
+
+Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (Ansible extra-var; default `self_signed`). The Platform CA is still minted in every mode.
+
+| Mode | Caddyfile | Listen | Leaf material | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
+| --- | --- | --- | --- | --- | --- |
+| `self_signed` (default) | `Caddyfile` | `:8443` | `certs/self-signed.*` | 200 | yes |
+| `upload` | `Caddyfile` | `:8443` (or `caddy_port`) | operator pair copied to `certs/` | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
+| `lets_encrypt` | `Caddyfile.acme` | `:443` (+ `:80` challenge) | Caddy ACME storage | 404 | no |
+
+| Port | When |
+| ---- | ---- |
+| **8443** | Default HTTPS (`self_signed` / `upload`) |
+| **443** + **80** | `lets_encrypt` (HTTPS + HTTP-01). Must be free on the control-plane host — it conflicts with a hosting Caddy on the same host. |
+| **8880** | Co-located dev plaintext mirror only |
+
+`TURBOPANEL_TLS_PUBLIC=1` (set automatically in `lets_encrypt`, or when `turbopanel_tls_public` is true) makes the Deno CA route 404 so daemons use the system trust store, and install commands omit `--insecure-tls` even on a non-443 port.
 
 ## Installation paths
 
@@ -92,7 +110,7 @@ Services on a contributor dev host:
 | ---- | ---- | ---- |
 | `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopaneld` in dev) |
 | `turbopanel-instance.service` | current dev user | Deno API on Unix socket |
-| `turbopanel-caddy.service` | current dev user | TLS + reverse proxy `:8443`; dev-only plaintext mirror `:8880` when enabled |
+| `turbopanel-caddy.service` | current dev user | TLS + reverse proxy `:8443` by default; dev-only plaintext mirror `:8880` when enabled |
 | `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |
 
 See [Local development](/docs/getting-started/development). Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
@@ -109,7 +127,7 @@ When self-hosted is publicly available, operators provision a managed **FHS** co
     Install the control plane with the managed production converge (Ansible `instance-launch` and related roles).
   </Step>
   <Step>
-    Complete the install wizard at `https://<host>:8443` (host PAM + superadmin).
+    Complete the install wizard at `https://<host>:8443` by default (host PAM + superadmin). Use `https://<hostname>/` when `turbopanel_tls_mode=lets_encrypt`.
   </Step>
   <Step>
     Enroll managed servers with `turbopanel.sh` — [Daemon setup](/docs/deployment/daemon-setup).
@@ -125,7 +143,7 @@ Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-host
 
 ### TurboPanel High Availability (private alpha — waitlist)
 
-TurboPanel High Availability runs the instance on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to a hosted URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.io/sign-up) for access updates.
+TurboPanel High Availability runs the instance on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to a hosted URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.app/sign-up) for access updates.
 
 When access is available, operators create an organization in the hosted panel, configure Workers bindings and secrets, and enroll nodes with `turbopanel.sh` (manifest default host — no `TURBOPANEL_HOST` required).
 
@@ -164,12 +182,14 @@ pnpm deploy
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI export root. Production (FHS) default `/opt/turbopanel/share/ui` (where the daemon `ui-build` role publishes the export); co-located dev overrides it to a checkout-relative path such as `../ui/dist` |
-| `CADDY_PORT` | HTTPS listen port (default **8443**) |
+| `CADDY_PORT` | HTTPS listen port (default **8443**; `lets_encrypt` binds **443**) |
+| `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s and install commands omit `--insecure-tls` |
 | `CADDY_HTTP_PORT` | Dev-only plaintext HTTP listen port (default **8880**) |
 | `TURBOPANEL_DEV_HTTP_CONTROL_PLANE` | Must be `"1"` to serve the dev plaintext entrypoint on `CADDY_HTTP_PORT`; injected automatically on co-located dev hosts only |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Workers dev sign-up override |
+| `TURBOPANEL_AUTH_PROVIDERS__*` | GitHub / Google OAuth client id + secret (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Env wins over the `SYSTEM_AUTH_PROVIDERS` setting row. On TurboPanel High Availability these are Wrangler secrets. |
 
-Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout.
+Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout. Provider setup (Admin → Auth providers, env-wins, and linking rules): [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ### API entrypoints
 
@@ -184,7 +204,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 | `/api/openapi.json` | OpenAPI 3.1 spec |
 | `/` | Web UI (via Caddy) |
 
-**HTTPS entrypoint (self-hosted):** **`https://<host>:8443`**
+**HTTPS entrypoint (self-hosted):** **`https://<host>:8443`** by default. `lets_encrypt` serves **`https://<hostname>/`** on `:443`.
 
 <Callout type="warn" title="Dev-only plaintext HTTP entrypoint">
   Co-located development also exposes a plaintext mirror at **`http://<host>:8880`**
@@ -215,6 +235,7 @@ In the organization console, **Merged compose** is a client-side simulation of t
 ## Related documentation
 
 - [Installation paths](/docs/getting-started/installation) — Decision guide for all install paths
+- [Accounts and access](/docs/getting-started/accounts-and-access) — Two-factor, passkeys, GitHub / Google sign-in, and invitations
 - [Self-hosted overview](/docs/deployment/self-hosted) — Operator responsibilities
 - [Daemon setup](/docs/deployment/daemon-setup) — Remote node installer
 - [Security](/docs/deployment/security) — TLS, auth, and hardening

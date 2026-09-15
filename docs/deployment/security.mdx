@@ -13,6 +13,11 @@ TurboPanel's security model spans the control plane (management interface and AP
 
 ## Control Plane Security
 
+Tenant **hosting** certificates (sites on :80/:443) are separate from the
+control-plane leaf. Operators pin a library cert, use Caddy `tls internal`, or
+pin a Let's Encrypt row that Caddy issues on the serving host. See
+[Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+
 ### TLS/SSL Configuration
 
 <Callout type="info" title="Production Requirement">
@@ -20,7 +25,17 @@ TurboPanel's security model spans the control plane (management interface and AP
   expose the control plane directly on HTTP in production.
 </Callout>
 
-Self-hosted deployments ship **Caddy** on port **8443** with a platform CA. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the instance socket:
+Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (default `self_signed`):
+
+| Mode | Listen | Platform CA served | `--insecure-tls` |
+| --- | --- | --- | --- |
+| `self_signed` (default) | `:8443` | yes | yes |
+| `upload` | `:8443` (or `caddy_port`) | unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
+| `lets_encrypt` | `:443` (+ `:80` challenge) | no (404) | no |
+
+`lets_encrypt` needs `:80`/`:443` free on the control-plane host. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
+
+Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the instance socket:
 
 ```nginx
 # nginx example — proxy to Caddy HTTPS or upstream HTTP
@@ -45,8 +60,14 @@ The control plane implements:
 
 - Signed session cookies for the web UI (`TURBOPANEL_SECRETS`)
 - Argon2id password hashing for credential accounts (OWASP `m=19456,t=2,p=1`)
+- TOTP second factor with one-time backup codes
+- Passkeys (WebAuthn, user-verification required, browser-only)
+- GitHub / Google sign-in with **identity persisted only, no provider tokens, and no automatic linking by email**
+- Re-authentication (password, or a session younger than 15 minutes) for enroll/disable 2FA, passkey add/remove, and provider unlink
 - Host PAM gate for the Deno install wizard (not for routine sign-in)
 - WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
+
+Operator flows: [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ### Initial install endpoint
 
@@ -56,7 +77,7 @@ On Deno self-hosted, install endpoints are only available while the instance is 
 
 - Use Docker networks to isolate containers
 - Restrict Docker socket access to necessary containers only
-- Implement firewall rules to restrict access to the HTTPS entrypoint (default **8443**)
+- Implement firewall rules to restrict access to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`)
 - Use TurboFabric or private networks for daemon communication when possible
 - Consider Docker Swarm or Kubernetes network policies
 
@@ -105,11 +126,14 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 | Scheme | Shape | Where |
 | --- | --- | --- |
-| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, principal passwords, email secrets) |
+| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, principal passwords, email secrets, TOTP secret, OAuth client secrets) |
 | `tpdaemon` | `tpdaemon.v<n>.<serverId>.<keyId>.<payload>` | Daemon delivery only |
 | `tpsession` | `tpsession.v<n>.<token>.<sig>` | Session cookie value |
 | `tpotp` | `tpotp.v<n>.<hmacHex>` | Email OTP verifier at rest |
 | `tpchallenge` | `tpchallenge.v<n>.<payload>.<sig>` | Stateless daemon enroll/auth challenge |
+| `tp2fa` | `tp2fa.v<n>.<payload>.<sig>` | Stateless two-factor sign-in challenge |
+| `tpwebauthn` | `tpwebauthn.v<n>.<payload>.<sig>` | Stateless WebAuthn ceremony challenge |
+| `tpoauth` | `tpoauth.v<n>.<payload>.<sig>` | OAuth start/callback CSRF state |
 
 **Keyring (`TURBOPANEL_SECRETS`):** the list is authoritative **in the order written** — first entry is current/signing; remaining entries are decrypt/verify-only fallbacks. Entries listed out of descending-version order log a warning and the first entry still signs. Example keyring shape (placeholder material only): `2:<new-key>,1:<old-key>`.
 
@@ -118,14 +142,14 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 1. **Add a key version** — re-run the instance converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the instance `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
 2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the instance and the mailer (which loads the same env files to decrypt `MAILGUN_API_KEY` / `SMTP_PASS`).
 3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version.
-4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand.
-5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min, stateless challenges ≤60 s. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
+4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep now also covers the TOTP secret and the stored provider client secrets, so a key cannot be retired before those are re-sealed.
+5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min; daemon enroll/auth challenges (`tpchallenge`) ≤60 s; account-security challenges (`tp2fa` / `tpwebauthn`) ≤5 min; OAuth state (`tpoauth`) ≤10 min. Waiting 10 minutes covers every current stateless auth envelope. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
 
 ### Firewall Rules
 
 Recommended:
 
-- Allow inbound to the HTTPS entrypoint (default **8443**) only from trusted networks
+- Allow inbound to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`) only from trusted networks
 - Restrict outbound to necessary services only
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
@@ -141,7 +165,7 @@ Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (
 ### Authentication
 
 - Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
-- Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic
+- Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic. Public TLS (`lets_encrypt` / `TURBOPANEL_TLS_PUBLIC`) uses the system trust store and omits `--insecure-tls`.
 - Rotate the instance root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
 
 ### Network Security
@@ -153,7 +177,7 @@ Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (
 
 - **TLS/SSL:** Use HTTPS/WSS for production deployments
 - **Network Isolation:** Run daemons in isolated networks when possible (Docker networks, VPC)
-- **Firewall Rules:** Daemons are outbound clients — block unnecessary inbound to daemon hosts; allow outbound **8443** (or your instance URL) from daemons to the control plane
+- **Firewall Rules:** Daemons are outbound clients — block unnecessary inbound to daemon hosts; allow outbound **8443** by default (or **443** / your instance URL) from daemons to the control plane
 
 ### Docker Socket Security
 
@@ -192,12 +216,13 @@ graph TD
 
 ## Secure Deployment Example
 
-<Tabs items={['Self-Hosted', 'Cloud-Hosted']}>
+<Tabs items={['Self-Hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-Hosted">
 
 ```bash
-# Self-hosted: Caddy on 8443 with platform CA (default Ansible install)
+# Self-hosted: Caddy on 8443 with platform CA by default (Ansible install)
 # Optional outer nginx terminates public TLS and proxies to Caddy:
+# lets_encrypt binds :443 and omits --instance-ca / --insecure-tls.
 
 # Remote managed server — official installer
 curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/install.sh \
@@ -207,13 +232,13 @@ curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/ins
 ```
 
   </Tab>
-  <Tab value="Cloud-Hosted">
+  <Tab value="TurboPanel High Availability">
 
 ```bash
-# Remote managed server connecting to Workers instance
-curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/install.sh \
-  | sudo bash -s -- \
-      --instance-url https://your-instance.workers.dev
+# Remote managed server connecting to TurboPanel High Availability
+# Hosted enrollments use the installer manifest default.
+# Set TURBOPANEL_HOST only when you have a documented custom hosted URL.
+curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
   </Tab>

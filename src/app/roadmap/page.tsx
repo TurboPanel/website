@@ -20,7 +20,7 @@ type Phase = Readonly<{
   discussionUrl?: string
 }>
 
-const LAST_UPDATED = '2026-08-28'
+const LAST_UPDATED = '2026-09-14'
 
 const PHASES: ReadonlyArray<Phase> = [
   {
@@ -31,6 +31,7 @@ const PHASES: ReadonlyArray<Phase> = [
     releaseUrl: 'https://github.com/TurboPanel/turbopanel/releases',
     focus: [
       'Secure sign-in, verification, recovery, and team invitations',
+      'TOTP authenticator-app second factor and passkeys',
       'The same product experience across High Availability and self-hosted',
       'Organizations, workspaces, invitations, and flexible access',
       'Clear guides for setup, security, deployment, and automation',
@@ -63,7 +64,8 @@ const PHASES: ReadonlyArray<Phase> = [
       'WordPress, PHP, and static site hosting with SFTP access (shipped)',
       'Managed databases with users, backups, and high availability (shipped)',
       'Scheduled tasks and push-to-deploy from GitHub and GitLab (shipped)',
-      'Automatic TLS certificates and richer container day-to-day views',
+      'Automatic TLS certificates (shipped)',
+      'Richer container day-to-day views',
     ],
   },
   {
@@ -76,7 +78,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Backup workflows for apps, sites, and volumes',
       'Scheduled backups with retention policies',
       'Health checks and operator alerts',
-      'MFA, audit logs, and further security hardening',
+      'Audit logs and further security hardening',
     ],
   },
   {
@@ -344,7 +346,7 @@ export default function RoadmapPage() {
       <MarketingHero
         eyebrow="Product roadmap · Private alpha"
         title="In private alpha. Building toward beta."
-        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, deploys, website hosting, and managed databases are furthest along, and we are now finishing TLS automation and everyday container operations. Last updated ${LAST_UPDATED}.`}
+        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, deploys, website hosting, managed databases, and automatic TLS are furthest along, and we are now finishing everyday container views. Last updated ${LAST_UPDATED}.`}
         aside={
           <StatusAside
             shipped={shipped}

@@ -61,14 +61,16 @@ Custom auth built on the **Web Crypto API** (no `nodejs_compat`):
 
 - Passwords: Argon2id (`src/client/authn/password.ts`, OWASP `m=19456,t=2,p=1`)
 - Sessions: opaque DB tokens + signed cookies (`src/auth/session-store.ts`)
+- TOTP second factor and passkeys on `/api/client/v1/auth/*` — sign-in can return a pending challenge rather than a session
+- GitHub / Google sign-in on `/api/client/v1/auth/oauth/*` — the callback is redirect-only (never JSON)
 - **Install wizard (Deno only):** host PAM via `pamtester` for bootstrap; superadmin email/password for first org
 - **Workers dev:** optional public sign-up via `TURBOPANEL_IS_SIGNUP_ENABLED`
 
-Client auth routes under `/api/client/v1/auth/*`. Install wizard routes live under `/api/install/v1/*`. See the instance repo `AGENTS.md` for the full route table.
+Client auth routes under `/api/client/v1/auth/*`. Install wizard routes live under `/api/install/v1/*`. The full route table lives in `turbopanel/src/client/authn/AGENTS.md` — do not duplicate it here. Operator flows: [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ### Secret envelopes
 
-Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the instance re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes — field order is exactly `tpdaemon.v<n>.<serverId>.<keyId>.<payload>`. The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Full scheme table and rotation runbook: [Security → Envelope grammar](/docs/deployment/security#envelope-grammar).
+Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the instance re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes — field order is exactly `tpdaemon.v<n>.<serverId>.<keyId>.<payload>`. Stateless auth challenges use `tp2fa` (two-factor sign-in), `tpwebauthn` (WebAuthn ceremony), and `tpoauth` (OAuth start/callback CSRF state). The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Full scheme table and rotation runbook: [Security → Envelope grammar](/docs/deployment/security#envelope-grammar).
 
 ## Database
 
@@ -77,7 +79,7 @@ Single **PostgreSQL 18** database per environment. Schema groups:
 | Group | Tables (examples) |
 | ----- | ----------------- |
 | Identity | `user`, `account`, `session`, `verification`, … |
-| Organizations | `organization`, `member`, `team`, `invitation`, … |
+| Organizations | `organization`, `teammate`, `team`, `invitation`, `grant`, … |
 | Config | `setting` |
 | Runtime | `server` |
 

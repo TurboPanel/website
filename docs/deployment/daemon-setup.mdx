@@ -25,7 +25,7 @@ The daemon is the constant on every TurboPanel-managed host and the only party t
 ```mermaid
 graph TD
     subgraph "Control plane host"
-        Caddy["Caddy :8443"] --> Instance
+        Caddy["Caddy TLS (default :8443)"] --> Instance
         CD[Co-located daemon] --> Instance
         CD --> Ansible
     end
@@ -40,13 +40,23 @@ graph TD
 
 | Feature | TurboPanel High Availability | Self-hosted instance |
 | ------- | ---------------------------- | -------------------- |
-| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` |
+| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` by default (`lets_encrypt` uses `:443`) |
 | Co-located daemon | Optional (contributor dev / socket mode) | Yes on control plane |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
 | Daemon coordination | WSS (Durable Objects) | WSS (Redis cell) |
 
 Both control-plane models are in **private alpha** and not yet publicly available. The installer and daemon behavior below apply when you have access.
+
+Self-hosted TLS modes (`turbopanel_tls_mode`) and the ports they bind:
+
+| Mode | Listen | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
+| --- | --- | --- | --- |
+| `self_signed` (default) | `:8443` | 200 | yes |
+| `upload` | `:8443` (or `caddy_port`) | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
+| `lets_encrypt` | `:443` (+ `:80` challenge) | 404 | no |
+
+`lets_encrypt` needs `:80`/`:443` free on the control-plane host. Full table: [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
 
 ## Installation
 
@@ -73,10 +83,13 @@ Both control-plane models are in **private alpha** and not yet publicly availabl
   </Step>
   <Step>
     For self-hosted HTTPS, the installer fetches the platform CA from
-    `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`. Re-run the same command
-    any time to upgrade or reconcile a node.
+    `GET /api/daemon/v1/instance/ca` by default and configures `TURBOPANEL_INSTANCE_CA`.
+    A 404 (Let's Encrypt / `TURBOPANEL_TLS_PUBLIC`) uses the system trust store
+    instead. Re-run the same command any time to upgrade or reconcile a node.
   </Step>
 </Steps>
+
+Self-hosted examples below use `:8443` by default. Omit the port (or use `:443`) when `turbopanel_tls_mode=lets_encrypt`. Public TLS omits `--insecure-tls`.
 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
@@ -141,7 +154,7 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mism
 | `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
 | `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
-| `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (dev/self-signed CDN or instance) |
+| `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (platform CA / self-signed). Omitted when `TURBOPANEL_TLS_PUBLIC` is set (Let's Encrypt, or an uploaded publicly trusted cert). |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
 | `--no-start` | Provision without starting `turbopaneld.service` |
@@ -198,7 +211,7 @@ Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/tu
 | Issue | Solution |
 | ----- | -------- |
 | Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, firewall, TLS CA trust |
-| TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca` |
+| TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca`. A 404 means public TLS — use the system trust store (no `instance-ca.pem`, no `--insecure-tls`). |
 | Unsupported architecture | TurboPanel requires 64-bit `aarch64` or `x86_64`; 32-bit Raspberry Pi OS is not supported |
 | Docker permission errors | Ensure `tp` user is in `docker` group (installer adds this when Docker is installed) |
 

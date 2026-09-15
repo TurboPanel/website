@@ -1,0 +1,31 @@
+---
+title: Hostnames and TLS
+description: Public hostnames, Let's Encrypt via hosting Caddy, and which bind scopes can obtain a certificate
+---
+
+# Hostnames and TLS
+
+Hosting Caddy on each managed server listens on **:80** and **:443**. A hostname
+you pin to a service can use an uploaded or self-signed library certificate,
+Caddy `tls internal`, or a **Let's Encrypt** library row that Caddy issues and
+renews on the host (`tlsMode: acme`).
+
+## Let's Encrypt (managed by Caddy)
+
+A Let's Encrypt certificate in the organization TLS library is **intent only**
+until Caddy obtains the leaf. HTTP-01 is the only challenge. That requires:
+
+- The hostname **resolves to the serving host** (the daemon that will run the
+  site).
+- **:80** and **:443** are reachable from the internet on that host.
+- **No wildcard names** (`*.example.com`). Request each hostname explicitly.
+- The hosting bind scope must be **public**. `local` and `datacenter` binds
+  cannot receive HTTP-01 traffic; deploy-prepare refuses those pins with
+  `acme_requires_public_bind`.
+
+Caddy writes and renews the certificate on the host. TurboPanel does not run
+its own ACME client. Wildcards and DNS-01 are rejected when the library row is
+created.
+
+See also [Organization CA](/docs/security/organization-ca) — hosting leaves are
+never issued by the Organization CA.

@@ -12,6 +12,9 @@ const FOOTER_LINKS = [
   { href: '/docs', label: 'Docs' },
   { href: '/docs/api', label: 'API reference' },
   { href: '/about/logo', label: 'Logo & brand' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/acceptable-use', label: 'Acceptable use' },
 ] as const
 
 export function SiteFooter() {

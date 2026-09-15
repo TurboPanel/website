@@ -11,6 +11,7 @@
     "uninstall",
     "metrics",
     "network-addressing",
+    "hostnames-and-tls",
     "tiers",
     "security",
     "troubleshooting"
