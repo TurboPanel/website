@@ -1,0 +1,54 @@
+# Cuts a GitHub Release on a v* tag. website has no build/package step to
+# release — it deploys from trunk via Cloudflare Workers Builds, unrelated to
+# this — so this is a notes-only release, purely for version tracking and to
+# give the compatibility matrix / release notes a place to link to. See the
+# Road to 0.1.x page's `other-repos` item.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release without a leading v (e.g. 0.0.0-workflow-test)
+        required: true
+        type: string
+      channel:
+        description: Channel label for this release
+        required: true
+        type: string
+        default: rc
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      channel: ${{ steps.resolve.outputs.channel }}
+    steps:
+      - name: Resolve version and channel
+        id: resolve
+        run: |
+          set -eu
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "channel=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
+          else
+            _ref="${{ github.ref_name }}"
+            echo "version=${_ref#v}" >> "$GITHUB_OUTPUT"
+            echo "channel=release" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: prepare
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@trunk
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      channel: ${{ needs.prepare.outputs.channel }}
+      release-notes: "See https://github.com/${{ github.repository }}/commits/v${{ needs.prepare.outputs.version }} for changes."
