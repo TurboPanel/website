@@ -153,6 +153,24 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 **Hosted (Cloudflare Workers).** There is no equivalent automatable step: `wrangler secret put` is write-only, and Cloudflare has no API to read a secret's value back once set. The value has to be preserved by whoever generates it, at generation time — store it the same way you would any other credential with no recovery path (a password manager, an offline printed copy, your organization's secrets-management tooling) before it is typed into `wrangler secret put` and the local copy is discarded.
 
+### Backup and disaster recovery
+
+The control plane's own Postgres database holds every organization's secrets, TLS private keys, and OAuth tokens — the same "no copy, no recovery" stakes as the root secret above, for a much larger blast radius if it's lost.
+
+**Self-hosted.** A nightly backup is on by default — `postgres_backup_enabled: true` in the daemon `instance-launch`/`system-compose` role. Every night (`postgres_backup_oncalendar`, default `03:00`) `pg_dump -Fc` runs inside the database container over its default local connection (no password handling — the same trust model the customer-facing managed-engine backup feature already relies on), writes atomically, and prunes to the newest `postgres_backup_retention_keep` dumps (default 14) under `/var/lib/turbopanel/backup/postgres`. That alone protects against operator error and container/data corruption on the same volume, but **it is not yet off-host** by default — a lost or destroyed control-plane host takes the backups with it just like the database itself. Set `postgres_backup_remote_destination` to an `rsync`-compatible target (`user@host:/path/`) to have the script push each fresh dump off-host immediately after it's written; left unset, backups stay local only.
+
+- **RPO (recovery point objective):** up to 24 hours — the gap since the last nightly dump. Lower it by running the backup script manually before a risky change, or by shortening `postgres_backup_oncalendar`.
+- **RTO (recovery time objective):** no fixed target published yet; dominated by restore time, which scales with database size. Time a real restore on your own data before treating any number here as a promise.
+- **Restore runbook:**
+  1. Stop the stack so nothing writes to the database mid-restore: `systemctl stop turbopanel-system-stack`.
+  2. Confirm the dump you're restoring from is intact — `pg_restore --list <dump>` should enumerate its contents without error before you touch the live database.
+  3. Bring the database container back up on its own (`docker compose -p turbopanel-system -f /etc/turbopanel/system/docker-compose.yml up -d database`), then drop and recreate the target database: `docker exec turbopanel-database dropdb -U turbopanel turbopanel && docker exec turbopanel-database createdb -U turbopanel turbopanel`.
+  4. Restore: `docker exec -i turbopanel-database pg_restore -U turbopanel -d turbopanel < <dump>`.
+  5. Restart the full stack (`systemctl start turbopanel-system-stack`) and confirm the instance comes up and can read a known row before considering the restore complete.
+  - A rotation performed after the dump was taken means the restored database's secrets are sealed under an old key version the running instance may no longer trust for signing — re-run the [rotation runbook](#rotation-self-hosted-runbook)'s sweep step after a restore if the dump predates a rotation, rather than assuming the restored data is immediately consistent with the current keyring.
+
+**Hosted (Cloudflare Workers).** Workers route through Hyperdrive, a connection pooler in front of an origin Postgres — Hyperdrive itself takes no snapshots and isn't a backup service. What backs that origin, and who owns its backup/restore procedure, isn't settled yet; treat the self-hosted backup story above as the reference until this is documented here.
+
 ### Firewall Rules
 
 Recommended:
