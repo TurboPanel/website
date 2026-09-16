@@ -98,6 +98,14 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
+### Tenant compose field gate
+
+On a self-hosted server, every tenant app on that host shares the same Docker daemon and the same Docker socket the panel itself talks to. A compose service that sets `privileged`, `cap_add`, `devices`, `network_mode`, `pid`, `ipc`, `userns_mode`, `security_opt`, `cgroup_parent`, or `sysctls` gets root-equivalent access to that shared host — compromising every other tenant co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too.
+
+These ten fields are **deny-by-default** for every organization. An org owner has to opt in explicitly — `PUT /organizations/:id/compose-privileged-fields` — before a deploy that sets any of them will run; a compose document that names one without the opt-in is refused with `403 compose_field_requires_org_opt_in`, naming the field. Ordinary fields a tenant needs for everyday deploys — bind mounts (`volumes`), published ports (`ports`), a non-root user (`user`), dropping a capability (`cap_drop`) — are unaffected; only the namespace/capability-*escaping* set is gated.
+
+This is authorization, not yet an audited one: TurboPanel has no audit-log table today, so a toggle flip is not currently recorded anywhere beyond the organization row itself. Turn this on only for an organization with a real, understood need for one of these fields — it is not a per-field allowlist, and turning it on admits all ten.
+
 ### Token Management
 
 - Store tokens in environment variables or secrets manager
