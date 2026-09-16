@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955e27ac1
+pnpm-lock.yaml sha256:6acf4b1e6faad533a4c92ec1825d69ccb82ffe6f7a89aab97f5e528459c25e53
 -->
 
 ## Production dependencies
@@ -660,7 +660,7 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.2.9
+### @next/env@16.3.3
 
 - License: MIT
 - Copyright: Next.js Team
@@ -1385,12 +1385,6 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Copyright: Colin McDonnell
 - Homepage: https://standardschema.dev
-
-### @swc/helpers@0.5.15
-
-- License: Apache-2.0
-- Copyright: 강동윤
-- Homepage: https://swc.rs
 
 ### @swc/helpers@0.5.23
 
@@ -3762,6 +3756,12 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Andrey Sitnik
 - Homepage: https://github.com/ai/nanoid#readme
 
+### nanoid@3.3.19
+
+- License: MIT
+- Copyright: Andrey Sitnik
+- Homepage: https://github.com/ai/nanoid#readme
+
 ### nanoid@5.1.11
 
 - License: MIT
@@ -3778,7 +3778,7 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.2.9
+### next@16.3.3
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3969,13 +3969,13 @@ pnpm-lock.yaml sha256:7e63897fb919c39ea8c3a8f9f2129a7a73c1c3c6b52c8f02d3522d4955
 - Copyright: Preet Shihn
 - Homepage: https://github.com/pshihn/points-on-path#readme
 
-### postcss@8.4.31
+### postcss@8.5.15
 
 - License: MIT
 - Copyright: Andrey Sitnik
 - Homepage: https://postcss.org/
 
-### postcss@8.5.15
+### postcss@8.5.23
 
 - License: MIT
 - Copyright: Andrey Sitnik
@@ -5054,25 +5054,25 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Nicholas C. Zaks
 - Homepage: https://github.com/humanwhocodes/retry#readme
 
-### @img/sharp-libvips-linux-x64@1.2.4
-
-- License: LGPL-3.0-or-later
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
 ### @img/sharp-libvips-linux-x64@1.3.1
 
 - License: LGPL-3.0-or-later
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @img/sharp-linux-x64@0.34.5
+### @img/sharp-libvips-linux-x64@1.3.3
+
+- License: LGPL-3.0-or-later
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
+### @img/sharp-linux-x64@0.35.2
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @img/sharp-linux-x64@0.35.2
+### @img/sharp-linux-x64@0.35.4
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
@@ -5106,7 +5106,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.2.9
+### @next/swc-linux-x64-gnu@16.3.3
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -6508,7 +6508,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/set-proto#readme
 
-### sharp@0.34.5
+### sharp@0.35.4
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
