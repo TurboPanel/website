@@ -105,6 +105,20 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
+### Control-plane container hardening
+
+TurboPanel's own system-compose stack — the Postgres holding every organization's
+secrets and TLS keys, and RabbitMQ — runs `cap_drop: [ALL]`,
+`security_opt: [no-new-privileges:true]`, a read-only root filesystem (`tmpfs` for
+the one writable path either image still needs at `/tmp`; everything else each
+process writes already lives on its named volume), a memory/pids ceiling
+(overridable per install), and a `healthcheck` reusing the exact readiness
+commands (`pg_isready`, `rabbitmq-diagnostics -q ping`) the daemon already uses —
+so a container that is running but degraded is now visibly unhealthy rather than
+indistinguishable from a healthy one. Tenant compose services do not get a
+default resource ceiling yet; that default is a separate, larger decision still
+open.
+
 ### Tenant compose field gate
 
 On a self-hosted server, every tenant app on that host shares the same Docker daemon and the same Docker socket the panel itself talks to. A compose service that sets `privileged`, `cap_add`, `devices`, `network_mode`, `pid`, `ipc`, `userns_mode`, `security_opt`, `cgroup_parent`, or `sysctls` gets root-equivalent access to that shared host — compromising every other tenant co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too.
