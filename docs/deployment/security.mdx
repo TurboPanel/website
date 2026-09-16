@@ -61,6 +61,22 @@ server {
 }
 ```
 
+### ACME issuance failure visibility
+
+A `tlsMode: 'acme'` tenant hosting relies entirely on Caddy's automatic HTTPS
+to obtain and renew a Let's Encrypt certificate on the serving host. The
+daemon's `AcmeIssuanceObserver` live-probes every such hostname every 60
+seconds (a `fetch()` against the system trust store — any HTTP response at
+all means the TLS handshake already succeeded against a publicly-trusted
+certificate) and reports a state change back to the control plane: a
+debounced failure (two consecutive bad polls, so the first few seconds a
+fresh deploy spends waiting on a real certificate never false-alarms) or an
+immediate recovery. The failure message lands on the certificate's
+`acme.lastError` field and shows as "Issuance failing: …" in the TLS
+library screen. This is purely additive — it never changes a `managed`
+row's `status`, so a recorded failure cannot itself block a deploy that
+would otherwise succeed.
+
 ### Authentication
 
 The control plane implements:
