@@ -35,6 +35,13 @@ Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (default `self_signed
 
 `lets_encrypt` needs `:80`/`:443` free on the control-plane host. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
 
+Both control-plane Caddyfiles (`self_signed`/`upload` and `lets_encrypt`) send a
+baseline response-header set on every response: `Strict-Transport-Security`
+(one year, `includeSubDomains`), `X-Content-Type-Options: nosniff`, and
+`X-Frame-Options: DENY`. This is control-plane only — per-tenant hosting sites
+are a separate Caddy config the daemon generates and do not inherit these
+headers.
+
 Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the instance socket:
 
 ```nginx
@@ -59,7 +66,7 @@ server {
 The control plane implements:
 
 - Signed session cookies for the web UI (`TURBOPANEL_SECRETS`)
-- Argon2id password hashing for credential accounts (OWASP `m=19456,t=2,p=1`)
+- Argon2id password hashing for credential accounts (OWASP `m=19456,t=2,p=1`), with a fixed dummy-hash verify on unknown emails so sign-in response time doesn't disclose which addresses have a local password account
 - TOTP second factor with one-time backup codes
 - Passkeys (WebAuthn, user-verification required, browser-only)
 - GitHub / Google sign-in with **identity persisted only, no provider tokens, and no automatic linking by email**
