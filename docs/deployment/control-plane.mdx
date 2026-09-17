@@ -31,11 +31,11 @@ On the control plane host, a **co-located daemon** installs and updates the inst
   Remote nodes use the production installer at `turbopanel.sh` — not a separate control-plane container image.
 </Callout>
 
-<Callout type="warn" title="The control-plane host is not a tenant deploy target">
-  The co-located server (`this server` in the console) only runs the platform itself. Tenant projects
-  cannot be pinned to it, and an unpinned deploy never schedules onto it — a single-host install
-  answers a deploy with *"The only connected server is the co-located control-plane host …"* until
-  you [enrol a second server](/docs/deployment/daemon-setup).
+<Callout type="info" title="One server is enough">
+  The server that runs the control plane (`this server` in the console) is an ordinary deploy target.
+  A single-server install runs the panel and your projects on the same box; what you give up is
+  multi-node placement — a second database node, spreading projects across hosts — not the ability
+  to deploy. [Enrol more servers](/docs/deployment/daemon-setup) whenever you want that.
 </Callout>
 
 ### Architecture (self-hosted)
