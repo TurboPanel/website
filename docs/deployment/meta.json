@@ -4,6 +4,7 @@
     "index",
     "self-hosted",
     "control-plane",
+    "instance-configuration",
     "daemon-setup",
     "daemon-update",
     "compatibility",

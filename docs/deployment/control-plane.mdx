@@ -177,6 +177,8 @@ pnpm deploy
 
 ## Configuration
 
+The complete list of what a self-hosted instance reads at boot — required, defaulted, and silently degrading — is [Instance configuration](/docs/deployment/instance-configuration). The most common ones:
+
 ### Key environment variables (instance)
 
 | Variable | Purpose |
@@ -192,7 +194,9 @@ pnpm deploy
 | `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s and install commands omit `--insecure-tls` |
 | `CADDY_HTTP_PORT` | Dev-only plaintext HTTP listen port (default **8880**) |
 | `TURBOPANEL_DEV_HTTP_CONTROL_PLANE` | Must be `"1"` to serve the dev plaintext entrypoint on `CADDY_HTTP_PORT`; injected automatically on co-located dev hosts only |
-| `TURBOPANEL_IS_SIGNUP_ENABLED` | Workers dev sign-up override |
+| `TURBOPANEL_IS_SIGNUP_ENABLED` | Forces sign-up open (`1`) or closed (`0`), overriding the admin setting — both runtimes |
+| `TURBOPANEL_REDIS_SOCKET` / `TURBOPANEL_AMQP_URL` | Redis socket (required, opened lazily) and the RabbitMQ URL for the email queue (unset → probe, then a silent no-op queue) |
+| `TURBOPANEL_UPDATE_CHANNEL` | The channel this instance resolves daemon updates on (`trunk` default; `rc`, `release`) |
 | `TURBOPANEL_AUTH_PROVIDERS__*` | GitHub / Google OAuth client id + secret (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Env wins over the `SYSTEM_AUTH_PROVIDERS` setting row. On TurboPanel High Availability these are Wrangler secrets. |
 
 Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout. Provider setup (Admin → Auth providers, env-wins, and linking rules): [Accounts and access](/docs/getting-started/accounts-and-access).
