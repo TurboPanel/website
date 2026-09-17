@@ -143,6 +143,16 @@ These ten fields are **deny-by-default** for every organization. An org owner ha
 
 This is authorization, not yet an audited one: TurboPanel has no audit-log table today, so a toggle flip is not currently recorded anywhere beyond the organization row itself. Turn this on only for an organization with a real, understood need for one of these fields — it is not a per-field allowlist, and turning it on admits all ten.
 
+### Connecting GitHub and GitLab safely
+
+Two rules protect the connection between an organization and its forge.
+
+**One GitHub installation, one organization.** On an instance-wide GitHub App (the hosted service, or a self-hosted instance whose App is shared by every organization), the App's private key can mint a token for *any* installation — so recording the same installation under two organizations would let the second read the first one's private repositories. The database refuses that outright (`uniq_connection_forge_external_github`), and the install callback proves the person finishing an install actually approved the installation they are naming: the App **requests user authorization during installation**, GitHub sends a one-shot `code` beside `installation_id`, and TurboPanel checks that the authorizing GitHub user can see that installation before recording anything. The user token is used for that one read and discarded. The callback is also rate-limited per user, so guessing installation numbers is slow as well as pointless.
+
+Apps created through TurboPanel's manifest wizard get this for free. **An App registered before this rule — including one you created by hand — needs two settings changed on GitHub** (*Settings → Developer settings → GitHub Apps → your App*): enable **Request user authorization (OAuth) during installation**, and set the **Callback URL** to `https://<your instance>/api/client/v1/repositories/github/callback` (GitHub disables the Setup URL once user authorization is requested; the `installation_repositories` webhook covers later repository-selection changes). Until then, every install ends with *"GitHub did not send an authorization code"* in the console.
+
+**A forge address must be a public https host.** A self-hosted GitLab or GitHub Enterprise address is typed by an organization admin and later fetched by the control plane with credentials attached, so an address pointing back inside the box — `127.0.0.1`, `169.254.169.254`, a private range, `localhost`, `*.internal` — is refused on write (`400 forge_url_rejected`) and again before every fetch. On the self-hosted instance the name is also resolved at write time and refused if any answer is a private address. Plain `http://` forges are not supported.
+
 ### Token Management
 
 - Store tokens in environment variables or secrets manager
