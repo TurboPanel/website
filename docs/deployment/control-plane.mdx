@@ -117,7 +117,7 @@ See [Local development](/docs/getting-started/development). Logs: `journalctl -u
 
 ### Self-hosted control plane (private alpha — preview)
 
-The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian or Ubuntu — dedicated service users (`tp`, `tpctrl`, `tpcaddy`), the compiled instance and mailer under `/opt/turbopanel/lib/instance`, the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is cut; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
+The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian — the bootstrap refuses any other distribution up front — with dedicated service users (`tp`, `tpctrl`, `tpcaddy`), the compiled instance and mailer under `/opt/turbopanel/lib/instance`, the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is cut; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
 
 <Steps>
   <Step>
