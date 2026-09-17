@@ -152,7 +152,7 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mism
 | Variable / flag | Description |
 | ---- | ----------- |
 | `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
-| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
+| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release` and `rc` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, and the rolling `rc` pre-release); `trunk` from the per-merge build drop. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (platform CA / self-signed). Omitted when `TURBOPANEL_TLS_PUBLIC` is set (Let's Encrypt, or an uploaded publicly trusted cert). |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |

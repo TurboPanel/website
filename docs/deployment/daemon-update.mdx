@@ -72,6 +72,11 @@ curl -fsSL turbopanel.sh | \
 
 Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`trunk`,
 `canary`, `rc`, `release`, …) are technical identifiers — not product branding.
+Each channel has a built-in location: `release` follows the latest
+non-pre-release on the daemon's
+[GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases), `rc`
+follows the rolling `rc` pre-release there, and `trunk` is the per-merge build
+drop. `canary` and `edge` are reserved with no built-in location.
 The example below stays on `trunk` (the default):
 
 ```bash
