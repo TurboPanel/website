@@ -117,20 +117,26 @@ See [Local development](/docs/getting-started/development). Logs: `journalctl -u
 
 ### Self-hosted control plane (private alpha — preview)
 
-When self-hosted is publicly available, operators provision a managed **FHS** control plane on Debian or Ubuntu — dedicated service users (`tp`, `tpctrl`, `tpcaddy`), static UI at `/opt/turbopanel/share/ui`, and convergence via daemon Ansible roles. **That production path is not publicly available yet.**
+The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian or Ubuntu — dedicated service users (`tp`, `tpctrl`, `tpcaddy`), the compiled instance and mailer under `/opt/turbopanel/lib/instance`, the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is cut; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
 
 <Steps>
   <Step>
-    Provision a 64-bit Linux host (Debian 12+ recommended).
+    Provision a 64-bit Linux host (Debian 12+ recommended, `x86_64` or `aarch64`), as root or a sudo-capable user.
   </Step>
   <Step>
-    Install the control plane with the managed production converge (Ansible `instance-launch` and related roles).
+    Install the control plane:
+
+    ```bash
+    curl -fsSL turbopanel.sh | TURBOPANEL_INSTANCE=1 sh
+    ```
+
+    Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon.
   </Step>
   <Step>
-    Complete the install wizard at `https://<host>:8443` by default (host PAM + superadmin). Use `https://<hostname>/` when `turbopanel_tls_mode=lets_encrypt`.
+    Complete the install wizard at `https://<host>:8443` by default (host PAM + superadmin). The certificate is signed by the platform CA at `/var/lib/turbopanel/tls/ca.crt`. Use `https://<hostname>/` when `turbopanel_tls_mode=lets_encrypt`.
   </Step>
   <Step>
-    Enroll managed servers with `turbopanel.sh` — [Daemon setup](/docs/deployment/daemon-setup).
+    Enroll managed servers — including this host, once the wizard has issued a license — with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
   </Step>
 </Steps>
 
