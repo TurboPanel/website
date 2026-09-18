@@ -151,11 +151,14 @@ See [Hosting](/docs/using/hosting).
 
 ## Servers, licenses and metrics
 
+See [Servers](/docs/using/servers).
+
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `server_capacity_exceeded` | 409 | The organization's server capacity is reached. |
 | `no_license_available` | 409 | TurboPanel High Availability: no license is free for a new server. |
 | `license_has_attached_server` | 409 | The license is still bound to a server. |
+| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server; the response counts each. |
 | `server_offline` | 409 | The action needs the server's daemon connected. |
 | `live_metrics_disabled` | 409 | Live metrics are turned off on this instance. |
 | `metrics_backend_unavailable` | 503 | The metrics store is not reachable. |
@@ -164,6 +167,8 @@ See [Hosting](/docs/using/hosting).
 | `container_id_unavailable` | 409 | The container has no id yet; the daemon has not reported it. |
 
 ## Datacenters and networking
+
+See [Datacenters and networking](/docs/using/network).
 
 The console renders one sentence per code from these; the sentences here are the same.
 
@@ -224,7 +229,7 @@ The console renders one sentence per code from these; the sentences here are the
 
 ## Access, invitations and accounts
 
-See [Accounts and access](/docs/getting-started/accounts-and-access).
+See [Account security](/docs/using/account-security) and [Organizations, teams and access](/docs/using/access).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -240,6 +245,8 @@ See [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ## Billing (TurboPanel High Availability)
 
+See [Billing and licenses](/docs/using/billing).
+
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `billing_not_configured` | 503 | The instance has no billing provider configured. |
@@ -251,7 +258,19 @@ See [Accounts and access](/docs/getting-started/accounts-and-access).
 | `licenses_in_use` | 409 | More licenses are in use than would remain. Remove a server or a waiting key first. |
 | `not_an_upgrade`, `not_a_downgrade` | 400 | The requested tier move goes the wrong way. |
 | `tier_not_purchasable` | 400 | The tier has no product bound to it. |
-| `stripe_error` | 502 | The billing provider returned an error. |
+| `stripe_error` | 502 / 503 | The billing provider refused (502) or did not answer (503); nothing was applied. |
+
+## Administering an instance
+
+See [Administering an instance](/docs/using/admin).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `reencrypt_in_progress` | 409 | A re-encrypt sweep is already running; wait or resume it. |
+| `tier_invalid` | 400 | The tier row or product patch failed validation; `message` names the field. |
+| `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |
+| `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
+| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the panel toggle. |
 
 ## Related
 

@@ -60,7 +60,7 @@ One rule: **TurboPanel observes host interfaces; it does not configure them.** A
 | **Member servers** | Pins: **Server** + **Private IP** (only addresses inside this datacenter's subnets; a server may hold more than one). **Stale** marks a pin whose address the daemon no longer reports. |
 | **Routing** | **Prefer IPv6** / **Prefer IPv4**, the **Priority** (with a hint naming which datacenter currently wins for a pair), and **Trusted** / **Untrusted**. *Saving recomputes managed transports*: every managed-database member whose replication crosses this datacenter is re-planned and its listeners re-converged. |
 | **SSH port**, **NTP defaults**, **Timezone** | The datacenter rung of the *organization → datacenter → server* cascade; **Enforce on members** pushes the value to every member; **Clear (inherit)** returns to the organization default. |
-| **Relays** | Which members act as TurboFabric gateways for this datacenter (see [Mesh](#turbofabric-the-mesh)). |
+| **Relays** | Which members act as TurboFabric gateways for this datacenter (see [the mesh](#the-turbofabric-mesh)). |
 | **Delete** | Two-press, only once no pin remains (`datacenter_has_members`); deleting removes every subnet with it. |
 
 ## Addresses
@@ -90,7 +90,7 @@ Address, scope and allocation are immutable after creation; edit the description
 
 **Network → Reserved ranges.** CIDRs that something outside TurboPanel routes — a VPN block, a provider network, the office LAN — which no allocator may hand out. **Reserve a range**: **Name** + **CIDR** → **Reserve**. Rename with **Save name**; delete two-press. A reserved range that overlaps something already registered is refused with the same collision codes; declare reservations *before* the ranges they protect are needed.
 
-## TurboFabric — the mesh
+## The TurboFabric mesh
 
 **Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used when two servers share no trusted datacenter — replication and managed-database traffic ride it instead of a public listener.
 
