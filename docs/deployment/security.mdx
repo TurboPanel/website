@@ -141,7 +141,7 @@ On a self-hosted server, every tenant app on that host shares the same Docker da
 
 These ten fields are **deny-by-default** for every organization. An org owner has to opt in explicitly — `PUT /organizations/:id/compose-privileged-fields` — before a deploy that sets any of them will run; a compose document that names one without the opt-in is refused with `403 compose_field_requires_org_opt_in`, naming the field. Ordinary fields a tenant needs for everyday deploys — bind mounts (`volumes`), published ports (`ports`), a non-root user (`user`), dropping a capability (`cap_drop`) — are unaffected; only the namespace/capability-*escaping* set is gated.
 
-This is authorization, not yet an audited one: TurboPanel has no audit-log table today, so a toggle flip is not currently recorded anywhere beyond the organization row itself. Turn this on only for an organization with a real, understood need for one of these fields — it is not a per-field allowlist, and turning it on admits all ten.
+Every flip of this gate is recorded in the organization's audit trail (`organization.compose_privileged_fields.set`, readable by owners at `GET /organizations/:id/audit`), with who did it and when. Turn this on only for an organization with a real, understood need for one of these fields — it is not a per-field allowlist, and turning it on admits all ten.
 
 ### Connecting GitHub and GitLab safely
 
@@ -259,7 +259,7 @@ A restore that has never been run is a backup you do not have.
 Recommended:
 
 - Allow inbound to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`) only from trusted networks
-- Restrict outbound to necessary services only
+- Restrict outbound to necessary services only. **The control-plane process itself places no outbound restriction on a self-hosted instance** (decided 2026-09-18): earlier builds ran the compiled binary under a fixed list of hosts it could reach, which made every operator-configured destination — an alert webhook, a chat integration, a push relay, a self-managed forge — impossible. That list is gone; the boundary is your host firewall, so shape egress there if the instance should reach only known hosts. Operator-supplied URLs are still checked at write and at fetch: `https` only, no credentials in the URL, no reserved names, a publicly routable address.
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
 - Implement rate limiting on API endpoints
