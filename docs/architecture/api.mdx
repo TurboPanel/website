@@ -91,46 +91,32 @@ Schema changes are versioned in `instance/migrations/` and applied via `pnpm mig
 
 ### `x-turbopanel` vendor extension
 
-TurboPanel reserves a top-level `x-turbopanel` key. This is a **standard Docker Compose `x-*` vendor extension**, so `docker compose` itself ignores it — the key round-trips untouched through `composeDocumentToRuntimeYaml`.
+TurboPanel reserves `x-turbopanel` — a **standard Docker Compose `x-*` vendor extension**, so `docker compose` itself ignores it. It appears in two places and says only what Compose cannot: at the document root, `principals` (the system users a service may run as, by alias); on a service, `serviceKind`, `principal`, `hosting[]`, `source`, `php`, `cron[]` and a few runtime pins. The full key reference is in [Writing compose](/docs/using/compose#the-x-turbopanel-extension); the rules the platform holds itself to are in the [Compose contract](/docs/architecture/compose-contract).
 
-| Field | Purpose |
+A stored document that carries `x-turbopanel.placement` is **refused at save** (`compose_invalid`, path `x-turbopanel.placement`): which server an environment runs on is a platform decision and lives on the environment row, never in the document. The editor's tab preference is stored beside the document as `presentation.editorView`, not under the extension.
+
+### Environment placement
+
+Placement is a property of the **environment**, set on the console's Hosting tab:
+
+| Field | Meaning |
 | --- | --- |
-| `placement.server_id` | Environment → whole-server pin (UUID) |
-| `view` | Compose UI tab preference: `editor` or `visual` (per project base and per environment overlay) |
+| `environment.serverId` | The pin. `PATCH /environments/:id` with `serverId`; `null` clears it. |
+| `project.options.defaultServerId` | The fallback every environment inherits when it has no pin. |
 
-### Environment pinning (today)
-
-`placement.server_id` is read from the **environment overlay compose** and pins that **environment to one whole server**. Different environments in the same project may pin to different servers. The value must be a server UUID in the same organization (validated; unknown or stale ids fail cleanly). Project base compose does not own placement — stale project-level pins are ignored (hard cut) and stripped before merge into runtime YAML.
-
-`view` is written when the compose Editor or Visual tab is saved. It is hidden from the YAML textarea (like placement) and restored on save; project and environment each keep their own preference.
+Different environments in the same project may resolve to different servers. The pin is an anchor, not a cap: services that declare `deploy.replicas` or `deploy.placement.*` are scheduled by the planner across the organization's connected servers (`turbopanel/src/lib/schedule/`), and a plan that spans hosts needs a spanning (`driver: overlay`) network carried by TurboFabric.
 
 ### Deploy resolution
 
-`POST /api/client/v1/environments/:id/deploy` accepts an optional request body `serverId`. Resolution order:
+`POST /api/client/v1/environments/:id/deploy` takes no server. Its body is `{ acknowledgeHealthCheckWarnings?, noCache?, ref? }` — `ref` is refused with `501 source_ref_unsupported` today. Resolution:
 
-| Environment pinned? | Body `serverId` | Result |
+| Environment pin | Project default | Result |
 | --- | --- | --- |
-| Yes | omitted | Deploy to the pinned server |
-| Yes | matches pin | Deploy to the pinned server |
-| Yes | differs from pin | `400 server_placement_mismatch` |
-| No | provided | Deploy to the requested server |
-| No | omitted | `400` (a target is required) |
+| Set | — | Deploy anchored on the pinned server |
+| Unset | Set | Deploy anchored on the project default |
+| Unset | Unset | `409 server_placement_required` |
 
-### Minimal example
-
-Place this on the **environment** compose overlay (not the project base):
-
-```yaml
-x-turbopanel:
-  placement:
-    server_id: 01989d42-9adb-7e65-bc2e-f38792c53691
-services:
-  ...
-```
-
-### Future: per-service placement
-
-**Per-service placement** (different services on different servers, Docker Swarm–style deploy compose) is a planned extension of this **same `x-turbopanel` mechanism** — the multi-server compose-placement seam noted in the instance/daemon architecture. It is not implemented yet.
+The same code answers when the planner can place nothing (`no_eligible_server`); every other scheduler refusal (`turbofabric_required`, `host_port_conflict`, `constraint_unsatisfiable`, `colocation_conflict`, `max_replicas_per_node_exceeded`) is a `422` carrying the planner's own message. `GET /environments/:id/deploy-preview` returns the prepared shape — including the `x-turbopanel.placement.server_id` the compiler records in the runtime document and, when the plan spans more than one host, one block per server — without enqueueing anything.
 
 ### Compiled compose (`compose.yaml`)
 

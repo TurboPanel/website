@@ -91,7 +91,7 @@ A daemon left on a stale anchor parks with a greppable `tls-trust` log (dialed h
 
 Organization CA rotation (managed-database / ProxySQL / replication leaves — not daemon → control-plane trust) follows the same order via the org TLS library. This is not the Platform CA above — see [Organization CA](/docs/security/organization-ca) for the full model. **Mint** a new active generation while the outgoing CA stays in the overlap trust bundle (`POST /api/client/v1/tls/ca/rotate`), **distribute** by fanning `managed.apply` and `managed.ingress.reconcile`, **confirm** those commands succeeded (`GET /api/client/v1/tls/ca/rotation`), then **retire** (`POST /api/client/v1/tls/ca/retire`) so the old generation leaves the bundle. Do not retire first.
 
-**Future:** tenant **hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). They are never issued by the Organization CA. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+**Hosting is separate:** tenant **hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). They are never issued by the Organization CA. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Related
 

@@ -6,8 +6,14 @@
  * the article body instead of only the client "Loading…" shell.
  */
 
+/**
+ * The first sentence of docs/getting-started/introduction.mdx, verbatim. If
+ * that sentence is rewritten, update this — the check has no other way to
+ * know the body rendered, and it was red for three days in 2026-09 because
+ * the page moved on and this did not.
+ */
 export const DOCS_SSR_INTRODUCTION_SNIPPET =
-  'TurboPanel gives you one simple place to deploy websites, applications, and databases'
+  'TurboPanel is one place to run everything you host.'
 
 export const DOCS_SSR_LAYOUT_MARKER = 'id="nd-docs-layout"'
 
