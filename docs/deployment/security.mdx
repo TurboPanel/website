@@ -216,6 +216,34 @@ The control plane's own Postgres database holds every organization's secrets, TL
 
 - **RPO (recovery point objective):** up to 24 hours — the gap since the last nightly dump. Lower it by running the backup script manually before a risky change, or by shortening `postgres_backup_oncalendar`.
 - **RTO (recovery time objective):** no fixed target published yet; dominated by restore time, which scales with database size. Time a real restore on your own data before treating any number here as a promise.
+
+### Rehearsed, on a real database
+
+A dump-and-restore of a real control-plane database (2026-09-18, a fresh
+install: 67 tables, 289 indexes, 749 constraints, 224 KB compressed dump)
+took **0.3 s to dump and 2.1 s to restore**, and the restored copy matched
+the source object-for-object. Those figures are the floor, not a promise:
+they scale with your data, and an empty instance is the smallest case there
+is. What the rehearsal does establish is that the mechanism works end to end
+— `pg_dump -Fc` out, `pg_restore` into a fresh database, everything back.
+
+Rehearse it yourself on a copy before you need it:
+
+```bash
+# 1. Dump, exactly as the nightly timer does.
+docker exec turbopanel-database pg_dump -Fc -U turbopanel -d turbopanel > rehearsal.dump
+
+# 2. Restore into a scratch database — never over the live one.
+docker exec turbopanel-database psql -U turbopanel -d postgres -c 'CREATE DATABASE restore_rehearsal'
+docker exec -i turbopanel-database pg_restore -U turbopanel -d restore_rehearsal --no-owner < rehearsal.dump
+
+# 3. Compare, then drop the scratch copy.
+docker exec turbopanel-database psql -U turbopanel -d restore_rehearsal -c \
+  'select count(*) from information_schema.tables where table_schema = current_schema()'
+docker exec turbopanel-database psql -U turbopanel -d postgres -c 'DROP DATABASE restore_rehearsal'
+```
+
+A restore that has never been run is a backup you do not have.
 - **Restore runbook:**
   1. Stop the stack so nothing writes to the database mid-restore: `systemctl stop turbopanel-system-stack`.
   2. Confirm the dump you're restoring from is intact — `pg_restore --list <dump>` should enumerate its contents without error before you touch the live database.
