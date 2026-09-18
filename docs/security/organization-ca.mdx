@@ -52,6 +52,28 @@ Rotation uses the same **rotate-before-retire** order as the Platform CA. Do not
 3. **Confirm** — `GET /api/client/v1/tls/ca/rotation` until every tracked command is terminal-success.
 4. **Retire** — `POST /api/client/v1/tls/ca/retire` drops the old generation from the bundle. The control plane refuses with **409** until overlap has converged.
 
+## A leaked key: what to do, and what it costs
+
+There is **no CRL and no OCSP responder**. Neither CA publishes a revocation
+endpoint, and `revoke` in the API is a database status flip — it stops
+TurboPanel handing that certificate out, and does nothing to a client that
+already holds it. So the honest answer to a compromised key is rotation, and
+the cost depends on which key it was.
+
+| What leaked | Answer | Collateral |
+| --- | --- | --- |
+| An **Organization CA leaf** (a ProxySQL or engine certificate) | Rotate the Organization CA with the runbook below | Every leaf in that organization is re-issued, and `verify-ca`/`verify-full` clients re-download the bundle. Bounded: leaves live **90 days** and the sweep renews at a third remaining, so an un-rotated leak expires on its own inside a quarter — rotation is how you make that immediate, not how you avoid an indefinite exposure. |
+| An **Organization CA private key** | Rotate immediately, then retire the old generation as soon as overlap converges | Same fan-out, but the old generation must not linger in the bundle: while it does, anything signed by the leaked key is still trusted. |
+| The **Platform CA** | The daemon trust model's own rotation — see [Daemon trust model](/docs/security/daemon-trust-model) | Every daemon re-trusts; do not retire before the fleet has converged. |
+
+CA roots are minted for **10 years** and leaves for **90 days**. The long root
+is what makes retire-after-overlap safe; the short leaf is what bounds a leak
+you have not noticed yet.
+
+Rehearse this before you need it: run the runbook below on a non-production
+organization once, and time it. The step that takes real time is overlap
+convergence, and that is the step an incident will not let you skip.
+
 ## Automatic leaf renewal
 
 Issued leaves are tracked in the `leaf` table (signing Organization CA, generation, not-after). A leaf is **due** when:
