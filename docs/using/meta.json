@@ -6,6 +6,9 @@
     "compose",
     "deploy",
     "hosting",
+    "storage-and-variables",
+    "managed-databases",
+    "git",
     "reference"
   ]
 }

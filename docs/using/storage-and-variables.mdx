@@ -1,0 +1,133 @@
+---
+title: Storage, variables and secrets
+description: Persistent storage for an environment's services, the variable cascade from organization to hosting, secrets that never touch YAML, how the compose document references them, and every refusal code
+---
+
+# Storage, variables and secrets
+
+Two things a compose document deliberately does not contain: where its data lives, and the values its services read at build and at runtime. Both are properties of the environment and the scopes above it, managed on their own tabs, and referenced — never copied — from the document. This chapter covers the **Storage** tab, the **Variables** panels at every scope, secrets, and the `{$KEY}` reference syntax that ties them into compose.
+
+## Storage
+
+### The model
+
+A **storage entry** is one persistent location an environment's service mounts: a named Docker volume, a host directory, or a single file. It belongs to the environment (storage is provisioned on that environment's server), is mounted into one service at a destination path, and carries two policies:
+
+| Policy | Values | Meaning |
+| --- | --- | --- |
+| **Access mode** | `single_writer` (default) · `multi_reader` · `multi_writer` | Whether more than one service, or more than one server, may hold it open. A `single_writer` entry whose primary copy sits on a server other than the one a deploy schedules is refused (`storage_location_unavailable`). |
+| **Retention** | `retain` (default) · `delete` | What happens to the data when its environment or service is deleted: kept on the server, or removed with it. |
+
+Behind an entry are its **copies** — where the bytes actually are. A copy has a provider (`docker` for a named volume, `path` for a host path), a role (`primary`, `replica`, `scratch`, `archive`) and a state (`pending` → `materializing` → `ready`, or `syncing`, `stale`, `failed`, `retiring`). One copy is the primary; a `scratch` copy is never mounted. Most entries have exactly one, on the environment's server.
+
+### Add storage
+
+<Steps>
+  <Step>
+    Select the environment and open **Storage** (from the gear on the Services document, or the surface tab). At project scope the tab stacks one panel per environment.
+  </Step>
+  <Step>
+    **Name** the entry; choose the **Kind** — *volume*, *directory* or *file*.
+  </Step>
+  <Step>
+    For a directory or file, give the **Host path**; for a file, optionally paste its **content** (up to 256 KiB — larger files belong in a volume or a build).
+  </Step>
+  <Step>
+    Pick the **Mount service** and the **Destination path** inside it. Two entries cannot mount at the same destination in one service.
+  </Step>
+  <Step>
+    Set access mode and retention if the defaults do not fit, and save. The mount is live on the next deploy.
+  </Step>
+</Steps>
+
+Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is for data the platform should know about — the things that survive a destroy when marked *retain*, and the things a redeploy on another server has to find.
+
+### Reference
+
+| Field | Values |
+| --- | --- |
+| `kind` | `volume` · `directory` · `file` |
+| `accessMode` | `single_writer` · `multi_reader` · `multi_writer` |
+| `retention` | `retain` · `delete` |
+| `copies[].provider` | `docker` · `path` |
+| `copies[].role` | `primary` · `replica` · `scratch` · `archive` |
+| `copies[].state` | `pending` · `materializing` · `ready` · `syncing` · `stale` · `failed` · `retiring` |
+| File content | ≤ 256 KiB |
+| Parent | workspace, project, environment or service — one of them |
+
+## Variables
+
+### The model
+
+A **variable** is a key and a value at one **scope**. Scopes nest, and a service's effective environment is the merge from the outside in:
+
+```
+organization → workspace → project → environment → service → hosting
+```
+
+A key set at a narrower scope overrides the same key set wider. **Server**-scoped variables are the seventh scope, resolved per server at deploy rather than inherited down the project tree, so a value can differ by host. The console edits three of the scopes today: the **project's** and the **environment's** on their **Settings** tabs (**Add Variable**), and a **hosting row's** on the **Hosting** tab once the row is saved. Organization, workspace, service and server scopes exist in the API (`POST /variables` with the matching parent id) and resolve in the cascade, but have no console panel yet.
+
+Each variable carries four switches:
+
+| Switch | Meaning |
+| --- | --- |
+| **Secret** | The value is stored sealed and is **write-only** — the API returns `null` for it, the console shows a placeholder, and at deploy it travels sealed to the daemon and lands as a file, never in YAML or in the generated `.env`. |
+| **Literal** | The value is used exactly as typed — a `$` in it is escaped so Docker Compose does not try to interpolate it. Off, a `${OTHER}` inside the value is left for Compose to expand. |
+| **For build** | Passed as a build argument to services that build an image. Off by default. |
+| **For runtime** | Passed to the running container. On by default. |
+
+Keys match `[A-Za-z_][A-Za-z0-9_]*`. A key a database **binding** owns (the connection details of a managed database bound to the environment) is locked: it shows under *From connected databases*, cannot be edited (`binding_owned_variable`), and cannot be shadowed by a variable of the same name (`binding_key_conflict`).
+
+### Add a variable
+
+<Steps>
+  <Step>
+    Open the **Variables** panel at the scope the value belongs to — as wide as it applies, as narrow as it must.
+  </Step>
+  <Step>
+    **Add Variable**: key, value, and the four switches. Mark passwords, tokens and keys **Secret** before saving; a secret cannot be read back, only replaced.
+  </Step>
+  <Step>
+    Save. The value reaches every service in scope on its next deploy; the **Prepared compose** preview shows the generated `.env` (non-secrets) and the file paths secrets will take.
+  </Step>
+</Steps>
+
+### Referencing variables from compose
+
+Plain Compose `${KEY}` works as Docker defines it, against the generated `.env`. TurboPanel adds one reference form, resolved by the platform **before** Compose sees the document:
+
+```yaml
+services:
+  api:
+    environment:
+      DATABASE_URL: "{$DATABASE_URL}"        # nearest scope wins
+      REGION: "{$organization.REGION}"       # pinned to one scope
+    secrets:
+      - source: api_token                    # a secret compiled to a file
+```
+
+`{$KEY}` takes the effective value from the cascade; `{$scope.KEY}` (`organization`, `workspace`, `project`, `environment`, `service`, `hosting`, `server`; `org` is accepted for `organization`) pins a scope. A reference to a **secret** is compiled into a Compose `secrets:` entry backed by a file the daemon materializes under `/run/turbopanel/deployments/<project>/<environment>/secrets/`, plus a courtesy `<KEY>_FILE` variable holding that path — interpolating a secret directly into a plain field is refused (`variable_secret_interpolation`), because that would write it into YAML.
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `storage_content_too_large` | 400 | File content exceeds 256 KiB. |
+| `principal_project_mismatch` | 400 | The entry's system user belongs to another project. |
+| `mount_destination_in_use` | 409 | Another entry already mounts at that destination in the service. |
+| `copy_primary_exists`, `copy_server_provider_exists` | 409 | The entry already has a primary copy, or a copy on that server with that provider. |
+| `scratch_copy_not_mountable` | 409 | A `scratch` copy cannot be mounted. |
+| `conflict` | 409 | A storage write hit a uniqueness rule not otherwise classified; retry with a different name or destination. |
+| `storage_location_unavailable` | 422 (deploy) | The entry's primary copy is on another server and its access mode forbids that; move the copy or relax the mode. |
+| `binding_key_conflict` | 409 | The key collides with one a database binding owns. |
+| `binding_owned_variable` | 409 | The variable is written by a binding; sever the binding to change it. |
+| `variable_unresolved` | 422 (deploy) | A `{$KEY}` reference has no value at any scope in reach. |
+| `variable_ref_invalid` | 422 (deploy) | A malformed reference or an unknown scope. |
+| `variable_secret_interpolation` | 422 (deploy) | A secret referenced in a plain field; use a `secrets:` entry. |
+
+## Related
+
+- [Writing compose](/docs/using/compose) — the document that references all of this.
+- [Deploying and running an environment](/docs/using/deploy) — the prepared preview that shows the resolved `.env` and secret paths.
+- [Managed databases](/docs/using/managed-databases) — where binding-owned variables come from.
+- [Storage architecture](/docs/architecture/storage-architecture) — the platform's storage classes underneath.

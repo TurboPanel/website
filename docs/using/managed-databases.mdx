@@ -1,0 +1,198 @@
+---
+title: Managed databases
+description: PostgreSQL, MySQL and MariaDB clusters TurboPanel provisions on your servers — creating one, connecting, users and roles, replicas and promotion, backups, and every refusal code
+---
+
+# Managed databases
+
+A **managed database** is a database cluster TurboPanel provisions, secures and connects for you on your own servers: PostgreSQL, MySQL or MariaDB, in a container the platform owns, behind a shared listener that every consumer dials, with replication, promotion and backups handled from the console. You choose the engine, a version series and a server; the platform does the rest and hands you an endpoint and a first user. This chapter is written for the person creating and using one; the wiring underneath is in [Managed database ingress](/docs/architecture/managed-database-ingress).
+
+## The model
+
+A managed database is a **managed project** — one project whose environment holds a cluster instead of a compose stack. It has three parts:
+
+- **The cluster** — one **primary** on the server you pick, plus any number of **replicas**. Engine containers are reachable only on the organization's private managed network; nothing publishes an engine port on the host.
+- **The listener** — a shared ProxySQL on every server that hosts a member or a consumer, on a port the organization sets (`15432` for PostgreSQL, `13306` for the MySQL family by default). This is the only thing a client ever connects to. It routes each login to the primary or to read replicas, and it terminates client TLS with the organization's CA.
+- **Logins and databases** — the users and databases you create on the **Data** tab. Each login carries a **connection role** that decides where the listener sends it.
+
+Two facts shape everything below:
+
+- **The version series is chosen once.** A cluster is created as PostgreSQL 18, MySQL 9.7 or MariaDB 12.3 (the currently tested series) with a base-OS variant; the series never changes afterwards (`managed_series_immutable`). Only the variant may.
+- **TLS between the listener and the engine is always on.** The **SSL mode** you set is a client-facing policy — whether the listener refuses a plaintext client and what verification the connection string tells the driver to do — never a switch for engine encryption.
+
+## Before you begin
+
+- A connected server with Docker; the cluster's primary runs there.
+- For a failover replica: a second server **in the same datacenter** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter path to the primary.
+- For a client on another server: that server enrolled in the organization (the listener is deployed to it when a service there binds the database).
+- **Manage** rights on the organization.
+
+## Create a cluster
+
+<Steps>
+  <Step>
+    **Projects → New project**, name it, choose **Managed**.
+  </Step>
+  <Step>
+    Pick the engine from the catalog. Only released engines are selectable; the card says so otherwise.
+  </Step>
+  <Step>
+    Choose the **version series** and the base-OS **variant** (Alpine, Debian, Oracle Linux 9 or UBI, per engine), and the **server** for the primary.
+  </Step>
+  <Step>
+    **Create project.** The root password is shown **once** — copy it now; the platform never shows it again (you can rotate it later).
+  </Step>
+  <Step>
+    The **Overview** shows the cluster provisioning, then *Running*. Provisioning polls only while it is in progress.
+  </Step>
+</Steps>
+
+| Engine | Creatable series (tested) | Variants |
+| --- | --- | --- |
+| PostgreSQL | **18** | Alpine, Debian |
+| MySQL | **9.7** | Debian, Oracle Linux 9 |
+| MariaDB | **12.3** | Debian, UBI |
+
+Older series (PostgreSQL 17/16/15, MySQL 8.4, MariaDB 11.8/11.4/10.11) are catalogued so an existing cluster can be named, not created.
+
+## Connect to it
+
+The **Connect** tab is the one place to read the endpoint from; never dial an engine container directly.
+
+<Steps>
+  <Step>
+    Read the **listener endpoint** — host and port of the ProxySQL on the primary's server (or, for a service bound elsewhere, on that service's server).
+  </Step>
+  <Step>
+    Note the **effective SSL policy** and its DSN parameter (`sslmode=` for PostgreSQL, `ssl-mode=` for MySQL and MariaDB). For `verify-ca` or `verify-full`, download the **Organization CA** from the same tab and point your driver at it.
+  </Step>
+  <Step>
+    Use a login from the **Data** tab. Applied usernames carry a random suffix (`app_x7…`), so copy the applied name, not the short one you typed.
+  </Step>
+</Steps>
+
+For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings).
+
+### SSL modes
+
+| Mode | Plaintext client refused? | What the connection string tells the driver |
+| --- | --- | --- |
+| `disable` | no | no TLS |
+| `allow`, `prefer` | no | try TLS, fall back |
+| `require` (default) | **yes** | TLS, no verification |
+| `verify-ca` | **yes** | TLS, verify the CA |
+| `verify-full` | **yes** | TLS, verify CA and hostname |
+
+Resolution is three-layer — the cluster's own override, then the organization default (**Managed → Settings**), then the platform default `require`. Leaving a cluster on *inherit* means an organization change applies to it later; setting a mode pins it.
+
+## Users and databases
+
+**Data** tab.
+
+<Steps>
+  <Step>
+    **Rotate root** shows a new root password once. Root is platform-suffixed (`postgres_…` / `root_…`); the bare engine admin name is never a login.
+  </Step>
+  <Step>
+    **Create user**: a short name and a **Connection role** — **read-write** (routed to the primary) or **read-only** (routed to read-eligible replicas; refused if none exists). The password is shown once; **Rotate** and **Delete** act per user.
+  </Step>
+  <Step>
+    **Create database** / **Delete database**. The initial database and the root user cannot be dropped.
+  </Step>
+</Steps>
+
+A login's name must be unique across every cluster on servers the same organization owns — `username_in_use` if another cluster has it, `managed_user_exists` if this one does. `postgres`, `root`, `mysql` and `superadmin` are reserved.
+
+## Replicas, promotion and disaster recovery
+
+**Overview** tab — the topology.
+
+| Replica class | Where | What it is for |
+| --- | --- | --- |
+| **Failover replica** | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand. |
+| **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
+
+<Steps>
+  <Step>
+    **Add replica**, pick the class and the server, and whether it **serves read traffic** (`readEligible`). Apply.
+  </Step>
+  <Step>
+    **Promote** a failover replica for a planned switchover: the old primary becomes a replica, the endpoint does not change.
+  </Step>
+  <Step>
+    **Promote for DR** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
+  </Step>
+  <Step>
+    **Remove** a replica that is no longer needed. The primary cannot be removed.
+  </Step>
+</Steps>
+
+Automatic failover is fenced: the platform promotes a same-datacenter failover replica when the primary dies and it can confirm the old primary is isolated; when it cannot, it refuses and says so rather than risk two writers.
+
+## Backups
+
+**Backups** tab — PostgreSQL today; the other engines say *backups unsupported* until their executor lands.
+
+| Action | What happens |
+| --- | --- |
+| **Back up now** | `pg_dump` in custom format, per database, stored on the primary's server. Retention prunes to the newest N on every successful backup. |
+| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. |
+| **Delete** | Two presses. Removes the backup. |
+
+Backups are metadata in the console — there is no download; the artifact lives on the server. Scheduled backups are not built yet: back up before a risky change and after a good one.
+
+## Lifecycle and organization settings
+
+- **Start / Stop / Restart** act on the containers; stop keeps everything. **Apply** re-converges the cluster after a settings change.
+- **Destroy** removes the cluster and its data; a project or environment holding a live cluster cannot be deleted until it is destroyed (`managed_runtime_present`).
+- **Managed → Settings** (organization-wide): the default SSL mode, and the listener ports per engine family (`1024–65535`; `6032`, `6132` and `45000–45999` are reserved). Blank = platform default. A port conflict on a host is only detectable when the listener is applied.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Engines | `postgres`, `mysql`, `mariadb` |
+| Creatable series | PostgreSQL 18 · MySQL 9.7 · MariaDB 12.3 |
+| Variants | `alpine`, `debian`, `oraclelinux9`, `ubi` (two per series) |
+| Listener ports | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999` |
+| SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
+| Connection roles | `read-write` (default) · `read-only` |
+| Replica classes | `failover` (same datacenter) · `read` (anywhere) |
+| Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
+| Applied login | `<short>_<11 random>` when the organization's randomized usernames are on (default); root is always suffixed |
+| Backups | PostgreSQL `pg_dump -Fc`, per database; retention-pruned; no download; no schedule yet |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `managed_engine_unavailable` | 400 | The engine is not released yet. |
+| `managed_version_unsupported` | 422 | The series or variant is not creatable. |
+| `managed_series_immutable` | 422 | A cluster's series cannot change after provisioning; only the variant may. |
+| `server_placement_required` | 409 | No server chosen for the primary. |
+| `server_offline` | 409 | The action needs the member's daemon connected. |
+| `managed_busy` | 409 | The cluster is provisioning or applying; wait for it. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists; the primary cannot be removed; the cluster has no primary. |
+| `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
+| `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport` | 422 | A failover replica needs a trusted datacenter and a datacenter path to the primary. |
+| `fabric_address_required` | 422 | A remote replica or consumer needs a TurboFabric address on its server. |
+| `managed_private_port_exhausted` | 409 | The server has no private replication port left (45000–45999). |
+| `managed_listener_bind_conflict` | 422 | The listener port is already bound on that server. |
+| `managed_no_read_targets` | 422 | A read-only login was requested and no replica serves reads. |
+| `managed_user_exists`, `database_exists` | 409 | The user or database already exists on this cluster. |
+| `username_in_use` | 409 | A login with that name exists on another cluster in the organization's servers. |
+| `username_reserved` | 400 | `postgres`, `root`, `mysql`, `superadmin`. |
+| `managed_user_has_bindings`, `managed_database_has_bindings` | 409 | Sever the service bindings first. |
+| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**. |
+| `managed_backup_unsupported` | 400 | The engine has no backup executor yet. |
+| `backup_not_found` | 404 | No backup with that id. |
+| `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
+| `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
+| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults; not something a form change fixes. |
+
+## Related
+
+- [Managed database ingress](/docs/architecture/managed-database-ingress) — the listener, routing and bindings from the platform's side.
+- [Organization CA](/docs/security/organization-ca) — the CA that signs the listener and the download for `verify-full`.
+- [Database proxy metrics](/docs/metrics/database-proxy) — what the listener reports on a server's Metrics tab.
+- [Datacenter networks](/docs/architecture/datacenter-networks) — the private paths replication rides on.

@@ -1,0 +1,146 @@
+---
+title: Git sources and repositories
+description: Connecting GitHub and GitLab, how applications, installations and repositories relate, binding a repository to a service, push-to-deploy and its two modes, deploy keys for plain git, and every refusal code
+---
+
+# Git sources and repositories
+
+A service built from source needs three things the platform keeps apart on purpose: an **application** that lets TurboPanel talk to a provider, a **repository** the organization has told the platform about, and the **binding** in the compose document that says which service builds from it. This chapter covers **Projects → Git sources** (applications and their installations), **Projects → Repositories** (the ledger of repositories), the `x-turbopanel.source` binding, and push-to-deploy.
+
+## The model
+
+| Layer | What it is | Where |
+| --- | --- | --- |
+| **Application** | A GitHub App or a GitLab OAuth application registered with the provider. Organization-owned, or **instance-wide** (registered by an administrator under **Admin → Git** for everyone; shown read-only to organizations). An instance may hold several — github.com beside GitHub Enterprise, one App per customer account, gitlab.com beside a self-managed GitLab. | **Projects → Git sources** |
+| **Installation / connection** | What the provider grants the application: a GitHub App **installation** on an account (with the repositories it may see), or a GitLab OAuth **connection** for a user. | The application's detail page, **Repository access** |
+| **Repository** | One row per canonical repository URL in the organization, recording how it authenticates (its **lane**), the tracked branch, and whether pushes deploy. Created the first time a service picks it. | **Projects → Repositories** |
+| **Binding** | `x-turbopanel.source` on a service: the repository, the branch, and the build. | The service's **Source** section on the Services tab |
+
+Three rules:
+
+1. **An installation belongs to one organization.** Connecting a GitHub installation binds it to the organization that completed the install; another organization cannot claim it (`installation_claimed_by_another_organization`). Since 2026-09-17 the callback also requires the authorizing GitHub user to be able to see the installation, so an installation id cannot be guessed.
+2. **The provider is never trusted with a guess.** A self-managed GitHub Enterprise or GitLab URL must be `https`, carry no credentials, name no reserved host, and resolve to a public address (`forge_url_rejected`) — it is fetched with the application's credentials, so an internal address would turn the panel into a proxy.
+3. **Webhooks need a public URL.** Push-to-deploy works when the provider can reach the instance at `/webhook/github` or `/webhook/gitlab`. On a LAN-only instance the application's page says so and the alternative is a manual deploy.
+
+## Before you begin
+
+- **Manage** rights on the organization.
+- For GitHub: a GitHub account (personal or organization) you can install Apps on.
+- For GitLab: an OAuth application on the GitLab instance with the callback the console shows you.
+- For push-to-deploy: the instance's public URL configured (**Admin → Networking** on self-hosted).
+
+## Connect GitHub
+
+<Steps>
+  <Step>
+    **Projects → Git sources → Create a GitHub App.** Choose whether the App lives on your **personal** GitHub account or a GitHub **organization** (its `github.com/<login>` slug — not a TurboPanel organization).
+  </Step>
+  <Step>
+    GitHub opens its manifest flow with the webhook URL and callback already set. Approve it; GitHub creates the App and returns you to the application's page (`?created=`), with every credential stored — secrets are write-only from here on.
+  </Step>
+  <Step>
+    On the application's page, **Install** (a 302 to GitHub). Pick the account and the repositories the App may see. GitHub sends you back with the installation claimed for this organization.
+  </Step>
+  <Step>
+    **Repository access** now lists the installation and its repositories. **Sync from GitHub** refreshes the list after you change it on GitHub. An installation GitHub has suspended shows **Suspended**.
+  </Step>
+</Steps>
+
+**Add manually** takes an existing App's id, private key and secrets instead of the manifest flow — for an App you already own, or on GitHub Enterprise (give its base URL).
+
+## Connect GitLab
+
+<Steps>
+  <Step>
+    **Projects → Git sources → Add manually → GitLab**: the GitLab base URL (gitlab.com or your own), and the OAuth application id and secret you registered there with the callback URL the form shows.
+  </Step>
+  <Step>
+    **Connect** — a 302 to GitLab. Authorize; GitLab returns you with a connection for your user.
+  </Step>
+</Steps>
+
+## Bind a repository to a service
+
+<Steps>
+  <Step>
+    On the **Services** tab, open the service and its **Source** section. Pick the **application**, then the **account** (installation or connection), then the **repository**, then the **branch**.
+  </Step>
+  <Step>
+    Optionally set a **subdirectory**, a **build command**, an **output directory** (for a static site) and, for a Node app, a **start command**.
+  </Step>
+  <Step>
+    **Save.** The repository row is created under **Projects → Repositories** if it did not exist. The service builds a **release** from the branch's head on the next deploy.
+  </Step>
+</Steps>
+
+The same picker serves the create wizard's **Repository** card, which is the fastest way from a repository to a running service.
+
+### Plain git (deploy keys)
+
+A repository the providers do not host — or one you would rather not connect an application for — can be added by URL. An `https` URL with no credentials is read **anonymously**; an SSH URL needs a **deploy key** (`source_ssh_requires_credential`), which the platform generates and shows you once to add on the repository. Plain git repositories are read through a connected server rather than the provider's API, cannot be refreshed (`source_refresh_not_supported`), and never deploy on push.
+
+## Push-to-deploy
+
+Each repository row carries **Auto-deploy**:
+
+| Mode | What a push to the tracked branch does |
+| --- | --- |
+| `disabled` (default) | Nothing. Deploy from the console. |
+| `immediate` | Deploys every environment whose services bind this repository and branch, as soon as the push arrives. |
+| `checks_passed` | Parks the pushed commit and deploys it when the provider reports the commit's checks passed (a GitHub check suite, a GitLab pipeline). A newer push replaces the parked commit. |
+
+A push that cannot deploy is answered and dropped, not retried: no environment binds the branch, the environment has no server, the branch was deleted, or the deploy pipeline refused it for a reason a retry would not fix (the same refusals a console deploy gets — see [Deploying](/docs/using/deploy#errors)). Only an instance-side failure makes the provider redeliver.
+
+The webhook URL on each application's page carries that application's routing reference (`/webhook/github/<ref>` on self-managed providers), so a delivery names its application before any secret is checked; a delivery whose signature does not match is refused.
+
+## Repositories — the ledger
+
+**Projects → Repositories** lists every repository row: its provider, its **lane** (connection, deploy key or anonymous), the tracked branch, whether the provider's default branch has drifted from it, its auto-deploy mode, and the projects using it. **Refresh** re-reads the default branch and last commit through the provider. **Delete** works only for a repository no compose document references (`source_referenced_by_compose`).
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Providers | `github` · `gitlab` · `git` |
+| Auto-deploy | `immediate` · `checks_passed` · `disabled` (default) |
+| Repository URL | ≤ 2048 characters, `https` (or `ssh` with a deploy key) |
+| Branch | ≤ 255 characters |
+| Webhook paths | `/webhook/github`, `/webhook/gitlab`; self-managed providers append `/<ref>` |
+| GitHub callback | `<origin>/api/client/v1/repositories/github/callback`, with *Request user authorization during installation* on |
+| Forge URL rule | `https` only, no credentials, no reserved names (`localhost`, `.local`, `.internal`, `.arpa`, single labels), public address |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No application of that kind is available to this organization or the instance. |
+| `public_url_not_configured`, `gitlab_redirect_uri_unknown` | 503 | The instance has no public URL, so a manifest or OAuth redirect cannot be built. |
+| `webhook_origin_not_published` | 400 | The application's webhook origin is not among the instance's public URLs. |
+| `forge_url_rejected` | 400 | The self-managed provider URL failed the safety rule above. |
+| `invalid_manifest_request` | 400 | The GitHub App manifest request is malformed. |
+| `git_app_required` | 400 | The repository needs an application to be read. |
+| `git_app_not_writable` | 403 | The application is instance-wide; an organization cannot edit it. |
+| `git_app_sync_failed`, `git_app_sync_unsupported` | 502 / 400 | The provider refused the sync, or sync is GitHub-only. |
+| `installation_claimed_by_another_organization` | 409 | Another organization already connected this installation. |
+| `install_authorization_required`, `install_not_authorized` | redirect (`?error=`) | The GitHub callback arrived without its authorization code, or the authorizing user cannot see the installation. |
+| `invalid_request`, `state_invalid`, `forbidden`, `conversion_failed`, `create_failed`, `unavailable` | redirect (`?error=`) | Callback-flow failures: missing parameters, a stale or tampered state, the wrong organization, or the App could not be created. |
+| `source_url_conflict` | 409 | A repository with this canonical URL already exists in the organization. |
+| `source_repository_url_invalid`, `source_repository_url_must_be_https` | 400 | The URL is malformed or not `https`. |
+| `source_ssh_requires_credential` | 400 | An SSH URL needs a deploy key. |
+| `source_scope_immutable`, `source_scope_not_supported` | 400 | A repository's scope cannot change, or is not offered for this provider. |
+| `source_credential_not_supported`, `source_credential_provider_mismatch`, `source_installation_provider_mismatch` | 400 | The credential or installation does not fit the repository's provider. |
+| `source_refresh_not_supported` | 400 | Only provider-connected repositories refresh. |
+| `source_not_visible_to_connection` | 404 | The connection can no longer see the repository — removed from the installation, or access revoked. |
+| `source_read_failed`, `git_provider_request_failed` | 502 (404 / 409 when the provider said so) | The provider or the daemon-lane read failed. |
+| `ref_required` | 400 | The repository records no default branch; name a ref. |
+| `invalid_list_path` | 400 | `listPath` must be a relative path. |
+| `no_daemon_available` | 503 | A plain-git repository is read through a connected server, and none is available. |
+| `source_referenced_by_compose` | 409 | Detach the source from every service before deleting the repository. |
+| `source_ref_unresolved` | 422 (deploy) | The bound branch does not exist, or the provider refused the lookup. |
+
+## Related
+
+- [Writing compose](/docs/using/compose) — the `x-turbopanel.source` block and releases.
+- [Deploying and running an environment](/docs/using/deploy) — what a push-triggered deploy goes through.
+- [Accounts and access](/docs/getting-started/accounts-and-access) — signing in with GitHub or Google, which is separate from connecting a repository.
+- [Security](/docs/deployment/security#connecting-github-and-gitlab-safely) — the operator's view of the installation and URL rules.
