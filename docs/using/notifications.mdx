@@ -19,7 +19,7 @@ When something happens that a person should know about — a server goes offline
 | --- | --- |
 | **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the instance as a whole. |
 | **Inbox** | Your own rows behind the bell. A server event lands in the inbox of every member of that organization; the events that mirror the audit trail — deletes, key revokes, grant changes — reach only its owners and managers; an instance event reaches every instance administrator. No setup needed. |
-| **Channel** | Somewhere outside the console a notification can be delivered. **Yours** (they follow your account across organizations) or the **organization's** (managers edit them). Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
+| **Channel** | Somewhere outside the console a notification can be delivered. **Yours** (they follow your account across organizations), the **organization's** (managers edit them), or the **instance's** — an administrator's receivers that hear every event on the instance, managed through the [admin API](/docs/using/admin#also-in-the-instance-api) for now. Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
 | **Rule** | What a channel receives: **every event** at or above a severity floor, or a chosen list of events. A channel with no rule receives nothing. |
 | **Delivery** | One attempt ledger per event × channel: written before the send, retried on failure with backoff, abandoned after five attempts. |
 

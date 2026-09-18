@@ -108,7 +108,7 @@ Without a working provider, sign-up skips email verification and invitations are
 
 Two instance settings have no panel yet and are set through `/api/admin/v1`:
 
-- **Alert webhook** — `PUT /settings/alert-webhook` `{ url }` (or `null` to clear): the instance-wide receiver for `server.offline` and `fleet.mass_disconnect`, kept from before the notifications system existed ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)). The same events now also reach every administrator's bell and any [notification channel](/docs/using/notifications) a rule routes them to; on self-hosted the webhook may point at a LAN address.
+- **Instance notification channels** — `GET`/`POST`/`PATCH`/`DELETE /notification-channels[/:id]`: the operator's own receivers, which hear every event on the instance (same shapes as a person's channels; an email address must be an administrator's). The older `PUT /settings/alert-webhook` `{ url }` (or `null`) still works ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)): it edits the instance channel called **Operator alert webhook**, which an instance configured before the notifications system existed is folded into automatically. On self-hosted it may point at a LAN address. See [Notifications](/docs/using/notifications).
 - **Daemon console** — `GET /daemon/connections`, `/daemon/commands`, `/daemon/addresses`: what every connected daemon reports, for support.
 
 The interactive reference is at `/api/admin/v1/reference`.
