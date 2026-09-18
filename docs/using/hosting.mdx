@@ -115,7 +115,7 @@ Source *Self-signed*, list the **Hostnames**, save. Useful for a `datacenter` or
 
 ### Let's Encrypt
 
-Let's Encrypt is **off by default for every organization**. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it is an explicit opt-in, and turning it back off is immediate: no new certificate is requested, and a previously issued `managed` row is no longer wired at deploy (the hosting falls back to `tls internal`) — issued certificates are not revoked.
+Let's Encrypt is **off by default for every organization**. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it is an explicit opt-in, and turning it back off is immediate: no new certificate can be requested, and a deploy that still pins a Let's Encrypt (`managed`) row is refused with `acme_requires_org_opt_in` until you turn the opt-in back on or pin another certificate. Certificates Caddy already issued are not revoked; they stay on the host.
 
 <Steps>
   <Step>

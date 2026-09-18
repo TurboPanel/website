@@ -101,7 +101,7 @@ See [Hosting](/docs/using/hosting).
 | `mount_destination_in_use` | 409 | Another entry already mounts at that destination in the service. |
 | `copy_primary_exists`, `copy_server_provider_exists` | 409 | The entry already has a primary copy, or a copy on that server with that provider. |
 | `scratch_copy_not_mountable` | 409 | A `scratch` copy cannot be mounted. |
-| `conflict` | 409 | A storage or forge write collided with a concurrent one; retry. |
+| `conflict` | 409 | A storage write hit a uniqueness rule not otherwise classified. (The same word appears as `?error=conflict` on the OAuth link callback when the provider account is already linked to another user.) |
 | `binding_key_conflict` | 409 | A variable key collides with one a database binding owns. |
 | `binding_key_prefix_in_use` | 409 | Another binding in the environment already uses that key prefix. |
 | `binding_engine_defaults_in_use` | 409 | The binding's default keys are already taken. |
