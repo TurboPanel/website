@@ -243,6 +243,19 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | `last_sign_in_method` | 409 | The provider cannot be unlinked; it is the account's only way to sign in. |
 | `oauth_reauth_required` | redirect (`?error=`) | Linking a provider needs a session younger than 15 minutes. |
 
+## Notifications
+
+See [Notifications](/docs/using/notifications).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `address_rejected` | 422 | The channel URL failed the outbound gate; `reason` names the rule. |
+| `address_invalid`, `address_required` | 400 | Not a valid address for the channel's kind. |
+| `label_required`, `label_invalid` | 400 | The channel name is missing, too long, or unprintable. |
+| `signing_secret_not_applicable`, `signing_secret_invalid` | 400 | Only a webhook signs; 1–256 characters. |
+| `rule_event_unknown`, `rule_severity_invalid`, `rules_invalid` | 400 | The rule list names an unknown event or is malformed. |
+| `kind_invalid`, `scope_invalid` | 400 | Not a channel kind that can be typed in, or not `user` / `organization`. |
+
 ## Billing (TurboPanel High Availability)
 
 See [Billing and licenses](/docs/using/billing).

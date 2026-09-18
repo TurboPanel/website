@@ -1,0 +1,116 @@
+---
+title: Notifications
+description: The bell, the events TurboPanel can tell you about, channels — email, webhook, Slack, Discord, Telegram — rules that decide what reaches each one, delivery and retries, and every refusal code
+---
+
+# Notifications
+
+When something happens that a person should know about — a server goes offline, a daemon key is revoked, access is granted — TurboPanel writes it to the **bell** of everyone concerned, and delivers it to any **channel** a rule routes it to: an email address, a chat room, a webhook. This chapter is the bell, **Account → Notifications** (`/account/notifications`), and what an operator can expect from delivery.
+
+<Callout type="info" title="Private alpha — the catalogue is short on purpose">
+  Only events that the platform actually raises are listed; today that is six. Each new emitter joins
+  the catalogue in the same commit as the code that raises it, so what the rules matrix offers is
+  always what can arrive.
+</Callout>
+
+## The model
+
+| Term | Meaning |
+| --- | --- |
+| **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the instance as a whole. |
+| **Inbox** | Your own rows behind the bell. An organization event lands in the inbox of every member of that organization; an instance event in every instance administrator's. No setup needed. |
+| **Channel** | Somewhere outside the console a notification can be delivered. **Yours** (they follow your account across organizations) or the **organization's** (managers edit them). Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
+| **Rule** | What a channel receives: **every event** at or above a severity floor, or a chosen list of events. A channel with no rule receives nothing. |
+| **Delivery** | One attempt ledger per event × channel: written before the send, retried on failure with backoff, abandoned after five attempts. |
+
+Three facts:
+
+- **A channel's address is a credential.** A webhook URL's path *is* the secret, and so is a bot token. They are stored sealed under the instance's data-encryption key and never shown again — the screen shows the origin, or the last few characters.
+- **Addresses pass the same gate as every outbound URL:** `https` only, no credentials in the URL, no reserved names, and a public host — except on a **self-hosted** instance, where a LAN receiver (an Alertmanager next to the control plane) is allowed. A hosted instance cannot reach a private address at all.
+- **Delivering never blocks the thing being reported.** A webhook that is down does not stop a deploy or a sweep; it leaves a failed delivery that the maintenance tick retries.
+
+## The events
+
+| Code | Severity | Scope | When |
+| --- | --- | --- | --- |
+| `server.offline` | critical | organization | The daemon stopped answering and the server was marked offline. |
+| `fleet.mass_disconnect` | critical | instance | A whole sweep lost its fleet at once — usually the control plane's own network or broker. |
+| `server.deleted` | info | organization | A server was deleted from the console. |
+| `server.daemon_key_revoked` | warning | organization | A server's daemon key was revoked. |
+| `access.grant_created` | info | organization | A permission grant was added. |
+| `access.grant_revoked` | warning | organization | A permission grant was removed. |
+
+## The bell
+
+The bell in the header (the avatar badge on the phone apps) shows your unread count, polled once a minute. Open it for the newest rows: a coloured dot for severity, the title and the sentence, when it happened. **Mark all read** clears the badge; **×** dismisses a row; a row that names a server opens that server. **Notification settings** at the bottom opens the preferences screen.
+
+## Add a channel
+
+**Account → Notifications.** Two panels: **Your channels** and **Organization channels** (the organization you last opened; only a **manager** may add or edit there).
+
+<Steps>
+  <Step>
+    Pick the **kind** — Email, Webhook, Slack, Discord or Telegram — and give the channel a **Name**.
+  </Step>
+  <Step>
+    Enter the **address**: an email address; an `https` URL that accepts a JSON POST; a Slack or Discord incoming-webhook URL; or, for Telegram, your bot token, a slash, then the chat id (`123456:ABC…/987654321`). For a webhook you may add a **signing secret**.
+  </Step>
+  <Step>
+    Choose the **rules**: **Every event** at a floor (*Everything*, *Warnings and up*, *Critical only*), or switch to **Chosen events** and tick them. **Add channel.**
+  </Step>
+</Steps>
+
+Each channel is then a row with its rules (change them and **Save rules**), **Pause** / **Resume**, **Remove**, and the outcome of the last delivery in the past week.
+
+## What a receiver gets
+
+| Kind | Body |
+| --- | --- |
+| **Webhook** | JSON: `event`, `severity`, `title`, `body`, `text` (the one-line form), `organizationId`, `target` (`{ type, id }` or null), `context` (small non-secret facts), `at`. Headers `X-TurboPanel-Event: <code>` and, when the channel has a signing secret, `X-TurboPanel-Signature: sha256=<hex>` — HMAC-SHA256 of the raw body with the secret. |
+| **Slack** | `{ "text": "…" }` — the title, the sentence, then `key=value` facts in parentheses. Mattermost and Rocket.Chat read the same field. |
+| **Discord** | `{ "content": "…" }`, the same line. |
+| **Telegram** | `sendMessage` to the chat id with the same line. |
+| **Email** | Subject `[TurboPanel Critical] Server db-1 went offline`; the sentence, the facts as a list, and an **Open in TurboPanel** button when the event has a target. |
+
+Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw body)) and comparing it to the header with a constant-time comparison.
+
+## Delivery and retries
+
+One attempt is made at the moment of the event, with a five-second budget per channel. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_not_public`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Kinds | `email` · `webhook` · `slack` · `discord` · `telegram` (`push` is registered by the store apps, never typed) |
+| Severities | `info` < `warning` < `critical` |
+| Rule | `*` at a floor, or one row per event |
+| Inbox fan-out | every organization member (organization event); every instance admin (instance event) |
+| Channel reach | organization channels, its members' own channels, and every instance channel |
+| Address rule | `https`, no credentials, no reserved names, public host — LAN allowed on self-hosted |
+| Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
+| Signature | `X-TurboPanel-Signature: sha256=<hex HMAC-SHA256 of the raw body>` |
+| Name | ≤ 80 characters; address ≤ 2048; signing secret ≤ 256 |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `address_rejected` | 422 | The URL failed the outbound gate; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `reserved_host`, `address_not_public`). |
+| `address_invalid`, `address_required` | 400 | Not an email address / not a token-slash-chat-id pair / empty. |
+| `label_required`, `label_invalid` | 400 | The name is missing, too long, or has control characters. |
+| `signing_secret_not_applicable` | 400 | Only a webhook channel signs its deliveries. |
+| `signing_secret_invalid` | 400 | 1–256 characters. |
+| `rule_event_unknown` | 400 | A rule names an event that is not in the catalogue (`reason` carries it). |
+| `rule_severity_invalid`, `rules_invalid` | 400 | The rule list is malformed. |
+| `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
+| `Forbidden` | 403 | Organization channels need `organization:manage`. |
+| `Not found` | 404 | The channel or the inbox row is not yours. |
+| `Encryption unavailable — no encryption key configured` | 503 | The instance has no root secret, so a sealed address cannot be stored. |
+
+## Related
+
+- [Servers](/docs/using/servers) — what `server.offline` and a revoked key mean.
+- [Organizations, teams and access](/docs/using/access) — the grants the access events describe.
+- [Administering an instance](/docs/using/admin) — the operator's instance-wide alert webhook.
+- [Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark) — configuring that webhook from the shell.

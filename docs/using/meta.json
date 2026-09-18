@@ -11,6 +11,7 @@
     "git",
     "servers",
     "network",
+    "notifications",
     "account-security",
     "access",
     "billing",
