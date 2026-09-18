@@ -232,7 +232,8 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 | Path | Description |
 | ---- | ----------- |
-| `/api/health` | Unversioned health probe |
+| `/api/health` | Unversioned identity payload — licence, version, commit. It touches nothing, so it is **not** an outage signal; see [What to point a monitor at](/docs/deployment/troubleshooting#what-to-point-a-monitor-at) |
+| `/api/daemon/v1/readiness` | The readiness probe. Reads the database; this is the one to monitor |
 | `/api/client/v1/*` | End-user REST API + auth |
 | `/api/install/v1/*` | Self-hosted install wizard (Deno only) |
 | `/api/developer/v1/*` | Developer console (dev tooling) |

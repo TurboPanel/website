@@ -130,12 +130,51 @@ Or reconcile by re-running `run.sh` — see [Refresh a stuck daemon](/docs/deplo
 1. Check daemon logs — on managed hosts Ansible runs as the `tp` user; on co-located dev it runs as the current dev user
 2. Dirty git checkouts block upgrade; commit or stash changes in `$HOME` source repos (`~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`)
 
+## What to point a monitor at
+
+**`/api/health` is not an outage signal.** It is a static identity payload — licence, version, the commit the build came from — and it never touches the database. It answers **200** with Postgres stopped, which is exactly when an operator most wants it to say something. A game day on a dev stack confirmed it: the control-plane database was killed and `/api/health` returned 200 throughout.
+
+Monitor **`/api/daemon/v1/readiness`** instead. It reads the database, so it is the endpoint that can fail, and its three answers are distinguishable:
+
+| Response | Meaning |
+| -------- | ------- |
+| **200** `{"ok":true,"ready":true}` | Serving |
+| **503** `{"ok":true,"ready":false,"needsInstall":true}` | Up, but the install wizard has not created the first organization and superadmin yet |
+| **503** `{"ok":false,"ready":false,"error":"database unavailable"}` | The database is down, unreachable or mid-failover |
+
+Alert on the third. The second is a normal state for a freshly installed instance, and co-located daemons already poll this endpoint and wait it out.
+
+## What recovers on its own
+
+| Fault | Recovery |
+| ---- | -------- |
+| Postgres container crashes | Docker's `unless-stopped` policy restarts it; the instance's connection pool reconnects. No operator action, and **`turbopanel-instance` is not restarted** — if systemd bounced the unit, something else is wrong |
+| RabbitMQ container crashes | Same, and the command consumer reconnects with capped backoff, retrying until the broker is back |
+| Instance process exits | `Restart=always` in the unit, with a 2s delay |
+
+One trap worth knowing before you test any of this by hand: **`docker kill <name>` is not a crash simulation.** Docker records it as a manual stop, and a restart policy does not fire for a manual stop — the container stays down until you run `docker start`. To simulate a real crash, signal the container's process directly:
+
+```bash
+sudo kill -9 "$(docker inspect -f '{{.State.Pid}}' turbopanel-database)"
+```
+
+(`docker exec <name> kill -9 1` does nothing at all — PID 1 of a PID namespace ignores `SIGKILL` sent from inside that namespace.)
+
+Contributors can run the whole exercise, with these assertions checked for them, from the `dev` checkout:
+
+```bash
+./scripts/game-day.sh --all --include-operator-stop
+```
+
+It refuses to run outside a development guest, bounds every wait, and exits non-zero if the stack does not come back.
+
 ## General debugging
 
 | Task | Command |
 | ---- | ------- |
 | Instance health (HTTPS) | `curl -k https://localhost:8443/api/health` (omit `-k` when `TURBOPANEL_TLS_PUBLIC`) |
 | Instance health (dev HTTP) | `curl http://localhost:8880/api/health` — co-located dev only; requires `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1` |
+| Instance readiness | `curl -k https://localhost:8443/api/daemon/v1/readiness` — the probe that reads the database; see [What to point a monitor at](#what-to-point-a-monitor-at) |
 | Client status (HTTPS) | `curl -k https://localhost:8443/api/client/v1/status` (omit `-k` when `TURBOPANEL_TLS_PUBLIC`) |
 | Client status (dev HTTP) | `curl http://localhost:8880/api/client/v1/status` — co-located dev only |
 | Service status | `systemctl status turbopanel-instance turbopanel-caddy turbopaneld` |
