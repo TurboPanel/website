@@ -20,7 +20,7 @@ type Phase = Readonly<{
   discussionUrl?: string
 }>
 
-const LAST_UPDATED = '2026-09-14'
+const LAST_UPDATED = '2026-09-18'
 
 const PHASES: ReadonlyArray<Phase> = [
   {
