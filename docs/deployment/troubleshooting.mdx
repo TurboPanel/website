@@ -144,6 +144,33 @@ Monitor **`/api/daemon/v1/readiness`** instead. It reads the database, so it is 
 
 Alert on the third. The second is a normal state for a freshly installed instance, and co-located daemons already poll this endpoint and wait it out.
 
+## Getting paged when a server goes dark
+
+The control plane watches its fleet on a sweep and marks a daemon offline when it stops answering. Without somewhere to send that, it is a log line nobody reads at 3am. Point it at an incoming webhook:
+
+```bash
+curl -X PUT https://<host>:8443/api/admin/v1/settings/alert-webhook \
+  -H 'content-type: application/json' \
+  --cookie "$SESSION" \
+  -d '{"url":"https://hooks.slack.com/services/T000/B000/XXXX"}'
+```
+
+`{"url": null}` clears it. Two alerts go out:
+
+| Alert | When |
+| ----- | ---- |
+| `server.offline` | One daemon stopped answering and was marked offline |
+| `fleet.mass_disconnect` | A single sweep lost at least three hosts **and** either half the connected fleet or ten hosts outright — a shared cause (a bad daemon release, a broken ingress, a cell outage) rather than N coincidences. It is sent before the per-server alerts it explains |
+
+The body carries a `text` field, which Slack, Mattermost, Rocket.Chat and Discord all render, plus `kind` and `detail` for anything that parses JSON.
+
+Two things to know about the URL:
+
+- **It is a credential.** In every common webhook scheme the path is the secret. It is stored sealed, the same way an SMTP password is, and reading the setting back returns only the origin and whether one is configured — never the path. If you lose it, set a new one; there is no way to read the old one out.
+- **It has to be publicly routable.** `https` only, no credentials in the URL, no reserved names (`localhost`, `*.internal`, a bare `redis`), and no private or link-local address. A URL an admin types in is fetched by the control plane, so an address pointing back inside the box would make this a way to reach the instance's own Postgres, RabbitMQ or cloud metadata endpoint.
+
+A delivery that fails is logged and dropped. It never delays or fails the sweep — an unreachable Slack must not be the reason a dead host stays marked online.
+
 ## What recovers on its own
 
 | Fault | Recovery |
