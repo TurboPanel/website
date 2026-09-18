@@ -1,0 +1,138 @@
+---
+title: Servers
+description: Adding a server with a registration key, pending keys, the fleet view and batch daemon updates, the server control panel — details, labels, machine class, the server proxy, hostname, reboot, SSH port, time and NTP, daemon update, revoke, delete — and the organization's server settings, with every refusal
+---
+
+# Servers
+
+A **server** is a Linux host running the TurboPanel daemon, enrolled into one organization. Everything you deploy runs on one. This chapter is the console side of the fleet: **Servers** (`/<org>/servers`), a server's **control panel**, pending registration **Keys**, and the organization-wide **Settings**. Installing the daemon by hand, updating it from the shell, and what lives where on the host are the operator's pages: [Daemon setup](/docs/deployment/daemon-setup) and [Daemon update](/docs/deployment/daemon-update).
+
+## The model
+
+| Term | Meaning |
+| --- | --- |
+| **Registration key** | A one-shot credential the console mints when you add a server. It is embedded in the install command; the daemon consumes it at enrollment and it is bound to that server from then on. An unconsumed key is a **pending key**. |
+| **Daemon** | `turbopaneld` on the host: enrolls with the key, holds a signed key pair, streams facts and metrics, and executes the commands the control plane queues (deploys, reboots, updates). It connects **out** to the control plane; nothing connects in. |
+| **Co-located server** | On self-hosted, the control plane's own host is also a server — enrolled at install, named *this server*. It cannot be deleted, its key cannot be revoked, and it updates with the control plane rather than through the console. |
+| **Capacity** | An owner-set ceiling on how many servers the organization may hold (**Servers → Settings → Server capacity**); enrolled servers and pending keys both count. On High Availability the purchased [licenses](/docs/using/billing) bound it as well. |
+| **Machine class** | Physical or virtual. Decides whether hardware-sensor slots are used; inferred from discovered sensors unless pinned. |
+
+Two rules:
+
+- **TurboPanel observes host interfaces; it does not configure them.** Addresses, routes and firewalls are the host's. The console reads what the daemon reports and pins meaning onto it (datacenter membership, addresses for hosting).
+- **A rebuilt host is a new server.** A key is consumed once; a host that is reinstalled from scratch enrolls with a fresh key and appears as a new server row.
+
+## Before you begin
+
+- A Debian 12+ or 64-bit Raspberry Pi OS host (`x86_64` or `aarch64`) with root and outbound HTTPS to the control plane ([supported platforms](/docs/deployment/daemon-setup#supported-platforms)).
+- **Organization owner** to mint a key; **manager** for everything else on this page except capacity.
+- On self-hosted, the control plane's **public URL** configured (**Admin → Networking**) so the install command names an address the host can reach.
+
+## Add a server
+
+**Servers → + Server** (the **Add server** wizard: **Name → Install → Connect**).
+
+<Steps>
+  <Step>
+    **Server name (optional)** — how the row will be labelled; the daemon's hostname is used otherwise. **Continue** mints the key. Refused when capacity is exhausted (`server_capacity_exceeded`) or, on High Availability, when every license is held (`no_license_available` — **Open billing**).
+  </Step>
+  <Step>
+    **Install command**: `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`, with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
+  </Step>
+  <Step>
+    **Connect** waits for the daemon's first heartbeat, then opens the server. The key disappears from **Keys** the moment it is consumed.
+  </Step>
+</Steps>
+
+<Callout type="info" title="The install command carries a secret">
+  The key inside the command enrolls one host; treat the command as a password until it has been used. A key you will not use is deleted under **Servers → Keys**.
+</Callout>
+
+**Servers → Keys** lists the unconsumed keys (owner-only). **Delete** is two-press. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
+
+## The fleet
+
+**Servers** shows every server the organization holds, in **Detail** or **Summary** layout: online / offline / initializing, hostname, class, cores and RAM, the daemon build, and whether an update is available. The Overview tiles (**Servers · Cores · RAM**) total the fleet.
+
+**Batch update:** select servers with updates available and **Update (n)**. Each runs the same update the control panel offers; a co-located server is skipped (it updates with the control plane).
+
+## The control panel
+
+Open a server for five tabs: **Overview · Control · Time · Network · Metrics**.
+
+### Overview
+
+- **Details** — hostname, machine id, OS, daemon build, last seen, addresses.
+- **Labels** — key/value labels on the server (**Add label**, **Save**). A service can pin itself to servers by label with plain Compose: `deploy.placement.constraints: ["node.labels.tier == db"]` (`==` / `!=`).
+- **License** (High Availability) — the tier the server sits on, the tier its hardware requires, and what is unwatched if they differ; **Daily notice** shows the last tier notice. See [License tiers](/docs/deployment/tiers).
+- **Machine class** — **Auto** (default), **Physical** or **Virtual**. *The pin sets entitlement, not what the daemon collects*: Physical unlocks the sensor slots the tier includes; Virtual suppresses them; Auto infers Physical once sensors are discovered and never infers Virtual.
+- **Hardware profile** — which sensors feed CPU, drive and GPU temperature, which physical NICs are monitored, the **hosting storage path** (the mount that should hold application storage; empty auto-detects), and manual **CPU TDP** / **Tjmax** overrides. Drive temperature reporting (`drivetemp`) is opt-in. What each choice changes on the Metrics tab is in [Server metrics](/docs/metrics).
+
+### Control
+
+- **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. *Not provisioned* means no hosting has been deployed to this server yet.
+- **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the panel shows each command's outcome and log.
+- **Daemon update** — when a newer build is published, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. Co-located hosts say so and are updated with the control plane.
+- **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
+- **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
+- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. The co-located server cannot be deleted.
+
+### Time
+
+- **Time sync status** — facts from the last heartbeat: whether the NTP client is enabled and **Synced**, and the servers it uses.
+- **Timezone** — the effective timezone (server → datacenter → organization default); **Apply timezone** pushes a change to the host.
+- **NTP configuration** — **NTP client enabled**, **NTP servers**, **Fallback servers**; **Apply NTP** pushes it. Empty values inherit from the datacenter or the organization's host defaults.
+
+### Network
+
+Read-only view of what the daemon reports and how the organization has pinned it: **Interfaces** (with the datacenter each address is pinned into; a pin whose address the daemon stopped reporting shows **Stale**), **Datacenters** (membership pins for this host), **Managed addresses** (organization address-pool rows assigned to this host), and **Mesh** (its TurboFabric state). Changing any of it is done from [Datacenters and networking](/docs/using/network).
+
+### Metrics
+
+Live and historical charts for the host; see [Server metrics](/docs/metrics) for what each one means and [Live metrics sessions](/docs/using/admin#server-metrics) for the session limit.
+
+## Organization settings
+
+**Servers → Settings.**
+
+| Panel | What it sets |
+| --- | --- |
+| **Default server timezone** | The organization's timezone default, and **Enforce org default on every server**. |
+| **Temperature display** | °C or °F on every Metrics tab. |
+| **Host defaults** | The organization-level **SSH port**, **NTP client enabled**, **NTP servers**, **Fallback NTP servers** — the top of the *organization → datacenter → server* cascade (most specific wins). |
+| **Server capacity** | **Max servers** or **Unlimited servers** (owner-only). Enrolled servers and pending keys count. |
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
+| Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
+| Reserved name | `this server` (the co-located server) |
+| Control-panel tabs | Overview · Control · Time · Network · Metrics |
+| Machine class | `auto` (default) · `physical` · `virtual` |
+| Cascades | timezone, SSH port, NTP: organization → datacenter → server |
+| Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `server_capacity_exceeded` | 409 | Enrolled servers plus pending keys reach **Max servers**. |
+| `no_license_available` | 409 | High Availability: every purchased license is held or releasing. |
+| `license_has_attached_server` | 409 | The key is bound to a live server; delete the server, not the key. |
+| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). |
+| `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own console. |
+| `Co-located hosts are updated via local git, not remote updates` | 403 | Update the control plane instead. |
+| `Daemon not connected`, `Up to date`, `Target unavailable` | 404 (update) | The daemon must be online to update; there is no newer build; or the release manifest could not be read. Other commands queue and wait. |
+| `Server is not enrolled` | 409 | The row has no daemon key yet — the install command has not run. |
+| `Invalid hostname`, `Invalid sshPort`, `Invalid ntp`, `Invalid timezone`, `Invalid machineClass` | 400 | The value did not validate. |
+| `Not found` | 404 | No such server in this organization. |
+
+## Related
+
+- [Daemon setup](/docs/deployment/daemon-setup) — the installer, the FHS layout, the service.
+- [Daemon update](/docs/deployment/daemon-update) — updating from the shell and changing channel.
+- [Datacenters and networking](/docs/using/network) — subnets, pins, addresses, Docker pools, the mesh.
+- [Billing and licenses](/docs/using/billing) — why a key can be refused on High Availability.
+- [Server metrics](/docs/metrics) — the Metrics tab.

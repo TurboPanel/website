@@ -1,0 +1,165 @@
+---
+title: Datacenters and networking
+description: The organization's network registry — datacenters (subnets, member pins, priority and trust, per-datacenter defaults), the address pool, Docker networks and host address pools, reserved ranges, and the TurboFabric mesh — with every collision and refusal code
+---
+
+# Datacenters and networking
+
+TurboPanel does not configure your network; it keeps a **registry** of it, so that every allocator on the platform — replication transports, managed-database listeners, Docker's own address pools, the mesh — can hand out ranges that do not collide with each other or with anything you have told it about. This chapter is the **Network** hub (`/<org>/network`) and **Servers → Datacenters**. The reasoning behind the model — why a datacenter is a routing domain and not a building, the transport ladder, the collision matrix — is in [Datacenter networks](/docs/architecture/datacenter-networks); a worked example is [Network addressing](/docs/deployment/network-addressing).
+
+## The model
+
+```
+organization
+├─ datacenters        one or more mutually routable private subnets; servers pinned in by address
+├─ address pool       public and datacenter addresses hosting rows can bind
+├─ Docker networks    external networks compose may reference; host-wide Docker address pools
+├─ reserved ranges    CIDRs something outside TurboPanel routes — no allocator may use them
+└─ TurboFabric        the opt-in encrypted mesh between servers
+```
+
+| Thing | What it is |
+| --- | --- |
+| **Datacenter** | A logical routing domain: one or more **subnets** whose members can reach each other directly. Not a building — a server can belong to several (a LAN and a backhaul), and two subnets in one building that cannot route to each other are two datacenters. |
+| **Member pin** | A server's membership in a datacenter, pinned to one of the private addresses its daemon reports. The address must fall inside one of the datacenter's subnets. |
+| **Priority** | `0`–`1000`, default `100`, **lower wins** when two servers share more than one datacenter. |
+| **Trusted** | Whether the segment is under your control (default on). Untrusted datacenters are skipped for replication; traffic falls through to the mesh or a TLS-only public path. |
+| **Collision authority** | One rule every CIDR write passes: a new range may not overlap a subnet, a reserved range, a registered Docker network or pool, the mesh range or container pool, or a range a gateway advertises. The same 409 codes come back on every form. |
+
+One rule: **TurboPanel observes host interfaces; it does not configure them.** A pin names an address the daemon already reports; when the daemon stops reporting it the pin shows **Stale** and nothing is changed on the host.
+
+## Before you begin
+
+- **Manager** rights on the organization; all of this is manage-gated.
+- For a datacenter: at least one server whose daemon reports a private IP (**+ Datacenter** appears only then).
+
+## Datacenters
+
+**Servers → Datacenters.** The table shows each datacenter's subnets, members, and its **Routing** column (`P<priority>` and a Trusted / Untrusted chip).
+
+### Create one
+
+<Steps>
+  <Step>
+    **+ Datacenter** → **Name**, optional **Description**.
+  </Step>
+  <Step>
+    Pick the **Server** and one of its reported **Private IP**s. The **First subnet** is derived from that address and becomes the datacenter's first subnet; the server becomes its first member.
+  </Step>
+  <Step>
+    **Create** opens the datacenter.
+  </Step>
+</Steps>
+
+### The datacenter page
+
+| Panel | What it does |
+| --- | --- |
+| **Datacenter** | **Display name**, **Description**. |
+| **Subnets** | The private CIDRs (IPv4 or IPv6). **Add subnet** normalises what you type to its aligned network and runs the collision authority. A subnet's CIDR is immutable — rename it or delete it (**Delete subnet**, refused while a pin references it, `subnet_has_members`). |
+| **Member servers** | Pins: **Server** + **Private IP** (only addresses inside this datacenter's subnets; a server may hold more than one). **Stale** marks a pin whose address the daemon no longer reports. |
+| **Routing** | **Prefer IPv6** / **Prefer IPv4**, the **Priority** (with a hint naming which datacenter currently wins for a pair), and **Trusted** / **Untrusted**. *Saving recomputes managed transports*: every managed-database member whose replication crosses this datacenter is re-planned and its listeners re-converged. |
+| **SSH port**, **NTP defaults**, **Timezone** | The datacenter rung of the *organization → datacenter → server* cascade; **Enforce on members** pushes the value to every member; **Clear (inherit)** returns to the organization default. |
+| **Relays** | Which members act as TurboFabric gateways for this datacenter (see [Mesh](#turbofabric-the-mesh)). |
+| **Delete** | Two-press, only once no pin remains (`datacenter_has_members`); deleting removes every subnet with it. |
+
+## Addresses
+
+**Network → Addresses.** The organization's **address pool**: rows a hosting row or a service can bind.
+
+<Steps>
+  <Step>
+    **Add address**: the **Address**, its **Scope** — **public** (an address the world reaches) or **datacenter** (an address inside one of your subnets, with the **Site**) — and its **Allocation**: **dedicated** (one consumer) or **shared**.
+  </Step>
+  <Step>
+    Optionally pin it to a **Server**; a datacenter-scoped pin becomes a member pin as well.
+  </Step>
+</Steps>
+
+Address, scope and allocation are immutable after creation; edit the description or delete. An address a hosting row still binds cannot be deleted (`ip_in_use`). **Filters** narrow the list by scope and allocation.
+
+## Docker
+
+**Network → Docker networks.**
+
+- **Managed networks** — the networks the platform created for deployed environments; read-only, shown so the ranges are visible next to yours.
+- **Docker networks** — the *external* networks a compose file may reference under `networks.*.name`. **Register** a **Docker network name** (must match the compose reference), optional **Subnet** (given to `docker network create --subnet` the first time a daemon creates it; empty lets Docker pick), optional **IP range** and **Gateway** inside that subnet, optional **MTU**, and an optional **Host pin** for a host-local network. The subnet runs the collision authority.
+- **Host address pools** — organization-wide `dockerd` addressing merged into every enrolled host's `/etc/docker/daemon.json`: up to 16 **Add pool** rows (**base** CIDR + **size** prefix, non-overlapping) for `default-address-pools`, and an optional **Default bridge** (`bip`, the bridge's own host address with prefix — `172.17.0.1/16`, not a network address). **Save** restarts `dockerd` on every host; existing networks and containers keep their addresses. Use this to move Docker off a range your LAN uses ([worked example](/docs/deployment/network-addressing#move-dockers-address-pools-off-the-lan)).
+
+## Reserved ranges
+
+**Network → Reserved ranges.** CIDRs that something outside TurboPanel routes — a VPN block, a provider network, the office LAN — which no allocator may hand out. **Reserve a range**: **Name** + **CIDR** → **Reserve**. Rename with **Save name**; delete two-press. A reserved range that overlaps something already registered is refused with the same collision codes; declare reservations *before* the ranges they protect are needed.
+
+## TurboFabric — the mesh
+
+**Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used when two servers share no trusted datacenter — replication and managed-database traffic ride it instead of a public listener.
+
+<Steps>
+  <Step>
+    **Enable TurboFabric.** Optionally set the **container pool** (an IPv4 range, prefix `/16` or wider, from which each relay's prefix is allocated — it runs the collision authority, and a pool too small for the fleet refuses with `fabric_prefix_pool_exhausted` and nothing enabled) and **Allow relay path** (whether traffic may hop through a third server when two cannot reach each other directly).
+  </Step>
+  <Step>
+    **Relays**: per server, the **Role** (**gateway** for a datacenter — it must belong to one, with a subnet to advertise — or **member**), **Advertised LAN CIDRs** for a gateway, **Keepalive (seconds)**, an **Endpoint override**, and **Set preshared key** (write-only).
+  </Step>
+  <Step>
+    **Apply** reconciles the whole fleet. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.*
+  </Step>
+</Steps>
+
+Disabling is a real teardown: interfaces and allocated prefixes are reclaimed. Changing the container pool never renumbers existing relays; a pool that would strand one is refused (`fabric_container_pool_in_use`). The six path states and the selection rule are in [TurboFabric path model](/docs/architecture/turbofabric-path-model).
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Datacenter priority | `0`–`1000`, default `100`, lower wins; tie → datacenter id |
+| Trusted | default on; untrusted is skipped for datacenter transport and refuses failover replicas |
+| Address preference | IPv6 / IPv4 per datacenter |
+| Address scopes · allocations | `public` · `datacenter` — `dedicated` · `shared` |
+| Docker pools | ≤ 16, base + size, non-overlapping; size between the base prefix and `/30` (IPv4) or `/126` (IPv6) |
+| Docker MTU | whole number within the daemon's bounds |
+| Fabric container pool | IPv4, prefix ≤ `/16` |
+| Transport order | local → datacenter → fabric → public |
+| Cascades | SSH port, NTP, timezone: organization → datacenter → server |
+
+## Errors
+
+The console renders every collision as a sentence; the codes are what the API answers.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `subnet_overlaps` | 409 | That range overlaps an existing subnet in this organization. |
+| `cidr_overlaps_reserved` | 409 | That range overlaps a reserved range — something outside TurboPanel routes it. |
+| `cidr_overlaps_docker_network` | 409 | That range overlaps a registered Docker network or a Docker address pool. |
+| `cidr_overlaps_fabric`, `cidr_overlaps_fabric_pool` | 409 | That range overlaps the TurboFabric range (`tp0`) or its container pool. |
+| `cidr_overlaps_gateway_advertised` | 409 | A gateway in another datacenter already advertises that range across the mesh. |
+| `invalid_cidr` | 400 | Enter a valid IPv4 or IPv6 CIDR. |
+| `network_cidr_required` | 400 | A range exists because of its CIDR — enter a new one instead of clearing it. |
+| `subnet_has_members` | 409 | Unassign the pinned servers first. |
+| `datacenter_has_members` | 409 | Remove the pins before deleting the datacenter. |
+| `datacenter_has_networks` | 409 | A non-subnet network (a Docker registration pinned to this datacenter) still references it. |
+| `address_not_in_any_subnet` | 400 | That address is not in any subnet of this datacenter. |
+| `address_in_use` | 409 | That address is already pinned. |
+| `address_cidr_unreported`, `address_not_reported` | 400 | The server has not reported that private IP; pick one it reports. |
+| `ip_in_use` | 409 | A hosting row still binds the address. |
+| `ip_address_in_use` | 409 | That address is already in the pool. |
+| `docker_network_name_required` | 400 | Enter the name compose will reference under `networks.*.name`. |
+| `docker_network_subnet_required`, `docker_network_subnet_mismatch`, `docker_network_subnet_invalid` | 400 | IP range and gateway need a subnet; the subnet and CIDR must agree; the subnet must be a valid CIDR. |
+| `docker_network_ip_range_invalid`, `docker_network_gateway_invalid`, `docker_network_mtu_invalid` | 400 | Range inside the subnet; gateway a bare address inside it; MTU within bounds. |
+| `managed_network_immutable` | 400 | Platform-managed networks cannot be edited. |
+| `address_pools_invalid`, `address_pools_too_many`, `address_pool_base_invalid`, `address_pool_size_invalid`, `address_pools_overlap`, `default_bridge_cidr_invalid` | 400 | The Docker host-pool form's field rules (see the console sentence). |
+| `fabric_prefix_pool_exhausted`, `fabric_address_pool_exhausted` | 409 | The container pool has no prefix or address left for another relay. |
+| `fabric_container_pool_in_use` | 409 | Shrinking the pool would strand an allocated relay prefix. |
+| `fabric_cidr_unavailable` | 409 | The mesh range collides with something registered. |
+| `gateway_datacenter_required`, `gateway_datacenter_cidr_required` | 422 | A gateway must belong to a datacenter that has a subnet to advertise. |
+| `preferred_gateway_invalid` | 422 | The named gateway server is not a gateway in the mesh. |
+| `fabric_reconcile_pending`, `fabric_reconcile_failed`, `relay_missing` | 409 / 422 (deploy) | A deploy that needs the mesh found a reconcile still running, a host that failed to converge (its command id is in the response), or a relay the plan needs missing — see [Deploying](/docs/using/deploy#errors). |
+| `failover_requires_trusted_datacenter` | 422 | A managed failover replica needs a trusted datacenter shared with the primary. |
+
+## Related
+
+- [Datacenter networks](/docs/architecture/datacenter-networks) — the model, the ladder, the collision matrix.
+- [Network addressing](/docs/deployment/network-addressing) — a worked fleet: two datacenters, a VPN reservation, Docker pools.
+- [TurboFabric path model](/docs/architecture/turbofabric-path-model) — path states and selection.
+- [Servers](/docs/using/servers) — a server's Network tab.
+- [Managed databases](/docs/using/managed-databases) — what the transports carry.
