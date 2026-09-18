@@ -147,6 +147,26 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
   </Step>
 </Steps>
 
+### The first admin (hosted)
+
+A self-hosted control plane creates its first superadmin in the install wizard, from host PAM.
+The hosted (Workers) control plane has no wizard: signup is off unless
+`TURBOPANEL_IS_SIGNUP_ENABLED` says otherwise, and no route ever grants a role. So a freshly
+migrated hosted database has no way in — and the [tier catalogue](/docs/deployment/tier-catalogue)
+needs a superadmin to enter it. Once, from the `turbopanel` checkout, over the same database URL
+`pnpm migrate` uses:
+
+```bash
+CLOUDFLARE_ENV=live TURBOPANEL_DATABASE_URL=… pnpm bootstrap:superadmin -- --email you@example.com
+```
+
+It promotes an existing account and nothing else: it refuses when the database already has a
+superadmin, never creates a user or sets a password, and — with `CLOUDFLARE_ENV` set — refuses a
+database that is not that environment's Hyperdrive origin. Add `--dry-run` to see what it would do.
+If the account does not exist yet it says so and stops: enable signup on that environment, sign up
+as that address, run it again, then turn signup back off. Every later admin is promoted from the
+console.
+
 Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-hosted).
 
 <Callout type="warn" title="Not the contributor Vagrant workflow">

@@ -18,7 +18,7 @@ Self-hosted instances skip all of it: every server they license is SX, free — 
 
 | You need | Where |
 | --- | --- |
-| A superadmin session | See [live admin bootstrap](/docs/deployment/control-plane) — on a wiped hosted database there is no signup and no admin until one is bootstrapped |
+| A superadmin session | See [The first admin](/docs/deployment/control-plane#the-first-admin-hosted) — a freshly migrated hosted database has none |
 | `TURBOPANEL_STRIPE_SECRET_KEY` and `TURBOPANEL_STRIPE_WEBHOOK_SIGNING_SECRET` on the environment | Cloudflare deploy settings for that env |
 | A Stripe Tax default *or* `tax_behavior` set on every price | Stripe Dashboard → Settings → Tax. The verifier refuses a price whose tax behaviour resolves to nothing |
 
