@@ -1,0 +1,186 @@
+---
+title: Projects and environments
+description: What a project and an environment each own, the six ways to create a project, the project compose versus the environment overlay, server placement, and every field and error code on the way
+---
+
+# Projects and environments
+
+A **project** is one application or stack, described by one compose document. An **environment** is one deployable copy of it — the thing that actually runs on a server. This chapter is about the container, not the contents: how to create a project, how environments relate to it, where the server is chosen, and how a project is renamed, moved or deleted. What goes *inside* the compose document is the next chapter, [Writing compose](/docs/using/compose); how an environment is deployed and run is [Deploying and running an environment](/docs/using/deploy).
+
+## The model
+
+One project, one compose document, any number of environments.
+
+The **project compose** is the description every environment starts from. Each environment may carry an **overlay** — a second compose document merged over the project's, following the [Compose Specification merge rules](https://docs.docker.com/reference/compose-file/merge/), so a staging environment can change an image tag or add a service without copying the whole file. An environment with no overlay is *Using project compose*: it deploys exactly what the project says, and the console tells you so with that caption rather than a blank editor.
+
+Placement lives on the environment, not in the document. Every environment either **pins** a server or inherits the project's **Default project server**. A compose document that tries to name a server is refused at save, because which host runs a workload is the platform's decision and belongs where permissions can gate it.
+
+Three facts follow from this model and explain most of what the console does:
+
+- **Deploy is an environment action.** The project header carries no Deploy button; select an environment first.
+- **Storage belongs to an environment.** A volume is provisioned on that environment's server, so the project-scope Storage tab stacks one panel per environment rather than offering a project-level store.
+- **Variables cascade.** Organization → workspace → project → environment → service → hosting → server, each scope overriding the one before. The compose file carries references, never values.
+
+## Before you begin
+
+- A connected server, or you can create the project but not deploy it. **Servers → + Server** gives the install command.
+- **Manage** rights on the organization to create or edit; **Owner** rights to delete.
+- For the *Repository* choice, a Git source the organization has connected under **Projects → Git sources**.
+
+## Create a project
+
+**Projects → New project** is a wizard with three steps: details, type, then the type's own step. Nothing is written until you press **Create project** — leaving the wizard discards it.
+
+<Steps>
+  <Step>
+    **Details.** A name (unique within the organization, case-insensitive, surrounding whitespace ignored), an optional description, and the workspace it belongs to.
+  </Step>
+  <Step>
+    **Type.** Six cards. Four of them produce the same kind of project — a compose project — and differ only in what the compose draft starts as and which tab you land on. The other two create a project from the catalog.
+  </Step>
+  <Step>
+    **The type's own step**, then **Create project**. A compose draft, a repository and branch, a hosting kind, a template, or a managed engine — see the table.
+  </Step>
+</Steps>
+
+| Card | Project type | What you land on | Choose it when |
+| --- | --- | --- | --- |
+| **Compose** | compose | The **Compose** tab, a blank YAML editor | You already have a `compose.yaml`, or think in YAML. |
+| **Services** | compose | The **Services** tab, an empty card list | You would rather fill in a form per service than write YAML. The result is the same document. |
+| **Repository** | compose | The **Services** tab with one service bound to the repository | The code lives in a repository the organization has connected. Pick the application, the account, the repository, then the branch. A compose file in the repository, a site, or a Node app all work. |
+| **Hosting** | compose | The **Services** tab with one *site* service | A directory and an account: a static site, PHP, WordPress. You upload over SFTP and the host engine serves it. |
+| **Template** | template | The **Services** tab, filled from the catalog entry | A ready-made stack from the catalog. Templates carry their own variables; secret ones are generated for you. |
+| **Managed** | managed | The managed **Overview** — topology, not compose | A database cluster TurboPanel provisions, backs up and connects for you. Pick an engine, a version series and a base-OS variant; the root password is shown once. |
+
+A project created without a type (an older console, or an interrupted wizard) opens on a **Setup** page that offers the same choices and can be resumed later; **Finish setup** completes it.
+
+<Callout type="info" title="Compose, Services, Repository and Hosting are one type">
+  The stored project type for all four is `docker-compose`. Switch between the **Compose** and
+  **Services** tabs at any time — they are two views of the same document, and an unsaved draft
+  survives the switch.
+</Callout>
+
+## Environments
+
+### The first environment
+
+A project's first environment is created with the organization's **default environment name** — *Production* unless an owner changed it under **Projects → Settings**. With a single environment the console hides the environment tabs and shows its name in the toolbar; the tabs appear once there are two.
+
+### Add, rename, delete
+
+On a compose project, environments are managed from the scope selector in the project header: **Project** is always the first control, and the environments sit to its right as chips (or a picker once there are more than a handful).
+
+<Steps>
+  <Step>
+    **Add.** Below the lifecycle bar, **add environment** takes a name. Names follow the same rule as project names.
+  </Step>
+  <Step>
+    **Rename.** Select the environment, open its **Settings** tab, edit the name.
+  </Step>
+  <Step>
+    **Delete.** **Settings → Danger → Delete environment**, two presses. It is disabled while the project has only one environment — delete the project instead. The environment's containers are torn down on the host after the row is gone; storage entries whose retention is *retain* survive on the server, the rest are removed with it.
+  </Step>
+</Steps>
+
+Managed projects use a dedicated **Environments** tab for the same three operations.
+
+### The overlay
+
+<Steps>
+  <Step>
+    Select the environment and open **Compose** (or **Services**). An environment without an overlay shows the project compose read-only, captioned **Using project compose**, with **Create override** and **Start from project compose**.
+  </Step>
+  <Step>
+    **Create override** starts a blank overlay; **Start from project compose** copies the project document into it. Edit and **Save**.
+  </Step>
+  <Step>
+    To go back to the project's description, **Clear overrides** (two presses) in the banner that appears once an overlay exists.
+  </Step>
+</Steps>
+
+An overlay merges over the project compose per the Compose Specification: keyed lists such as `ports` and `volumes` append with de-duplication, maps such as `environment` and `labels` merge by key, and `command`, `entrypoint` and `healthcheck.test` replace outright. Two YAML tags escape the defaults — `!reset` deletes a key the project declared, `!override` forces a full replacement instead of a merge. [Writing compose](/docs/using/compose#merging-an-overlay) has the full table. **Preview ▾ → Merged compose** shows the result before you deploy it.
+
+## Placement: which server an environment runs on
+
+Placement is set on the **Hosting** tab, at either scope:
+
+<Steps>
+  <Step>
+    At **Project** scope, **Default project server** sets the server every environment inherits.
+  </Step>
+  <Step>
+    At an environment's scope, the **Server** control pins that environment. Clearing the pin returns it to the project default.
+  </Step>
+</Steps>
+
+Until an environment resolves to a connected server, its **Deploy** button is replaced by *No server — set one in Hosting*. A project whose services declare `deploy.replicas` or placement constraints is scheduled across the organization's connected servers by the planner; the pin is the anchor, not a cap — see [Deploying](/docs/using/deploy#placement-and-scheduling).
+
+Any connected server in the organization is a valid target, including a self-hosted instance's own host: a single-server installation can run the control plane and its tenant projects on the same machine. The trade — tenant containers beside the control plane's database and secrets — is the operator's to accept.
+
+## Project settings
+
+**Settings** at project scope, reached from the gear on the Services document or the surface tab:
+
+| Setting | Meaning | Default |
+| --- | --- | --- |
+| **Add Variable** | A project-scoped variable, visible to every environment unless one overrides it. Secret variables are write-only once saved. | — |
+| **Workspace** | Move the project to another workspace in the same organization. | The workspace chosen at creation |
+| **Keep original container names** | Off renames containers to service ids so a redeploy can roll; on keeps the names Compose would give, at the cost of rolling updates. | Off |
+| **Danger → Delete project** | Stops every environment, then deletes the project after a typed confirmation. Owner only. | — |
+
+Environment scope has its own **Add Variable** (an environment override) and **Danger → Delete environment**.
+
+The organization-wide **default environment name** is under **Projects → Settings** (the settings entry on the Projects list, not inside a project).
+
+## Reference
+
+### `POST /projects`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `name` | string | Required. Unique per organization after trimming and lower-casing. |
+| `description` | string | Optional. |
+| `workspaceId` | uuid | Required. Must belong to the organization. |
+| `type` | `docker-compose` · `template` · `managed` | The console's Compose, Services, Repository and Hosting cards all send `docker-compose`. |
+| `code` | string | Catalog entry code. Required with `template` and `managed`. |
+| `options.compose` | compose document | The initial project compose for a `docker-compose` project. |
+| `serverId` | uuid | Optional default project server. |
+
+### Project options
+
+| Key | Values | Meaning |
+| --- | --- | --- |
+| `options.containerNaming` | `uuid` (default) · `custom` | The **Keep original container names** toggle. |
+| `options.defaultServerId` | uuid or absent | The default project server. Cleared by sending `null`. |
+| `options.compose` | compose document | The project compose. Validated on every write. |
+
+### Environment fields
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Unique within the project; same rule as project names. |
+| `serverId` | The pin. `null` inherits the project default. `PATCH /environments/:id`. |
+| `options.compose` | The overlay, or absent when using project compose. |
+
+### Names
+
+Project, environment and workspace names are compared after trimming surrounding whitespace and ignoring case, so *Blog* and *blog* collide. Four names are reserved for the platform's own system projects (the ingress and its siblings) and are refused on create and rename.
+
+## Errors
+
+| Code | Status | When | What to do |
+| --- | --- | --- | --- |
+| `project_name_in_use` | 409 | Another project in the organization already has this name (case-insensitive), or the name is reserved. | Pick another name. |
+| `workspace_name_in_use` | 409 | A workspace with this name already exists in the organization. | Pick another name. |
+| `compose_invalid` | 400 | The compose document failed validation at save. The response carries `issues`, one per finding, with the path and a message. | Fix the listed paths; the editor shows the same findings inline. |
+| `project_has_running_services` | 409 | Delete refused because an environment is still running. | Stop or destroy the environment first; the console's delete flow does this for you. |
+| `managed_runtime_present` | 409 | Delete refused because the environment (or a project's environment) still hosts a managed database cluster. | Destroy the managed cluster from its Overview first; the console's managed delete does this in order. |
+| `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it in `x-turbopanel.source`. | Detach the source from the service, then delete the repository. |
+| `Invalid request` | 400 | A body field has the wrong shape (for example a non-uuid `workspaceId`). | Check the field types above. |
+
+## Related
+
+- [Writing compose](/docs/using/compose) — the document itself.
+- [Deploying and running an environment](/docs/using/deploy) — placement, preview, deploy, lifecycle, logs.
+- [Compose contract](/docs/architecture/compose-contract) — the rules the platform holds itself to, for the curious.
+- [Managed database ingress](/docs/architecture/managed-database-ingress) — how a managed project reaches its consumers.

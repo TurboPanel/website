@@ -1,0 +1,235 @@
+---
+title: Writing compose
+description: The compose document as TurboPanel reads it — the Compose and Services tabs, the x-turbopanel extension, service kinds, the field policy, the linter, overlays and merging, releases and rollback, and every refusal code
+---
+
+# Writing compose
+
+A TurboPanel project is described by a **Compose file**. Not a dialect of one: the [Compose Specification](https://docs.docker.com/reference/compose-file/) as published, validated against the same schema Docker uses, with one reserved extension — `x-turbopanel` — for the handful of things Compose has no way to say. If you can write a `compose.yaml`, you can write a TurboPanel project. This chapter is the reference for that document: the two editors that produce it, what the platform reads, what it adds, what it refuses, and how an environment's overlay merges over it.
+
+## Three rules
+
+Everything else on this page follows from three rules the platform holds itself to.
+
+1. **Compose says what the workload wants.** Image, command, ports, volumes, networks, health checks, `deploy.replicas`, `deploy.resources`, `deploy.placement` — if the Compose Specification has an expression for it, that is the expression TurboPanel reads. There is never an `x-` key for a question Compose already answers.
+2. **`x-turbopanel` says only what Compose cannot.** One namespace, two places: the document root (`principals`) and each service (`serviceKind`, `principal`, `hosting`, `source`, `php`, `cron`, and a few runtime pins). A privilege decision — a Unix uid, a home directory, a password — never belongs in a document at all.
+3. **The platform decides how.** Which server, which container name, which Docker network, which address. A document never pins those; one that tries is refused rather than quietly honoured.
+
+## One document, three views
+
+The project editor shows the document through three lenses, and they are views of one artifact, not three files:
+
+| Tab | What it shows | Edit here when |
+| --- | --- | --- |
+| **Compose** | The YAML, with comments, blank lines and key order preserved across saves. A linter runs on every keystroke. | You know the file you want. |
+| **Services** | The same document as service cards — each service's image or build, ports, volumes, `depends_on`, and a form for the `x-turbopanel` fields. | You would rather fill in *How is this served?* than remember the key. |
+| **Overview** | The topology drawn from the document plus live facts: hostnames above the services, the server frame around them, running status once deployed. | You want to see what a change does before saving. |
+
+An unsaved draft follows you between the three tabs. **Save** and **Discard** appear only while the draft is dirty; Discard is two presses and returns to the last saved document. On the Overview a dirty draft shows the **Proposed** topology with a **Proposed | Saved** toggle.
+
+The `x-turbopanel` blocks are hidden from the YAML view and re-attached on save, so the Compose tab shows plain Compose and the Services forms own the extension fields. Nothing about the stored document or its validation changes between the two.
+
+## Before you begin
+
+- A project of the compose type — every card on the create wizard except *Template* and *Managed* produces one, and a template project becomes an ordinary compose project once created.
+- For a service that runs as a Unix account — a site or a Node app — a **system user** declared under `x-turbopanel.principals` or assigned on the **Bindings** tab. The daemon skips a release that has nobody to run as, and the console keeps Deploy disabled until one is assigned.
+- For a service built from a repository, a Git source connected under **Projects → Git sources**.
+
+## Add a service
+
+<Steps>
+  <Step>
+    Open the **Services** tab and add a service. Give it a name — it becomes the Compose service key, so it follows Compose's rules (`[a-z0-9._-]`). The name lives in the document: to rename a service, rename its key here, never on the service's own settings page.
+  </Step>
+  <Step>
+    Choose **How is this served?** — a **Container image**, a site behind **Caddy**, **nginx**, **Apache** or **OpenLiteSpeed**, or a **Node app**. This sets `x-turbopanel.serviceKind` and decides which fields the form offers next.
+  </Step>
+  <Step>
+    Fill in what that kind needs: image, tag and registry (or an inline Dockerfile) for a container; a document root and PHP options for a site; a framework hint and Node version for a Node app.
+  </Step>
+  <Step>
+    Optionally attach a repository under **Source** (application → account → repository, then a branch), add scheduled jobs, set a restart policy, and give the service a description.
+  </Step>
+  <Step>
+    **Save.** The linter's findings appear inline; a blocking finding disables Save until it is fixed, an advisory one does not.
+  </Step>
+</Steps>
+
+### The three kinds
+
+| `serviceKind` | Runs as | Needs | Compose `image`/`build` |
+| --- | --- | --- | --- |
+| `container` (default) | A Docker container | An `image` or a `build` | Required |
+| `site` | A host web engine (Caddy by default; `engine` picks nginx, Apache or OpenLiteSpeed) serving a directory under a Unix account | A `principal` alias; optionally `root` and `php` | Refused — a site has no image |
+| `node` | A Node process supervised by a systemd unit under a Unix account | A `principal` alias and a `source`; optionally `framework` and `nodeVersion` | Refused — the process is built from the source |
+
+Sites and Node apps are stripped out of the runtime compose the daemon runs; their releases are checked out, built and promoted under the account's home, and the host engine or the unit serves them. Everything else in the document — networks, volumes, the other services — deploys as ordinary Compose.
+
+## Import a `docker run` line
+
+**Services → Import from docker run** turns a `docker run …` command into one ordinary service — plain Compose, nothing written under `x-turbopanel`, validated like a hand-written document. The importer knows every option `docker container run` accepts; the ones Compose can express are mapped, the ones that describe the container but have no Compose expression are refused with the option named (`docker_run_unsupported`), and a gated field the command asks for (`--privileged`, `--cap-add`, a Docker socket mount) is flagged as a risk before the service exists. Shell syntax in the pasted line — `$(…)`, pipes, redirection, globs — is taken as literal text and warned about, never executed.
+
+## The `x-turbopanel` extension
+
+### At the document root
+
+```yaml
+x-turbopanel:
+  principals:
+    web:
+      access: sftp        # none | sftp | ssh — the access the account is created with
+```
+
+`principals` declares the **system users** a document's services may run as, by a document-local alias. The alias is a name inside this file; the Unix account behind it — username, uid, home, keys, password — lives on a **system user** row the platform creates on first deploy and that you manage on the **Bindings** tab. An alias is never a Linux username.
+
+### On a service
+
+```yaml
+services:
+  shop:
+    image: ghcr.io/example/shop:2.4
+    x-turbopanel:
+      description: Storefront
+      hosting:
+        - hostname: shop.example.com
+          targetPort: 3000
+          forceHttps: true
+          tls: { mode: acme }
+          bind: { scope: public }
+      cron:
+        - name: reindex
+          schedule: "0 3 * * *"
+          command: node scripts/reindex.js
+```
+
+| Key | Kinds | Meaning |
+| --- | --- | --- |
+| `serviceKind` | all | `container` (default), `site`, `node`. |
+| `description` | all | Free text shown on the service card and the Overview. |
+| `principal` | `site`, `node` (refused on `container`) | Alias of a root `principals` entry — the account the service runs as. Required for sites and Node apps. |
+| `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| acme, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
+| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. |
+| `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
+| `root` | `site` | Document root, relative to the account's site directory. |
+| `php` | `site` | `{ version?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
+| `framework` | `node` | `auto` (default), `node`, `next`. |
+| `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range. |
+| `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
+
+A key that names a privilege — uid, gid, home, shell, keys, password — is refused with a message pointing at the row that owns it.
+
+### What is not in the extension, on purpose
+
+| You want | Where it lives |
+| --- | --- |
+| Which server the environment runs on | The environment's pin on the **Hosting** tab. `x-turbopanel.placement` is refused at save. |
+| Replicas and placement constraints | Plain Compose: `deploy.replicas`, `deploy.placement.*`. |
+| A resource ceiling | Plain Compose: `deploy.resources.limits`, `mem_limit`, `cpus`. |
+| A network that spans servers | Plain Compose: `networks.<name>.driver: overlay`. TurboFabric carries it. |
+| Container names | The project's **Keep original container names** setting. |
+| Variable and secret values | The variable store, referenced from the document as `${KEY}` — never written into it. |
+
+## Field policy — what happens to each Compose key
+
+Every Compose key carries one of five verdicts. Nothing is dropped in silence: a key the platform does not act on is reported with the reason.
+
+| Verdict | Meaning | Examples |
+| --- | --- | --- |
+| **passthrough** | Copied to the runtime compose as written. | `image`, `command`, `ports`, `volumes`, `environment`, `healthcheck`, `restart`, `mem_limit`, `cpus`. |
+| **interpreted** | The platform reads it and acts on it; it may or may not reach the runtime file. | `deploy.replicas`, `deploy.mode`, `deploy.placement.*`, `deploy.restart_policy`, `deploy.resources.limits`, `networks.<name>.driver: overlay`. |
+| **runtime-generated** | The platform writes it at deploy; an authored value is not the source of truth. | The placement the compiler records in the prepared compose. |
+| **unsupported** | No behaviour behind it. Saving is advised against; deploying is refused with the reason quoted. | `deploy.update_config`, `deploy.rollback_config`, `deploy.endpoint_mode`, `deploy.resources.reservations`; on an overlay network: `ipam`, `driver_opts`, `attachable`, `enable_ipv6`, `internal`. |
+| **gated** | Implemented, but grants root-equivalent access to the shared host, so an organization owner must opt in first. | `privileged`, `cap_add`, `devices`, `network_mode`, `pid`, `ipc`, `userns_mode`, `security_opt`, `cgroup_parent`, `sysctls`. |
+
+The gate is per organization and off by default. An owner turns it on through `PUT /organizations/:id/compose-privileged-fields`; every flip is written to the organization's audit trail. `cap_drop`, `volumes`, `ports` and `user` are deliberately not gated.
+
+## The linter
+
+The linter runs in the editor on every keystroke and again on every save and deploy. Save refuses **errors**; deploy refuses errors and treats some advisories as errors.
+
+| Code | Severity | Fires when |
+| --- | --- | --- |
+| *structural* | error | Unknown top-level or service key (with a *did you mean*), a container service with neither `image` nor `build`, an invalid value against the Compose schema. |
+| `field_unsupported` | advisory at save, error at deploy | An unsupported key from the table above. |
+| `field_requires_org_opt_in` | advisory | A gated key. The deploy itself is refused unless the organization opted in. |
+| `field_recommends_resource_limits` | advisory | A container service with none of `mem_limit`, `cpus` or `deploy.resources.limits`. An organization may set a default ceiling that fills the gap at deploy. |
+| `turbofabric_required` | error at deploy | Services on more than one server share a network that is not `driver: overlay`. |
+| *unresolvable alias* | error | `x-turbopanel.principal` names an alias the root `principals` map does not declare. |
+| *unresolvable source* | error | `x-turbopanel.source.sourceId` names a repository the organization does not have. |
+
+## Merging an overlay
+
+An environment's overlay merges over the project compose per the Compose Specification. **Preview ▾ → Merged compose** shows the result.
+
+| Attribute | Rule |
+| --- | --- |
+| `ports`, `volumes`, `secrets`, `configs`, `expose`, `extra_hosts` | Append; duplicates removed by their key (a port's published side, a volume's target). |
+| `dns`, `dns_search`, `tmpfs`, `env_file` and other plain lists | Append, duplicates kept. |
+| `environment`, `labels`, `depends_on` | Normalized to maps, then merged by key; the overlay's value wins. |
+| `command`, `entrypoint`, `healthcheck.test` | Replaced whole — never appended. |
+| Everything else | The overlay's value replaces the project's. |
+
+Two YAML tags change the rule for one key:
+
+```yaml
+services:
+  api:
+    ports: !override
+      - "8443:443"       # replaces the project's list instead of appending
+    labels: !reset       # removes the key entirely
+```
+
+## Variables in the document
+
+Reference a variable as `${KEY}` or `${scope.KEY}`. Non-secret values are written to a generated `.env` beside the runtime compose; secret values never touch YAML — they compile to Compose `secrets:` with a file path the daemon materializes at deploy, plus a courtesy `KEY_FILE` variable holding that path. A binding to a managed database contributes its own locked variables under the binding's prefix.
+
+## Releases and rollback
+
+A service with a `source` produces a **release** on every deploy: the repository is checked out at the branch's current commit, built with `buildCommand`, and promoted atomically under the account's home. The **Releases** panel on the Services tab lists them; **Rollback** re-points the service at an earlier release without a rebuild. A redeploy against an unchanged commit and unchanged compose is a no-op — the platform hashes both.
+
+## Reference
+
+### Limits
+
+| What | Limit |
+| --- | --- |
+| Hosting entries per service | 10 ports per hosting entry; hostnames unlimited but unique per organization |
+| `source.branch` | Same maximum length as the repository's branch field |
+| `source.buildCommand`, `startCommand` | Non-secret, single line |
+| `cron[].name` | Lowercase `[a-z0-9-]`, unique per service; a name that a scheduled task also folds to is refused on the task, not here |
+| PHP series | `8.3`, `8.4` |
+| `nodeVersion` | A pin: `24`, `24.17`, `24.17.0` |
+
+### Deploy-time refusals that originate in the document
+
+These are reported by **Deploy**, not by Save, because they depend on the merged document, the organization or the fleet. The full deploy table is in [Deploying](/docs/using/deploy#errors).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_merged_invalid` | 422 | The project and overlay each saved cleanly but their merge is not a valid Compose document. |
+| `compose_field_unsupported` | 422 | An unsupported key is present; the reason is quoted. Drop the key. |
+| `compose_field_requires_org_opt_in` | 403 | A gated key is present and the organization has not opted in. Names the fields. |
+| `principal_alias_unknown` | 422 | A service names an alias the root does not declare (only reachable with a stale document). |
+| `principal_required_for_service_kind` | 422 | A site or Node app has neither an alias nor a system user assigned on Bindings. |
+| `site_principal_ambiguous`, `source_principal_ambiguous` | 422 | No alias, and more than one system user could own the service. Declare the alias. |
+| `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
+| `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
+| `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker**. |
+| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network. |
+
+## Errors at save
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_invalid` | 400 | The document failed validation; `issues[]` lists each path and message. |
+| `compose_service_name_read_only` | 400 | `composeServiceName` was sent on a service update; the name is derived from the document and cannot be set on the row. |
+| `invalid_service_options` | 400 | A per-service option (restart policy, health-check policy, build cache, resources) has an invalid value. |
+| `service_create_not_supported` | 400 | Services on a managed project are created by the platform, not by hand. |
+| `docker_run_unsupported` | 422 | The importer met a flag it cannot express; the flag is named. |
+
+## Related
+
+- [Projects and environments](/docs/using/projects) — the container the document lives in.
+- [Deploying and running an environment](/docs/using/deploy) — placement, preview, deploy, and every refusal.
+- [Compose contract](/docs/architecture/compose-contract) — the same rules from the platform's side.
+- [Datacenter networks](/docs/architecture/datacenter-networks) — how an overlay network spans servers.

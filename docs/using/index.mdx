@@ -1,0 +1,84 @@
+---
+title: Using TurboPanel
+description: The console, area by area — what each screen is for, how work is organized into organizations, workspaces, projects and environments, and where to go first
+---
+
+# Using TurboPanel
+
+This part of the documentation is written for the person signed in to the console: the one creating projects, deploying them, and keeping them running. The [Deployment](/docs/deployment) part is for whoever installs and operates the control plane; the [Architecture](/docs/architecture) part explains how it all fits together. Here, every chapter follows the same shape — what a thing *is*, how to *do* it step by step, then the reference tables and the error codes you may meet — so you can read it front to back or open it at the page you need.
+
+<Callout type="info" title="Private alpha — not yet publicly available">
+  Self-hosted and TurboPanel High Availability are both in **private alpha**. This part describes
+  the console as it exists today, so a reader who has been given access can use it — it is not a
+  public sign-up path.
+</Callout>
+
+## How work is organized
+
+Four nouns carry everything in the console. Knowing which one owns a setting saves most of the "where is that?" questions.
+
+| Noun | What it is | What it owns |
+| --- | --- | --- |
+| **Organization** | The tenant. Everything you see is scoped to the organization selected in the header. | Servers, licenses, the network registry, the TLS library, access grants, and organization-wide defaults (the default environment name, the Let's Encrypt opt-in, managed-database defaults). |
+| **Workspace** | A folder for projects inside an organization. | Nothing but grouping; the **Filter** on the Projects list is a workspace filter. |
+| **Project** | One application or stack, described by one compose document. | The compose file, the services in it, the default server, the container-naming rule, project-scoped variables and system users. |
+| **Environment** | One deployable copy of a project — *Production*, *Staging*, a per-customer copy. | The server it runs on, an optional overlay on the project's compose, hostnames and TLS, storage, environment-scoped variables, and the running containers. |
+
+A project always has at least one environment; the first is created for you with the organization's default name (*Production* unless changed under **Projects → Settings**). Deploying happens at the environment, never at the project: the project holds the description, the environment is where it runs.
+
+## The areas of the console
+
+The left navigation is the organization's. Each row below names the area, its address, and what you do there.
+
+| Area | Where | What you do there |
+| --- | --- | --- |
+| **Overview** | `/<org>/overview` | Fleet at a glance: servers, cores, memory. |
+| **Projects** | `/<org>/projects` | Create projects; open one to edit its compose, deploy environments, manage hostnames, storage, bindings and settings. Sub-pages: **Git sources** (the GitHub Apps and GitLab connections the organization owns) and **Repositories** (every repository a project reads from). |
+| **Workspaces** | `/<org>/workspaces` | Create and rename workspaces; see which projects sit in each. |
+| **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenters**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
+| **Managed** | `/<org>/managed` | Every managed database cluster in the organization, and the organization's managed defaults (client TLS mode, listener ports). |
+| **Network** | `/<org>/network` | The IP address registry, Docker external networks and address pools, reserved ranges, and TurboFabric. |
+| **Access** | `/<org>/access` | Invite a teammate, revoke a pending invitation, and manage access grants. |
+| **Billing** | `/<org>/billing` | TurboPanel High Availability only: licenses, tiers and the customer portal. Absent on a self-hosted instance. |
+
+Two things sit outside the organization: the **account menu** (top right) holds **Security** — two-factor, passkeys, linked accounts — and **Admin** (`/admin`) is the instance-wide surface an administrator uses to configure the control plane itself: public URLs, email, sign-in providers, sign-up, instance-wide Git apps, and secrets. Members never see Admin.
+
+## Who sees what
+
+- **Any member** of an organization can open every area above and read it.
+- **Manage** rights on the organization (the default grant an invitation gives) let you create and change projects, deploy, enrol servers and edit the network registry.
+- **Owner** rights are needed for the destructive and organization-shaping actions: deleting a project or an environment, adding an access grant, pending-key cleanup, and the two organization opt-ins that widen what a compose file may ask for (privileged container fields, a default resource ceiling).
+- **Administrators** of the instance additionally see **Admin**. On a self-hosted instance the first administrator is created by the install wizard; on TurboPanel High Availability by the operator.
+
+The console shows you what you can do and hides what you cannot; the control plane enforces the same rule on every request, so a hidden button is never the only thing standing in the way.
+
+## Self-hosted and TurboPanel High Availability
+
+The console is the same on both. Three things differ, and each page in this part says so where it matters:
+
+- **Billing** exists only on High Availability; on a self-hosted instance every server is covered by the instance's own license and there is nothing to buy.
+- **Admin → Networking** applies the instance's public URLs and TLS certificate on a self-hosted instance; on High Availability that is the operator's infrastructure.
+- **Sign-in providers** are configured by a self-hosted administrator; on High Availability they are configured by the operator.
+
+## Where to start
+
+<Steps>
+  <Step>
+    **Enrol a server.** Nothing deploys until at least one server is connected. **Servers → + Server** gives you a one-line install command to run on the machine; it appears in the list within a minute, marked *Online*. The operator side of that command is in [Daemon setup](/docs/deployment/daemon-setup).
+  </Step>
+  <Step>
+    **Create a project.** [Projects and environments](/docs/using/projects) walks through the six ways to start one — a blank compose file, service cards, a repository, a hosted directory, a template, or a managed database.
+  </Step>
+  <Step>
+    **Describe it.** [Writing compose](/docs/using/compose) is the reference for the compose document: what TurboPanel reads from it, what it adds, and what it refuses.
+  </Step>
+  <Step>
+    **Deploy it.** [Deploying and running an environment](/docs/using/deploy) covers placement, preview, deploy, redeploy, start and stop, destroy, logs, and what every refusal code means.
+  </Step>
+</Steps>
+
+## Related
+
+- [Accounts and access](/docs/getting-started/accounts-and-access) — two-factor, passkeys, sign-in providers, invitations.
+- [Introduction](/docs/getting-started/introduction) — what TurboPanel is and how the control plane and daemons fit together.
+- [Server metrics](/docs/metrics) — what every chart on a server's Metrics tab means.

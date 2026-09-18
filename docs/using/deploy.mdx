@@ -1,0 +1,196 @@
+---
+title: Deploying and running an environment
+description: Placement, preview, deploy and redeploy, start, stop and destroy, health-check gates, container logs, deployment history, and the meaning of every refusal code
+---
+
+# Deploying and running an environment
+
+Deploying is what turns a project's description into running containers on a server. It happens at the **environment** — the project holds the compose document; the environment is one copy of it, on one server (or a set of servers), with its own hostnames, storage and variables. This chapter covers the whole life of an environment: choosing where it runs, previewing what will be sent, deploying and redeploying, stopping and starting, destroying, reading logs and history, and what every refusal means.
+
+## The model
+
+A deploy is a **command** the control plane sends to the daemon on the target server. The control plane does the thinking — it merges the project compose with the environment's overlay, resolves variables and secrets, schedules services across servers, allocates addresses, and compiles one runtime `compose.yaml` per participating server. The daemon does the doing — pulls images, checks out and builds source releases, writes the files, and runs Compose. What you see in the console is the command's progress, polled until it reaches a terminal state.
+
+Three consequences shape how the buttons behave:
+
+- **Nothing runs until a server is chosen.** An environment resolves its server from its own pin or the project's default; without one, Deploy is disabled and points you at the Hosting tab.
+- **Preview is free; Deploy is a command.** Preview shows exactly what would be sent without sending it. Deploy enqueues a command that the console tracks to completion.
+- **The daemon is the source of truth for status.** Container status is what the daemon last reported; the console refreshes it after each tracked command and on **Refresh**, not on a timer.
+
+## Before you begin
+
+- A connected server in the organization (**Servers** shows *Online*).
+- A saved compose document with no blocking lint findings.
+- For any site or Node app in the document, a system user assigned — Deploy stays disabled with *No system user — assign one in Bindings* until then.
+- **Manage** rights on the organization.
+
+## Placement and scheduling
+
+<Steps>
+  <Step>
+    Open the project's **Hosting** tab. At **Project** scope, set **Default project server**; at an environment's scope, set its **Server** pin (or clear it to inherit the default).
+  </Step>
+  <Step>
+    Back on the environment's Overview, the lifecycle bar now shows **Preview ▾** and **Deploy** instead of *No server — set one in Hosting*.
+  </Step>
+</Steps>
+
+The pin is the anchor. Services that declare `deploy.replicas` or `deploy.placement.*` are placed by the planner across the organization's connected servers, respecting host-port conflicts, co-location and spread constraints and the per-server replica cap; services on more than one server must share a spanning (`driver: overlay`) network, which TurboFabric carries. **Preview ▾ → Prepared compose** shows one block per server whenever the plan spans more than one host.
+
+Any connected server is a valid target, including the host a self-hosted control plane runs on. A one-server installation can deploy to itself.
+
+## Preview
+
+<Steps>
+  <Step>
+    **Preview ▾** on the lifecycle bar opens **Compose Preview**.
+  </Step>
+  <Step>
+    **Merged compose** (the default) is the project compose with the environment's overlay applied, plus the live placement shown as `x-turbopanel.placement` for reading only — the stored document never holds it.
+  </Step>
+  <Step>
+    **Prepared compose** (via the caret) fetches what the daemon would receive: the compiled runtime `compose.yaml`, the generated `.env` of non-secret variables, the file paths secrets will be materialized at, and one YAML block per server when the plan spans more than one.
+  </Step>
+</Steps>
+
+Prepared preview runs the same validation Deploy does, so a refusal shows up here first — same code, same message.
+
+## Deploy, redeploy, cacheless
+
+<Steps>
+  <Step>
+    **Deploy** (an environment with nothing deployed) or **Redeploy ▾** (one that has containers) opens **Confirm Deployment**, showing the prepared compose.
+  </Step>
+  <Step>
+    Confirm. The command is enqueued and the bar tracks it — *queued*, *sent*, *acked*, *running*, then *succeeded* or *failed* — and container status refreshes when it lands.
+  </Step>
+  <Step>
+    **Redeploy ▾ → Cacheless redeploy** sends the same command with `noCache: true`, so image pulls and source builds ignore their caches. Use it when a `latest` tag moved or a build cache is suspect.
+  </Step>
+</Steps>
+
+A redeploy with no change is a no-op: the platform hashes the compose document together with each source service's resolved commit, and the daemon skips work whose hash it has already applied. Push a commit or change the document, and the same button does real work.
+
+### Health-check gates
+
+Each service carries a **Health check policy** (its settings page): **disabled**, **warn**, or **required**. At deploy, a service with policy *required* and no `healthcheck` in its compose refuses the deploy outright (`health_check_missing` with `required: true`). A service with policy *warn* and no health check stops the deploy once with a prompt naming the services; confirming sends the deploy again with the warning acknowledged.
+
+## Start, stop, restart, destroy
+
+| Action | Where | What it does | Data volumes |
+| --- | --- | --- | --- |
+| **Stop** | Lifecycle bar | Stops the environment's containers. Files, images and volumes stay on the server. | Kept |
+| **Start** | Lifecycle bar (shown when deployed but stopped) | Starts the existing containers again. No preview, no rebuild. | Kept |
+| **Restart** | API (`action: restart`) | Stop then start. | Kept |
+| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the host's Caddy — and the data volumes. | **Removed** |
+
+Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the console asks twice.
+
+## Container status and logs
+
+The environment's Overview lists each service's containers with a status badge from the daemon's last report. **Refresh** asks again.
+
+**Logs** on a container opens a live tail of its stdout and stderr, streamed from the host on demand. It is never stored: close the panel and it is gone. For the record of what a *deploy* did, see the next section.
+
+## Deployment history
+
+**Deployment history** on the environment's Overview lists past deploy attempts with their outcome and, for each, the transcript the daemon produced — image pulls, builds, the Compose output — kept for 90 days by default (an operator can change `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS`).
+
+A deploy that never finished is recorded as **stalled**, with one of two reasons:
+
+| Outcome | Meaning | Safe to deploy again? |
+| --- | --- | --- |
+| `stalled_undelivered` | The daemon never acknowledged the command — it was offline or the control plane restarted before delivery. Nothing happened on the host. | Yes. |
+| `stalled` | The daemon acknowledged the command but never reported an outcome — a restart mid-run on either side. It may still be running on the host. | Check the host first. |
+
+## Reference
+
+### `POST /environments/:id/deploy`
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `acknowledgeHealthCheckWarnings` | boolean | Proceed past the *warn* health-check prompt. Never bypasses *required*. |
+| `noCache` | boolean | Cacheless redeploy. |
+| `ref` | string | Refused with `501 source_ref_unsupported` — services deploy their compose-declared branch, and accepting a ref the build would ignore is the one outcome a caller could not detect. Omit it. |
+
+Response: the queued command's id and the URL to poll. `GET /environments/:id/deploy-preview` returns the prepared shape without enqueueing.
+
+### `POST /environments/:id/lifecycle`
+
+`{ "action": "start" | "stop" | "restart" }`. Operates on existing containers only.
+
+### `POST /environments/:id/stop`
+
+Destroy. Removes containers and volumes, tears down hostnames and releases.
+
+### Command statuses
+
+`queued` → `dispatching` → `sent` → `acked` → `running` → one of `succeeded`, `failed`, `timed_out`, `cancelled`. Commands carry a delivery deadline; one the daemon never picks up becomes `timed_out` and is recorded in history as stalled with the reason above.
+
+### The prepared shape
+
+| Part | Content |
+| --- | --- |
+| `composeFiles[]` | One `compose.yaml` per participating server, role `runtime`. |
+| `.env` | Non-secret variables, `${service__KEY}` interpolation resolved. |
+| `secretPlan[]` | The file path each secret will be materialized at under `/run/turbopanel/deployments/<project>/<environment>/secrets/`. Values travel sealed, never in YAML. |
+| `servers[]` | Present only when the plan spans more than one host. |
+
+## Errors
+
+Every refusal carries a stable `error` code and, where useful, a `message` and the offending names. Grouped by what to do about them.
+
+### Fix the document
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_empty` | 400 | The merged document has no services. |
+| `compose_merged_invalid` | 422 | Project and overlay each saved cleanly but their merge is not valid Compose. Open **Preview ▾ → Merged compose**. |
+| `compose_field_unsupported` | 422 | An unsupported key is present; the message quotes why. Remove it. |
+| `compose_field_requires_org_opt_in` | 403 | A gated key (`privileged`, `cap_add`, …) and the organization has not opted in. An owner enables it with `PUT /organizations/:id/compose-privileged-fields`. |
+| `invalid_deploy_hosting`, `invalid_deploy_storage` | 400 | A hosting or storage row attached to the environment is malformed; the message names it. |
+| `principal_alias_unknown`, `principal_required_for_service_kind`, `site_principal_ambiguous`, `source_principal_ambiguous`, `site_cron_unowned`, `site_managed_directory_unowned` | 422 | Ownership of a site or Node app is missing or ambiguous — declare `x-turbopanel.principal`, or assign a system user on **Bindings**. |
+| `source_ref_unresolved` | 422 | A source service's branch does not exist or the provider refused the lookup. |
+| `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value at any scope, is malformed, or interpolates a secret into a plain field. |
+| `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
+| `datacenter_ip_required` | 422 | A hosting row binds to the `datacenter` scope on a server with no datacenter address. |
+
+### Fix the placement or the fleet
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default on **Hosting**. Also the answer when the planner finds no eligible server. |
+| `turbofabric_required` | 422 | Services placed on different servers share a network that is not `driver: overlay`. |
+| `host_port_conflict` | 422 | Two services on the same server publish the same host port. |
+| `constraint_unsatisfiable`, `colocation_conflict`, `max_replicas_per_node_exceeded` | 422 | The planner cannot satisfy `deploy.placement` or `deploy.replicas` with the servers available; the message names the constraint. |
+| `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |
+| `fabric_reconcile_pending` | 409 | TurboFabric is still converging on a server the plan needs; retry shortly. |
+| `fabric_reconcile_failed` | 422 | TurboFabric could not converge; see the server's Network tab. |
+| `storage_location_unavailable` | 422 | A storage entry's primary copy lives on a server other than the one scheduled, and its access mode does not allow that; the message names both servers. |
+
+### Fix hostnames or TLS
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `hosting_route_conflict` | 409 | Two hosting rows in the environment claim the same hostname and path. |
+| `hosting_hostname_conflict` | 409 | A hostname declared in compose is already served by another hosting in the organization. |
+| `hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved` | 422 | A `certificateRef` or `ipRef` names something the organization does not have. |
+| `hosting_tls_mode_unsupported` | 422 | A `tls.mode` the platform does not implement. |
+| `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 | The pinned library certificate is gone, does not cover the hostname, or is not ready yet. |
+| `acme_requires_public_bind`, `acme_requires_org_opt_in` | 400 | Let's Encrypt needs a `public` bind, and the organization's Let's Encrypt opt-in under **Servers → TLS**. |
+
+### Acknowledge and retry
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `health_check_missing` | 409 | Services with no `healthcheck`. `required: true` refuses; `required: false` is the *warn* prompt — resend with `acknowledgeHealthCheckWarnings: true`. |
+| `binding_endpoint_unavailable` | 422 | A bound managed database has no listener endpoint yet; wait for its cluster to finish applying. |
+| `source_ref_unsupported` | 501 | A `ref` was sent. Omit it. |
+
+## Related
+
+- [Projects and environments](/docs/using/projects) — the environment's pin and overlay.
+- [Writing compose](/docs/using/compose) — the document, the field policy, the linter.
+- [Deployment logs](/docs/architecture/deployment-logs) — how transcripts are stored and retained.
+- [Container logs](/docs/architecture/container-logs) — why the live tail is never stored.
+- [Datacenter networks](/docs/architecture/datacenter-networks) — spanning networks and TurboFabric.
