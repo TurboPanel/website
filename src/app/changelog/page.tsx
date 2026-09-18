@@ -16,6 +16,19 @@ export const metadata: Metadata = {
 
 const ENTRIES = [
   {
+    // Drafted ahead of the tag; the date is filled in when v0.1.0 is cut.
+    date: 'Unreleased',
+    channel: '0.1.0 release candidate',
+    title: 'TurboPanel 0.1.0',
+    body: 'The first packaged release. Self-hosted installs from a single command (curl turbopanel.sh | sh) that pulls signed-off packages from GitHub Releases, verifies each against its manifest, converges the host and hands off to the install wizard; the same command with a license enrols a server. Sign in with a passkey or TOTP second factor, or with GitHub or Google; invite teammates by email with a capped grant. Automatic HTTPS for hosted sites through Caddy\'s built-in ACME client, off by default per organization; instance TLS as self-signed, uploaded or Let\'s Encrypt. Git-backed projects connect through a GitHub App or GitLab OAuth, with an installation bound to one organization and forge addresses inside your network refused. Managed Postgres and MySQL engines with users, backups and shared ingress; TurboFabric overlay networks; datacenter networking with reserved ranges, routing policy and Docker address pools. Scheduled tasks from the console and from compose, rendered as systemd timers. Host metrics v6 across eight entity families. Every wire carries a version and a floor: a daemon below 0.1.0 keeps its connection but runs no commands until it updates; the app refuses an older instance and says which version it needs. Workers-only billing with a product-keyed tier ladder. The database schema is frozen at one baseline: every later migration is additive, the installer applies them with the instance\'s own migrate verb, and the instance refuses to serve a schema it does not ship.',
+    links: [
+      { href: '/docs/getting-started/installation', label: 'Install' },
+      { href: '/docs/deployment/upgrade', label: 'Upgrade & rollback' },
+      { href: '/docs/deployment/compatibility', label: 'Compatibility' },
+      { href: '/docs/deployment/security', label: 'Security' },
+    ],
+  },
+  {
     date: '2026-08-20',
     channel: 'Private alpha',
     title: 'Licensing',
