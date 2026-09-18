@@ -1,0 +1,261 @@
+---
+title: Error codes
+description: Every stable error code the client API returns, by area — the HTTP status it comes with, what it means, and what to do
+---
+
+# Error codes
+
+Every refusal from the client API carries a stable `error` code — a lower-case identifier that never changes wording — and, where it helps, a `message` for people and a few fields naming the thing at fault. The console maps these codes to sentences; this appendix is the same map, in one place, so a code you see in a response, a log or a deploy transcript can be looked up.
+
+Codes are grouped by the area of the console that raises them. Each row gives the HTTP status the code is sent with; where a code can be sent with more than one status, both are listed. Chapters that explain the situation in more depth are linked at the top of each group.
+
+Two codes appear everywhere and are not repeated in the tables: `Unauthorized` (401 — no session, or it expired) and `Not found` (404 — the record does not exist or is not visible to your organization). A plain `Invalid request` (400) means a body field had the wrong shape; the chapter's reference table for that route says what is expected.
+
+## Projects, environments and workspaces
+
+See [Projects and environments](/docs/using/projects).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `project_name_in_use` | 409 | Another project in the organization has this name (case-insensitive, whitespace trimmed), or the name is one of the platform's four reserved system-project names. |
+| `workspace_name_in_use` | 409 | A workspace with this name already exists in the organization. |
+| `tag_name_in_use` | 409 | A tag with this name already exists in the organization. |
+| `project_has_running_services` | 409 | Delete refused: an environment still has running containers. Stop or destroy it first. |
+| `managed_runtime_present` | 409 | Delete refused: the environment still hosts a managed database cluster. Destroy the cluster first. |
+| `compose_invalid` | 400 | The compose document failed validation at save; `issues[]` lists path and message for each finding. |
+| `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it under `x-turbopanel.source`. |
+
+## Compose, services and the docker run importer
+
+See [Writing compose](/docs/using/compose).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_service_name_read_only` | 400 | `composeServiceName` was sent on a service update; the name is derived from the document and cannot be set on the row. |
+| `invalid_service_options` | 400 | A per-service option (restart policy, health-check policy, build cache, resources) has an invalid value. |
+| `service_create_not_supported` | 400 | Services are created from the compose document, not by hand. |
+| `docker_run_unsupported` | 422 | The importer met a `docker run` option that describes the container but has no Compose expression; the option is named. |
+
+## Deploying
+
+See [Deploying and running an environment](/docs/using/deploy), which groups these by what to do about them.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_empty` | 400 | The merged document has no services. |
+| `invalid_deploy_hosting`, `invalid_deploy_storage` | 400 | A hosting or storage row attached to the environment is malformed. |
+| `compose_merged_invalid` | 422 | Project and overlay each saved cleanly but their merge is not valid Compose. |
+| `compose_field_unsupported` | 422 | The document sets a key the platform has no behaviour for; the reason is quoted. |
+| `compose_field_requires_org_opt_in` | 403 | The document sets a gated field (`privileged`, `cap_add`, …) and the organization has not opted in under **Manage Organization → Compose**. |
+| `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default — or the planner found no eligible server. |
+| `health_check_missing` | 409 | Services with no `healthcheck`: `required: true` refuses; `required: false` is the *warn* prompt, acknowledged with `acknowledgeHealthCheckWarnings: true`. |
+| `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |
+| `fabric_reconcile_pending` | 409 | TurboFabric is still converging on a server the plan needs. Retry shortly. |
+| `fabric_reconcile_failed` | 422 | TurboFabric could not converge on a server the plan needs. |
+| `hosting_route_conflict` | 409 | Two hosting rows in the environment claim the same hostname and path. |
+| `hosting_hostname_conflict` | 409 | A compose-declared hostname is already served by another hosting in the organization. |
+| `hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved` | 422 | A `certificateRef` or `ipRef` names nothing the organization has. |
+| `hosting_tls_mode_unsupported` | 422 | A `tls.mode` the platform cannot issue. |
+| `principal_alias_unknown` | 422 | A service names an alias the root `principals` map does not declare. |
+| `principal_required_for_service_kind` | 422 | A site or Node app has neither an alias nor a system user assigned. |
+| `site_principal_ambiguous`, `source_principal_ambiguous` | 422 | No alias, and more than one system user could own the service. |
+| `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
+| `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
+| `source_ref_unsupported` | 501 | A `ref` was sent on the deploy body; omit it. |
+| `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value, is malformed, or interpolates a secret into a plain field. |
+| `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
+| `datacenter_ip_required` | 422 | A `datacenter` bind on a server with no datacenter address. |
+| `storage_location_unavailable` | 422 | A storage entry's primary copy is on a server other than the one scheduled and its access mode forbids that. |
+| `binding_endpoint_unavailable` | 422 | A bound managed database has no listener endpoint yet. |
+| `turbofabric_required`, `host_port_conflict`, `constraint_unsatisfiable`, `colocation_conflict`, `max_replicas_per_node_exceeded` | 422 | Planner refusals: services on different servers share a non-overlay network; two services publish one host port; `deploy.placement` or `deploy.replicas` cannot be satisfied. |
+| `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 | The pinned library certificate is gone, does not cover the hostnames, or is not ready. |
+| `acme_requires_public_bind`, `acme_requires_org_opt_in` | 400 | Let's Encrypt needs a `public` bind and the organization's opt-in. |
+| `tls_material_missing` | 400 | A pinned certificate row has no material to deliver. |
+| `tls_key_not_sealed`, `tls_decrypt_failed` | 500 | The certificate's private key could not be sealed for, or unsealed by, the daemon — an instance secrets problem, not a document one. |
+| `release_not_found` | 404 | No succeeded release with that id exists for the service in this environment. |
+| `release_not_materialized` | 409 | The release was not published on every server the environment deploys to, so it cannot be rolled back to. |
+
+## Hosting and TLS
+
+See [Hosting](/docs/using/hosting).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `hostname_in_use` | 409 | Another hosting in the organization already serves this hostname. |
+| `hosting_owned_by_compose` | 409 | The row is declared in the compose document; edit it there. |
+| `hosting_bind_scope_mismatch` | 400 | A public IP was picked with a non-public bind, or the IP's scope is not `public`. |
+| `invalid_hosting_options` | 400 | A hosting field has the wrong shape. |
+| `lets_encrypt_not_enabled` | 403 | The organization has not turned on **Allow Let's Encrypt certificates**. |
+| `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` name, or a DNS-01 challenge, on a Let's Encrypt row. |
+| `tls_fingerprint_conflict` | 409 | This certificate is already in the library. |
+| `organization_ca_exists` | 409 | An organization CA already exists. |
+| `organization_ca_retire_required` | 409 | The current CA must be retired before a new one is minted. |
+| `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the fleet has not yet picked up the new root. |
+
+## Storage, variables and bindings
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `storage_content_too_large` | 400 | A `file` storage entry's content exceeds 256 KiB. |
+| `principal_project_mismatch` | 400 | The storage entry's system user belongs to another project. |
+| `mount_destination_in_use` | 409 | Another entry already mounts at that destination in the service. |
+| `copy_primary_exists`, `copy_server_provider_exists` | 409 | The entry already has a primary copy, or a copy on that server with that provider. |
+| `scratch_copy_not_mountable` | 409 | A `scratch` copy cannot be mounted. |
+| `conflict` | 409 | A storage or forge write collided with a concurrent one; retry. |
+| `binding_key_conflict` | 409 | A variable key collides with one a database binding owns. |
+| `binding_key_prefix_in_use` | 409 | Another binding in the environment already uses that key prefix. |
+| `binding_engine_defaults_in_use` | 409 | The binding's default keys are already taken. |
+| `binding_owned_variable` | 409 | The variable is written by a binding and cannot be edited directly. |
+
+## System users (principals)
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `username_in_use` | 409 | The username is taken on a server this project reaches. |
+| `username_reserved` | 400 | The username is a reserved system account. |
+| `username_too_long` | 400 | The username exceeds the Unix limit. |
+| `invalid_password` | 400 | Password outside 8–128 characters. |
+| `invalid_public_key` | 400 | The SSH public key could not be parsed. |
+| `ssh_key_limit` | 409 | The account already has 64 SSH keys. |
+| `ssh_key_duplicate` | 409 | That SSH key is already on the account. |
+| `invalid_access`, `invalid_entitlements`, `invalid_service_ids` | 400 | `access` is not `none`/`sftp`/`ssh`, an entitlement is unknown, or a service id does not belong to the project. |
+
+## Git sources and repositories
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No GitHub App or GitLab OAuth application is configured for this organization or the instance. |
+| `gitlab_redirect_uri_unknown` | 503 | The instance's public URL is not configured, so a GitLab redirect cannot be built. |
+| `public_url_not_configured` | 503 | The instance has no public URL; the GitHub App manifest flow needs one. |
+| `webhook_origin_not_published` | 400 | The application's webhook origin is not reachable from the provider. |
+| `git_app_required` | 400 | The repository needs a Git application to be read. |
+| `git_app_not_writable` | 403 | The application is instance-wide and cannot be edited from an organization. |
+| `git_app_sync_failed` | 502 | The provider refused or failed the sync. |
+| `git_app_sync_unsupported` | 400 | Sync exists for GitHub Apps only. |
+| `forge_url_rejected` | 400 | A self-managed forge URL failed the safety check: it must be `https`, carry no credentials, name no reserved host, and resolve to a public address. |
+| `invalid_manifest_request` | 400 | The GitHub App manifest request is malformed. |
+| `installation_claimed_by_another_organization` | 409 | Another organization already connected this GitHub installation. |
+| `install_authorization_required`, `install_not_authorized` | redirect (`?error=`) | The GitHub callback arrived without the one-shot authorization code, or the authorizing user cannot see the installation. |
+| `invalid_request`, `state_invalid`, `forbidden`, `conversion_failed`, `create_failed`, `unavailable` | redirect (`?error=`) | Callback-flow failures the provider round trip lands on: missing parameters, a stale or tampered state, the wrong organization, or the App could not be created. |
+| `source_url_conflict` | 409 | A repository with this canonical URL already exists in the organization. |
+| `source_repository_url_invalid`, `source_repository_url_must_be_https` | 400 | The repository URL is malformed, or not `https`. |
+| `source_ssh_requires_credential` | 400 | An SSH URL needs a deploy key. |
+| `source_scope_immutable`, `source_scope_not_supported` | 400 | A repository's scope cannot be changed, or the scope is not offered for this provider. |
+| `source_credential_not_supported`, `source_credential_provider_mismatch`, `source_installation_provider_mismatch` | 400 | The credential or installation does not fit the repository's provider. |
+| `source_refresh_not_supported` | 400 | Only provider-connected repositories can be refreshed. |
+| `source_not_visible_to_connection` | 404 | The connection can no longer see the repository. |
+| `source_read_failed`, `git_provider_request_failed` | 502 (404 or 409 passed through when the provider answered so) | The provider or the daemon-lane read failed. |
+| `ref_required` | 400 | The repository records no default branch; name a ref. |
+| `invalid_list_path` | 400 | `listPath` must be a relative path. |
+| `no_daemon_available` | 503 | The repository can only be read through a connected server, and none is available. |
+
+## Servers, licenses and metrics
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `server_capacity_exceeded` | 409 | The organization's server capacity is reached. |
+| `no_license_available` | 409 | TurboPanel High Availability: no license is free for a new server. |
+| `license_has_attached_server` | 409 | The license is still bound to a server. |
+| `server_offline` | 409 | The action needs the server's daemon connected. |
+| `live_metrics_disabled` | 409 | Live metrics are turned off on this instance. |
+| `metrics_backend_unavailable` | 503 | The metrics store is not reachable. |
+| `unknown_system_component`, `system_component_not_provisioned`, `system_reconcile_unavailable` | 400 / 404 / 503 | The platform's own system project on a server is unknown, not yet provisioned, or cannot be reconciled right now. |
+| `system_resource_immutable` | 403 | The row belongs to the platform's system project and cannot be edited. |
+| `container_id_unavailable` | 409 | The container has no id yet; the daemon has not reported it. |
+
+## Datacenters and networking
+
+The console renders one sentence per code from these; the sentences here are the same.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invalid_cidr` | 400 | Enter a valid IPv4 or IPv6 CIDR. |
+| `subnet_overlaps` | 409 | The subnet overlaps one already registered. |
+| `subnet_has_members` | 409 | Unassign the pinned servers first. |
+| `datacenter_has_members`, `datacenter_has_networks` | 409 | A datacenter with servers or networks cannot be deleted. |
+| `address_in_use` | 409 | That address is already pinned. |
+| `address_not_in_any_subnet` | 400 | The address falls outside every subnet in the datacenter. |
+| `address_cidr_unreported`, `address_not_reported` | 400 | That server has not reported a private IP; pick one it reports. |
+| `ip_in_use`, `ip_address_in_use` | 409 | The IP is bound to a hosting, or the address already exists in the registry. |
+| `cidr_overlaps_fabric`, `cidr_overlaps_fabric_pool` | 409 | That range overlaps the TurboFabric range or its container pool. |
+| `cidr_overlaps_reserved`, `cidr_overlaps_docker_network`, `cidr_overlaps_gateway_advertised` | 409 | That range overlaps a reserved range, a registered Docker network, or a range a gateway advertises. |
+| `network_cidr_required`, `network_scope_required`, `network_single_scope_conflict` | 400 | A network needs a CIDR, a scope, or exactly one scope. |
+| `managed_network_immutable` | 400 | The organization's managed network is platform-owned. |
+| `docker_network_name_required`, `docker_network_subnet_required`, `docker_network_subnet_mismatch` | 400 | A Docker external network needs a name and a subnet, and the subnet must match the registered one. |
+| `docker_network_subnet_invalid`, `docker_network_ip_range_invalid`, `docker_network_gateway_invalid`, `docker_network_mtu_invalid` | 400 | The subnet, IP range, gateway or MTU is malformed. |
+| `address_pools_invalid`, `address_pool_base_invalid`, `address_pool_size_invalid`, `address_pools_overlap` | 400 | Docker host address pools must be base + size rows with valid CIDRs that do not overlap each other. |
+| `fabric_cidr_unavailable`, `fabric_container_pool_in_use`, `fabric_address_pool_exhausted`, `fabric_prefix_pool_exhausted` | 409 | The TurboFabric range is taken, its container pool is in use, or it has no addresses or prefixes left. |
+| `preferred_gateway_invalid`, `gateway_datacenter_required`, `gateway_datacenter_cidr_required` | 422 | A gateway relay needs a datacenter with a CIDR, and the preferred gateway must be one. |
+| `private_family_mismatch` | 422 | IPv4 and IPv6 mixed where one family is required. |
+| `failover_requires_trusted_datacenter` | 422 | A failover replica must sit in a trusted datacenter. |
+
+## Managed databases
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `managed_engine_unavailable` | 400 | The engine is not released yet. |
+| `managed_series_immutable` | 422 | A cluster's version series cannot change after provisioning. |
+| `managed_version_unsupported` | 422 | The requested series or variant is not in the catalog. |
+| `managed_busy` | 409 | The cluster is provisioning or applying; wait. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists, the member is the primary, or the cluster has no primary. |
+| `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
+| `managed_no_read_targets` | 422 | No replica serves read traffic. |
+| `managed_listener_bind_conflict` | 422 | The listener port is already bound on that server. |
+| `managed_private_port_exhausted` | 409 | No private port is left in the reserved range on that server. |
+| `fabric_address_required`, `failover_replica_requires_datacenter_transport` | 422 | A cross-server replica needs a TurboFabric address, and a failover replica needs datacenter transport. |
+| `managed_user_exists`, `database_exists` | 409 | The user or database already exists. |
+| `managed_user_has_bindings`, `managed_database_has_bindings` | 409 | Sever the service bindings first. |
+| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | The root account, the initial database and the replication user are platform-managed; rotate root through its own route. |
+| `managed_backup_unsupported` | 400 | The engine does not support backups yet. |
+| `backup_not_found` | 404 | No backup with that id. |
+| `managed_destroy_failed` | 502 | The daemon could not tear the cluster down. |
+| `managed_credential_not_sealed`, `root_principal_missing`, `managed_settings_invalid`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults — a credential could not be sealed, the root principal or the daemon key is missing, the stored settings are corrupt. |
+| `not_managed_environment` | 400 | The environment is not a managed project's. |
+
+## Scheduled tasks
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `task_schedule_invalid`, `task_command_invalid` | 400 | The schedule is not a valid cron expression, or the command contains shell syntax. |
+| `task_name_unrepresentable` | 409 | The name folds to no valid unit name. |
+| `task_name_in_use` | 409 | Another task on the service folds to the same unit name. |
+| `task_name_in_compose` | 409 | The service's compose already declares a job with that name. |
+| `task_limit_reached` | 409 | The service has reached its task limit. |
+
+## Access, invitations and accounts
+
+See [Accounts and access](/docs/getting-started/accounts-and-access).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invitation_pending` | 409 | A pending invitation for that email and team already exists. |
+| `email_unavailable` | 503 | The instance cannot send email, so the invitation was not created. |
+| `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
+| `invalid_grant` | 400 | A grant names an unknown permission or an entity outside the organization. |
+| `gone` | 410 | The invitation's team or organization no longer exists. |
+| `two_factor_enabled` | 409 | Two-factor is already enrolled; disable it before enrolling again. |
+| `passkey_exists` | 409 | That credential is already registered. |
+| `last_sign_in_method` | 409 | The provider cannot be unlinked; it is the account's only way to sign in. |
+| `oauth_reauth_required` | redirect (`?error=`) | Linking a provider needs a session younger than 15 minutes. |
+
+## Billing (TurboPanel High Availability)
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `billing_not_configured` | 503 | The instance has no billing provider configured. |
+| `subscription_exists`, `no_subscription` | 409 | The organization already has a subscription, or has none. |
+| `checkout_pending` | 409 | A checkout is already in progress. |
+| `subscription_past_due` | 409 | The subscription is past due; settle it in the customer portal. |
+| `billing_mutation_in_progress` | 409 | Another billing change is still applying. |
+| `servers_uncovered` | 409 | Reducing licenses would leave servers uncovered; the response names them and the tier they need. |
+| `licenses_in_use` | 409 | More licenses are in use than would remain. Remove a server or a waiting key first. |
+| `not_an_upgrade`, `not_a_downgrade` | 400 | The requested tier move goes the wrong way. |
+| `tier_not_purchasable` | 400 | The tier has no product bound to it. |
+| `stripe_error` | 502 | The billing provider returned an error. |
+
+## Related
+
+- [Deploying and running an environment](/docs/using/deploy#errors) — the deploy codes grouped by remedy.
+- [Writing compose](/docs/using/compose#errors-at-save) — save-time refusals.
+- [Hosting](/docs/using/hosting#errors) — hostnames and TLS.
+- [API reference](/docs/api) — the interactive OpenAPI documents, where each route lists its own codes.

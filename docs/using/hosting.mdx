@@ -1,0 +1,210 @@
+---
+title: Hosting — hostnames, ports and TLS
+description: How a service is reached — hostnames and published ports, the three bind scopes, the organization's TLS library, Let's Encrypt behind the organization opt-in, proxy options, and every refusal code on the way
+---
+
+# Hosting — hostnames, ports and TLS
+
+A service that runs is not yet a service anyone can reach. **Hosting** is the part of an environment that says how the outside world gets in: which hostnames answer, on which network face of the server, over which certificate, and — for a database or a game server — which TCP or UDP ports are published. This chapter covers the **Hosting** tab, the organization's **TLS** library under **Servers → TLS**, and the Let's Encrypt path that runs through both.
+
+## The model
+
+Every server that serves hostnames runs a **hosting Caddy** on ports 80 and 443, behind a Traefik that also carries raw TCP/UDP. A **hosting row** is one entry the platform materializes into that Caddy's configuration: a set of hostnames (or a set of ports), a service and target port behind them, a bind scope, and the certificate to serve.
+
+Hosting rows come from two places, and which one owns a row decides where you edit it:
+
+- **The Hosting tab** — rows you add by hand for a service. Edit and delete them there.
+- **The compose document** — rows declared under `x-turbopanel.hosting[]` on a service. The platform materializes them on every deploy; on the Hosting tab they are shown read-only, captioned as compose-owned, and any change goes in the document. Trying to edit one through the API is refused with `hosting_owned_by_compose`.
+
+Three rules hold everywhere:
+
+1. **A hostname is unique within the organization.** Two hosting rows in one organization can never claim the same hostname, even on different paths; the database enforces it, not just the form.
+2. **The certificate is a pin, not a copy.** A hosting row points at a certificate in the organization's TLS library (`tlsId`). No pin means Caddy's own locally-trusted certificate (`tls internal`) — fine for a private hostname, wrong for a public one.
+3. **The Organization CA never issues hosting certificates.** It signs the platform's internal traffic (daemon, managed-database ingress). Public hostnames get an uploaded certificate, a self-signed one, or Let's Encrypt.
+
+### Bind scopes
+
+| Scope | The hostname answers on | Use it for |
+| --- | --- | --- |
+| `public` | Every interface — or one specific public IP when a **public IP** is picked from the organization's registry | Anything reachable from the internet. The only scope that can obtain a Let's Encrypt certificate. |
+| `datacenter` | The server's datacenter address only | A service other servers in the same datacenter reach, never the internet. Needs the server to have a datacenter address (`datacenter_ip_required` at deploy otherwise). |
+| `local` | `127.0.0.1` | A service only that host itself talks to. |
+
+The bind is frozen into the host's Caddy at deploy time, so changing it — or a member address moving — leaves the environment marked *needs redeploy* until you deploy again.
+
+## Before you begin
+
+- A deployed (or at least placed) environment — hosting rows attach to a service in one.
+- For a public hostname: DNS for it pointing at the serving server's public address.
+- For Let's Encrypt: an organization owner or manager has turned on **Allow Let's Encrypt certificates** under **Servers → TLS**, the hostname's bind is `public`, and ports 80 and 443 on that server are reachable from the internet.
+- For a published TCP/UDP port: nothing else on that server already publishes the same port.
+
+## Add a hostname
+
+<Steps>
+  <Step>
+    Open the environment's **Hosting** tab. Below the server pin, each service has a hosting section; add a row under the service that should answer.
+  </Step>
+  <Step>
+    Enter the **Hostnames** — one or more, each a full DNS name (no wildcards). Leave **Protocol** at *Http*.
+  </Step>
+  <Step>
+    Pick the **bind**: `public`, `datacenter` or `local`. For `public`, optionally pick a **public IP** from the organization's registry to bind only that address; the IP must itself be registered with scope *public* (`hosting_bind_scope_mismatch` otherwise).
+  </Step>
+  <Step>
+    Set the **Target port** the service listens on inside its container, and an optional **Path prefix** if only a sub-path of the hostname belongs to this service (with **Strip prefix** to remove it before forwarding).
+  </Step>
+  <Step>
+    Choose the certificate: leave it unset for `tls internal`, or pin a row from the library. The library only offers rows whose names cover every hostname on the row.
+  </Step>
+  <Step>
+    Toggle **Force HTTPS**, **Gzip** and **Brotli** as needed, then save. The hostname is live on the next deploy.
+  </Step>
+</Steps>
+
+### Hosting variables and PHP options
+
+Once a row is saved, it carries its own **Variables** panel — the hosting scope of the variable cascade, for values that differ per hostname (a `SITE_URL`, a per-host feature flag). For a site served by a host engine, the row also exposes **PHP** options: series (`8.3`, `8.4`), `memory_limit`, `max_execution_time`, and up to 64 static environment entries (`web.env`) of at most 4096 characters each.
+
+## Publish a TCP or UDP port
+
+<Steps>
+  <Step>
+    Add a hosting row under the service and set **Protocol** to *Tcp* or *Udp*. The hostnames field is replaced by **Ports**.
+  </Step>
+  <Step>
+    Enter up to 10 mappings as `published:target` (or just `published` when both sides match). Each published port must be unique on the row; the same port published by another service on the same server is refused at deploy (`host_port_conflict`).
+  </Step>
+  <Step>
+    Pick the bind scope as for a hostname, and save. Traefik carries the port on the next deploy; TLS options do not apply.
+  </Step>
+</Steps>
+
+## The TLS library
+
+**Servers → TLS** is the organization's certificate library. Every row has a **source** and a **status**:
+
+| Source | What it is | Who renews it |
+| --- | --- | --- |
+| `upload` | A certificate and private key you paste as PEM | You — upload a new row before it expires and re-pin |
+| `self_signed` | A certificate the platform mints for the hostnames you list (RSA-2048, about 90 days) | You, by minting again |
+| `lets_encrypt` | Intent, not material: the hostnames Caddy should obtain a certificate for. The row never holds a key. | Caddy on the serving host, automatically |
+| `organization_ca` | The organization's internal CA. Platform-managed; not pinnable to a hosting | The platform's renewal sweep |
+
+| Status | Meaning |
+| --- | --- |
+| `ready` | Material present and valid; pinnable. |
+| `pending` | Requested, material not yet present. |
+| `managed` | A Let's Encrypt row Caddy issues and renews on the host — pinnable; the platform holds no material. |
+| `expired` | Past `notAfter`. Replace and re-pin. |
+| `failed` | Issuance or import failed; see the row's message. |
+| `revoked` | Retired by you. Pins fall back to `tls internal` on the next deploy. |
+
+### Upload a certificate
+
+<Steps>
+  <Step>**Servers → TLS → Add certificate**, source *Upload*.</Step>
+  <Step>Paste the **Certificate PEM** (the leaf first, then any intermediates) and the **Private key PEM**. An optional **Display name** labels the row.</Step>
+  <Step>Save. The platform reads the names off the certificate; a certificate already in the library is refused with `tls_fingerprint_conflict`.</Step>
+  <Step>On the environment's Hosting tab, pin the row on each hosting it should serve, and deploy.</Step>
+</Steps>
+
+### Mint a self-signed certificate
+
+Source *Self-signed*, list the **Hostnames**, save. Useful for a `datacenter` or `local` hostname, or as a placeholder before a real certificate exists.
+
+### Let's Encrypt
+
+Let's Encrypt is **off by default for every organization**. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it is an explicit opt-in, and turning it back off is immediate: no new certificate is requested, and a previously issued `managed` row is no longer wired at deploy (the hosting falls back to `tls internal`) — issued certificates are not revoked.
+
+<Steps>
+  <Step>
+    **Servers → TLS**, turn on **Allow Let's Encrypt certificates**. Until this is on, the *Let's Encrypt* source is disabled in **Add certificate** and the API refuses with `lets_encrypt_not_enabled`.
+  </Step>
+  <Step>
+    **Add certificate**, source *Let's Encrypt*, list the exact **Hostnames** — no wildcards (`wildcard_unsupported`), and HTTP-01 is the only challenge (`dns_01_unsupported`). The row is created with status `managed`.
+  </Step>
+  <Step>
+    Make sure each hostname resolves to the serving server and that ports 80 and 443 on it are open to the internet.
+  </Step>
+  <Step>
+    On the Hosting tab, set the hosting's bind to `public` and pin the row. Deploy. Caddy obtains the certificate on first contact and renews it on its own; the platform never sees the key.
+  </Step>
+</Steps>
+
+If issuance fails — a hostname that does not resolve, a closed port 80, a Let's Encrypt rate limit — the daemon notices within a minute or two and the row shows **Issuance failing** with the reason; the deploy itself is not affected, and the hosting keeps serving Caddy's local certificate until issuance succeeds.
+
+### Revoke and retire
+
+**Revoke** on a library row sets it `revoked`; hostings pinned to it fall back to `tls internal` on their next deploy. There is no CRL or OCSP: a client that already holds the certificate keeps trusting it until it expires. The organization CA is retired and rotated as a whole, from its own panel — [Organization CA](/docs/security/organization-ca).
+
+## Reference
+
+### Hosting options
+
+| Field | Values | Notes |
+| --- | --- | --- |
+| `hostnames[]` | Full DNS names | Required for `http`. Unique per organization. |
+| `protocol` | `http` (default) · `tcp` · `udp` | `tcp`/`udp` replace hostnames with `ports`. |
+| `ports[]` | `{ published, target }` | Required for `tcp`/`udp`; at most 10; `published` unique on the row; ports 1–65535. |
+| `bind` | `public` · `datacenter` · `local` | See *Bind scopes*. |
+| `ipId` | uuid | A registered public IP to bind; needs `bind: public` and an IP of scope `public`. |
+| `tlsId` | uuid or unset | The library pin; unset = `tls internal`. Compose spells it `tls: { mode, certificateRef }`. |
+| `targetPort` | 1–65535 | The container port. |
+| `pathPrefix` | `/path` | Route only this prefix. |
+| `proxy.forceHttps` · `proxy.gzip` · `proxy.brotli` · `proxy.stripPrefix` | boolean / string | The **Force HTTPS**, **Gzip**, **Brotli**, **Strip prefix** controls. |
+| `web.env` | up to 64 keys (`[A-Za-z_]\w*`), values ≤ 4096 chars | Static environment for host-engine sites. |
+| `web.php` | `version`, `memoryLimit`, `maxExecutionTime` | Site PHP options. |
+
+### Compose spelling
+
+The same row, declared on a service:
+
+```yaml
+x-turbopanel:
+  hosting:
+    - hostname: shop.example.com
+      pathPrefix: /api
+      targetPort: 3000
+      forceHttps: true
+      tls: { mode: acme }                  # internal | certificate (+ certificateRef) | acme
+      bind: { scope: public, ipRef: edge } # public | datacenter | local
+```
+
+`certificateRef` names a library certificate by its id or its display name; `ipRef` names a registered IP by its id or its address. An unknown reference is refused at deploy (`hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved`); the editor's linter flags it earlier when it knows the organization's library.
+
+### Certificate lifetimes
+
+| Certificate | Lifetime |
+| --- | --- |
+| Self-signed library certificate | ~90 days |
+| Let's Encrypt | Set by Let's Encrypt; renewed by Caddy on the host |
+| Organization CA leaves (internal) | 90 days, re-issued at a third remaining |
+| Organization CA root | 3650 days |
+
+## Errors
+
+| Code | Status | Meaning | What to do |
+| --- | --- | --- | --- |
+| `hostname_in_use` | 409 | Another hosting in the organization already serves this hostname. | Find it under that project's Hosting tab; remove it or pick another name. |
+| `hosting_owned_by_compose` | 409 | The row is declared in the compose document. | Edit `x-turbopanel.hosting[]` on the service instead. |
+| `hosting_bind_scope_mismatch` | 400 | A public IP was picked with a non-public bind, or the IP's registered scope is not `public`. | Set `bind: public`, or pick an IP registered as public. |
+| `invalid_hosting_options` | 400 | A field has the wrong shape (a bad port, a `tcp` row with no ports, more than 10 ports). | See the options table. |
+| `lets_encrypt_not_enabled` | 403 | The organization has not opted in. | **Servers → TLS → Allow Let's Encrypt certificates**. |
+| `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` hostname, or a DNS-01 challenge, on a Let's Encrypt row. | List each hostname; HTTP-01 only. |
+| `tls_fingerprint_conflict` | 409 | This certificate is already in the library. | Pin the existing row. |
+| `organization_ca_exists`, `organization_ca_retire_required` | 409 | An organization CA already exists, or the current one must be retired before a new one is minted. | Use the Organization CA panel's rotate flow. |
+| `acme_requires_public_bind` | 400 (deploy) | A Let's Encrypt row is pinned on a `datacenter` or `local` hosting. | Set the bind to `public`. |
+| `acme_requires_org_opt_in` | 400 (deploy) | A `managed` row is pinned but the organization's opt-in is off. | Turn the opt-in back on, or pin another certificate. |
+| `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 (deploy) | The pinned row is gone, does not cover the hostnames, or is not `ready`/`managed`. | Re-pin. |
+| `hosting_route_conflict`, `hosting_hostname_conflict` | 409 (deploy) | Two rows in the environment claim the same hostname and path, or a compose-declared hostname collides with another hosting in the organization. | Change one of them. |
+| `host_port_conflict` | 422 (deploy) | Two services on one server publish the same port. | Change the published port. |
+| `datacenter_ip_required` | 422 (deploy) | A `datacenter` bind on a server with no datacenter address. | Add the server to a datacenter, or use `public`/`local`. |
+
+## Related
+
+- [Deploying and running an environment](/docs/using/deploy) — the deploy-time refusals in full.
+- [Writing compose](/docs/using/compose) — the `x-turbopanel.hosting[]` declaration.
+- [Hostnames and TLS](/docs/deployment/hostnames-and-tls) — the operator view of Let's Encrypt on the serving host.
+- [Organization CA](/docs/security/organization-ca) — the internal CA, rotation, and why it never signs hosting certificates.
+- [Network addressing](/docs/deployment/network-addressing) — the IP registry a public bind can pick from.

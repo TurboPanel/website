@@ -4,6 +4,8 @@
     "index",
     "projects",
     "compose",
-    "deploy"
+    "deploy",
+    "hosting",
+    "reference"
   ]
 }
