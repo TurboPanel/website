@@ -1,0 +1,119 @@
+---
+title: Billing and licenses
+description: On TurboPanel High Availability — what a license is, buying the first ones, adding and releasing licenses at a tier, moving a license up or down the ladder, servers that are not covered, past-due payment, invoices and the customer portal, and every refusal
+---
+
+# Billing and licenses
+
+On **TurboPanel High Availability**, an organization pays for **licenses**, and each connected server uses one. Which tier a server needs is decided by its hardware; which license it gets is decided by the platform; what you buy is only *how many, at which tier*. This chapter is the **Billing** screen (`/<org>/billing`) — first checkout, changing quantities, moving a license between tiers, and what happens when payment fails. Prices are on [Pricing](/pricing); the ladder itself is in [License tiers](/docs/deployment/tiers).
+
+<Callout type="info" title="Self-hosted has no Billing screen">
+  A self-hosted control plane has no subscription: every server it licenses is entitled to **SX** automatically, and the sidebar omits Billing. Server count is bounded only by the organization's own capacity setting (**Servers → Settings**). Everything on this page is High Availability.
+</Callout>
+
+## The model
+
+| Term | Meaning |
+| --- | --- |
+| **Tier** | A rung of the ladder, **S1** to **S7** (**SX** above it, negotiated). Each has a **cores** and **RAM** ceiling; a server needs the smallest tier whose ceilings cover its physical cores *and* its RAM. |
+| **License** | One unit of entitlement at a tier. An organization holds a **quantity per tier** — "two at S1, one at S3". A license carries no server name and no tier of its own. |
+| **Registration key** | What **Servers → Add server** mints against the licenses you hold: one key enrolls one server. Minting is refused when every purchased license is held or being released (`no_license_available`). |
+| **Assignment** | Derived, never chosen: servers are placed in the order they were added, each onto the smallest purchased tier that covers it. Adding hardware can never push an already-covered server off its license; a newcomer nothing fits stays **not covered**. |
+| **Period** | Subscriptions bill monthly, anchored to the first of the month (UTC); the first invoice is prorated. |
+
+Two facts shape every action below:
+
+- **Increases apply now and are invoiced now** (prorated for the rest of the period). **Decreases apply at the end of the period**, with no credit — you keep what you paid for until then.
+- **A change that would leave a server uncovered is refused**, naming the server and the tier it needs (`servers_uncovered`). Delete or downsize the server first, or keep the license.
+
+## Before you begin
+
+- **Organization owner** — every billing action, like minting registration keys, is owner-only.
+- Know each server's size: run `nproc && free -g` on the host; the first number is its cores, the second line its RAM in GiB. Choose the lowest tier whose **Fits up to** column covers both.
+
+## Buy the first licenses
+
+**Billing → Buy the first licenses.**
+
+<Steps>
+  <Step>
+    **Choose a tier** from the table (**Fits up to** shows each tier's ceilings) and the **Number of licenses** — a whole number, at least 1. You can add or release later.
+  </Step>
+  <Step>
+    **Continue to checkout.** Payment is collected on a hosted checkout page; the console does not see your card.
+  </Step>
+  <Step>
+    You return to Billing with **Confirming payment** while the payment provider reports the new subscription — usually a few seconds. **Checkout complete** follows: *You can now add servers from Servers → Add server; each one uses a license.* **Checkout was cancelled** returns you to the tier table with nothing created.
+  </Step>
+</Steps>
+
+A second checkout while one is in flight is refused (`checkout_pending`); a checkout for an organization that already subscribes is refused (`subscription_exists`) — add licenses to the subscription instead.
+
+## Add or release licenses at a tier
+
+**Billing → Licenses by tier.** Each purchased tier is a row with its quantity and two buttons:
+
+| Button | What happens |
+| --- | --- |
+| **+1** | Buys one more at that tier. The console fetches a quote (**Prorated** amount for the rest of the period), you confirm, and it is invoiced now. |
+| **−1** | Releases one at the end of the period. It shows under pending changes with the date it lands; the license stays usable until then. |
+
+**Buy one** at a tier you do not yet hold adds that tier to the subscription the same way. The **Licenses** summary shows *held* of *purchased* in use, how many more servers can be added, and how many are *releasing*.
+
+## Move a license to another tier
+
+**Billing → Move a license**: **From tier** → **To tier**.
+
+- **Up the ladder** is invoiced now (a prorated quote first) and applies once the invoice is paid. If the card fails, the change waits, parked, until the open invoice is paid; nothing is granted meanwhile.
+- **Down the ladder** applies at the end of the period, with no credit.
+
+A move that is not actually an upgrade or downgrade in the chosen direction is refused (`not_an_upgrade` / `not_a_downgrade`); one that would uncover a server is refused (`servers_uncovered`).
+
+## Servers not covered
+
+When a server needs a tier nothing purchased covers — it was added with no matching license, or it grew — Billing shows a **servers not covered** notice naming the server and its required tier, and the server detail carries a button that deep-links here with that tier preselected. An uncovered server's workloads keep running, but its daemon is refused at its next session with *License tier below required* and parks — no metrics, no commands — until it is covered. Buy at that tier, move a license up, or delete the server.
+
+## Past-due payment
+
+When a renewal fails, the payment provider retries on its own schedule and Billing shows **Payment is past due — tier changes are paused**: increases and moves are refused (`subscription_past_due`, naming the grace expiry) with nothing written, while releases and the rest of the console keep working. Update the card under **Invoices & payment method**; a successful payment clears the pause at once. If the subscription is still unpaid **65 days** after it first went past due, it is cancelled, every license is revoked (bound ones included), and leftover credit is forfeited.
+
+## Invoices and payment method
+
+**Invoices & payment method** opens the payment provider's customer portal for invoices, receipts and the card on file. **Update payment method** goes there directly. Tier changes are never made in the portal — only here.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Ladder | S1 ≤ 4 cores / 16 GiB · S2 ≤ 10 / 32 · S3 ≤ 16 / 64 · S4 ≤ 32 / 128 · S5 ≤ 64 / 256 · S6 ≤ 128 / 512 · S7 ≤ 256 / 1 TiB · SX above ([details](/docs/deployment/tiers)) |
+| Placement | smallest purchased tier whose ceilings cover the server; servers placed in bind order, incumbents first |
+| Billing period | monthly, anchored to the 1st 00:00 UTC; first invoice prorated |
+| Increase / move up | immediate, prorated invoice now; parked (not granted) while the invoice is unpaid |
+| Decrease / move down | at period end, no credit |
+| Give back the last license | subscription cancels at the period end; buying again before then resumes it |
+| Grace after past due | 65 days, then cancellation and license revocation |
+| One change at a time | mutations for an organization are serialised; a concurrent one answers `billing_mutation_in_progress` |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `billing_not_configured` | 503 | A hosted instance without its payment keys. (Self-hosted has no billing routes at all — 404.) |
+| `subscription_exists` | 409 | The organization already subscribes; use **+1** / **Buy one** instead of checkout. |
+| `checkout_pending` | 409 | A checkout is already in flight; finish or cancel it. |
+| `no_subscription` | 409 | No live subscription to change; start with checkout. |
+| `tier_not_purchasable` | 400 | The tier is SX, or its product no longer verifies with the provider (the response lists the failures). |
+| `not_an_upgrade`, `not_a_downgrade` | 400 | The chosen tiers do not go in the direction of the action. |
+| `servers_uncovered` | 409 | The change would leave the named server without a license at the tier it needs. |
+| `licenses_in_use` | 409 | The organization would hold more registration keys than it pays for. |
+| `subscription_past_due` | 409 | Increases and moves are paused until the open invoice is paid; `graceExpiresAt` says when cancellation would follow. |
+| `billing_mutation_in_progress` | 409 | Another change for this organization is being applied; retry in a moment. |
+| `no_license_available` | 409 (Add server) | Every purchased license is held or releasing; buy one more first. |
+| `stripe_error` | 502 / 503 | The payment provider refused (502) or did not answer (503, transient); nothing was applied. |
+
+## Related
+
+- [License tiers](/docs/deployment/tiers) — the ladder, placement rules, and what a tier changes in metrics.
+- [Servers, datacenters and networking](/docs/using/servers) — adding a server with a registration key.
+- [Administering an instance](/docs/using/admin) — the tier catalogue a superadmin binds on a fresh instance.
+- [Pricing](/pricing) — list prices.

@@ -12,41 +12,9 @@ How operators sign in, protect an account, and invite teammates. Two-factor, pas
   the account and access flows that already exist in the console — not a public sign-up path.
 </Callout>
 
-## Two-factor with an authenticator app
+## Protecting an account
 
-Two-factor lives in the signed-in console → account menu → **Security** (`/account/security`).
-
-<Steps>
-  <Step>
-    Confirm your password.
-  </Step>
-  <Step>
-    Scan or paste the base32 key / `otpauth://` URI into an authenticator app.
-  </Step>
-  <Step>
-    Enter the first 6-digit code. Nothing is enabled until that code verifies.
-  </Step>
-</Steps>
-
-**Backup codes are shown once** at verification — ten one-time codes. Regenerating invalidates the previous set. Store them somewhere you can reach without the authenticator.
-
-Sign-in then becomes two steps: password, then a 6-digit code, with a **Use a backup code** toggle. The challenge is short-lived (5 minutes) and dies after five wrong codes; you simply sign in again.
-
-Disabling 2FA, regenerating backup codes, and removing a passkey need re-authentication: your password, or a session younger than 15 minutes.
-
-<Callout type="info" title="Passkey sign-in skips the code">
-  A passkey sign-in never asks for the authenticator code. The passkey *is* the second factor.
-</Callout>
-
-## Passkeys
-
-**Web only in this release.** Passkeys require a browser on the same origin as the control plane. Native iOS and Android show a short “use a browser” note rather than a broken button — that is the most likely support question.
-
-Register from the Security screen with a name. User verification (biometric / device PIN) is required.
-
-Sign in with the passkey alone from the sign-in screen — no email, no password, and **no second-factor prompt**, because the passkey is the second factor.
-
-Delete requires the same re-authentication as two-factor (password, or a session younger than 15 minutes). Keep at least one other way to sign in.
+Two-factor with an authenticator app, backup codes, passkeys and linked GitHub / Google identities are managed by each person from the account menu → **Security** (`/account/security`). The user-facing procedures, the re-authentication rule (password, or a session younger than 15 minutes) and every refusal are in [Account security](/docs/using/account-security). The operator's part is below: configuring the providers the instance offers.
 
 ## Sign in with GitHub or Google
 
@@ -84,15 +52,7 @@ Unlinking refuses when it would remove your last way to sign in.
 
 ## Invite a teammate
 
-Invitations are **team-scoped**: you invite someone to a team, and org access follows from team membership.
-
-Who can invite: a manager of that team (`organization:manage` / team manage). **Only an organization owner may attach explicit permission grants** — everyone else's invitation carries the default organization-manage grant.
-
-Expiry is **7 days**. There is one pending invitation per team + email address. Managers can revoke a pending invitation, which prevents the accept.
-
-The invitee gets an email with an accept link. If email is not reachable on the instance, the invitation is refused rather than created silently — see [Control plane](/docs/deployment/control-plane) for mail configuration.
-
-**An invitee without an account:** the accept link offers sign-in and sign-up. The sign-up carries the invitation, so it works **even while public sign-up is disabled**, as long as the email matches the invitation. Email verification behaves exactly as it does for any other sign-up. After signing in they land back on the accept screen and join the team.
+Invitations are **team-scoped**: you invite someone to a team, and organization access follows from team membership. A manager of the team invites; only an organization owner may attach explicit permission grants; the link is good for **7 days**; and an instance without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering an instance](/docs/using/admin#email)). The console procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
 
 ```mermaid title="Invitation when the invitee has no account"
 sequenceDiagram
@@ -112,6 +72,7 @@ sequenceDiagram
 
 ## Related
 
+- [Account security](/docs/using/account-security) and [Organizations, teams and access](/docs/using/access) — the user guide chapters
 - [Control plane](/docs/deployment/control-plane) — Instance configuration, including mail and OAuth environment variables
 - [Security](/docs/deployment/security) — TLS, authentication, and secret envelopes
 - [Password safety](/docs/security/password-safety) — Compromised-password checks on sign-up and password changes

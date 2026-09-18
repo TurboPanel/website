@@ -9,6 +9,10 @@
     "storage-and-variables",
     "managed-databases",
     "git",
+    "account-security",
+    "access",
+    "billing",
+    "admin",
     "reference"
   ]
 }

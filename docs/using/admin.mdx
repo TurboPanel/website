@@ -1,0 +1,148 @@
+---
+title: Administering an instance
+description: The instance roles, and the Admin area — public URLs, outbound email, sign-in providers, instance-wide Git applications, public sign-up, the tier catalogue, re-encrypting secrets, live-metrics session length — and every refusal
+---
+
+# Administering an instance
+
+An **instance** is one control plane and everything signed into it. A handful of settings belong to the instance rather than to any organization: how it is reached, how it sends mail, who may sign up, which providers can sign people in, and the encryption of what it stores. Those live in the **Admin** area (`/admin/*`), open to users with an instance role. This chapter is the console side; the environment variables that back the same settings on a managed host are in [Instance configuration](/docs/deployment/instance-configuration).
+
+## The model
+
+### Instance roles
+
+Every account carries an instance role — `user`, `admin` or `superadmin` — that is separate from the organization grants in [Organizations, teams and access](/docs/using/access):
+
+| Role | What it means |
+| --- | --- |
+| `user` | The default. Acts only through organization and team grants. |
+| `admin` | Opens the Admin area, and bypasses every organization check — an admin sees and may act on every organization on the instance. |
+| `superadmin` | Everything `admin` can, plus the superadmin-only acts: **Re-encrypt secrets** and the **tier catalogue**. On self-hosted, the account created at install is the superadmin. |
+
+Roles are not assigned from the console in this release; self-hosted has exactly the superadmin install created, and hosted instances assign roles operationally.
+
+### Where a setting comes from
+
+Most Admin settings can be set in two places: the panel, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the panel, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the panel reports that one is present and never shows it; leaving the field untouched keeps the stored value.
+
+## Before you begin
+
+- An `admin` or `superadmin` account. Others are redirected to their dashboard.
+- **Return to instance** in the header takes you back to your preferred organization.
+
+## Networking — public URLs
+
+**Admin → Networking → Public URLs.** The addresses the control plane is reachable at. Three things read this list: the TLS certificate's names, Git webhook callbacks, and the install command an organization's **Add server** shows.
+
+<Steps>
+  <Step>
+    **Add** an entry: **Scheme**, **Hostname**, optional **Port**. Paste a whole address and its scheme and port are taken and the rest dropped (`https://panel.lan:8443/x` → `https://panel.lan:8443`); a port that is the scheme's default is dropped.
+  </Step>
+  <Step>
+    **Save** stores the list. **Save & Apply** (self-hosted only) also regenerates the Platform CA leaf for the new names and reloads the front proxy.
+  </Step>
+</Steps>
+
+<Callout type="info" title="Apply drops the connection on purpose">
+  Applying reloads the proxy your browser is talking through, so the request usually ends in a
+  gateway error while the apply in fact succeeded. The console waits for the control plane to answer
+  again and reports **applied** / **reconnected**; reload if in doubt — the list was saved before the
+  apply was dispatched. On High Availability the button is absent (*cert apply is not applicable on
+  this runtime*).
+</Callout>
+
+A scheme-less entry such as `panel.lan` (what `TURBOPANEL_PUBLIC_URLS` looks like) displays as https and is stored exactly as typed — it expands to port **8443** in an install command.
+
+## Email
+
+**Admin → Email → Email settings.** The instance's outbound mail — sign-up verification, invitations, alerts.
+
+| Field | Value |
+| --- | --- |
+| **Provider** | `smtp` or `mailgun` |
+| **From address** | the sender every message carries |
+| **SMTP host / port / user / password** | for `smtp`; the password is write-only |
+| **Mailgun API key / domain** | for `mailgun`; the key is write-only |
+
+Without a working provider, sign-up skips email verification and invitations are refused (`email_unavailable`) rather than created silently.
+
+## Sign-in providers
+
+**Admin → Sign-in providers.** **GitHub** (an OAuth App's client ID and secret) and **Google** (an OAuth 2.0 client ID and secret). A configured provider appears on the sign-in screen and under each user's **Linked accounts**; an unconfigured one is absent. The redirect URI each provider needs is `<public URL>/api/client/v1/auth/oauth/<provider>/callback`. What the user sees is in [Account security](/docs/using/account-security#link-github-or-google).
+
+## Git providers
+
+**Admin → Git providers.** **Instance-wide** Git applications — GitHub Apps and GitLab OAuth applications every organization may use, shown read-only in their own **Git sources** beside the applications they register themselves. Several may coexist (github.com beside GitHub Enterprise, gitlab.com beside a self-managed GitLab). **Create a GitHub App** runs the manifest flow; **Add manually** takes existing credentials. The admin view hides **Repository access**, because an installation belongs to an organization. The rest of the surface is the same as an organization's, in [Git sources and repositories](/docs/using/git).
+
+## Sign-up
+
+**Admin → Sign-up → Public sign-up.** On, guests see **Create account** and `/sign-up` is open; off, only invited people and existing accounts get in (an invitation's sign-up still works — see [Organizations, teams and access](/docs/using/access#invite-a-teammate)). When `TURBOPANEL_IS_SIGNUP_ENABLED` is set on the host, the toggle is locked: *Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED; clear that env var to use the panel toggle* (409).
+
+## Tiers
+
+**Admin → Tiers.** High Availability only; superadmin only. The ladder (S1–S7, SX) is fixed in code; what a superadmin enters is *which provider product each priced label sells through*. Nothing seeds this.
+
+<Steps>
+  <Step>
+    Create one product per label, with a default monthly price, on the payment provider — see [First-run tier catalogue](/docs/deployment/tier-catalogue) for the exact shape.
+  </Step>
+  <Step>
+    For each row, **Set up** → pick the product from the dropdown (products whose metadata names the label are preselected; each shows an inline pass/fail) → save. The row's price is cached from the product; changing a price is done on the provider, never here.
+  </Step>
+  <Step>
+    **Verify** / **Verify all** re-run the checks: product and price active, a default price, monthly, per-unit, USD, and a resolvable tax behaviour (the price names it, or the provider account has a default). A failing product cannot be saved or sold.
+  </Step>
+</Steps>
+
+**Retire** deactivates a row (rows are never deleted); **Reactivate** brings it back. **SX** has no product and is never purchasable; a negotiated deal binds that customer's product to it.
+
+## Secrets
+
+**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the instance stores — secret variables, TLS private keys, principal passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
+
+## Server metrics
+
+**Admin → Server metrics → Live metrics sessions.** How long one live metrics session on a server's Metrics tab may stream before it must be reopened: **Max session length (minutes)** — `0` turns live sessions off, otherwise **5–240**. **Save session length.**
+
+## Also in the instance API
+
+Two instance settings have no panel yet and are set through `/api/admin/v1`:
+
+- **Alert webhook** — `PUT /settings/alert-webhook` `{ url }` (or `null` to clear): where the daemon-offline and mass-disconnect alerts are posted ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)).
+- **Daemon console** — `GET /daemon/connections`, `/daemon/commands`, `/daemon/addresses`: what every connected daemon reports, for support.
+
+The interactive reference is at `/api/admin/v1/reference`.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Roles | `user` · `admin` · `superadmin` |
+| Admin-only areas | Networking, Email, Sign-in providers, Git providers, Sign-up, Server metrics |
+| Superadmin-only | Tiers, Secrets |
+| Precedence | environment variable > panel setting |
+| Public URL entry | scheme + host + optional port; scheme-less entries expand to port 8443 in install commands |
+| Live metrics session | 0 (off) or 5–240 minutes |
+| Sign-up override | `TURBOPANEL_IS_SIGNUP_ENABLED` locks the toggle |
+
+## Errors
+
+| Message | Status | Meaning |
+| --- | --- | --- |
+| `Forbidden` | 403 | The account is not an admin or superadmin (or, on Tiers and Secrets, not a superadmin). |
+| `One or more public URL entries are invalid` | 400 | An entry is not a valid scheme + host + port. |
+| `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
+| `cert apply is not applicable on this runtime` | 422 | Apply is self-hosted only. |
+| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the toggle. |
+| `maxMinutes must be 0 or an integer between 5 and 240` | 400 | Live session length out of range. |
+| `reencrypt_in_progress` | 409 | A sweep is already running; wait or **Resume sweep**. |
+| `Encryption unavailable — no encryption key configured` | 503 | The instance has no root secret, so nothing can be sealed. |
+| `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
+| Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
+
+## Related
+
+- [Instance configuration](/docs/deployment/instance-configuration) — the environment variables behind these settings.
+- [First-run tier catalogue](/docs/deployment/tier-catalogue) — the products to create before binding tiers.
+- [Security](/docs/deployment/security) — secret rotation and the egress boundary.
+- [Organizations, teams and access](/docs/using/access) — organization-level roles.

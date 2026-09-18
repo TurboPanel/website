@@ -1,0 +1,152 @@
+---
+title: Account security
+description: Signing in, two-factor with an authenticator app, backup codes, passkeys, linking GitHub and Google, what re-authentication is, which changes sign your other devices out, and every refusal
+---
+
+# Account security
+
+Your account is one identity across every organization you belong to, and the ways you prove it is you are managed in one place: the account menu → **Security** (`/account/security`). This chapter covers signing in, the second factor, passkeys, linked sign-in providers, password rules and recovery. Configuring which providers an instance offers is the operator's side, in [Accounts and access](/docs/getting-started/accounts-and-access).
+
+## The model
+
+An account has an email address and up to four **ways in**:
+
+| Way in | What it is | Second factor? |
+| --- | --- | --- |
+| **Password** | Email + password, the way every account starts (except one created by GitHub or Google sign-in). | Yes, when two-factor is on. |
+| **Two-factor code** | A six-digit code from an authenticator app, or one of ten one-time **backup codes**, asked for after the password. | — it *is* the second factor. |
+| **Passkey** | A WebAuthn credential (Touch ID, Windows Hello, a security key, a phone) registered from a browser. | No — a passkey sign-in never asks for a code; the passkey is the second factor. |
+| **Linked provider** | A GitHub or Google identity linked to this account. | Yes, when two-factor is on: the code step follows the provider round trip. |
+
+Three rules run through everything below:
+
+1. **Changing how you sign in needs a fresh proof.** Enrolling or disabling two-factor, regenerating backup codes, adding or removing a passkey, and unlinking a provider all require **re-authentication**: your current password in the form, or a session younger than **15 minutes**. Otherwise the request is refused (403) and the console asks for the password.
+2. **Securing the account signs everyone else out.** Each of those changes revokes every other session on the account and keeps only the one that made the change. A password reset revokes *all* sessions, including the one at the keyboard.
+3. **You cannot remove your last way in.** Unlinking the only provider on an account that has no password and no passkey is refused (`last_sign_in_method`). Keep at least two ways in before removing one.
+
+Sessions last **7 days** and are cookie-bound to the control plane's origin; the native apps use the same session against the control plane you connected to (**Change control plane** on the sign-in screen).
+
+## Sign in
+
+<Steps>
+  <Step>
+    Email and password → **Sign In**. On an instance with providers configured, **Sign in with GitHub** / **Sign in with Google** sit beside it, and **Sign in with a passkey** below.
+  </Step>
+  <Step>
+    If two-factor is on, the **authentication code** step follows: six digits from your app, or **Use a backup code** to type one of the ten. The challenge lives **5 minutes** and dies after **five wrong codes** — go **Back to sign in** and start again rather than retrying a dead one.
+  </Step>
+  <Step>
+    A new account made by sign-up must **verify its email** first (the link in the mail is good for 24 hours); until then sign-in is refused with *Verify your email before signing in*. An instance without outbound email skips verification entirely.
+  </Step>
+</Steps>
+
+<Callout type="info" title="There is no Forgot password link yet">
+  The API carries an email-code password reset (`POST /auth/reset-password/request-otp` then `POST /auth/reset-password/otp`), but the console does not offer it in this release. If you lose your password, sign in with a passkey or a linked provider and keep going; otherwise ask the instance's administrator.
+</Callout>
+
+## Turn on two-factor
+
+**Security → Two-factor authentication → Enable two-factor.**
+
+<Steps>
+  <Step>
+    Enter your **current password** (re-authentication).
+  </Step>
+  <Step>
+    **Add this to your authenticator**: scan the QR code, or **Copy key** / **Copy link** (the base32 secret or the `otpauth://` URI) into any TOTP app.
+  </Step>
+  <Step>
+    Type the first six-digit **Authentication code** and **Verify and enable**. Nothing is enabled until a code verifies.
+  </Step>
+  <Step>
+    **Save your backup codes.** Ten one-time codes, shown **once**. **Copy all**, store them where you can reach them without this device, then **I've saved these**. They are the only way back in if you lose the authenticator.
+  </Step>
+</Steps>
+
+Afterwards the panel shows the method and how many backup codes remain. **Regenerate backup codes** issues ten new ones and invalidates the old set; **Disable two-factor** removes the authenticator and the codes. Both re-authenticate.
+
+## Add a passkey
+
+**Security → Passkeys → Add a passkey.** Web only in this release — the native apps show a *use a browser* note instead of a button, because a passkey must be created on the control plane's own origin.
+
+<Steps>
+  <Step>
+    Enter your current password if asked, and give the passkey a **name** (the device or authenticator it lives on).
+  </Step>
+  <Step>
+    Complete the browser's prompt. **User verification is required** — a fingerprint, face, device PIN or security-key PIN, not just a touch.
+  </Step>
+</Steps>
+
+The list shows each passkey's name, when it was added, and where it lives — **Synced** (a multi-device credential backed up by its provider), **Multi-device**, or **This device only**. **Remove** re-authenticates; a passkey registered twice is refused (`passkey_exists`).
+
+To sign in with it: **Sign in with a passkey** on the sign-in screen — no email, no password, no code.
+
+## Link GitHub or Google
+
+**Security → Linked accounts.** Only providers the instance has configured appear. Linking is web-only (**Link from a browser** on native).
+
+<Steps>
+  <Step>
+    **Link** next to the provider. Your session must be younger than 15 minutes (otherwise *Sign in again to link an account*).
+  </Step>
+  <Step>
+    Authorize at the provider. You return to Security with **Account linked**.
+  </Step>
+</Steps>
+
+TurboPanel stores the provider identity only — no provider tokens. A provider identity already linked to a different user is refused (*That provider account is already linked to another user*). **Unlink** re-authenticates and is refused when it would leave no way in.
+
+<Callout type="warn" title="No linking by email address">
+  Signing in with a provider whose identity is linked to no account never joins an existing account just because the email matches. It creates a new account when sign-up is open, or fails with *New accounts cannot be created this way* when it is closed. Link from the signed-in Security screen instead.
+</Callout>
+
+## Passwords
+
+The same rule is enforced on every path that sets a password (install, sign-up, reset): at least **8** characters, at most 256, at least one **number**, at least one of `$ ! @ % & * # ^ ( ) _ + = -`, and no leading or trailing space. The sign-up form additionally checks the password against the Have I Been Pwned range API in the browser (k-anonymity — five hash characters leave the device) and refuses a known-breached one; see [Password safety](/docs/security/password-safety). There is no change-password screen in this release.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Session lifetime | 7 days (cookie, `HttpOnly`, `SameSite=Lax`) |
+| Re-authentication window | 15 minutes, or the current password in the form |
+| Two-factor challenge | 5 minutes; five wrong codes end it |
+| Authenticator | RFC 6238 TOTP, six digits |
+| Backup codes | 10, one-time, shown once; regenerate replaces all |
+| Passkeys | WebAuthn, user verification required, discoverable, ES256 / RS256; web only |
+| Email verification | 24-hour link; skipped when the instance sends no mail |
+| Password | 8–256 characters, a number, a special character, no edge whitespace |
+| Sessions revoked on | 2FA on/off, backup codes regenerated, passkey added/removed, provider linked/unlinked (all but the current); password reset (all) |
+
+## Errors
+
+Account routes answer with a short `error` string; the console shows the sentence in the table.
+
+| Error | Status | Meaning |
+| --- | --- | --- |
+| `Invalid credentials` | 401 | Wrong email or password — the same answer whether or not the account exists. |
+| `Verify your email before signing in…` | 403 | The sign-up link has not been opened yet. |
+| `Reauthentication required` | 403 | The change needs your password or a session under 15 minutes old. |
+| `two_factor_enabled` | 409 | Two-factor is already on; disable it before enrolling again. |
+| `Not enrolled`, `Invalid code` | 400 | Verify was called without a pending enrollment, or the code did not match. |
+| `Invalid or expired challenge` | 400 | The 5-minute sign-in challenge is over; sign in again. |
+| `Too many attempts` | 429 | Five wrong codes; sign in again. |
+| `passkey_exists` | 409 | That authenticator is already registered on the account. |
+| `Invalid credential` | 400 | The browser's WebAuthn response did not verify (wrong origin, counter went backwards, no user verification). |
+| `Not found` | 404 | The passkey is not on this account. |
+| `last_sign_in_method` | 409 | Unlinking would leave no password, passkey or other provider. |
+| `oauth_state_invalid` | redirect | *Sign-in expired. Try again.* — the 10-minute provider round trip took too long or was tampered with. |
+| `oauth_exchange_failed` | redirect | *Could not complete sign-in.* — the provider refused the code exchange. |
+| `oauth_signup_disabled` | redirect | *New accounts cannot be created this way.* — no linked account and sign-up is closed. |
+| `account_conflict` | redirect | The provider identity belongs to another user. |
+| `account_disabled` | redirect | The account is disabled. |
+| `oauth_reauth_required`, `oauth_unauthenticated` | redirect | Linking needs a recent sign-in, or the session ended during the round trip. |
+| `Not configured` | 503 | The instance has no root secret or that provider is not set up. |
+
+## Related
+
+- [Accounts and access](/docs/getting-started/accounts-and-access) — the operator's side: configuring GitHub and Google on the instance.
+- [Organizations, teams and access](/docs/using/access) — invitations and grants.
+- [Password safety](/docs/security/password-safety) — the breached-password check.
+- [Security](/docs/deployment/security) — sessions, secrets and the trust model.

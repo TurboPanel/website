@@ -1,0 +1,140 @@
+---
+title: Organizations, teams and access
+description: How organizations, teams, workspaces and grants fit together, the four permissions and what each unlocks, inviting a teammate with or without an account, assigning and revoking grants, and every refusal
+---
+
+# Organizations, teams and access
+
+Everything you run belongs to an **organization**; the people who may act on it are members of its **teams**; what each of them may do is a small set of **grants**. This chapter is the user's side of that model: creating and switching organizations, inviting teammates, and assigning the four permissions from **Access** (`/<org>/access`). The operator's instance-wide roles are in [Administering an instance](/docs/using/admin).
+
+## The model
+
+```
+organization ─┬─ teams ──── teammates (people)
+              ├─ workspaces ── projects ── environments ── services …
+              └─ servers, networks, TLS, repositories …
+```
+
+| Thing | What it is |
+| --- | --- |
+| **Organization** | The unit of ownership and billing. Servers, projects, networks, certificates and repositories all belong to exactly one. A person can belong to several and switches between them from the header menu (**View all organizations** → `/organizations`). |
+| **Team** | A group of people inside one organization. Membership is how a person becomes part of the organization at all — you are a member because a team has you. Every organization starts with a **Default Team**. |
+| **Workspace** | A folder for projects inside the organization, with its own name and default. Every organization starts with a **Default Workspace**. Workspaces filter the Projects list; they do not carry their own permissions. |
+| **Grant** | One row saying *subject S holds permission P on resource R*: the subject is a user, a team or an organization; the resource is the organization or a team. |
+
+### The four permissions
+
+| Permission | Console name | What it unlocks |
+| --- | --- | --- |
+| `organization:own` | Organization owner | Everything a manager can, plus the owner-only acts: server capacity, registration keys, TLS opt-ins and the Compose opt-ins under Manage Organization, invitations that carry explicit grants, and creating or revoking grants. |
+| `organization:manage` | Organization manager | Day-to-day work on anything in the organization — projects, environments, deploys, servers, networks, managed databases, variables — and inviting to any team. |
+| `team:own` | Team owner | Owner of one team: the same as team manager today, kept distinct so a team can have a responsible owner. |
+| `team:manage` | Team manager | Inviting to, and revoking invitations for, that one team. |
+
+How they combine:
+
+- **Owner implies manager.** A check for `organization:manage` passes with either grant; a check for `organization:own` needs the owner grant itself.
+- **Organization grants reach every team.** An organization owner or manager may act on any team in the organization; a team grant reaches only its team.
+- **Grants flow through membership.** A grant to a *team* applies to everyone in it; a grant to the *organization* as subject applies to everyone in any of its teams. Most organizations need nothing beyond the grant an invitation carries.
+- **Instance administrators bypass all of this.** A user whose instance role is `superadmin` or `admin` (see [Administering an instance](/docs/using/admin)) passes every organization check without a grant row.
+- **The last owner cannot be removed.** Revoking the only `organization:own` grant on an organization is refused.
+
+Visibility follows the same rules in the database, not in the console: a list shows what your grants reach, and nothing else.
+
+## Before you begin
+
+- To invite: manager rights on the team (a team owner or manager, or an organization owner or manager).
+- To attach explicit grants to an invitation, or to add and revoke grants: **organization owner**.
+- Outbound email configured on the instance — an invitation is an email, and without a mailer it is refused rather than created silently ([Control plane](/docs/deployment/control-plane)).
+
+## Create or switch an organization
+
+<Steps>
+  <Step>
+    Header organization menu → **New**, or `/organizations` → **New**. Name it. On a hosted instance the first organization from sign-up is called **My Organization**; on self-hosted, install creates **Root Organization**.
+  </Step>
+  <Step>
+    You become its **owner** (`organization:own`) and the owner of its **Default Team**, with a **Default Workspace** ready for projects.
+  </Step>
+  <Step>
+    Switch with the header menu (searchable once you belong to more than one); **Manage** next to an organization opens **Manage Organization** — the record's name, and the owner-only opt-ins.
+  </Step>
+</Steps>
+
+Renaming is **Manage Organization → Organization** (managers may save). Names follow the display-name rule: no control characters, bounded length. Organizations are not deleted from the console in this release.
+
+## Invite a teammate
+
+**Access → Invite a teammate.**
+
+<Steps>
+  <Step>
+    Pick the **Team** and enter the **Email** → **Send invitation**. One pending invitation exists per team and address; a second is refused (`invitation_pending`) until the first is accepted, revoked, or expires.
+  </Step>
+  <Step>
+    The invitee receives a link good for **7 days**. **Pending invitations** lists every unexpired one across the organization's teams with who sent it and when it expires; **Revoke invitation** ends it before it is used.
+  </Step>
+  <Step>
+    The invitee opens the link at `/accept-invitation`. Signed in with the invited address, they land in the organization at once. Not signed in, the screen offers **Sign in** and **Sign up**; sign-up carries the invitation, so it works **even while public sign-up is disabled**, as long as the email matches. Email verification runs as for any sign-up; then they return to the accept screen and join.
+  </Step>
+</Steps>
+
+The accepted invitation creates the team membership and, by default, an **organization manager** grant to the new member. An organization **owner** may instead specify the grants an invitation carries (the API's `grants` field: any grantable permission on an entity inside the organization, checked at accept time); anyone else who tries is refused (`grants_require_owner`).
+
+<Callout type="warn" title="The address must match">
+  An invitation is accepted only by an account whose email equals the invited address (case-insensitively). Forwarding the link to another address does not work; revoke and re-invite instead.
+</Callout>
+
+## Assign a permission
+
+**Access → Access grants.** Owner-only; others see *You don't have permission to manage access on this scope.*
+
+<Steps>
+  <Step>
+    Choose the **Grant target**: the **Organization**, or one **Team**. The table shows the **Active allow grants** on that target: subject kind, subject, permission.
+  </Step>
+  <Step>
+    **Add grant**: **Subject kind** (`user`, `team` or `organization`), **Subject ID**, and the **Permission** — `organization:own` / `organization:manage` on an organization target, `team:own` / `team:manage` on a team target. **Create grant.**
+  </Step>
+  <Step>
+    **Revoke grant** on a row removes it (confirmation: *Revoke this access grant?*). Revoking the last owner grant on an organization is refused.
+  </Step>
+</Steps>
+
+Subject IDs are the account, team or organization ids. The console does not yet list members with their ids — the teams are in the **Team** picker, and a user's id comes from the API (`GET /api/client/v1/authn/session` shows your own). Grants are allow-only — there is no deny row, and team membership is not removed from the console in this release; take access away by revoking the grant.
+
+## Reference
+
+| Item | Value |
+| --- | --- |
+| Permissions on grants | `organization:own` · `organization:manage` · `team:own` · `team:manage` |
+| Grant targets | `organization`, `team` (the API also accepts the resource tree — workspace, project, environment, service, server, hosting, variable, managed, container, tls) |
+| Subjects | `user` · `team` · `organization` |
+| Invitation lifetime | 7 days; one pending per team + address |
+| Default invitation grant | `organization:manage` on the organization |
+| Defaults on creation | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own` |
+| Instance roles | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering an instance](/docs/using/admin) |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invitation_pending` | 409 | That address already has a live invitation to that team. |
+| `email_unavailable` | 503 | The instance cannot send mail, so the invitation was not created. |
+| `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
+| `Invalid invitation grants` | 400 | A grant in the invitation names a permission or target that does not fit (for example a team permission on the organization). |
+| `Forbidden` | 403 (accept) | The signed-in account's email is not the invited address. |
+| `gone` | 410 (accept) | The invitation expired, was revoked or was already used — or its team or organization no longer exists. |
+| `invalid_grant` | 400 (accept) | The invitation's stored grants no longer fit the organization. |
+| `Not found` | 404 | No pending invitation, or no grant, with that id. |
+| `Entity not found` | 404 | The grant target is not in this organization. |
+| `… may only be granted on organization entities` / `… on team entities` | 400 | The permission does not fit the target kind. |
+| `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. |
+| `You don't have permission to manage access on this scope.` | 403 | Grant management needs `organization:own` on the target. |
+
+## Related
+
+- [Account security](/docs/using/account-security) — the account that holds these memberships.
+- [Projects and environments](/docs/using/projects) — workspaces and what a manager does with them.
+- [Administering an instance](/docs/using/admin) — instance roles and sign-up policy.
+- [Accounts and access](/docs/getting-started/accounts-and-access) — the invitation sequence diagram and provider configuration.
