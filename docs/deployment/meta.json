@@ -14,6 +14,7 @@
     "network-addressing",
     "hostnames-and-tls",
     "tiers",
+    "tier-catalogue",
     "security",
     "troubleshooting"
   ]

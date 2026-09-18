@@ -1,0 +1,92 @@
+---
+title: First-run tier catalogue
+description: The one-time procedure that gives a fresh TurboPanel High Availability instance its S1–S7 catalogue — which Stripe products to create, what the verifier checks, and what an empty instance looks like
+---
+
+# First-run tier catalogue
+
+A fresh **TurboPanel High Availability** instance has a billing surface and no catalogue. The
+ladder (S1–S7, SX) is fixed in code; what a superadmin enters is only *which Stripe product each
+priced label sells through*. Nothing seeds this and nothing writes it automatically — by design,
+so a wrong price can never appear because a script ran. This page is that procedure, once per
+instance.
+
+Self-hosted instances skip all of it: every server they license is SX, free — see
+[License tiers](/docs/deployment/tiers).
+
+## Before you start
+
+| You need | Where |
+| --- | --- |
+| A superadmin session | See [live admin bootstrap](/docs/deployment/control-plane) — on a wiped hosted database there is no signup and no admin until one is bootstrapped |
+| `TURBOPANEL_STRIPE_SECRET_KEY` and `TURBOPANEL_STRIPE_WEBHOOK_SIGNING_SECRET` on the environment | Cloudflare deploy settings for that env |
+| A Stripe Tax default *or* `tax_behavior` set on every price | Stripe Dashboard → Settings → Tax. The verifier refuses a price whose tax behaviour resolves to nothing |
+
+## What an empty instance looks like
+
+Before anyone has entered anything: **Admin → Tiers** lists no rows; `GET /api/admin/v1/tiers`
+returns an empty list; an organization trying to buy a license sees no purchasable tier; a server
+that enrols is refused at enrol with `License tier not assigned` (an organization that has bought
+nothing). None of that is an error — it is the catalogue waiting to be typed in.
+
+## Step 1 — create seven products in Stripe
+
+One product per priced label, S1 through S7. **SX has no product**: it is negotiated per customer
+and never sold through Checkout. For each product:
+
+| Setting | Value | Why |
+| --- | --- | --- |
+| Active | yes | archived products are refused |
+| Default price | one recurring price, **monthly**, interval count 1, billing scheme `per_unit`, currency **usd** | the verifier checks every one of these |
+| Unit amount | the ladder's list price for that label (table below), in cents | a product whose default price disagrees with the ladder is refused for that label |
+| Metadata `turbopanel_tier` | the label, e.g. `S3` | the verifier reads it to confirm the product is the one you meant |
+| Tax behaviour | set on the price, or covered by the account default | see *Before you start* |
+
+| Label | Cores ≤ | RAM ≤ | List price / month |
+| --- | --- | --- | --- |
+| S1 | 4 | 16 GiB | $5.00 |
+| S2 | 10 | 32 GiB | $7.50 |
+| S3 | 16 | 64 GiB | $10.00 |
+| S4 | 32 | 128 GiB | $15.00 |
+| S5 | 64 | 256 GiB | $20.00 |
+| S6 | 128 | 512 GiB | $35.00 |
+| S7 | 256 | 1 TiB | $50.00 |
+
+The prices are the ladder's — `src/lib/tiers/ladder.ts` in the control plane — and the verifier
+holds Stripe to them. Changing a price is a code change first, then a Stripe change, never the
+other way round.
+
+## Step 2 — bind each product to its label
+
+In **Admin → Tiers**, add a row per label and pick the product from the dropdown (it is
+`GET /api/admin/v1/tiers/products` — every active Stripe product with its default price, each
+already annotated with any verification failures). Binding runs the full verification for that
+label and refuses with the reasons if anything is off; a product can back exactly one label.
+
+What the verifier refuses, in the words it uses:
+
+- `product is archived (active=false)` · `product has no default price; set one in the Dashboard`
+- `default price is archived` · `default price type … ≠ recurring` · `recurring.interval … ≠ month` · `recurring.interval_count … ≠ 1` · `billing_scheme … ≠ per_unit` · `currency … ≠ usd` · `default price has no unit_amount`
+- `no tax behaviour resolves for this price …`
+- `turbopanel_tier metadata … ≠ <label>` and a unit amount that is not the label's list price
+
+## Step 3 — verify, then check the org side
+
+Press **Verify all** (`POST /api/admin/v1/tiers/verify`): it re-verifies every priced row against
+Stripe and refreshes the cached price. Then, as an ordinary organization owner, open the billing
+page — all seven tiers should be purchasable at the ladder prices — and buy one S1 license in
+Stripe **test mode** before the instance takes real money. A server whose cores and RAM fit S1 then
+enrols and connects; that is the whole path exercised.
+
+## Later changes
+
+- **A price changes:** edit `ladder.ts`, ship it, then change the Stripe default price; **Verify
+  all** confirms the two agree again.
+- **A product must be replaced:** deactivate the row (`POST /api/admin/v1/tiers/{id}/deactivate`),
+  bind the new product. Existing subscriptions keep their Stripe price until the next change.
+- **SX:** negotiated per customer; there is nothing to enter here.
+
+## Related
+
+- [License tiers](/docs/deployment/tiers) — the ladder and the placement rules
+- [Control plane](/docs/deployment/control-plane) — hosted deploy and the first admin

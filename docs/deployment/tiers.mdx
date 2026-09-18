@@ -28,6 +28,9 @@ On **TurboPanel High Availability**, every connected server sits on one tier, **
 | S7 | ≤ 256 | ≤ 1 TiB | 11 | 20 | 8 | 18 |
 | SX | more | more | 11 | 24 | 8 | 18 |
 
+The catalogue that sells these labels is typed in once per hosted instance — see
+[First-run tier catalogue](/docs/deployment/tier-catalogue).
+
 The first two columns are the **hard floor**. The rest are **watched-device counts** — the slot entitlements the ladder grants each label, mapped onto the server's metrics capability plan. The ladder is fixed in the control plane's code; what a superadmin sets is only which billing product each label sells through, and the price lives with the product.
 
 Two details on the watched counts: the NIC column is bounded by the daemon's own ceiling of **11** monitored NICs per server, which S7 and SX watch in full, and the first two monitored NICs ride inside the host sample rather than as separate rows. The extra-filesystem count is for mounts beyond `/` — root capacity is always reported.
