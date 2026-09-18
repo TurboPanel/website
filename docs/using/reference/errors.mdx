@@ -251,6 +251,7 @@ See [Notifications](/docs/using/notifications).
 | --- | --- | --- |
 | `address_rejected` | 422 | The channel URL failed the outbound gate; `reason` names the rule. |
 | `address_invalid`, `address_required` | 400 | Not a valid address for the channel's kind. |
+| `address_not_a_member` | 422 | An email channel may only name your own address or a member's account email. |
 | `label_required`, `label_invalid` | 400 | The channel name is missing, too long, or unprintable. |
 | `signing_secret_not_applicable`, `signing_secret_invalid` | 400 | Only a webhook signs; 1–256 characters. |
 | `rule_event_unknown`, `rule_severity_invalid`, `rules_invalid` | 400 | The rule list names an unknown event or is malformed. |

@@ -18,7 +18,7 @@ When something happens that a person should know about — a server goes offline
 | Term | Meaning |
 | --- | --- |
 | **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the instance as a whole. |
-| **Inbox** | Your own rows behind the bell. An organization event lands in the inbox of every member of that organization; an instance event in every instance administrator's. No setup needed. |
+| **Inbox** | Your own rows behind the bell. A server event lands in the inbox of every member of that organization; the events that mirror the audit trail — deletes, key revokes, grant changes — reach only its owners and managers; an instance event reaches every instance administrator. No setup needed. |
 | **Channel** | Somewhere outside the console a notification can be delivered. **Yours** (they follow your account across organizations) or the **organization's** (managers edit them). Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
 | **Rule** | What a channel receives: **every event** at or above a severity floor, or a chosen list of events. A channel with no rule receives nothing. |
 | **Delivery** | One attempt ledger per event × channel: written before the send, retried on failure with backoff, abandoned after five attempts. |
@@ -31,14 +31,14 @@ Three facts:
 
 ## The events
 
-| Code | Severity | Scope | When |
-| --- | --- | --- | --- |
-| `server.offline` | critical | organization | The daemon stopped answering and the server was marked offline. |
-| `fleet.mass_disconnect` | critical | instance | A whole sweep lost its fleet at once — usually the control plane's own network or broker. |
-| `server.deleted` | info | organization | A server was deleted from the console. |
-| `server.daemon_key_revoked` | warning | organization | A server's daemon key was revoked. |
-| `access.grant_created` | info | organization | A permission grant was added. |
-| `access.grant_revoked` | warning | organization | A permission grant was removed. |
+| Code | Severity | Scope | Inbox | When |
+| --- | --- | --- | --- | --- |
+| `server.offline` | critical | organization | every member | The daemon stopped answering and the server was marked offline. |
+| `fleet.mass_disconnect` | critical | instance | administrators | A whole sweep lost its fleet at once — usually the control plane's own network or broker. |
+| `server.deleted` | info | organization | owners and managers | A server was deleted from the console. |
+| `server.daemon_key_revoked` | warning | organization | owners and managers | A server's daemon key was revoked. |
+| `access.grant_created` | info | organization | owners and managers | A permission grant was added. |
+| `access.grant_revoked` | warning | organization | owners and managers | A permission grant was removed. |
 
 ## The bell
 
@@ -53,7 +53,7 @@ The bell in the header (the avatar badge on the phone apps) shows your unread co
     Pick the **kind** — Email, Webhook, Slack, Discord or Telegram — and give the channel a **Name**.
   </Step>
   <Step>
-    Enter the **address**: an email address; an `https` URL that accepts a JSON POST; a Slack or Discord incoming-webhook URL; or, for Telegram, your bot token, a slash, then the chat id (`123456:ABC…/987654321`). For a webhook you may add a **signing secret**.
+    Enter the **address**: an email address — your own for a personal channel, a member's account email for an organization one (other addresses wait for a verification flow that does not exist yet); an `https` URL that accepts a JSON POST; a Slack or Discord incoming-webhook URL; or, for Telegram, your bot token, a slash, then the chat id (`123456:ABC…/987654321`). For a webhook you may add a **signing secret**.
   </Step>
   <Step>
     Choose the **rules**: **Every event** at a floor (*Everything*, *Warnings and up*, *Critical only*), or switch to **Chosen events** and tick them. **Add channel.**
@@ -76,7 +76,7 @@ Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw 
 
 ## Delivery and retries
 
-One attempt is made at the moment of the event, with a five-second budget per channel. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_not_public`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
+One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_not_public`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
 
 ## Reference
 
@@ -85,7 +85,7 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | Kinds | `email` · `webhook` · `slack` · `discord` · `telegram` (`push` is registered by the store apps, never typed) |
 | Severities | `info` < `warning` < `critical` |
 | Rule | `*` at a floor, or one row per event |
-| Inbox fan-out | every organization member (organization event); every instance admin (instance event) |
+| Inbox fan-out | server events: every organization member; audit-mirroring events: owners and managers; instance events: every instance admin |
 | Channel reach | organization channels, its members' own channels, and every instance channel |
 | Address rule | `https`, no credentials, no reserved names, public host — LAN allowed on self-hosted |
 | Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
@@ -98,6 +98,7 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | --- | --- | --- |
 | `address_rejected` | 422 | The URL failed the outbound gate; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `reserved_host`, `address_not_public`). |
 | `address_invalid`, `address_required` | 400 | Not an email address / not a token-slash-chat-id pair / empty. |
+| `address_not_a_member` | 422 | An email channel may only name your own address, or a member's account email for an organization channel. |
 | `label_required`, `label_invalid` | 400 | The name is missing, too long, or has control characters. |
 | `signing_secret_not_applicable` | 400 | Only a webhook channel signs its deliveries. |
 | `signing_secret_invalid` | 400 | 1–256 characters. |
