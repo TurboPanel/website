@@ -21,6 +21,8 @@ Use a manual `run.sh` refresh when:
   provisioned with the [dev](https://github.com/TurboPanel/dev)
   console, update it from the console (**Sync Dev Build** / **Upgrade System**)
   instead — that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
+  Those two actions exist only on that console; a managed self-hosted control plane
+  upgrades by re-running the installer (see [Upgrade and rollback](/docs/deployment/upgrade)).
 </Callout>
 
 <Callout type="info" title="UI vs cell panel">

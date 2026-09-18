@@ -305,11 +305,12 @@ graph TD
 # Optional outer nginx terminates public TLS and proxies to Caddy:
 # lets_encrypt binds :443 and omits --instance-ca / --insecure-tls.
 
-# Remote managed server — official installer
-curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopanel-cdn/trunk/install.sh \
-  | sudo bash -s -- \
-      --instance-url https://turbopanel.example.com:8443 \
-      --instance-ca /etc/turbopanel/instance-ca.pem
+# Remote managed server — the one installer, pointed at your control plane.
+# The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;
+# pass TURBOPANEL_INSTANCE_CA=<path> to supply it yourself instead.
+curl -fsSL turbopanel.sh \
+  | TURBOPANEL_LICENSE=<license> \
+    TURBOPANEL_HOST=https://turbopanel.example.com:8443 sh
 ```
 
   </Tab>

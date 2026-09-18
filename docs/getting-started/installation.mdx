@@ -70,9 +70,17 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     Provision a 64-bit Linux host (Debian 12+ recommended).
   </Step>
   <Step>
-    Install the control plane with the planned managed production path — see
-    [Control plane](/docs/deployment/control-plane) (private alpha preview; converges via daemon Ansible
-    roles when publicly available).
+    Install the control plane:
+
+    ```bash
+    curl -fsSL turbopanel.sh | sh
+    ```
+
+    Run with nothing else, the installer downloads the current release packages (instance, UI and the
+    daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
+    the host with the daemon's Ansible roles (Postgres, Redis, RabbitMQ, Docker, certificates, Caddy),
+    applies the database migrations and starts the units — see [Control plane](/docs/deployment/control-plane)
+    for the flags. It takes no license and enrols no daemon; the wizard issues the first license.
   </Step>
   <Step>
     Complete the install wizard at `https://<host>:8443` (host PAM + superadmin).

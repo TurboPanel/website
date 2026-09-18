@@ -20,7 +20,7 @@ The TurboPanel **instance** is the control plane API. It runs as **Deno** on sel
 - Centralized API for organizations, servers, auth, and daemon orchestration
 - Web UI (Expo web) for operators
 - WebSocket hub for remote daemons (`/ws/daemon/v1`)
-- OpenAPI + Scalar at `/api/openapi.json` and `/api/reference`
+- OpenAPI + Scalar per surface: `/api/client/v1/openapi.json` + `/api/client/v1/reference` (client API), `/api/admin/v1/openapi.json` + `/api/admin/v1/reference` (superadmin)
 
 ### Relationship to daemon
 
@@ -218,7 +218,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 | `/api/developer/v1/*` | Developer console (dev tooling) |
 | `/api/daemon/v1/*` | Daemon REST (`version`, `instance/ca`) |
 | `/ws/daemon/v1` | Daemon WebSocket |
-| `/api/openapi.json` | OpenAPI 3.1 spec |
+| `/api/client/v1/openapi.json` · `/api/admin/v1/openapi.json` | OpenAPI 3.1 specs (Scalar at `…/reference`) |
 | `/` | Web UI (via Caddy) |
 
 **HTTPS entrypoint (self-hosted):** **`https://<host>:8443`** by default. `lets_encrypt` serves **`https://<hostname>/`** on `:443`.
