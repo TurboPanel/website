@@ -20,7 +20,7 @@ An account has an email address and up to four **ways in**:
 
 Three rules run through everything below:
 
-1. **Changing how you sign in needs a fresh proof.** Enrolling or disabling two-factor, regenerating backup codes, adding or removing a passkey, and unlinking a provider all require **re-authentication**: your current password in the form, or a session younger than **15 minutes**. Otherwise the request is refused (403) and the console asks for the password.
+1. **Changing how you sign in needs a fresh proof.** Enrolling or disabling two-factor, regenerating backup codes, adding or removing a passkey, and unlinking a provider all require **re-authentication**. An account that has a password must type it into the **Current password** field every time — a fresh session does not substitute. An account with no password (it signs in only with a passkey or a linked provider) is let through on a session younger than **15 minutes**. Otherwise the request is refused (403) and the console asks for the password. *Linking* a provider is the one exception: it is a redirect and cannot carry a password, so it always uses the 15-minute window.
 2. **Securing the account signs everyone else out.** Each of those changes revokes every other session on the account and keeps only the one that made the change. A password reset revokes *all* sessions, including the one at the keyboard.
 3. **You cannot remove your last way in.** Unlinking the only provider on an account that has no password and no passkey is refused (`last_sign_in_method`). Keep at least two ways in before removing one.
 
@@ -110,7 +110,7 @@ The same rule is enforced on every path that sets a password (install, sign-up, 
 | Item | Value |
 | --- | --- |
 | Session lifetime | 7 days (cookie, `HttpOnly`, `SameSite=Lax`) |
-| Re-authentication window | 15 minutes, or the current password in the form |
+| Re-authentication | password accounts: the current password, always; password-less accounts and provider linking: a session younger than 15 minutes |
 | Two-factor challenge | 5 minutes; five wrong codes end it |
 | Authenticator | RFC 6238 TOTP, six digits |
 | Backup codes | 10, one-time, shown once; regenerate replaces all |
@@ -127,7 +127,7 @@ Account routes answer with a short `error` string; the console shows the sentenc
 | --- | --- | --- |
 | `Invalid credentials` | 401 | Wrong email or password — the same answer whether or not the account exists. |
 | `Verify your email before signing in…` | 403 | The sign-up link has not been opened yet. |
-| `Reauthentication required` | 403 | The change needs your password or a session under 15 minutes old. |
+| `Reauthentication required` | 403 | Type your current password (a password-less account: sign in again — the 15-minute window has passed). |
 | `two_factor_enabled` | 409 | Two-factor is already on; disable it before enrolling again. |
 | `Not enrolled`, `Invalid code` | 400 | Verify was called without a pending enrollment, or the code did not match. |
 | `Invalid or expired challenge` | 400 | The 5-minute sign-in challenge is over; sign in again. |
