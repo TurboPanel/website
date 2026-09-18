@@ -1,4 +1,10 @@
 {
   "title": "Security",
-  "pages": ["password-safety", "reporting", "daemon-trust-model", "organization-ca"]
+  "pages": [
+    "password-safety",
+    "reporting",
+    "trust-boundaries",
+    "daemon-trust-model",
+    "organization-ca"
+  ]
 }

@@ -1,0 +1,72 @@
+---
+title: Trust boundaries
+description: What each part of TurboPanel can reach if it is compromised — the model used to triage security findings
+---
+
+# Trust boundaries
+
+Every security decision in TurboPanel answers one question: **if this is
+compromised, what does the attacker reach?** This page is that model, written
+down in one place, because several past gaps — a tenant container scheduled
+onto the control-plane host, an ingress proxy holding the Docker socket, an
+OAuth link that needed no step-up — were each reasoned about locally and only
+became visible when someone asked the cross-cutting question.
+
+Use it to triage: find the compromised thing in the table, read what it
+reaches, and decide whether the finding widens that reach or stays inside it.
+
+## The boundaries
+
+| If this is compromised | It reaches | It does not reach |
+| --- | --- | --- |
+| **A tenant workload container** | Its own filesystem and network namespace; the compose network it declares; whatever its service was given (variables, mounted storage, a principal's files) | Other tenants' containers (separate networks unless both opt in), the Docker Engine (no socket is mounted into tenant containers), the control-plane database, the root secret |
+| **A tenant's account** | Everything that organization owns, bounded by its grants | Other organizations. Cross-organization reads are refused at the query, not at the UI — see the organization-scoped reads throughout the client API |
+| **An ingress proxy (Traefik)** | The ingress network and the traffic it proxies; the Docker socket proxy's two read endpoints (`CONTAINERS`, `EVENTS`) | The Docker Engine's write API. One proxy per host holds the only socket mount and refuses everything else, including `POST /containers/create` |
+| **A daemon host** | Everything on that host: its containers, its volumes, the tenants placed on it, its own daemon key and license | Other hosts. A daemon speaks only to the control plane, never to another daemon; its key authorizes commands for itself alone and can be revoked from the console |
+| **A daemon's key material** | That one server, until the key is revoked | Anything else. Revocation is sticky: re-enrolment with the same key is refused, so a compromised host cannot re-enrol its way back |
+| **The control-plane host (self-hosted)** | Everything. The database socket, the root secret, every license and every organization's data | — This is the boundary that has no inside. It is why tenant workloads on that host are a deliberate choice rather than a default, and why the root secret's escrow copy is the thing to protect off-host |
+| **The root secret (`TURBOPANEL_SECRETS`)** | Every session, every daemon JWT, and every at-rest envelope — secrets, TLS private keys, principal passwords, 2FA secrets, OAuth client secrets | Nothing beyond the instance, but within it there is no second factor. Losing it is unrecoverable; leaking it is total |
+| **An operator's browser session** | What that operator's grants allow | Changing how the account signs in. Adding a passkey, enrolling or disabling 2FA, and linking a provider all require a recent authentication, and each of those changes revokes every other session |
+
+## What follows from this
+
+Three rules fall out of the table, and most findings resolve against one of
+them:
+
+1. **The control-plane host is the crown jewels.** Anything that puts
+   arbitrary code there — a tenant container, an unscoped socket, an installer
+   that runs untrusted input — is a total compromise, not a partial one. A
+   single-server install runs tenant workloads there by the operator's
+   explicit choice; the trade is stated rather than hidden.
+2. **A compromise should not outlive its detection.** Revocation is sticky,
+   changing a sign-in method drops other sessions, and every security-relevant
+   operator action is recorded in an append-only audit trail an organization's
+   owners can read.
+3. **Reach is bounded by what was mounted, not by what was intended.** `:ro`
+   on a Docker socket bounds writes to the file, not the API behind it; a
+   read-only database credential bounds writes, not reads. When triaging, ask
+   what the process can *call*, not what it was meant to call.
+
+## Where this model is enforced
+
+- Tenant isolation and the compose passthrough policy — [Compose contract](/docs/architecture/compose-contract)
+- Daemon identity, command scope and revocation — [Daemon trust model](/docs/security/daemon-trust-model)
+- Certificate chains and rotation — [Organization CA](/docs/security/organization-ca)
+- Host-level posture, backups and the audit trail — [Deployment security](/docs/deployment/security)
+
+## What this model does not yet cover
+
+Stated so it is not mistaken for completeness:
+
+- **No fault-injection testing.** Failure paths are exercised with stubs, not
+  by killing a live dependency mid-run, so recovery is argued rather than
+  demonstrated.
+- **The hosted origin.** What backs the hosted database, and who operates it,
+  is outside this repository — see [Deployment security](/docs/deployment/security).
+- **No per-certificate revocation.** There is no CRL or OCSP; rotation is the
+  answer, and the [Organization CA](/docs/security/organization-ca) page says
+  what each rotation costs.
+
+## Related
+
+- [Report a vulnerability](/docs/security/reporting)
