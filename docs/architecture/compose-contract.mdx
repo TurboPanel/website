@@ -38,7 +38,7 @@ It also means TurboPanel is **not** allowed to quietly ignore a field. Every Com
 | `hosting[]` | Hostnames, path prefixes, TLS and bind scope the edge should answer on |
 | `source` | The Git repository, branch and build commands a release is built from |
 | `php` | PHP version, extensions and pool directives for a `site` |
-| `cron[]` | Scheduled jobs, rendered as systemd timers under the service's principal |
+| `cron[]` | Scheduled jobs, rendered as systemd timers under the service's principal. Tasks created in the console (`POST /tasks`) join these on the same host under one namespace: a task whose name folds to a job name the compose already declares is refused, and compose wins if the two ever collide at deploy |
 
 `hosting[]` is worth calling out because it is the one most often mistaken for something Compose has. It is **not** a `ports:` replacement. `ports:` publishes a host port; `hosting` declares a *name the edge routes by*, along with the certificate and the address family it should be answered on. Compose has no expression for that, which is precisely why it is here.
 
