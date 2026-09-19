@@ -6,9 +6,11 @@ description: Upgrade the self-hosted control plane and the daemon fleet; pin a h
 # Upgrade and rollback
 
 Every release is a GitHub Release with its packages as assets. The installer and the daemon
-both follow a **channel** — `release` (the latest promoted release) or `rc` (the current
-release candidate) — and resolve that channel's `manifest.json` straight from GitHub. There
-is no self-update inside the control plane: upgrading it means running the installer again.
+both follow a **channel** — `release` (the latest promoted release), `rc` (the current
+release candidate) or `canary` (the newest green build of `trunk`, for a
+[canary environment](/docs/development/canary)) — and resolve that channel's `manifest.json`
+straight from GitHub. There is no self-update inside the control plane: upgrading it means
+running the installer again.
 
 ## Control plane (self-hosted)
 

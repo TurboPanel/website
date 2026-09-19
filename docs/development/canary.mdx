@@ -1,0 +1,184 @@
+---
+title: Canary environment
+description: Stand up a self-hosted TurboPanel that follows the trunk integration branch, and how the canary builds are produced
+---
+
+# Canary environment
+
+A **canary** is a self-hosted TurboPanel that follows `trunk` — the integration branch every
+repository merges into — instead of a release. It runs the newest green build of the control
+plane, the web app and the daemon, and moves forward on every merge. It is how the team, and
+anyone who wants to see a change before it is cut into a release, runs trunk on a real host.
+
+This page is for contributors. Running TurboPanel for real is covered under
+[Self-hosted overview](/docs/deployment/self-hosted) and
+[Installation](/docs/getting-started/installation).
+
+## Channels and environments
+
+Every package a self-hosted install needs — the daemon (`turbopaneld`), the compiled control
+plane (`turbopanel`) and the web export (`ui`) — publishes to that repository's
+[GitHub Releases](https://github.com/TurboPanel) on three channels. The installer and the
+daemon follow a channel by name and resolve its `manifest.json` straight from GitHub; the
+manifest names each asset with its `sha256` and size, and every download is verified against it.
+
+| Channel | What it is | Where it resolves | Moves when |
+| --- | --- | --- | --- |
+| `canary` | The newest green build of `trunk` | `releases/download/canary/manifest.json` — one rolling pre-release tagged `canary` | Every merge to `trunk` that passes CI |
+| `rc` | A release candidate cut from a tag | `releases/download/rc/manifest.json` — a rolling pointer at the current `vX.Y.Z-rc.N` pre-release | A release candidate is cut |
+| `release` | The promoted release | `releases/latest/download/manifest.json` — GitHub's own *latest* pointer | A release candidate is promoted |
+
+TurboPanel High Availability (the hosted, Cloudflare Workers build of the same code) has the
+same three stages under different names — `testing.turbopanel.dev` tracks `trunk`,
+`staging.turbopanel.dev` the release candidate, and the live platform the release — but those
+deploys are operated by TurboPanel and are not something you stand up yourself.
+
+## Set up a canary host
+
+The canary is an ordinary self-hosted install on the `canary` channel. Nothing else differs:
+the same installer, the same wizard, the same daemon enrolment.
+
+### Prerequisites
+
+- A **Debian 12 or 13** host (the bootstrap refuses other distributions), root access, and a
+  public or LAN address you can reach on port `8443`. Four vCPUs and 6 GB of RAM are enough
+  for a single-host canary that deploys a few small projects.
+- `curl` — a minimal Debian image does not ship it:
+
+  ```bash
+  apt-get update && apt-get install -y curl
+  ```
+
+### Install
+
+Run the public installer with the channel set. Piped from `curl` with no license, it installs a
+control plane on this host (on a terminal it offers the daemon-enrolment path instead; piped, it
+proceeds):
+
+```bash
+curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+```
+
+The installer resolves the `canary` manifest of all three repositories, downloads each package,
+verifies it, converges the host (Postgres, Redis, RabbitMQ, Docker, certificates, systemd units,
+Caddy) and prints the wizard address:
+
+```text
+✓ Release manifest resolved (channel canary, arch linux-amd64)
+…
+✓ Packages unpacked (instance v0.1.1-canary.20260919-143000-a1b2c3d, UI v0.1.1-canary.20260919-142100-e4f5a6b)
+✓ TurboPanel instance provisioning complete
+```
+
+Open `https://<host>:8443/install`, complete the wizard, and `GET /api/health` reports the
+canary's version and the exact trunk commit it was built from:
+
+```json
+{ "ok": true, "version": "0.1.1", "revision": { "commit": "a1b2c3d…" } }
+```
+
+### Enrol servers on the same channel
+
+Servers you add to a canary control plane follow `canary` too: the install command the console
+issues for a new server carries the instance's own channel, so a daemon enrolled from it updates
+from the same rail. Enrolling the control-plane host itself as a server is supported — a
+single-host canary is a complete TurboPanel.
+
+To enrol a host by hand on the canary channel:
+
+```bash
+curl -fsSL turbopanel.sh | \
+  TURBOPANEL_LICENSE=<license from the wizard or the console> \
+  TURBOPANEL_UPDATE_CHANNEL=canary \
+  sh
+```
+
+## How a canary moves
+
+**Daemons** update themselves: each daemon checks the channel manifest, and when the manifest's
+commit differs from the build it is running it downloads, verifies and installs the new build,
+keeping one previous generation beside it (`turbopaneld.prev`). The console's **Update** button
+on a server page does the same on demand.
+
+**The control plane does not self-update.** To move a canary control plane to the newest trunk
+build, re-run the installer:
+
+```bash
+curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+```
+
+It fetches the current canary packages, re-converges the host, applies any new migrations with
+the instance binary's own `migrate` verb, and restarts the units — the same procedure as an
+[upgrade](/docs/deployment/upgrade). Do this as often as you want to see the newest merge; a
+canary that is not re-run simply stays on the build it installed.
+
+<Callout type="warn" title="Migrations only go forward">
+  A trunk build may ship a database migration. Once a canary's database has been migrated by a
+  newer build, an older build refuses to serve it. Treat a canary's data as disposable, or take
+  a Postgres backup before each re-run if you care about rolling back.
+</Callout>
+
+### Pin a canary to one build
+
+The rolling release keeps the newest **20** builds. Each keeps its own manifest as
+`manifest-<version>.json`, so a host can be pinned to one exact build instead of whatever the
+channel serves now — for a daemon, with the pin the installer already understands:
+
+```bash
+curl -fsSL turbopanel.sh | \
+  TURBOPANEL_LICENSE=<license> \
+  TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/canary/manifest-0.1.1-canary.20260919-143000-a1b2c3d.json \
+  sh
+```
+
+The pin is written to `daemon.env`, so a later console-driven update honours it; a plain channel
+install clears it. Builds older than the newest 20 are pruned, and a pinned host whose build was
+pruned falls back to the channel on its next install.
+
+## How the canary builds are produced
+
+Each repository publishes its own canary from the same workflow that builds its releases, so a
+canary package is the same shape as a release package — only its version and its home differ.
+
+| Repository | Trigger | Build | Publishes |
+| --- | --- | --- | --- |
+| [`turbopaneld`](https://github.com/TurboPanel/turbopaneld) | Every push to `trunk` (`publish-daemon-trunk.yml`, after `verify`) | Native `linux-amd64` and `linux-arm64` daemon, JS fallback, orchestration tree | The rolling `canary` release **and** the `trunk` CDN drop the hosted platform follows |
+| [`turbopanel`](https://github.com/TurboPanel/turbopanel) | A green **Build** on `trunk` (`canary.yml` → `release.yml` with `channel=canary`) | Native `linux-amd64` and `linux-arm64` instance packages | The rolling `canary` release |
+| [`ui`](https://github.com/TurboPanel/ui) | A green **Verify** on `trunk` (`canary.yml` → `release.yml` with `channel=canary`) | The web export | The rolling `canary` release |
+
+The publish step itself is one reusable workflow in
+[`TurboPanel/dev`](https://github.com/TurboPanel/dev/blob/trunk/.github/workflows/gh-canary.yml),
+`gh-canary.yml`, which:
+
+1. uploads the build's assets to the `canary` pre-release — every asset name carries the build's
+   version, so a new build never overwrites an older build's file — then uploads
+   `manifest-<version>.json` and finally the rolling `manifest.json`, last, so nothing a consumer
+   reads is missing;
+2. re-downloads every asset from its live URL and checks its `sha256` and size against the
+   manifest — a publish that fails here leaves the previous manifest in place;
+3. prunes the builds older than the newest 20;
+4. moves the `canary` tag to the built commit and refreshes the release notes.
+
+### Versions on the canary channel
+
+A canary build's version is the repository's declared number with a pre-release suffix that
+carries the build id:
+
+```text
+0.1.1-canary.20260919-143000-a1b2c3d
+      └──────┬──────┘ └──┬──┘ └──┬──┘
+        date        time   short commit
+```
+
+The number is bumped to the *next* patch immediately after each release is tagged, so a canary
+always sorts **below** the release it leads to (`0.1.1-canary.*` < `0.1.1`) and the tag ↔
+version gate in each release workflow is already satisfied when that release is cut. The
+version a canary reports on the wire — `/api/health`, the daemon hello — is the bare number
+(`0.1.1`); the suffix lives in the manifest, the asset names and the release notes, and daemons
+decide whether to update by the manifest's commit, not its version string.
+
+## Related
+
+- [Daemon update](/docs/deployment/daemon-update) — channels and refreshes from the daemon's side
+- [Upgrade and rollback](/docs/deployment/upgrade) — the release-channel procedure this page mirrors
+- [Compatibility](/docs/deployment/compatibility) — which control plane and daemon builds work together

@@ -77,9 +77,11 @@ Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`trunk`,
 Each channel has a built-in location: `release` follows the latest
 non-pre-release on the daemon's
 [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases), `rc`
-follows the rolling `rc` pre-release there, and `trunk` is the per-merge build
-drop. `canary` and `edge` are reserved with no built-in location.
-The example below stays on `trunk` (the default):
+follows the rolling `rc` pre-release there, `canary` follows the rolling
+`canary` pre-release — the newest green build of `trunk`, replaced on every
+merge (see [Canary environment](/docs/development/canary)) — and `trunk` is
+the per-merge build drop the hosted platform follows. `edge` is reserved with
+no built-in location. The example below stays on `trunk` (the default):
 
 ```bash
 curl -fsSL turbopanel.sh | \

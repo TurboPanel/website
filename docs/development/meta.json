@@ -1,4 +1,9 @@
 {
   "title": "Development",
-  "pages": ["prerequisites", "website-deploy", "[Local development](/docs/getting-started/development)"]
+  "pages": [
+    "prerequisites",
+    "canary",
+    "website-deploy",
+    "[Local development](/docs/getting-started/development)"
+  ]
 }

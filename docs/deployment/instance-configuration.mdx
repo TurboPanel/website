@@ -26,7 +26,7 @@ Three behaviours matter more than any single value:
 | -------- | ------- | --------- |
 | `TURBOPANEL_REDIS_SOCKET` | `/run/turbopanel/redis.sock` | Redis over a Unix socket: daemon cell (presence, outbox, request correlation), query cache, auth and daemon rate limiters. Opened lazily; not validated at boot. |
 | `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the mailer consumes it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
-| `TURBOPANEL_UPDATE_CHANNEL` | `trunk` | The channel this instance resolves **daemon** updates on (`trunk`, `rc`, `release`; `edge` / `canary` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
+| `TURBOPANEL_UPDATE_CHANNEL` | `trunk` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
 | `TURBOPANEL_INSTANCE_SERVICE` | unset | The systemd unit name (`turbopanel-instance`) so the developer surface can restart it; unset outside systemd. |
 
 ## Paths (FHS layout)
