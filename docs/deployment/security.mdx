@@ -256,6 +256,10 @@ A restore that has never been run is a backup you do not have.
 
 ### Firewall Rules
 
+<Callout type="info" title="Operator-owned today; managed in the first 0.1.x push">
+  Nothing TurboPanel installs opens a host firewall port today. On a host that ships with `ufw` active (default deny, `22/tcp` only), the control plane listens on **8443** but nothing reaches it — the fix is `ufw allow 8443/tcp` (or `80,443/tcp` in `lets_encrypt`) until the managed firewall lands. Decided 2026-09-19: TurboPanel will own the host firewall on every daemon'd server — inbound rules derived from what the panel deployed (the control-plane entrypoint, hosting, ProxySQL, WireGuard, sshd, compose `ports:`), organization defaults and per-server rules on top, `ufw` removed after TurboPanel's rules are confirmed live, outbound left open. Until then the recommendations below are yours to apply.
+</Callout>
+
 Recommended:
 
 - Allow inbound to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`) only from trusted networks

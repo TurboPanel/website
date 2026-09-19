@@ -19,7 +19,7 @@ A **server** is a Linux host running the TurboPanel daemon, enrolled into one or
 
 Two rules:
 
-- **TurboPanel observes host interfaces; it does not configure them.** Addresses, routes and firewalls are the host's. The console reads what the daemon reports and pins meaning onto it (datacenter membership, addresses for hosting).
+- **TurboPanel observes host interfaces; it does not configure them.** Addresses and routes are the host's. The console reads what the daemon reports and pins meaning onto it (datacenter membership, addresses for hosting). **The host firewall is yours too, for now:** nothing TurboPanel installs opens a port, so a host that ships with `ufw` or another firewall active keeps the panel (**8443**, or **443** in `lets_encrypt`) and every published service port closed until you allow them. A TurboPanel-managed firewall — derived from what the panel deploys, with organization defaults and per-server rules — is the first 0.1.x push after the tag; when it lands, the installer opens the control-plane port itself and removes `ufw`.
 - **A rebuilt host is a new server.** A key is consumed once; a host that is reinstalled from scratch enrolls with a fresh key and appears as a new server row.
 
 ## Before you begin
