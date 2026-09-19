@@ -26,7 +26,7 @@ When something happens that a person should know about — a server goes offline
 Three facts:
 
 - **A channel's address is a credential.** A webhook URL's path *is* the secret, and so is a bot token. They are stored sealed under the instance's data-encryption key and never shown again — the screen shows the origin, or the last few characters.
-- **Addresses pass the same gate as every outbound URL:** `https` only, no credentials in the URL, no reserved names, and a public host — except on a **self-hosted** instance, where a LAN receiver (an Alertmanager next to the control plane) is allowed. A hosted instance cannot reach a private address at all.
+- **Addresses must be `https` with no credentials in the URL.** That is the whole rule: a LAN receiver (an Alertmanager next to the control plane, a `10.x` address, a bare hostname) is allowed on every runtime. A hosted instance cannot reach a private address, so a delivery there simply fails and is recorded as such.
 - **Delivering never blocks the thing being reported.** A webhook that is down does not stop a deploy or a sweep; it leaves a failed delivery that the maintenance tick retries.
 
 ## The events
@@ -76,7 +76,7 @@ Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw 
 
 ## Delivery and retries
 
-One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_not_public`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
+One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
 
 ## Reference
 
@@ -87,7 +87,7 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | Rule | `*` at a floor, or one row per event |
 | Inbox fan-out | server events: every organization member; audit-mirroring events: owners and managers; instance events: every instance admin |
 | Channel reach | organization channels, its members' own channels, and every instance channel |
-| Address rule | `https`, no credentials, no reserved names, public host — LAN allowed on self-hosted |
+| Address rule | `https`, no credentials in the URL; any host, LAN included |
 | Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
 | Signature | `X-TurboPanel-Signature: sha256=<hex HMAC-SHA256 of the raw body>` |
 | Name | ≤ 80 characters; address ≤ 2048; signing secret ≤ 256 |
@@ -96,7 +96,7 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `address_rejected` | 422 | The URL failed the outbound gate; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `reserved_host`, `address_not_public`). |
+| `address_rejected` | 422 | The URL failed the outbound gate; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `malformed`). |
 | `address_invalid`, `address_required` | 400 | Not an email address / not a token-slash-chat-id pair / empty. |
 | `address_not_a_member` | 422 | An email channel may only name your own address, or a member's account email for an organization channel. |
 | `label_required`, `label_invalid` | 400 | The name is missing, too long, or has control characters. |
