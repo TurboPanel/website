@@ -137,7 +137,7 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     curl -fsSL turbopanel.sh | sh
     ```
 
-    Run with nothing else, the installer sets up a control plane on this host. On a terminal it first shows a short menu (install the control plane, enrol this host as a daemon instead, or quit); piped without a terminal it proceeds. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — pass `TURBOPANEL_LICENSE` and it enrols a daemon instead.
+    Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing panel, pass `TURBOPANEL_LICENSE` from that panel's server install command.
   </Step>
   <Step>
     Complete the install wizard at `https://<host>:8443` by default (host PAM + superadmin). The certificate is signed by the platform CA at `/var/lib/turbopanel/tls/ca.crt`. Use `https://<hostname>/` when `turbopanel_tls_mode=lets_encrypt`.
