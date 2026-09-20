@@ -6,6 +6,7 @@ import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
 import {
   getControlPlaneBaseUrl,
+  getControlPlaneServers,
   getScalarDaemonOpenApiUrl,
   getScalarOpenApiUrl,
 } from '@/lib/env'
@@ -26,11 +27,10 @@ function normalizeConfigUrl(value: unknown): string | null {
 
 /** Resolve OpenAPI + try-it servers from the static host map (no `/api/config`). */
 function resolveLocalApiDocsConfig(hostname: string, port: string) {
-  const controlPlaneUrl = getControlPlaneBaseUrl(hostname, port)
   return {
     openApiUrl: getScalarOpenApiUrl(hostname, port),
     daemonOpenApiUrl: getScalarDaemonOpenApiUrl(hostname, port),
-    servers: [{ url: controlPlaneUrl, description: 'API Server' }],
+    servers: getControlPlaneServers(hostname, port),
   }
 }
 

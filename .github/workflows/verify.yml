@@ -59,9 +59,6 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Check control-plane hosts
-        run: pnpm check:hosts
-
       - name: Check vocabulary
         run: pnpm check:vocabulary
 

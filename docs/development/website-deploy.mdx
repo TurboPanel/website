@@ -31,7 +31,6 @@ Co-located dev: `turbopanel-website.service` runs the same dev server; logs unde
 ```bash
 pnpm build
 pnpm check:docs-ssr
-pnpm check:hosts
 ```
 
 `pnpm build` uses `next build --webpack` for OpenNext compatibility.
@@ -42,7 +41,7 @@ pnpm check:hosts
 pnpm deploy    # or pnpm upload for asset-only upload flows
 ```
 
-Configuration: `open-next.config.ts`, `wrangler.jsonc`. Hostname allowlist is enforced by `pnpm check:hosts` against `src/lib/control-plane-hosts.ts`.
+Configuration: `open-next.config.ts`, `wrangler.jsonc`. Control-plane URLs and API-reference server labels derive from the request host through `src/lib/control-plane-hosts.ts`; there is no per-environment Wrangler variable to keep in sync.
 
 ## Docs content
 

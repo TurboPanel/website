@@ -1,11 +1,14 @@
 /**
  * Canonical marketing-host → TurboPanel High Availability control-plane mapping.
  *
- * Keep `wrangler.jsonc` `vars.API_HOSTNAMES` aligned with
- * {@link WRANGLER_API_HOSTNAMES} (validated by `scripts/check-control-plane-hosts.mjs`).
+ * This map is the single source of truth for every environment: the Worker
+ * routes (`/api/config`, `/api/reference`) and the client-side helpers in
+ * `src/lib/env.ts` derive the control-plane origin and the Scalar server
+ * entries from the request host. There is no per-environment Wrangler
+ * variable to keep in sync.
  */
 
-/** Website host → control-plane origin (client-side / when Wrangler vars are absent). */
+/** Website host → control-plane origin. */
 export const WEBSITE_HOST_TO_CONTROL_PLANE: Readonly<Record<string, string>> = {
   'turbopanel.io': 'https://turbopanel.app',
   'www.turbopanel.io': 'https://turbopanel.app',
@@ -13,13 +16,23 @@ export const WEBSITE_HOST_TO_CONTROL_PLANE: Readonly<Record<string, string>> = {
   'staging.turbopanel.io': 'https://staging.turbopanel.dev',
 }
 
+/** Scalar server label for the local Caddy control plane (`https://localhost:<CADDY_PORT>`). */
+export const LOCAL_DEV_CONTROL_PLANE_LABEL = 'Local Dev'
+
+/** Scalar server label when a control-plane origin has no dedicated label. */
+export const DEFAULT_CONTROL_PLANE_LABEL = 'API Server'
+
 /**
- * Expected Wrangler `API_HOSTNAMES` CSV per named environment.
- * Format: `hostname[,port],Label` pairs — first host is the primary control plane.
+ * Control-plane origin → Scalar server label.
+ * Keys are the origins in {@link WEBSITE_HOST_TO_CONTROL_PLANE}.
  */
-export const WRANGLER_API_HOSTNAMES: Readonly<Record<string, string>> = {
-  development: 'localhost:8443,Local Dev',
-  testing: 'testing.turbopanel.dev,Testing API',
-  staging: 'staging.turbopanel.dev,Staging API',
-  live: 'turbopanel.app,Production API',
+export const CONTROL_PLANE_SERVER_LABELS: Readonly<Record<string, string>> = {
+  'https://turbopanel.app': 'Production API',
+  'https://testing.turbopanel.dev': 'Testing API',
+  'https://staging.turbopanel.dev': 'Staging API',
+}
+
+/** Scalar label for a control-plane origin (falls back to {@link DEFAULT_CONTROL_PLANE_LABEL}). */
+export function controlPlaneServerLabel(origin: string): string {
+  return CONTROL_PLANE_SERVER_LABELS[origin] ?? DEFAULT_CONTROL_PLANE_LABEL
 }

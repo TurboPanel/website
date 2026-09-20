@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   getApiBaseUrl,
   getControlPlaneBaseUrl,
+  getControlPlaneServers,
   getDevCaddyPort,
   getDevWebsitePort,
   getScalarDaemonOpenApiUrl,
   getScalarOpenApiUrl,
   getSignInUrl,
   isLocalDevWebsiteHost,
-  parseApiHostnames,
 } from '@/lib/env'
 
 const envSnapshot = { ...process.env }
@@ -96,43 +96,74 @@ describe('getApiBaseUrl', () => {
 })
 
 describe('getControlPlaneBaseUrl', () => {
-  it('prefers Wrangler API_HOSTNAMES when provided', () => {
-    expect(
-      getControlPlaneBaseUrl(
-        'turbopanel.io',
-        '',
-        'staging.turbopanel.dev,Staging API',
-      ),
-    ).toBe('https://staging.turbopanel.dev')
-  })
-
-  it('falls back to the static host map when apiHostnames is empty', () => {
+  it('derives the control plane from the host map', () => {
     expect(getControlPlaneBaseUrl('staging.turbopanel.io')).toBe(
       'https://staging.turbopanel.dev',
     )
-    expect(getControlPlaneBaseUrl('turbopanel.io', '', '')).toBe('https://turbopanel.app')
-  })
-
-  it('ignores malformed API_HOSTNAMES CSV and uses the host map', () => {
-    expect(getControlPlaneBaseUrl('turbopanel.io', '', 'odd-token-count')).toBe(
-      'https://turbopanel.app',
-    )
-  })
-
-  it('ignores whitespace-only API_HOSTNAMES and uses the host map', () => {
-    expect(getControlPlaneBaseUrl('testing.turbopanel.io', '', '   ')).toBe(
+    expect(getControlPlaneBaseUrl('turbopanel.io')).toBe('https://turbopanel.app')
+    expect(getControlPlaneBaseUrl('testing.turbopanel.io')).toBe(
       'https://testing.turbopanel.dev',
     )
   })
 
-  it('trims Wrangler CSV and still prefers the first hostname pair', () => {
-    expect(
-      getControlPlaneBaseUrl(
-        'localhost',
-        '',
-        '  testing.turbopanel.dev, Testing API  ',
-      ),
-    ).toBe('https://testing.turbopanel.dev')
+  it('routes local website hosts to the local Caddy control plane', () => {
+    expect(getControlPlaneBaseUrl('localhost')).toBe('https://localhost:8443')
+    expect(getControlPlaneBaseUrl('turbopanel.app', '19820')).toBe(
+      'https://localhost:8443',
+    )
+  })
+
+  it('falls back to production for an unmapped host', () => {
+    expect(getControlPlaneBaseUrl('unknown.example')).toBe('https://turbopanel.app')
+  })
+})
+
+describe('getControlPlaneServers', () => {
+  it('labels each mapped control plane from the host map', () => {
+    expect(getControlPlaneServers('turbopanel.io')).toEqual([
+      { url: 'https://turbopanel.app', description: 'Production API' },
+    ])
+    expect(getControlPlaneServers('www.turbopanel.io')).toEqual([
+      { url: 'https://turbopanel.app', description: 'Production API' },
+    ])
+    expect(getControlPlaneServers('testing.turbopanel.io')).toEqual([
+      { url: 'https://testing.turbopanel.dev', description: 'Testing API' },
+    ])
+    expect(getControlPlaneServers('staging.turbopanel.io')).toEqual([
+      { url: 'https://staging.turbopanel.dev', description: 'Staging API' },
+    ])
+  })
+
+  it('labels the local Caddy control plane as Local Dev', () => {
+    expect(getControlPlaneServers('localhost')).toEqual([
+      { url: 'https://localhost:8443', description: 'Local Dev' },
+    ])
+    expect(getControlPlaneServers('127.0.0.1')).toEqual([
+      { url: 'https://localhost:8443', description: 'Local Dev' },
+    ])
+    expect(getControlPlaneServers('turbopanel.app', '19820')).toEqual([
+      { url: 'https://localhost:8443', description: 'Local Dev' },
+    ])
+  })
+
+  it('uses the configured Caddy port for the local entry', () => {
+    delete process.env.NEXT_PUBLIC_CADDY_PORT
+    process.env.CADDY_PORT = '9443'
+    expect(getControlPlaneServers('localhost')).toEqual([
+      { url: 'https://localhost:9443', description: 'Local Dev' },
+    ])
+  })
+
+  it('falls back to the production label for an unmapped host', () => {
+    expect(getControlPlaneServers('unknown.example')).toEqual([
+      { url: 'https://turbopanel.app', description: 'Production API' },
+    ])
+  })
+
+  it('matches mapped hosts case-insensitively and ignores an embedded port', () => {
+    expect(getControlPlaneServers('Staging.TurboPanel.IO:443')).toEqual([
+      { url: 'https://staging.turbopanel.dev', description: 'Staging API' },
+    ])
   })
 })
 
@@ -140,9 +171,9 @@ describe('getSignInUrl', () => {
   it('appends /sign-in to the resolved control-plane origin', () => {
     expect(getSignInUrl('turbopanel.io')).toBe('https://turbopanel.app/sign-in')
     expect(getSignInUrl('localhost')).toBe('https://localhost:8443/sign-in')
-    expect(
-      getSignInUrl('turbopanel.io', '', 'testing.turbopanel.dev,Testing API'),
-    ).toBe('https://testing.turbopanel.dev/sign-in')
+    expect(getSignInUrl('testing.turbopanel.io')).toBe(
+      'https://testing.turbopanel.dev/sign-in',
+    )
   })
 })
 
@@ -159,102 +190,5 @@ describe('getScalarDaemonOpenApiUrl', () => {
     expect(getScalarDaemonOpenApiUrl('turbopanel.io')).toBe(
       'https://turbopanel.app/api/daemon/v1/openapi.json',
     )
-  })
-})
-
-describe('parseApiHostnames', () => {
-  it('returns an empty array for blank or malformed CSV', () => {
-    expect(parseApiHostnames('')).toEqual([])
-    expect(parseApiHostnames('   ')).toEqual([])
-    expect(parseApiHostnames('only-one-token')).toEqual([])
-  })
-
-  it('builds Scalar server entries with https for remote hosts', () => {
-    expect(parseApiHostnames('turbopanel.app,Production API')).toEqual([
-      { url: 'https://turbopanel.app', description: 'Production API' },
-    ])
-  })
-
-  it('uses https for localhost when the port matches Caddy', () => {
-    expect(parseApiHostnames('localhost:8443,Local Dev')).toEqual([
-      { url: 'https://localhost:8443', description: 'Local Dev' },
-    ])
-  })
-
-  it('uses http for localhost when the port is not the Caddy port', () => {
-    expect(parseApiHostnames('localhost:8880,Plain HTTP')).toEqual([
-      { url: 'http://localhost:8880', description: 'Plain HTTP' },
-    ])
-  })
-
-  it('uses https for localhost without a port or on port 443', () => {
-    expect(parseApiHostnames('localhost,Local Dev')).toEqual([
-      { url: 'https://localhost', description: 'Local Dev' },
-    ])
-    expect(parseApiHostnames('localhost:443,TLS')).toEqual([
-      { url: 'https://localhost:443', description: 'TLS' },
-    ])
-  })
-
-  it('parses multiple hostname pairs and remote hosts stay on https', () => {
-    expect(
-      parseApiHostnames(
-        'localhost:8443,Local Dev,testing.turbopanel.dev,Testing API',
-      ),
-    ).toEqual([
-      { url: 'https://localhost:8443', description: 'Local Dev' },
-      { url: 'https://testing.turbopanel.dev', description: 'Testing API' },
-    ])
-  })
-
-  it('uses http for 127.0.0.1 when the port is not the Caddy port', () => {
-    expect(parseApiHostnames('127.0.0.1:8880,Plain HTTP')).toEqual([
-      { url: 'http://127.0.0.1:8880', description: 'Plain HTTP' },
-    ])
-  })
-
-  it('uses https for 127.0.0.1 without a port, on 443, or on the Caddy port', () => {
-    expect(parseApiHostnames('127.0.0.1,Loopback')).toEqual([
-      { url: 'https://127.0.0.1', description: 'Loopback' },
-    ])
-    expect(parseApiHostnames('127.0.0.1:443,TLS')).toEqual([
-      { url: 'https://127.0.0.1:443', description: 'TLS' },
-    ])
-    expect(parseApiHostnames('127.0.0.1:8443,Caddy')).toEqual([
-      { url: 'https://127.0.0.1:8443', description: 'Caddy' },
-    ])
-  })
-
-  it('matches localhost case-insensitively and treats an empty port as https', () => {
-    expect(parseApiHostnames('LOCALHOST:8443,Local Dev')).toEqual([
-      { url: 'https://LOCALHOST:8443', description: 'Local Dev' },
-    ])
-    expect(parseApiHostnames('localhost:,Local Dev')).toEqual([
-      { url: 'https://localhost:', description: 'Local Dev' },
-    ])
-  })
-
-  it('drops blank CSV tokens and still parses even pairs', () => {
-    expect(parseApiHostnames(' localhost:8443 , Local Dev , ')).toEqual([
-      { url: 'https://localhost:8443', description: 'Local Dev' },
-    ])
-  })
-
-  it('returns empty when blank tokens leave an odd count', () => {
-    expect(parseApiHostnames('a,b,c,')).toEqual([])
-  })
-
-  it('treats a custom Caddy port as https and the default 8443 as http', () => {
-    delete process.env.NEXT_PUBLIC_CADDY_PORT
-    process.env.CADDY_PORT = '9443'
-    expect(parseApiHostnames('localhost:9443,Custom Caddy')).toEqual([
-      { url: 'https://localhost:9443', description: 'Custom Caddy' },
-    ])
-    expect(parseApiHostnames('localhost:8443,Old Default')).toEqual([
-      { url: 'http://localhost:8443', description: 'Old Default' },
-    ])
-    expect(parseApiHostnames('127.0.0.1:9443,Custom Caddy')).toEqual([
-      { url: 'https://127.0.0.1:9443', description: 'Custom Caddy' },
-    ])
   })
 })
