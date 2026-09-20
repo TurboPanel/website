@@ -256,8 +256,8 @@ A restore that has never been run is a backup you do not have.
 
 ### Firewall Rules
 
-<Callout type="info" title="Operator-owned today; managed in the first 0.1.x push">
-  Nothing TurboPanel installs opens a host firewall port today. On a host that ships with `ufw` active (default deny, `22/tcp` only), the control plane listens on **8443** but nothing reaches it — the fix is `ufw allow 8443/tcp` (or `80,443/tcp` in `lets_encrypt`) until the managed firewall lands. Decided 2026-09-19: TurboPanel will own the host firewall on every daemon'd server — inbound rules derived from what the panel deployed (the control-plane entrypoint, hosting, ProxySQL, WireGuard, sshd, compose `ports:`), organization defaults and per-server rules on top, `ufw` removed after TurboPanel's rules are confirmed live, outbound left open. Until then the recommendations below are yours to apply.
+<Callout type="info" title="TurboPanel owns the host firewall">
+  The installer **removes `ufw`, `firewalld`, `iptables-persistent` and `netfilter-persistent`** from every host it installs on — the control-plane host and every daemon'd server — and disables `nftables.service`, on every converge. `ufw` and Docker do not compose (published container ports traverse `DOCKER-USER`, which `ufw`'s `INPUT` rules never see), and a host that shipped with `ufw` active kept the control plane's **8443** closed until an operator opened it by hand. Removal only ever moves the kernel toward *accept*, so it cannot lock a host out; after it, the host is exactly as open as a fresh image until TurboPanel's own rules arrive. Those rules are derived from what the panel deployed (the control-plane entrypoint, hosting, ProxySQL, WireGuard, sshd, compose `ports:`), with organization defaults and per-server rules on top, inbound only — outbound stays open. They land through the first 0.1.x pushes; until they do, the recommendations below are yours to apply *outside* the host (cloud security groups, a provider firewall) rather than with a host front-end the installer will remove.
 </Callout>
 
 Recommended:

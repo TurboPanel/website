@@ -59,7 +59,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 2. Test from node over HTTPS: `curl -k https://<host>:8443/api/daemon/v1/version` (omit `-k` when the origin is publicly trusted)
 3. **Co-located dev only:** test plaintext: `curl http://<host>:8880/api/daemon/v1/version`
 4. Confirm platform CA (HTTPS path, default mode): compare `/etc/turbopanel/instance-ca.pem` with `GET /api/daemon/v1/instance/ca` (bundle, current CA first). A 404 means public TLS — use the system trust store and do not install `instance-ca.pem`.
-5. Firewall: allow **8443** by default from remote daemons to instance (**443** in `lets_encrypt`; **8880** is dev-only and not for remote production nodes). A host that shipped with `ufw` active blocks 8443 by default while `curl https://127.0.0.1:8443/api/health` still answers locally — `ufw status` will show only `22/tcp`; `ufw allow 8443/tcp` opens it. The installer does not do this yet (managed firewall: first 0.1.x push).
+5. Firewall: allow **8443** by default from remote daemons to instance (**443** in `lets_encrypt`; **8880** is dev-only and not for remote production nodes). The installer removes `ufw`, `firewalld` and `iptables-persistent` from every host it installs on — TurboPanel owns the host firewall — so a distribution firewall cannot be what blocks 8443 after a completed install. If `curl https://127.0.0.1:8443/api/health` answers locally but not remotely, look upstream: a cloud security group, a provider firewall, or a NAT in front of the host.
 6. Logs: `journalctl -u turbopaneld -f`
 
 ### Stale platform CA (tls-trust parked)

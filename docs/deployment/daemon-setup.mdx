@@ -210,7 +210,7 @@ Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/tu
 
 | Issue | Solution |
 | ----- | -------- |
-| Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, firewall (a `ufw` default-deny on the control-plane host blocks 8443 until you `ufw allow 8443/tcp`), TLS CA trust |
+| Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, a firewall *outside* the host (security group, provider firewall — the installer removes `ufw`/`firewalld` on the host itself), TLS CA trust |
 | TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca`. A 404 means public TLS — use the system trust store (no `instance-ca.pem`, no `--insecure-tls`). |
 | Unsupported architecture | TurboPanel requires 64-bit `aarch64` or `x86_64`; 32-bit Raspberry Pi OS is not supported |
 | Docker permission errors | Ensure `tp` user is in `docker` group (installer adds this when Docker is installed) |
