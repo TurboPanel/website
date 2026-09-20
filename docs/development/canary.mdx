@@ -52,7 +52,7 @@ the same installer, the same wizard, the same daemon enrolment.
 ### Install
 
 Run the public installer with the channel set. Piped from `curl` with no license, it installs a
-control plane on this host. The installer names the canary build and prints a non-stable-channel
+control plane on this host. The installer names the canary build and prints a pre-release-channel
 warning before it continues:
 
 ```bash
@@ -64,14 +64,23 @@ verifies it, converges the host (Postgres, Redis, RabbitMQ, Docker, certificates
 Caddy) and prints the wizard address:
 
 ```text
-Welcome to the TurboPanel Self-Hosted Instance Installer / Updater
-v0.1.1-canary.20260919-143000-a1b2c3d
+  ╭──────────────────────────────────────────────────────────────╮
+  │  ⚡ TurboPanel  ·  Self-Hosted Instance Installer / Updater  │
+  ╰──────────────────────────────────────────────────────────────╯
+  v0.1.1-canary.20260919-143000-a1b2c3d
 
-This installs the full TurboPanel control plane on this host.
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   WARNING: PRE-RELEASE UPDATE CHANNEL (CANARY)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Canary follows every green trunk merge. It is not a supported
+   release: builds can break, change behaviour or need a fresh install
+   at any time. Do not run it in production.
+
+   Supported release:  curl -fsSL turbopanel.sh | sh
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  This installs the full TurboPanel control plane on this host.
 …
-*** WARNING: THIS IS A NON-STABLE UPDATE CHANNEL (CANARY) ***
-Canary follows every green trunk merge. It is not a supported release.
-
 ✓ Release manifest resolved (channel canary, arch linux-amd64)
 …
 ✓ Packages unpacked (instance v0.1.1-canary.20260919-143000-a1b2c3d, UI v0.1.1-canary.20260919-142100-e4f5a6b)
