@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CONTROL_PLANE_SERVER_LABELS,
+  controlPlaneServerLabel,
+  DEFAULT_CONTROL_PLANE_LABEL,
+  LOCAL_DEV_CONTROL_PLANE_LABEL,
   WEBSITE_HOST_TO_CONTROL_PLANE,
-  WRANGLER_API_HOSTNAMES,
 } from '@/lib/control-plane-hosts'
 
 describe('WEBSITE_HOST_TO_CONTROL_PLANE', () => {
@@ -24,20 +27,25 @@ describe('WEBSITE_HOST_TO_CONTROL_PLANE', () => {
   })
 })
 
-describe('WRANGLER_API_HOSTNAMES', () => {
-  it('defines the expected named environments', () => {
-    expect(Object.keys(WRANGLER_API_HOSTNAMES).sort((a, b) => a.localeCompare(b))).toEqual(
-      ['development', 'live', 'staging', 'testing'],
+describe('CONTROL_PLANE_SERVER_LABELS', () => {
+  it('labels every origin the host map points at', () => {
+    for (const origin of new Set(Object.values(WEBSITE_HOST_TO_CONTROL_PLANE))) {
+      expect(CONTROL_PLANE_SERVER_LABELS[origin]).toBeTypeOf('string')
+      expect(CONTROL_PLANE_SERVER_LABELS[origin]?.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('pins the per-environment Scalar labels', () => {
+    expect(controlPlaneServerLabel('https://turbopanel.app')).toBe('Production API')
+    expect(controlPlaneServerLabel('https://testing.turbopanel.dev')).toBe('Testing API')
+    expect(controlPlaneServerLabel('https://staging.turbopanel.dev')).toBe('Staging API')
+  })
+
+  it('falls back to the generic label for an unknown origin', () => {
+    expect(controlPlaneServerLabel('https://example.invalid')).toBe(
+      DEFAULT_CONTROL_PLANE_LABEL,
     )
-  })
-
-  it('uses localhost Caddy for development', () => {
-    expect(WRANGLER_API_HOSTNAMES.development).toBe('localhost:8443,Local Dev')
-  })
-
-  it('pins named-environment API_HOSTNAMES CSV values', () => {
-    expect(WRANGLER_API_HOSTNAMES.testing).toBe('testing.turbopanel.dev,Testing API')
-    expect(WRANGLER_API_HOSTNAMES.staging).toBe('staging.turbopanel.dev,Staging API')
-    expect(WRANGLER_API_HOSTNAMES.live).toBe('turbopanel.app,Production API')
+    expect(DEFAULT_CONTROL_PLANE_LABEL).toBe('API Server')
+    expect(LOCAL_DEV_CONTROL_PLANE_LABEL).toBe('Local Dev')
   })
 })

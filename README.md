@@ -40,7 +40,6 @@ Production build checks:
 ```sh
 pnpm build
 pnpm check:docs-ssr
-pnpm check:hosts
 ```
 
 ## Marketing accuracy

@@ -5,11 +5,14 @@
  * we must also check the port (WEBSITE_PORT on turbopanel-website.service, default 19820).
  * Local API calls target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
  *
- * Host → control-plane mapping lives in {@link ./control-plane-hosts.ts}; keep
- * `wrangler.jsonc` `API_HOSTNAMES` in sync (`pnpm check:hosts`).
+ * Host → control-plane mapping and Scalar server labels live in
+ * {@link ./control-plane-hosts.ts}; both the Worker routes and the client
+ * derive everything from the request host — no deployment variable.
  */
 
 import {
+  controlPlaneServerLabel,
+  LOCAL_DEV_CONTROL_PLANE_LABEL,
   WEBSITE_HOST_TO_CONTROL_PLANE,
 } from '@/lib/control-plane-hosts'
 
@@ -44,21 +47,6 @@ function localDevApiBaseUrl(): string {
   return `https://localhost:${getDevCaddyPort()}`
 }
 
-function schemeForApiHost(hostnameWithOptionalPort: string): string {
-  const colon = hostnameWithOptionalPort.indexOf(':')
-  const host = colon === -1 ? hostnameWithOptionalPort : hostnameWithOptionalPort.slice(0, colon)
-  const hostPort = colon === -1 ? '' : hostnameWithOptionalPort.slice(colon + 1)
-  const normalized = host.toLowerCase()
-  if (normalized === 'localhost' || normalized === '127.0.0.1') {
-    const caddyPort = getDevCaddyPort()
-    if (!hostPort || hostPort === caddyPort || hostPort === '443') {
-      return 'https://'
-    }
-    return 'http://'
-  }
-  return 'https://'
-}
-
 /** Resolve control-plane origin from hostname (+ optional local-dev port). */
 function resolveLocalOrMappedBase(hostname: string, port = ''): string {
   if (isLocalDevWebsiteHost(hostname, port)) {
@@ -73,7 +61,7 @@ function resolveLocalOrMappedBase(hostname: string, port = ''): string {
 
 /**
  * API / OpenAPI base URL for the current website host.
- * Same static map as {@link getControlPlaneBaseUrl} (without Wrangler override).
+ * Same static map as {@link getControlPlaneBaseUrl}.
  */
 export function getApiBaseUrl(hostname: string, port = ''): string {
   return resolveLocalOrMappedBase(hostname, port)
@@ -83,29 +71,32 @@ export function getApiBaseUrl(hostname: string, port = ''): string {
  * Control-plane origin for the current website environment.
  * Local Next (`localhost` / `turbopanel.app:19820`) → Caddy `:8443`;
  * deployed marketing hosts → matching TurboPanel High Availability instance (`turbopanel.app`, etc.).
- * Optional `apiHostnames` (Wrangler `API_HOSTNAMES`) wins when provided.
  */
-export function getControlPlaneBaseUrl(
-  hostname: string,
-  port = '',
-  apiHostnames?: string
-): string {
-  if (typeof apiHostnames === 'string' && apiHostnames.length > 0) {
-    const parsed = parseApiHostnames(apiHostnames)
-    const fromEnv = parsed[0]?.url
-    if (fromEnv) return fromEnv
-  }
-
+export function getControlPlaneBaseUrl(hostname: string, port = ''): string {
   return resolveLocalOrMappedBase(hostname, port)
 }
 
 /** Sign-in page on the env-appropriate control plane. */
-export function getSignInUrl(
+export function getSignInUrl(hostname: string, port = ''): string {
+  return `${getControlPlaneBaseUrl(hostname, port)}/sign-in`
+}
+
+export type ControlPlaneServer = { url: string; description: string }
+
+/**
+ * Scalar `servers` entries for the current website host — the control plane
+ * the host maps to, labelled from {@link ./control-plane-hosts.ts}. Local dev
+ * is labelled `Local Dev`; an unmapped origin gets the generic label.
+ */
+export function getControlPlaneServers(
   hostname: string,
-  port = '',
-  apiHostnames?: string
-): string {
-  return `${getControlPlaneBaseUrl(hostname, port, apiHostnames)}/sign-in`
+  port = ''
+): ControlPlaneServer[] {
+  const url = getControlPlaneBaseUrl(hostname, port)
+  const description = isLocalDevWebsiteHost(hostname, port)
+    ? LOCAL_DEV_CONTROL_PLANE_LABEL
+    : controlPlaneServerLabel(url)
+  return [{ url, description }]
 }
 
 export function getScalarOpenApiUrl(hostname: string, port = ''): string {
@@ -114,27 +105,4 @@ export function getScalarOpenApiUrl(hostname: string, port = ''): string {
 
 export function getScalarDaemonOpenApiUrl(hostname: string, port = ''): string {
   return `${getControlPlaneBaseUrl(hostname, port)}/api/daemon/v1/openapi.json`
-}
-
-/**
- * Parses a CSV string of "hostname,label" pairs into a Scalar-compatible servers array.
- * Local dev uses https://localhost:{CADDY_PORT} (Caddy); production hostnames use https://.
- * Returns [] if token count is odd or input is empty/blank.
- */
-export function parseApiHostnames(csv: string): { url: string; description: string }[] {
-  const trimmed = csv.trim()
-  if (!trimmed) return []
-  const tokens = trimmed
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-  if (tokens.length % 2 !== 0) return []
-  const result: { url: string; description: string }[] = []
-  for (let i = 0; i < tokens.length; i += 2) {
-    const hostname = tokens[i]
-    const description = tokens[i + 1]!
-    const scheme = schemeForApiHost(hostname)
-    result.push({ url: `${scheme}${hostname}`, description })
-  }
-  return result
 }

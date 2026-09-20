@@ -27,7 +27,7 @@ Three behaviours matter more than any single value:
 | `TURBOPANEL_REDIS_SOCKET` | `/run/turbopanel/redis.sock` | Redis over a Unix socket: daemon cell (presence, outbox, request correlation), query cache, auth and daemon rate limiters. Opened lazily; not validated at boot. |
 | `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the mailer consumes it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
 | `TURBOPANEL_UPDATE_CHANNEL` | `trunk` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
-| `TURBOPANEL_INSTANCE_SERVICE` | unset | The systemd unit name (`turbopanel-instance`) so the developer surface can restart it; unset outside systemd. |
+| `TURBOPANEL_INSTANCE_SERVICE` | `turbopanel-instance` | The systemd unit the developer surface restarts after Upgrade System. Set it only when the unit has a non-standard name. |
 
 ## Paths (FHS layout)
 
@@ -81,7 +81,7 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 
 ## Development only
 
-Read only when the developer surface is on (`TURBOPANEL_MODE=development` with `TURBOPANEL_DEV_SURFACE`), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_DEV_HTTP_CONTROL_PLANE`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO`, `TURBOPANEL_UI_REPO`, `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_HTTP_PORT`. See [Local development](/docs/getting-started/development).
+Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written solely by the managed `turbopanel-instance` unit for co-located Deno source-mode development; `TURBOPANEL_UI_MODE` only selects Expo vs. static serving), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_DEV_HTTP_CONTROL_PLANE`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO` / `TURBOPANEL_UI_REPO` (optional checkout overrides; defaults derive from `TURBOPANEL_DEV_ROOT`), `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_HTTP_PORT`. See [Local development](/docs/getting-started/development).
 
 ## Workers only
 

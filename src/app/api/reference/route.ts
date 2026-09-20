@@ -1,9 +1,7 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import {
-  getApiBaseUrl,
+  getControlPlaneServers,
   getScalarDaemonOpenApiUrl,
   getScalarOpenApiUrl,
-  parseApiHostnames,
 } from '@/lib/env'
 import {
   buildScalarBearerAuthentication,
@@ -50,36 +48,8 @@ export async function GET(request: Request) {
   const host = request.headers.get('host') || 'turbopanel.app'
   const [hostname, port = ''] = host.split(':')
 
-  let apiHostnames: string | undefined
-  try {
-    const ctx = getCloudflareContext()
-    apiHostnames = ctx?.env?.API_HOSTNAMES
-  } catch {
-    apiHostnames = undefined
-  }
-
-  let servers: { url: string; description: string }[]
-  if (typeof apiHostnames === 'string' && apiHostnames.length > 0) {
-    const parsed = parseApiHostnames(apiHostnames)
-    if (parsed.length > 0) {
-      servers = parsed
-    } else {
-      servers = [
-        {
-          url: getApiBaseUrl(hostname, port),
-          description: 'API Server',
-        },
-      ]
-    }
-  } else {
-    servers = [
-      {
-        url: getApiBaseUrl(hostname, port),
-        description: 'API Server',
-      },
-    ]
-  }
-
+  // Derived from the request host via the static control-plane map.
+  const servers = getControlPlaneServers(hostname, port)
   const apiBaseUrl = servers[0].url
   const openApiUrl = getScalarOpenApiUrl(hostname, port)
   const daemonOpenApiUrl = getScalarDaemonOpenApiUrl(hostname, port)
