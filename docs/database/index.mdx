@@ -1,0 +1,46 @@
+---
+title: "Database"
+description: "Data dictionary for the TurboPanel control-plane PostgreSQL schema: every table and column, generated from the shipped migrations"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Database
+
+The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or newer). This dictionary is generated from the shipped schema — the drizzle snapshot behind the newest migration — joined with the maintained descriptions in the [TurboPanel/turbopanel](https://github.com/TurboPanel/turbopanel) repository. The same descriptions are applied to the live database as `COMMENT ON` metadata, so `\d+ table` in `psql` and this page always say the same thing.
+
+| Generated from | Tables | Columns |
+| --- | --- | --- |
+| migration `0004_schema_comments` | 71 | 748 |
+
+## Tables by area
+
+| Area | Tables |
+| --- | --- |
+| [Identity](/docs/database/identity) | [`2fa`](/docs/database/identity#2fa), [`account`](/docs/database/identity#account), [`passkey`](/docs/database/identity#passkey), [`session`](/docs/database/identity#session), [`user`](/docs/database/identity#user), [`verification`](/docs/database/identity#verification) |
+| [Organizations](/docs/database/organizations) | [`changeover`](/docs/database/organizations#changeover), [`invitation`](/docs/database/organizations#invitation), [`leaf`](/docs/database/organizations#leaf), [`organization`](/docs/database/organizations#organization), [`team`](/docs/database/organizations#team), [`teammate`](/docs/database/organizations#teammate), [`tls`](/docs/database/organizations#tls) |
+| [Billing](/docs/database/billing) | [`allowance`](/docs/database/billing#allowance), [`entitlement`](/docs/database/billing#entitlement), [`license`](/docs/database/billing#license), [`payer`](/docs/database/billing#payer), [`seat`](/docs/database/billing#seat), [`subscription`](/docs/database/billing#subscription), [`tier`](/docs/database/billing#tier) |
+| [Access, audit and configuration](/docs/database/platform) | [`audit`](/docs/database/platform#audit), [`grant`](/docs/database/platform#grant), [`lease`](/docs/database/platform#lease), [`setting`](/docs/database/platform#setting) |
+| [Networking](/docs/database/networking) | [`datacenter`](/docs/database/networking#datacenter), [`fabric`](/docs/database/networking#fabric), [`ip`](/docs/database/networking#ip), [`network`](/docs/database/networking#network), [`relay`](/docs/database/networking#relay), [`subnet`](/docs/database/networking#subnet) |
+| [Resource tree and tagging](/docs/database/resources) | [`binding`](/docs/database/resources#binding), [`container`](/docs/database/resources#container), [`environment`](/docs/database/resources#environment), [`hosting`](/docs/database/resources#hosting), [`hostname`](/docs/database/resources#hostname), [`marker`](/docs/database/resources#marker), [`principal`](/docs/database/resources#principal), [`project`](/docs/database/resources#project), [`service`](/docs/database/resources#service), [`tag`](/docs/database/resources#tag), [`tenancy`](/docs/database/resources#tenancy), [`variable`](/docs/database/resources#variable), [`workspace`](/docs/database/resources#workspace) |
+| [Managed databases](/docs/database/managed) | [`backup`](/docs/database/managed#backup), [`managed`](/docs/database/managed#managed), [`recovery`](/docs/database/managed#recovery), [`replica`](/docs/database/managed#replica) |
+| [Storage and secrets](/docs/database/storage) | [`copy`](/docs/database/storage#copy), [`mount`](/docs/database/storage#mount), [`secret`](/docs/database/storage#secret), [`storage`](/docs/database/storage#storage) |
+| [Servers, runtime and metrics](/docs/database/runtime) | [`capability`](/docs/database/runtime#capability), [`command`](/docs/database/runtime#command), [`deployment`](/docs/database/runtime#deployment), [`dispatch`](/docs/database/runtime#dispatch), [`generation`](/docs/database/runtime#generation), [`key`](/docs/database/runtime#key), [`label`](/docs/database/runtime#label), [`monitor`](/docs/database/runtime#monitor), [`server`](/docs/database/runtime#server), [`slot`](/docs/database/runtime#slot), [`task`](/docs/database/runtime#task) |
+| [Git and SSH](/docs/database/git) | [`connection`](/docs/database/git#connection), [`delivery`](/docs/database/git#delivery), [`forge`](/docs/database/git#forge), [`repository`](/docs/database/git#repository), [`ssh`](/docs/database/git#ssh) |
+| [Notifications](/docs/database/notifications) | [`attempt`](/docs/database/notifications#attempt), [`channel`](/docs/database/notifications#channel), [`notification`](/docs/database/notifications#notification), [`rule`](/docs/database/notifications#rule) |
+
+## How to read this dictionary
+
+- **Physical names.** Every table is one lower-case word (`seat`, `copy`, `2fa`); the drizzle export names in `schema.ts` sometimes differ. Pages and anchors use the physical name.
+- **Standard columns.** Every table has `id` (`uuid`, defaulting to `uuidv7()` so keys are time-ordered and collision-free across writers), `created_at` and, on mutable tables, `updated_at`. They are listed for completeness but never described per table.
+- **Foreign keys** are shown inline as `FK → table.column (on delete …)`. A plain parent link named `<table>_id` carries no further text; a foreign key under another name (`assigned_tier_id`, `actor_user_id`) always does, because the name signals a rule.
+- **Vocabularies.** A column with a fixed value set carries a `CHECK (col IN (…))` listed under *Constraints and indexes*; the description names the members. Provider-owned vocabularies keep a raw `provider_*` copy beside the normalized column.
+- **`metadata` / `options`.** Tables that carry them declare both, both nullable, right after the timestamps: `metadata` is free-form, `options` is validated by the writer named in its description.
+- **Booleans** are named `is_*`; `NULL` on a boolean means *not set*, not `false`.
+- **Secrets** are never stored in the clear: a column holding one says so and names the envelope format.
+
+To change a description, edit `src/lib/db/schema-descriptions.ts` in the turbopanel repository and follow the *Schema descriptions* loop in its `AGENTS.md`; a schema change regenerates these pages as part of the same migration.

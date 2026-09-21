@@ -1,0 +1,139 @@
+---
+title: "Storage and secrets"
+description: "Data dictionary — storage and secrets tables: copy, mount, secret, storage"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Storage and secrets
+
+Storage volumes, their copies and mounts, and the sealed secret envelopes.
+
+Tables on this page: [`copy`](#copy) · [`mount`](#mount) · [`secret`](#secret) · [`storage`](#storage). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `copy` [#copy]
+
+One physical copy of a storage identity (docker volume or host path today); one `primary` per storage, local copies pin `server_id`, remote ones leave it null.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb passed through from the copy API; no keys are read by the platform today. |
+| `options` | `jsonb` | yes |  | Provider options: compose-registered docker copies carry `managed` (true when Compose owns the volume) and `externalName` for external volumes. |
+| `storage_id` | `uuid` | no |  | FK → [`storage`](/docs/database/storage#storage).`id` (on delete cascade). |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Host holding a local `docker` or `path` copy, unique with storage and provider; null for remote/shared providers; ON DELETE RESTRICT. |
+| `secret_id` | `uuid` | yes |  | FK → [`secret`](/docs/database/storage#secret).`id` (on delete restrict). Optional provider credential from `secret` for remote providers; ON DELETE RESTRICT; unused by the docker and path providers. |
+| `provider` | `text` | no |  | `docker` or `path` today; `block`, `nfs`, `cifs`, `s3`, `s3_compatible`, `sftp`, `ftp` and `webdav` are reserved and not accepted by the API. |
+| `role` | `text` | no | `'primary'` | `primary` (one per storage; anchors the access-mode placement check), `replica`, `scratch` (never mountable) or `archive`. |
+| `state` | `text` | no | `'pending'` | Materialization state: `pending`, `materializing`, `ready`, `syncing`, `stale`, `failed` or `retiring`; set via the API, defaults to `pending`. |
+| `path` | `text` | yes |  | Host filesystem path for a `path` copy; null means the platform layout or the principal's volumes directory is resolved at deploy and never persisted. |
+| `endpoint` | `text` | yes |  | Remote endpoint for network providers; API passthrough, unused by `docker` and `path` copies. |
+| `generation` | `integer` | no | `0` | Reserved generation counter, default 0; no current code path increments it. |
+
+**Constraints and indexes**
+
+- Index `idx_copy_storage_id`: (`storage_id`)
+- Index `idx_copy_server_id`: (`server_id`)
+- Index `idx_copy_secret_id`: (`secret_id`)
+- Unique index `uniq_copy_storage_primary`: (`storage_id`) where `"copy"."role" = 'primary'`
+- Unique index `uniq_copy_storage_server_provider`: (`storage_id`, `server_id`, `provider`) where `"copy"."server_id" IS NOT NULL`
+- Check `copy_provider_check`: `provider IN ('docker', 'path', 'block', 'nfs', 'cifs', 's3', 's3_compatible', 'sftp', 'ftp', 'webdav')`
+- Check `copy_role_check`: `role IN ('primary', 'replica', 'scratch', 'archive')`
+- Check `copy_state_check`: `state IN ('pending', 'materializing', 'ready', 'syncing', 'stale', 'failed', 'retiring')`
+
+## `mount` [#mount]
+
+Attachment of a storage identity inside one compose service at a container path; unique (service_id, destination_path), written by the storage API and compose.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb settable through the mount API; no keys are read by the platform today. |
+| `options` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `storage_id` | `uuid` | no |  | FK → [`storage`](/docs/database/storage#storage).`id` (on delete cascade). |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete restrict). Consuming compose service; ON DELETE RESTRICT, so compose unregister clears mounts in the same transaction as the service reconcile. |
+| `destination_path` | `text` | no |  | Container path the storage is mounted at, unique per service. |
+| `subpath` | `text` | yes |  | Optional subdirectory of the storage to mount instead of its root; forwarded to the daemon when non-empty. |
+| `is_read_only` | `boolean` | no | `false` | Mount the storage read-only in the container (API field `readOnly`); default false. |
+
+**Constraints and indexes**
+
+- Unique `uniq_mount_service_destination`: (`service_id`, `destination_path`)
+- Index `idx_mount_storage_id`: (`storage_id`)
+- Index `idx_mount_service_id`: (`service_id`)
+
+## `secret` [#secret]
+
+Org-owned sealed secret for storage providers and git deploy keys; `secret_envelope` is one `tpsecret` payload, written today only by the deploy-key route.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Non-secret descriptors; for `git_deploy_key` rows: `publicKey`, `fingerprint` and `keyType` (`ed25519`). |
+| `options` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `principal_id` | `uuid` | yes |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete set null). Optional association with a principal (SET NULL on delete so a principal delete never fails on an org secret); no current writer sets it. |
+| `provider` | `text` | no |  | `s3`, `s3_compatible`, `nfs`, `cifs`, `sftp`, `ftp`, `webdav` (reserved storage providers) or `git_deploy_key` (the only one written today). |
+| `name` | `text` | no |  | Operator label for the secret; not an identifier and not unique. |
+| `secret_envelope` | `text` | no |  | `tpsecret` envelope of provider-specific JSON; for `git_deploy_key` the sealed plaintext is the OpenSSH private key verbatim, resealed unopened for the daemon. |
+
+**Constraints and indexes**
+
+- Index `idx_secret_organization_id`: (`organization_id`)
+- Index `idx_secret_principal_id`: (`principal_id`)
+- Check `secret_provider_check`: `provider IN ('s3', 's3_compatible', 'nfs', 'cifs', 'sftp', 'ftp', 'webdav',
+        'git_deploy_key')`
+
+## `storage` [#storage]
+
+Logical identity of persistent data owned by an organization and scoped to at most one of workspace, project, environment or service; bytes live on `copy` rows.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb from the API; `dockerVolumeName` is stamped to the storage UUID on volume create because the Docker volume name is the storage id. |
+| `options` | `jsonb` | yes |  | Free-form jsonb passed through from the storage API; no keys are read by the platform today. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning organization stored directly (an intentional exception to derived ownership); cascade-deletes the storage with the org. |
+| `workspace_id` | `uuid` | yes |  | FK → [`workspace`](/docs/database/resources#workspace).`id` (on delete set null). Optional workspace scope, at most one scope column may be set; SET NULL on delete so a `retain` row survives as org-owned storage. |
+| `project_id` | `uuid` | yes |  | FK → [`project`](/docs/database/resources#project).`id` (on delete set null). Optional project scope, at most one scope column may be set; SET NULL on delete so a `retain` row survives as org-owned storage. |
+| `environment_id` | `uuid` | yes |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete set null). Optional environment scope (compose volumes are environment-scoped), at most one scope column set; SET NULL on delete so `retain` rows survive. |
+| `service_id` | `uuid` | yes |  | FK → [`service`](/docs/database/resources#service).`id` (on delete set null). Optional service scope, at most one scope column may be set; SET NULL on delete so a `retain` row survives as org-owned storage. |
+| `kind` | `text` | no |  | `volume` (named Docker volume), `directory`, `file` (sealed content) or `object` (reserved, not accepted by the API). |
+| `name` | `varchar(255)` | no |  | Operator label, or the Compose volume key for auto-registered volumes; up to 255 chars with no charset CHECK. |
+| `access_mode` | `text` | no | `'single_writer'` | `single_writer` (default), `multi_reader` or `multi_writer`; single_writer refuses a deploy scheduled on a server other than the primary copy's. |
+| `retention` | `text` | no | `'retain'` | `retain` (default) keeps the row as org-owned when its scope parent is deleted; `delete` removes it with the parent. |
+| `generation` | `integer` | no | `0` | Reserved generation counter, default 0; no current code path increments it. |
+| `principal_id` | `uuid` | yes |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete set null). Optional owning system principal; path copies without an explicit `path` resolve under that principal's volumes directory; SET NULL on delete. |
+| `content_envelope` | `text` | yes |  | Sealed file content for `kind='file'` entries (`tpsecret` at rest, resealed to `tpdaemon` at deploy); up to 256 KiB plaintext; null otherwise. |
+| `compose_volume_key` | `text` | yes |  | Compose top-level volume key for auto-registered `volume` rows; unique per environment and the idempotency key for compose volume registration. |
+
+**Constraints and indexes**
+
+- Index `idx_storage_organization_id`: (`organization_id`)
+- Index `idx_storage_workspace_id`: (`workspace_id`)
+- Index `idx_storage_project_id`: (`project_id`)
+- Index `idx_storage_environment_id`: (`environment_id`)
+- Index `idx_storage_service_id`: (`service_id`)
+- Index `idx_storage_principal_id`: (`principal_id`)
+- Unique index `uniq_storage_environment_compose_volume_key`: (`environment_id`, `compose_volume_key`) where `kind = 'volume'
+          AND environment_id IS NOT NULL
+          AND compose_volume_key IS NOT NULL`
+- Check `storage_kind_check`: `kind IN ('volume', 'directory', 'file', 'object')`
+- Check `storage_access_mode_check`: `access_mode IN ('single_writer', 'multi_reader', 'multi_writer')`
+- Check `storage_retention_check`: `retention IN ('retain', 'delete')`
+- Check `storage_at_most_one_parent_check`: `((workspace_id IS NOT NULL)::int +
+        (project_id IS NOT NULL)::int +
+        (environment_id IS NOT NULL)::int +
+        (service_id IS NOT NULL)::int) <= 1`
