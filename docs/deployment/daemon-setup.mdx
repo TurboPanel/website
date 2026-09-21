@@ -41,7 +41,7 @@ graph TD
 | Feature | TurboPanel High Availability | Self-hosted instance |
 | ------- | ---------------------------- | -------------------- |
 | Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` by default (`lets_encrypt` uses `:443`) |
-| Co-located daemon | Optional (contributor dev / socket mode) | Yes on control plane |
+| Co-located daemon | Contributor dev only (socket mode) | Installed with the control plane; dials the instance socket |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
 | Daemon coordination | WSS (Durable Objects) | WSS (Redis cell) |
@@ -198,7 +198,11 @@ Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld
 | `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`trunk` default) |
 | `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
 
-Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`.
+Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`. On a
+self-hosted control plane that is the daemon the instance installer provisions: it starts before the wizard has
+issued a license, re-checks the daemon state directory every few seconds, and enrols as soon as the wizard writes
+the first organization's license there. Contributor dev keeps the console opt-in (`TURBOPANEL_DEV_INSTANCE`);
+a managed install connects without it.
 
 ## Communication
 
