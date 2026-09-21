@@ -35,7 +35,7 @@ Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (default `self_signed
 
 `lets_encrypt` needs `:80`/`:443` free on the control-plane host. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
 
-Both control-plane Caddyfiles (`self_signed`/`upload` and `lets_encrypt`) send a
+Every control-plane Caddy mode (`self_signed`, `upload` and `lets_encrypt`) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
 (one year, `includeSubDomains`), `X-Content-Type-Options: nosniff`, and
 `X-Frame-Options: DENY`. This is control-plane only — per-tenant hosting sites
