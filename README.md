@@ -1,6 +1,6 @@
 # TurboPanel Website & Docs
 
-**Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io), one place to run everything you host — Next.js 16, Fumadocs MDX, deployed to Cloudflare Workers via OpenNext.
+**Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io), one place to run everything you host — Next.js 16, Fumadocs MDX, vanilla Node behind Caddy.
 
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=turbopanel_website)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=coverage)](https://sonarcloud.io/component_measures?id=turbopanel_website&metric=coverage)
@@ -50,7 +50,7 @@ Larger information-architecture changes: ask in [Discord](https://turbopanel.io/
 
 ## Deployment (contributors)
 
-Production deploy uses OpenNext + Wrangler — detail in [docs/development/website-deploy.mdx](https://turbopanel.io/docs/development/website-deploy) (contributor doc). Co-located dev runs `turbopanel-website.service` on port **19820**.
+Production is vanilla Next (`output: 'standalone'`) on `alpha.turbopanel.net` — detail in [docs/development/website-deploy.mdx](https://turbopanel.io/docs/development/website-deploy) (contributor doc) and [`scripts/vps/README.md`](./scripts/vps/README.md). Co-located dev runs `turbopanel-website.service` on port **19820**.
 
 ## Full stack development
 

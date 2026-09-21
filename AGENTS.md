@@ -21,7 +21,7 @@ Marketing and docs **must** match live product pages. Canonical public page: **h
 | **TurboPanel High Availability** | **Private alpha · Not yet available** — no dollar figures on marketing pages; single CTA is **`Join the waitlist`** (`/sign-up`), never "request access now" / "get started now" phrasing |
 | **Self-hosted control plane** | **Private alpha · Not yet available** — planned to be **free, unlimited servers** once it ships; CTA is **`Preview self-hosted docs`** (`/docs/deployment/self-hosted`), not "install now" / "self-host today" phrasing |
 
-**Exception — the tier ladder:** the S1–S7/SX per-server **price ladder** (`$X.XX` per tier plus the hard-floor / recommended placement rules) may appear on `/pricing` as *planned* pricing for TurboPanel High Availability. This is the one place dollar figures are permitted on a marketing page. It does not change maturity status or the CTA: the card and the tier table keep the **Private alpha · Not yet available** label, the CTA stays **`Join the waitlist`**, and no copy next to the table may imply a purchase path ("Buy now", "Subscribe", "Choose S3", "Start on S1"). The ladder is informational; `/pricing` is not a checkout. The ladder never applies to self-hosted — that card stays "Free, unlimited servers" with no dollar figures. Canonical ladder values (cores/RAM ceilings, prices, slot entitlements) come from the control-plane repo (`turbopanel/src/lib/tiers/ladder.ts`, the one matrix the placement bands and the billing catalogue both read); the page override is `design-system/turbopanel-website/pages/pricing.md`; the operator-facing explanation is [`docs/deployment/tiers.mdx`](docs/deployment/tiers.mdx).
+**Exception — the tier ladder:** the S1–S7/SX per-server **price ladder** (`$X.XX` per tier plus the hard-floor / recommended placement rules) may appear on `/pricing` as *planned* pricing for TurboPanel High Availability. This is the one place dollar figures are permitted on a marketing page. It does not change maturity status or the CTA: the card and the tier table keep the **Private alpha · Not yet available** label, the CTA stays **`Join the waitlist`**, and no copy next to the table may imply a purchase path ("Buy now", "Subscribe", "Choose S3", "Start on S1"). The ladder is informational; `/pricing` is not a checkout. The ladder never applies to self-hosted — that card stays "Free, unlimited servers" with no dollar figures. Canonical ladder values (cores/RAM ceilings, prices, slot entitlements) come from the control-plane repo (`turbopanel/src/features/tiers/ladder.ts`, the one matrix the placement bands and the billing catalogue both read); the page override is `design-system/turbopanel-website/pages/pricing.md`; the operator-facing explanation is [`docs/deployment/tiers.mdx`](docs/deployment/tiers.mdx).
 
 Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**` outside the tier ladder above. Do not use CTA copy that implies either path is usable today (e.g. "Get started now", "Request early access", "Start on TurboPanel High Availability", "Install self-hosted") — use waitlist / preview-docs language instead. On the roadmap, the internal `Complete` phase status maps to the public label **Built**, not "Shipped" (see `design-system/turbopanel-website/pages/roadmap.md`) — no status label should imply a public release has happened yet.
 
@@ -68,17 +68,17 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 
 ## Stack
 
-- **Next.js 16** App Router; **Turbopack** for `pnpm dev` (port **19820**); **webpack** for `next build --webpack` (OpenNext Cloudflare)
-- **Adapter:** `@opennextjs/cloudflare` — `open-next.config.ts`, `wrangler.jsonc`
+- **Next.js 16** App Router; **Turbopack** for `pnpm dev` (port **19820**) and `pnpm build`
 - **Docs:** Fumadocs MDX, `mdx-components.tsx`, Tailwind v4, next-themes
-- **Cloudflare in dev:** optional `NEXT_DEV_CLOUDFLARE=1` (see `next.config.js` / OpenNext bindings docs)
+- **Production:** vanilla `next build` with `output: 'standalone'`, `node server.js` behind Caddy on `alpha.turbopanel.net` (see `scripts/vps/`)
 
 ## Scripts
 
 | Script | Purpose |
 | --- | --- |
 | `pnpm dev` | `next dev --port 19820` |
-| `pnpm build` | `next build --webpack` |
+| `pnpm build` | `next build` (`output: 'standalone'`) |
+| `pnpm start` | `next start` (local; VPS units run standalone `server.js`) |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | `tsc --noEmit` (runs `fumadocs-mdx` first) |
 | `pnpm test` | Vitest once |
@@ -87,11 +87,8 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm notices:generate` | Write `THIRD_PARTY_NOTICES.md` from the resolved pnpm graph (complements first-party `NOTICE`; captures upstream NOTICE files) |
 | `pnpm notices:check` | Fail when notices are stale vs the lockfile, or a production dependency has an unreviewed license class |
 | `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (`src/lib/docs-ssr.ts`) |
-| `pnpm preview` | OpenNext build + Wrangler preview |
-| `pnpm deploy` / `upload` | OpenNext Cloudflare deploy / upload |
-| `pnpm cf-typegen` | `wrangler types` → `cloudflare-env.d.ts` |
 
-Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned); production deploys to Cloudflare Workers only. `pnpm-workspace.yaml` `allowBuilds` must keep wrangler native postinstalls (`esbuild`, `workerd`, `sharp`, …) approved; pnpm 12 `strictDepBuilds` otherwise fails Cloudflare Builds with `ERR_PNPM_IGNORED_BUILDS`.
+Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned). Production is vanilla Next on `alpha.turbopanel.net` (`scripts/vps/`), not Cloudflare Workers. `pnpm-workspace.yaml` `allowBuilds` must keep Next native postinstalls (`esbuild`, `sharp`, …) approved; pnpm 12 `strictDepBuilds` otherwise fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`.
 
 **Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
 Run lint/typecheck/tests **inside the Vagrant guest** from the host `dev`
@@ -104,7 +101,7 @@ vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd 
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm verify:ci'
 ```
 
-**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`.
+**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm build`, `check:docs-ssr`, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`. Triggers on `trunk`, `staging`, and `live`.
 
 **Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
@@ -226,8 +223,7 @@ website/
 ├── next.config.js
 ├── source.config.ts
 ├── mdx-components.tsx
-├── open-next.config.ts
-├── wrangler.jsonc
+├── scripts/vps/          # Caddyfile, hook, deploy.sh, systemd units for alpha.turbopanel.net
 └── AGENTS.md
 ```
 
@@ -271,9 +267,9 @@ website/
 
 ### Site & docs conventions
 
-- **Data dictionary (`docs/database/`) is generated — never hand-edit.** Source: `../turbopanel/src/lib/db/schema-descriptions.ts` + the latest drizzle snapshot; regenerate with `pnpm docs:data-dictionary` in `../turbopanel` (`pnpm docs:data-dictionary:check` there reports staleness). Every schema or description change in the turbopanel repo must land the regenerated pages here in the same session (the loop is in `../turbopanel/src/lib/db/AGENTS.md` → "Schema descriptions"). Wrong wording → fix the descriptions file and regenerate. The section is listed in `docs/meta.json` as `database`; group pages and their `meta.json` are owned by the generator.
+- **Data dictionary (`docs/database/`) is generated — never hand-edit.** Source: `../turbopanel/src/db/schema-descriptions.ts` + the latest drizzle snapshot; regenerate with `pnpm docs:data-dictionary` in `../turbopanel` (`pnpm docs:data-dictionary:check` there reports staleness). Every schema or description change in the turbopanel repo must land the regenerated pages here in the same session (the loop is in `../turbopanel/src/db/AGENTS.md` → "Schema descriptions"). Wrong wording → fix the descriptions file and regenerate. The section is listed in `docs/meta.json` as `database`; group pages and their `meta.json` are owned by the generator.
 - **Site chrome** (`src/components/StickySiteChrome.tsx`) — sticky banner + `SiteHeader` (Sign in, social icons, theme toggle). Social icons (`SocialNavLinks`): GitHub (external) + Discord (`/discord` → invite via `next.config.js` redirects). Theme toggle visuals follow `html.dark` via Tailwind `dark:` (no mount-gated light→dark FOUC). On scroll the evolving-fast banner collapses and the nav shrinks; `--tp-chrome-height` (via ResizeObserver) feeds Fumadocs `--fd-banner-height` and Scalar `--scalar-custom-header-height` so docs/API sidebars fill the remaining viewport without a dead scroll strip. Soft navigations that change `pathname` (and have no URL hash) scroll to top and expand the full-size chrome; hash/anchor targets leave scroll alone. Docs sidebar theme switch is disabled (`themeSwitch.enabled: false`) — theme lives only in the site nav. **Responsive:** the full nav row needs ~800px beside the logo, so below `lg` the links, social icons, and theme toggle move into `MobileNavMenu` (hamburger disclosure; panel is `absolute` inside the header, scrim portalled to `<body>` because the chrome's `backdrop-filter` is a containing block). The Sign in CTA stays in the bar down to 360px and lives only in the panel below that.
-- **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` for origins, `CONTROL_PLANE_SERVER_LABELS` for the Scalar server labels); helpers in `src/lib/env.ts` (`getControlPlaneBaseUrl`, `getControlPlaneServers`). Local website → `https://localhost:8443` (label `Local Dev`); marketing hosts map to TurboPanel High Availability (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. The Worker routes derive the same values from the request `Host`; there is no `API_HOSTNAMES` deployment variable (removed — add one back only for a genuine emergency override, and then re-thread it through `env.ts`).
+- **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` for origins, `CONTROL_PLANE_SERVER_LABELS` for the Scalar server labels); helpers in `src/lib/env.ts` (`getControlPlaneBaseUrl`, `getControlPlaneServers`). Local website → `https://localhost:8443` (label `Local Dev`); marketing hosts map to TurboPanel High Availability (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. The API routes derive the same values from the request `Host`; there is no `API_HOSTNAMES` deployment variable (removed — add one back only for a genuine emergency override, and then re-thread it through `env.ts`).
 - **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
 - **Docs typography:** MDX bodies **must** stay wrapped in Fumadocs' `DocsBody` (`src/app/docs/(main)/[[...slug]]/page.tsx`) — that wrapper is the only thing that applies the `prose` layer. Rendering the MDX directly inside `DocsPage` drops it, and headings collapse to 16px/400 while tables lose every border and cell padding. The TurboPanel treatment layered on top lives under `#nd-page .prose` in `globals.css` (display-font headings, ruled `h2` sections, banded tables, recessed code blocks, card blockquotes, framed diagrams). Target `.prose`, not `article` — `DocsPage` renders no `<article>`. Fumadocs tags **heading anchor links** with `data-card` as well as real `<Card>`s, so card rules must be scoped with `.block`.
 - **Code block labels:** `rehypeCodeOptions.addLanguageClass` (`source.config.ts`) keeps `language-*` on the inner `<code>`; `mdx-components.tsx` maps it to a human label and passes it as the block's `title`, which is what makes Fumadocs render the header bar. Add new languages to `LANGUAGE_LABELS` there.
@@ -285,38 +281,30 @@ website/
 - **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
 - **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`TurboPanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
 - **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
-- **`getApiBaseUrl`** / control-plane localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` are set on `turbopanel-website.service` by the daemon's `instance-launch` Ansible role). Wrangler (`INSTANCE_DEV_PORT`) is not browser-facing.
+- **`getApiBaseUrl`** / control-plane localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` are set on `turbopanel-website.service` by the daemon's `instance-launch` Ansible role). Wrangler is not browser-facing.
 - **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_UI_CORS_ORIGINS`** on the instance (Ansible injects it into `turbopanel-instance.service` on co-located dev).
 - **Scalar auth is surface-specific:** Client API docs use cookie auth only (`buildScalarCookieAuthentication`); Daemon API docs use Bearer JWT only (`buildScalarBearerAuthentication`). Pass an **array of configs** (one document each) to `ApiReferenceReact` / `Scalar.createApiReference` — do not use a shared `sources` list with both schemes in one `authentication` object (that lets users switch between cookie and Bearer on every surface).
 
-## Worker / limits
+## Production hosting (`alpha.turbopanel.net`)
 
-Node.js **runtime** on Workers (not Edge runtime). Size: check Wrangler compressed output after build. **Bindings:** see `wrangler.jsonc` (assets, images, self-reference).
+Vanilla Next.js 16 (`output: 'standalone'`, `node server.js`) behind Caddy with Let's Encrypt. Stopgap until the marketing site can be a TurboPanel native app. **Not** Cloudflare Workers / OpenNext.
 
-### Caching (cost + speed)
+Two Linux users on the box:
 
-This site is mostly SSG (marketing pages + Fumadocs with `generateStaticParams`). `open-next.config.ts` uses OpenNext’s **static-assets incremental cache** + **cache interception** so prerendered HTML is served from Workers Static Assets (free/unlimited requests) and cache hits skip loading Next.js page JS. Do **not** add R2 / KV / D1 / Durable Object queue bindings unless we introduce ISR or `revalidateTag` / `revalidatePath`.
+| User | Owns |
+| --- | --- |
+| **`alpha`** | Caddy, Let's Encrypt (`noc@turbopanel.io`), `alpha.turbopanel.net`, webhook HMAC secret, hook on `127.0.0.1:8790` |
+| **`website`** | Git clones, Next builds, three blue-green environments. Never reads `hook.env` |
 
-`public/_headers` sets immutable caching for `/_next/static/*`.
+Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in [`scripts/vps/`](./scripts/vps/README.md).
 
-**Cloudflare dashboard:** no extra resources to create for this caching path — only the existing Workers (`website`, `testing-website`, `staging-website`) and custom domains. `IMAGES` is declared for future `next/image` use; unused transforms cost nothing.
+**Branch map:** `trunk` → `testing.turbopanel.io`; `staging` → `staging.turbopanel.io`; `live` → `turbopanel.io` (`www` 301 to apex). GitHub push webhook: `https://alpha.turbopanel.net/hooks/github`.
 
-### Observability (Workers Logs)
+`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle.
 
-Sampling is **per environment** in `wrangler.jsonc` (named envs do not inherit top-level observability):
-
-| Env | `head_sampling_rate` | `invocation_logs` |
-| --- | --- | --- |
-| development (default) | `0.25` | on |
-| testing | `0.25` | on |
-| staging | `0.1` | on |
-| **live** | `0.01` | **off** |
-
-Live disables routine invocation logs so high traffic does not dominate Workers Logs cost; a 1% head sample still captures explicit `console.*` lines when diagnosis is needed.
-
-**Incident bump (live):** temporarily set `env.live.observability.logs.invocation_logs` to `true` and/or raise `head_sampling_rate` (e.g. `0.1`–`1`), redeploy (`pnpm deploy` / upload with `--env live`), gather logs, then restore the cheap defaults above and redeploy again. Do not leave elevated live sampling after the incident.
+Co-located Vagrant still runs `next dev` on `:19820` (`turbopanel-website.service`). Do not point contributor Vagrant at the VPS.
 
 ## Related
 
 - Fumadocs https://fumadocs.vercel.app
-- OpenNext Cloudflare https://opennext.js.org/cloudflare
+- Next.js standalone output https://nextjs.org/docs/app/building-your-application/deploying#nodejs-server
