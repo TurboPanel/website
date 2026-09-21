@@ -5,6 +5,10 @@ set -eu
 export PATH=/opt/node/current/bin:${PATH}
 export COREPACK_DEFAULT_TO_LATEST=0
 export COREPACK_ENABLE_AUTO_PIN=0
+export NEXT_TELEMETRY_DISABLED=1
+export TURBOPANEL_SKIP_TS_CHECK=1
+# 1 GiB RAM + swap: default heap is ~480 MiB and `next build` tsc OOMs.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1024}"
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
@@ -151,6 +155,20 @@ build_idle() {
   git -C "${clone}" fetch --prune origin
   git -C "${clone}" reset --hard "${sha}"
   git -C "${clone}" clean -fdx
+
+  # CI already typechecks. Skip Next's in-process tsc on this 1 GiB host.
+  cfg="${clone}/next.config.js"
+  if [ -f "${cfg}" ] && ! grep -q ignoreBuildErrors "${cfg}"; then
+    tmp="${cfg}.skipts"
+    awk '
+      /output: .standalone./ && !done {
+        print "    typescript: { ignoreBuildErrors: true },"
+        done = 1
+      }
+      { print }
+    ' "${cfg}" >"${tmp}"
+    mv "${tmp}" "${cfg}"
+  fi
 
   (
     cd "${clone}"

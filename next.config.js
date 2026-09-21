@@ -19,6 +19,11 @@ function createNextConfig(phase, { defaultConfig }) {
     },
     output: 'standalone',
     poweredByHeader: false,
+    // CI already typechecks. The 1 GiB VPS OOMs during `next build`'s tsc
+    // pass; deploy.sh sets TURBOPANEL_SKIP_TS_CHECK=1.
+    typescript: {
+      ignoreBuildErrors: process.env.TURBOPANEL_SKIP_TS_CHECK === '1',
+    },
     async headers() {
       // turbopanel.io hosts /security, the legal pages, the docs and the
       // waitlist form, and documents this very header set as a property of

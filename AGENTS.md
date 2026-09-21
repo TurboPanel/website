@@ -300,7 +300,7 @@ Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in 
 
 **Branch map:** `trunk` → `testing.turbopanel.io`; `staging` → `staging.turbopanel.io`; `live` → `turbopanel.io` (`www` 301 to apex). GitHub push webhook: `https://alpha.turbopanel.net/hooks/github`.
 
-`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle.
+`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle. The VPS is **1 GiB RAM**; `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` and a 1024 MiB Node heap so `next build` does not OOM during tsc (GitHub `verify` already typechecks).
 
 Co-located Vagrant still runs `next dev` on `:19820` (`turbopanel-website.service`). Do not point contributor Vagrant at the VPS.
 

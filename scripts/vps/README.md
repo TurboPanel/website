@@ -46,7 +46,7 @@ Then as root: `setcap cap_net_bind_service=+ep /home/alpha/.local/bin/caddy`
 systemctl --user enable --now caddy.service hook.service
 ```
 
-Confirm `https://alpha.turbopanel.net/health` before moving marketing DNS. Marketing site blocks in the Caddyfile log ACME failures until those A/AAAA records point here — expected.
+Confirm `https://alpha.turbopanel.net/health` before moving marketing DNS. Marketing site blocks in the Caddyfile log ACME failures until those A/AAAA records point here — expected. `www.turbopanel.io` needs its own A (or CNAME to apex); without it Let's Encrypt refuses that name and browsers that hit `www` get a TLS alert until the record exists.
 
 ## As `website`
 
@@ -71,3 +71,5 @@ Clones `sites/<env>/{blue,green}` from `git@github.com:TurboPanel/website.git` a
 `deploy.sh <env> <sha>` builds the idle color, probes `/health`, writes the Caddy `upstream` snippet, and leaves the old color running. Alpha then `caddy reload` and `deploy.sh --promote <env>` stops the previous color. A failed health check never rewrites the snippet and never reloads Caddy.
 
 `NEXT_PUBLIC_SITE_URL` is set at **build** time inside `deploy.sh`. Do not put it on the systemd unit.
+
+The box is **1 GiB RAM**. `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` (CI already ran `pnpm typecheck`) and `NODE_OPTIONS=--max-old-space-size=1024`. Do not run two env builds at once.
