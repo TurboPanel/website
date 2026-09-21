@@ -1,0 +1,94 @@
+---
+title: "Access, audit and configuration"
+description: "Data dictionary — access, audit and configuration tables: audit, grant, lease, setting"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Access, audit and configuration
+
+Authorization grants, the audit ledger, instance-wide settings and the global lease table the schedulers coordinate through.
+
+Tables on this page: [`audit`](#audit) · [`grant`](#grant) · [`lease`](#lease) · [`setting`](#setting). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `audit` [#audit]
+
+Append-only trail of security-relevant operator actions (rows never updated or deleted, no `updated_at`), written by `recordAudit` after the action succeeded.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization the action belongs to, which the org-scoped read filters on; null for an instance-wide action such as a superadmin editing an org-less forge. |
+| `actor_user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User who acted, SET NULL when the account is deleted; null only for an action the platform took on nobody's behalf, never for an operator action. |
+| `actor_email` | `text` | yes |  | Actor's email denormalised at write time so the trail still names who acted after the account is deleted. |
+| `action` | `text` | no |  | Dot-joined subject and verb from `AUDIT_ACTIONS` (such as `server.delete`, `grant.create`, `organization.acme.set`); a label only, not CHECKed so it can grow. |
+| `target_type` | `text` | no |  | What the action was done to: `organization`, `server`, `forge`, or the `entity_type` of the grant being created or deleted. |
+| `target_id` | `uuid` | yes |  | Id of the target row when there is one (server, forge, organization or grant entity); nullable and without an FK so the trail outlives the target. |
+| `context` | `jsonb` | yes |  | Small non-secret JSON facts kept beside the action, such as `purged`, `acmeEnabled`, `deployHooksEnabled` or the grant details; never a credential. |
+
+**Constraints and indexes**
+
+- Index `idx_audit_organization_created`: (`organization_id`, `created_at`)
+- Index `idx_audit_target`: (`target_type`, `target_id`)
+
+## `grant` [#grant]
+
+Allow-only ACL row: one positive grant of `permission` from a subject (`actor_type`, `actor_id`) on an entity; written by access routes, invitations, install.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `actor_type` | `text` | no |  | Subject kind holding the grant: `user`, `team` or `organization` (`SUBJECT_TYPES` in `src/client/authz/catalog.ts`). |
+| `actor_id` | `uuid` | no |  | Id of the subject row named by `actor_type` (a `user`, `team` or `organization` id); no FK because the referenced table varies. |
+| `entity_type` | `text` | no |  | Kind of the entity granted on: a resource-tree kind or `team` (`GRANT_ENTITY_TYPES`); `principal` and `repository` are deliberately excluded. |
+| `entity_id` | `uuid` | no |  | Id of the entity row named by `entity_type`; no FK because the referenced table varies, and ancestry is resolved from the domain tables at evaluation time. |
+| `permission` | `text` | no |  | Grantable permission key: `organization:own`, `organization:manage`, `team:own`, `team:manage`, `system:read` or `system:operate`; never `system:manage`. |
+
+**Constraints and indexes**
+
+- Unique `grant_unique`: (`entity_type`, `entity_id`, `actor_type`, `actor_id`, `permission`)
+- Index `idx_grant_entity`: (`entity_type`, `entity_id`)
+- Index `idx_grant_actor`: (`actor_type`, `actor_id`)
+- Check `grant_actor_type_check`: `actor_type IN ('user', 'team', 'organization')`
+- Check `grant_entity_type_check`: `entity_type IN ('organization', 'workspace', 'environment', 'project', 'service', 'server', 'hosting', 'variable', 'managed', 'container', 'tls', 'team')`
+
+## `lease` [#lease]
+
+Cross-isolate compare-and-swap lease: one row per `name` (plus organization for the billing lock) with an `owner` token and `expires_at`; four callers share it.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `name` | `text` | no |  | Lease name: `OFFLINE_SWEEP_LOCK`, `LEAF_RENEWAL_SWEEP_LOCK` and `REENCRYPT_SWEEP_LOCK` are global, `BILLING_QUANTITY_LOCK` is per organization. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Null for the three global leases, set for the per-organization `BILLING_QUANTITY_LOCK`; unique with `name` under NULLS NOT DISTINCT so one global row per name. |
+| `owner` | `text` | no |  | Random UUID minted by the holder and checked on every steal or release; empty string plus expired `expires_at` is a release tombstone (offline, leaf). |
+| `expires_at` | `timestamp(3) with time zone` | no |  | Moment the hold lapses and the row becomes stealable (TTL 60 s billing, 90 s offline sweep, 120 s leaf renewal and reencrypt); extended or reset by the holder. |
+| `cursor` | `jsonb` | yes |  | Keyset resume point (`notAfter`, `id`) written only by the leaf-renewal sweep and compared on every steal with `owner` and `expires_at`; null elsewhere. |
+
+**Constraints and indexes**
+
+- Unique `uniq_lease_name_organization`: (`name`, `organization_id`)
+
+## `setting` [#setting]
+
+Instance-wide key/value store: one row per upper-case `key` with a JSON `value`, written by the settings resolvers, install state and the billing side-ledgers.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `key` | `text` | no |  | Unique upper-case key such as `SYSTEM_EMAIL`, `SYSTEM_AUTH_PROVIDERS`, `IS_SIGNUP_ENABLED`, or `BILLING_PENDING_CHANGES:` followed by an organization id. |
+| `value` | `jsonb` | no |  | JSON value for the key (scalar, array or object); any secret inside it is stored only as a sealed `tpsecret` envelope, never in plaintext. |
+
+**Constraints and indexes**
+
+- Unique `setting_key_unique`: (`key`)

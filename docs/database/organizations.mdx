@@ -1,0 +1,184 @@
+---
+title: "Organizations"
+description: "Data dictionary — organizations tables: changeover, invitation, leaf, organization, team, teammate, tls"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Organizations
+
+The tenant boundary. Organizations own every other resource; teams and teammates carry membership; the TLS tables hold the Organization CA and its rotations.
+
+Tables on this page: [`changeover`](#changeover) · [`invitation`](#invitation) · [`leaf`](#leaf) · [`organization`](#organization) · [`team`](#team) · [`teammate`](#teammate) · [`tls`](#tls). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `changeover` [#changeover]
+
+Journal row for one Organization CA rotation (at most one `in_progress` per org); never deleted, it is the audit trail and resume state of the fan-out.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Fan-out resume state written between passes: `resumeAfterManagedId` keyset cursor and `needsRedeploy` server/environment pairs. |
+| `options` | `jsonb` | yes |  | Pairing jsonb; never written by the changeover code, stays null. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning org; the partial unique index allows one `in_progress` row per org, which is what makes the row act as the rotation lease. |
+| `from_ca_generation` | `integer` | no | `0` | Generation that was active when the rotation minted its successor; 0 until the mint step has run. |
+| `to_ca_generation` | `integer` | no | `0` | New active generation minted by this rotation; 0 until minted, and a non-zero value lets a repeated request resume fan-out. |
+| `state` | `text` | no |  | `in_progress` (lease held), then `awaiting_retire` once fan-out converged, then `completed` when the old generation is retired, or `failed`. |
+| `started_at` | `timestamp(3) with time zone` | no | `now()` | When the lease was taken; reset when a stale in-progress row (older than 15 min) is stolen by another isolate. |
+| `completed_at` | `timestamp(3) with time zone` | yes |  | Set by the retire step together with `state` = `completed`; null otherwise and cleared when a stale row is stolen. |
+| `results` | `jsonb` | yes | `'[]'::jsonb` | Array of per-server fan-out rows with `serverId`, `kind` (`ingress`, `apply` or `binding`), `managedId`, `commandId`, `status` and `error`. |
+
+**Constraints and indexes**
+
+- Index `idx_changeover_organization_id`: (`organization_id`)
+- Unique index `uniq_changeover_inflight_organization`: (`organization_id`) where `"changeover"."state" = 'in_progress'`
+- Check `changeover_state_check`: `"changeover"."state" IN ('in_progress','awaiting_retire','completed','failed')`
+
+## `invitation` [#invitation]
+
+Team-scoped invite emailed to an address; one pending per (team, email) with a 7-day link, turned into a `teammate` row plus grants on accept.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). The inviter (a manager of the team), not the invitee; the invitee is known only by `email` until accept. |
+| `team_id` | `uuid` | no |  | FK → [`team`](/docs/database/organizations#team).`id` (on delete cascade). Team the invitee joins on accept; there is no `organization_id`, the organization is derived through the team. |
+| `expires_at` | `timestamp(3) with time zone` | no |  | Creation time + 7 days; `status` is not flipped on expiry, readers compare this column against now. |
+| `email` | `varchar(255)` | no |  | Invited address; accept succeeds only for a signed-in account whose email equals it case-insensitively. |
+| `status` | `text` | no |  | `pending` at creation, then `accepted` by the accept route or `revoked` by the revoke route; expiry is not a status. |
+| `grants` | `jsonb` | yes |  | Array of `entityType` / `entityId` / `permissionKey` specs an owner attached, or null for the default `organization:manage`; written as `grant` rows on accept. |
+
+**Constraints and indexes**
+
+- Index `idx_invitation_email`: (`email`)
+- Index `idx_invitation_user_id`: (`user_id`)
+- Index `idx_invitation_team_id`: (`team_id`)
+- Check `invitation_status_check`: `status IN ('pending', 'accepted', 'revoked')`
+
+## `leaf` [#leaf]
+
+Tracking row per deployed Organization-CA-signed leaf (`ingress` per server, `engine` per replica); upserted after apply succeeds, keeps no history.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). Host the leaf is deployed on; unique per server for `ingress` rows. |
+| `kind` | `text` | no |  | `ingress` (ProxySQL frontend leaf on a server) or `engine` (a cluster replica's engine leaf). |
+| `managed_id` | `uuid` | yes |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). Engine leaves only: the managed cluster that owns the replica; must be null on `ingress` rows. |
+| `replica_id` | `uuid` | yes |  | FK → [`replica`](/docs/database/managed#replica).`id` (on delete cascade). Engine leaves only: the replica whose leaf this tracks, unique per replica; must be null on `ingress` rows. |
+| `ca_id` | `uuid` | no |  | FK → [`tls`](/docs/database/organizations#tls).`id` (on delete cascade). The `tls` Organization CA row that signed the leaf; the row is cascade-deleted with that CA. |
+| `ca_generation` | `integer` | no |  | Generation of the signing CA at issue time; a mismatch with the active generation makes the leaf due for renewal. |
+| `not_after` | `timestamp(3) with time zone` | no |  | Leaf expiry (90-day lifetime); the renewal sweep treats a leaf as due when less than a third of its lifetime remains. |
+| `issued_at` | `timestamp(3) with time zone` | no | `now()` | When the leaf was minted; refreshed on every re-issue upsert. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+
+**Constraints and indexes**
+
+- Index `idx_leaf_not_after`: (`not_after`)
+- Index `idx_leaf_organization_id`: (`organization_id`)
+- Index `idx_leaf_ca_id`: (`ca_id`)
+- Index `idx_leaf_managed_id`: (`managed_id`)
+- Index `idx_leaf_server_id`: (`server_id`)
+- Unique index `uniq_leaf_ingress_server`: (`server_id`) where `"leaf"."kind" = 'ingress'`
+- Unique index `uniq_leaf_engine_replica`: (`replica_id`) where `"leaf"."kind" = 'engine'`
+- Check `leaf_kind_check`: `"leaf"."kind" IN ('ingress','engine')`
+- Check `leaf_kind_keys_check`: `(
+        ("leaf"."kind" = 'ingress' AND "leaf"."replica_id" IS NULL AND "leaf"."managed_id" IS NULL)
+        OR
+        ("leaf"."kind" = 'engine' AND "leaf"."replica_id" IS NOT NULL AND "leaf"."managed_id" IS NOT NULL)
+      )`
+
+## `organization` [#organization]
+
+Tenant organization; one is created by the install wizard and by every sign-up, its members come through teams, and `options` holds org-wide defaults.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Reserved pairing jsonb with no first-party reader or writer today; stays null. |
+| `options` | `jsonb` | yes |  | Org-wide settings merged key-by-key by the organization PATCH routes (`defaultServerTimezone`, `maxServers`, `acmeEnabled`, `managedDatabase` and more). |
+| `name` | `text` | yes |  | Display name; `My Organization` when sign-up gives none, otherwise set by the install wizard or PATCH `/organizations/:id`. |
+
+## `team` [#team]
+
+Team within an organization; every org gets a `Default Team` at creation, and membership in any of its teams is what makes a user an org member.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Reserved pairing jsonb with no first-party reader or writer today; stays null. |
+| `options` | `jsonb` | yes |  | Reserved pairing jsonb with no first-party reader or writer today; stays null. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `name` | `text` | yes |  | Display label of 1-255 chars, `Default Team` for the team created with the organization; no route creates or renames teams today. |
+
+**Constraints and indexes**
+
+- Index `idx_team_organization_id`: (`organization_id`)
+- Check `team_name_format_check`: `(name IS NULL) OR ((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255))`
+
+## `teammate` [#teammate]
+
+User-to-team membership row (unique per pair), the source of truth for organization membership; written at org creation and on invitation accept.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `team_id` | `uuid` | no |  | FK → [`team`](/docs/database/organizations#team).`id` (on delete cascade). Team joined; unique together with `user_id`, and organization membership is derived through `team.organization_id` rather than stored here. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). |
+
+**Constraints and indexes**
+
+- Unique `teammate_team_user_unique`: (`team_id`, `user_id`)
+- Index `idx_teammate_team_id`: (`team_id`)
+- Index `idx_teammate_user_id`: (`user_id`)
+
+## `tls` [#tls]
+
+Per-organization TLS library: uploaded, Let's Encrypt, self-signed certificates and the Organization CA generations; `hosting.tls_id` pins rows by id.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Certificate facts not promoted to columns: `dnsNames`, `hasWildcard`, `notBefore`, `subject`, `issuer` and `acme` (`challengeType`, `managedBy`, `lastError`). |
+| `options` | `jsonb` | yes |  | Operator knobs: `prefer` (pin priority), `autoRenew`, and `requestedHostnames` asked for on Let's Encrypt or self-signed create; null on Organization CA rows. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `name` | `text` | yes |  | Operator label of 1-255 letters, digits, space, dot, underscore or dash; fixed `Organization CA` on CA rows. |
+| `source` | `text` | no |  | `upload`, `lets_encrypt` (Caddy-managed ACME on the host), `self_signed` or `organization_ca`; decides which other columns are meaningful. |
+| `certificate_pem` | `text` | yes |  | Leaf plus intermediate chain PEM; null on `lets_encrypt` rows because Caddy issues and holds the certificate on the serving host. |
+| `private_key_pem` | `text` | yes |  | Private key PEM sealed as a `tpsecret` envelope, never returned by the client API; null on `lets_encrypt` rows. |
+| `status` | `text` | no | `'ready'` | Row health `ready`, `pending`, `expired`, `failed`, `revoked` or `managed` (Caddy ACME intent); `expired` is derived at read from `not_after`, others stored. |
+| `not_after` | `timestamp(3) with time zone` | yes |  | Certificate expiry parsed from the PEM at write; epoch-0 placeholder on `managed` rows; indexed for expiry checks. |
+| `fingerprint_sha256` | `text` | yes |  | SHA-256 fingerprint of the leaf DER, unique per organization when set; null on `managed` rows that have no certificate yet. |
+| `ca_state` | `text` | yes |  | Organization CA lifecycle `active` (one per org), `retired` (still in the trust bundle) or `revoked`; null on non-CA rows. |
+| `ca_generation` | `integer` | yes |  | Monotonic per-org counter (max + 1) assigned when a CA is minted; leaves record which generation signed them; null on non-CA rows. |
+
+**Constraints and indexes**
+
+- Index `idx_tls_organization_id`: (`organization_id`)
+- Index `idx_tls_not_after`: (`not_after`)
+- Unique index `uniq_tls_organization_fingerprint_sha256`: (`organization_id`, `fingerprint_sha256`) where `"tls"."fingerprint_sha256" IS NOT NULL`
+- Unique index `uniq_tls_organization_active_ca`: (`organization_id`) where `"tls"."source" = 'organization_ca' AND "tls"."ca_state" = 'active'`
+- Index `idx_tls_organization_ca_generation`: (`organization_id`, `ca_generation`) where `"tls"."source" = 'organization_ca'`
+- Check `tls_source_check`: `source IN ('upload', 'lets_encrypt', 'self_signed', 'organization_ca')`
+- Check `tls_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+- Check `tls_ca_state_check`: `ca_state IS NULL OR ca_state IN ('active', 'retired', 'revoked')`
+- Check `tls_ca_lifecycle_source_check`: `(source = 'organization_ca' AND ca_state IS NOT NULL) OR (source <> 'organization_ca' AND ca_state IS NULL AND ca_generation IS NULL)`
+- Check `tls_ca_generation_source_check`: `ca_generation IS NULL OR source = 'organization_ca'`
+- Check `tls_ca_generation_required_check`: `ca_state IS NULL OR ca_state = 'revoked' OR ca_generation IS NOT NULL`
+- Check `tls_status_check`: `status IN ('ready', 'pending', 'expired', 'failed', 'revoked', 'managed')`

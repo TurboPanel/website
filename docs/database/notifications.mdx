@@ -1,0 +1,116 @@
+---
+title: "Notifications"
+description: "Data dictionary — notifications tables: attempt, channel, notification, rule"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Notifications
+
+The notification catalogue rows, delivery channels, routing rules and per-channel attempts.
+
+Tables on this page: [`attempt`](#attempt) · [`channel`](#channel) · [`notification`](#notification) · [`rule`](#rule). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `attempt` [#attempt]
+
+Delivery-attempt ledger: one row per event per routed channel, inserted before the send so a crash leaves a pending row; retried by the maintenance tick.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `channel_id` | `uuid` | no |  | FK → [`channel`](/docs/database/notifications#channel).`id` (on delete cascade). |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization the event belongs to; NULL for an instance-scoped event. |
+| `event` | `text` | no |  | Catalogue code (`NOTIFICATION_EVENTS`), same vocabulary as `notification.event`. |
+| `severity` | `text` | no |  | `info`, `warning` or `critical`, copied from the event's catalogue definition. |
+| `payload` | `jsonb` | yes |  | Rendered non-secret message as JSON: `event`, `severity`, `title`, `body`, `organizationId`, `organizationName`, `targetType`, `targetId`, `context`, `at`. |
+| `status` | `text` | no | `'pending'` | `pending` (default, not yet sent), `sent`, `failed` (retry due) or `abandoned` (after 5 failed attempts); retries pick up `pending` and `failed`. |
+| `attempts` | `integer` | no | `0` | Number of send attempts so far, bumped in SQL by the sender; the row is abandoned once it reaches 5. |
+| `next_attempt_at` | `timestamp(3) with time zone` | yes |  | Earliest time the retry sweep may pick the row up: now plus 2 min grace on insert, then backoff of 1, 5, 25 and 125 min; NULL once sent. |
+| `sent_at` | `timestamp(3) with time zone` | yes |  | When a send succeeded; NULL until then. |
+| `last_error` | `text` | yes |  | Short failure code from the last attempt (`http_503`, `timeout`, `network`, `address_scheme_not_https`), never a body or the address. |
+
+**Constraints and indexes**
+
+- Index `idx_attempt_pending`: (`status`, `next_attempt_at`)
+- Index `idx_attempt_channel_created`: (`channel_id`, `created_at`)
+- Check `attempt_event_check`: `event IN ('server.offline', 'fleet.mass_disconnect', 'server.deleted', 'server.daemon_key_revoked', 'access.grant_created', 'access.grant_revoked')`
+- Check `attempt_severity_check`: `severity IN ('info', 'warning', 'critical')`
+- Check `attempt_status_check`: `status IN ('pending', 'sent', 'failed', 'abandoned')`
+
+## `channel` [#channel]
+
+An address notifications can be delivered to, owned by the instance, one organization or one user per `scope`; addresses of secret kinds are sealed.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `scope` | `text` | no |  | Owner kind: `instance`, `organization` or `user`; the owner columns must agree with it (CHECK). |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning organization, set only when `scope` is `organization` and NULL otherwise. |
+| `user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). Owning user, set only when `scope` is `user`; a personal channel follows the user across organizations. |
+| `kind` | `text` | no |  | Transport: `email`, `webhook`, `slack`, `discord`, `telegram` or `push` (push is registered by the store apps, never typed). |
+| `label` | `text` | no |  | Owner-chosen display name such as 'Ops Slack'. |
+| `address` | `text` | no |  | Delivery address: plain for `email`, else a sealed `tpsecret` envelope (webhook, Slack or Discord URL, Telegram `token/chatId`, push token). |
+| `signing_secret` | `text` | yes |  | Sealed `tpsecret` HMAC key for the generic `webhook` kind (`X-TurboPanel-Signature: sha256=...`); NULL for other kinds. |
+| `verified_at` | `timestamp(3) with time zone` | yes |  | When the address was confirmed; stamped at creation for own or member emails, NULL means unverified and email delivery is skipped. |
+| `disabled_at` | `timestamp(3) with time zone` | yes |  | Set when the owner pauses the channel; it keeps its rules but receives nothing until resumed. |
+| `created_by_user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User whose session created the channel (provenance, set NULL on user delete); differs from `user_id` for org and instance channels. |
+
+**Constraints and indexes**
+
+- Index `idx_channel_organization`: (`organization_id`)
+- Index `idx_channel_user`: (`user_id`)
+- Check `channel_scope_check`: `scope IN ('instance', 'organization', 'user')`
+- Check `channel_kind_check`: `kind IN ('email', 'webhook', 'slack', 'discord', 'telegram', 'push')`
+- Check `channel_owner_check`: `(scope = 'instance' AND organization_id IS NULL AND user_id IS NULL) OR (scope = 'organization' AND organization_id IS NOT NULL AND user_id IS NULL) OR (scope = 'user' AND user_id IS NOT NULL AND organization_id IS NULL)`
+
+## `notification` [#notification]
+
+One bell inbox row per event per recipient user, written by `emitNotification` for every member or manager the event's audience names.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). Recipient of the inbox row; one row per person the event reached, chosen by the event's audience (members or managers). |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization the event belongs to; NULL for an instance-scoped event such as `fleet.mass_disconnect`. |
+| `event` | `text` | no |  | Catalogue code (`NOTIFICATION_EVENTS`): `server.offline`, `fleet.mass_disconnect`, `server.deleted`, `server.daemon_key_revoked`, `access.grant_*`. |
+| `severity` | `text` | no |  | `info`, `warning` or `critical`, copied from the event's catalogue definition. |
+| `title` | `text` | no |  | One-line sentence rendered from the catalogue's title template at emit time; also the email subject. |
+| `body` | `text` | yes |  | Fuller sentence rendered from the catalogue's body template; NULL when the event defines none. |
+| `target_type` | `text` | yes |  | Catalog entity kind the event is about (`server`, or a grant's entity type) so the bell can link to it; NULL when there is no target. |
+| `target_id` | `uuid` | yes |  | UUID of the `target_type` entity; not a foreign key, so it may outlive the entity. |
+| `context` | `jsonb` | yes |  | Small non-secret facts the sentence was rendered from, such as `serverName`, `lastSeenAt`, `count`, `actorEmail`, `permissionKey`, `subjectKind`, `subjectId`. |
+| `read_at` | `timestamp(3) with time zone` | yes |  | When the recipient marked it read (Mark all read); NULL while unread and counted in the badge. |
+| `dismissed_at` | `timestamp(3) with time zone` | yes |  | When the recipient dismissed the row from the bell; NULL while it is still shown. |
+
+**Constraints and indexes**
+
+- Index `idx_notification_user_created`: (`user_id`, `created_at`)
+- Check `notification_event_check`: `event IN ('server.offline', 'fleet.mass_disconnect', 'server.deleted', 'server.daemon_key_revoked', 'access.grant_created', 'access.grant_revoked')`
+- Check `notification_severity_check`: `severity IN ('info', 'warning', 'critical')`
+
+## `rule` [#rule]
+
+Subscription row saying which event (or `*`) reaches a channel at or above a severity floor; a channel with no rule receives nothing.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `channel_id` | `uuid` | no |  | FK → [`channel`](/docs/database/notifications#channel).`id` (on delete cascade). |
+| `event` | `text` | no |  | One catalogue event code, or `*` for every event; unique per channel. |
+| `min_severity` | `text` | no | `'info'` | Severity floor `info` (default), `warning` or `critical`; delivered only when the event's severity ranks at or above it. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_rule_channel_event`: (`channel_id`, `event`)
+- Check `rule_event_check`: `event IN ('*', 'server.offline', 'fleet.mass_disconnect', 'server.deleted', 'server.daemon_key_revoked', 'access.grant_created', 'access.grant_revoked')`
+- Check `rule_min_severity_check`: `min_severity IN ('info', 'warning', 'critical')`

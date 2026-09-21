@@ -1,0 +1,126 @@
+---
+title: "Managed databases"
+description: "Data dictionary — managed databases tables: backup, managed, recovery, replica"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Managed databases
+
+Managed database instances, their replicas, backups and recovery runs.
+
+Tables on this page: [`backup`](#backup) · [`managed`](#managed) · [`recovery`](#recovery) · [`replica`](#replica). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `backup` [#backup]
+
+One completed managed-engine backup artifact recorded from the daemon's `managed.backup` result; unique per (managed_id, backup_id), cascades with the cluster.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `managed_id` | `uuid` | no |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
+| `backup_id` | `text` | no |  | Daemon-minted `bk_` plus hex token that is also the artifact filename on the host; unique per managed engine, not globally. |
+| `size_bytes` | `bigint` | no |  | Artifact size in bytes as reported by the daemon after writing the dump; re-checked before a restore. |
+| `checksum` | `text` | no |  | Lowercase SHA-256 hex digest of the artifact computed by the daemon; a restore refuses on mismatch. |
+| `database` | `text` | yes |  | Database name for a single-database backup; null for an instance-scope backup. |
+| `path` | `text` | no |  | Absolute artifact path on the primary server's filesystem as reported by the daemon. |
+
+**Constraints and indexes**
+
+- Index `idx_backup_managed_id_created_at`: (`managed_id`, `created_at`)
+- Unique index `uniq_backup_managed_backup_id`: (`managed_id`, `backup_id`)
+- Check `backup_id_format_check`: `backup_id ~ '^[A-Za-z0-9_-]+$'`
+- Check `backup_checksum_format_check`: `checksum ~ '^[a-f0-9]{64}$'`
+- Check `backup_size_bytes_check`: `size_bytes >= 0`
+
+## `managed` [#managed]
+
+One managed database cluster per environment (1:1 via unique environment_id); created by the managed create route, status projected by the command consumer.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Residual cluster facts: `rootPrincipalId` and `rootUsername` set at create, plus `host`, `port` and `error` written by the command consumer from daemon results. |
+| `options` | `jsonb` | yes |  | Operator settings jsonb with keys `settings` (engine ManagedSettings) and `databases` (string array), written by the managed routes and parsed per engine spec. |
+| `environment_id` | `uuid` | no |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete cascade). Owning environment; exactly one managed row per environment (unique index), cascade-deleted with it. |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Placement pin of the primary member's host, copied from the environment at create and re-set by the consumer only on a primary-member apply success. |
+| `name` | `text` | yes |  | Operator label for the cluster (1-255 chars of letters, digits, space, dot, underscore, hyphen); null when unnamed. |
+| `engine` | `text` | no |  | Catalog engine code set once at create from ManagedEngineSpec: `postgres`, `mysql`, `mariadb`, `redis` or `clickhouse` (only the first three are creatable). |
+| `status` | `text` | yes |  | Lifecycle state: `provisioning` at create, `applying` while a command is queued, then daemon-observed `ready`, `stopped` or `failed` projected by the consumer. |
+
+**Constraints and indexes**
+
+- Index `idx_managed_environment_id`: (`environment_id`)
+- Index `idx_managed_server_id`: (`server_id`)
+- Index `idx_managed_engine`: (`engine`)
+- Unique index `managed_environment_id_unique`: (`environment_id`)
+- Check `managed_name_format_check`: `("managed"."name" IS NULL) OR (((char_length(("managed"."name")::text) >= 1) AND (char_length(("managed"."name")::text) <= 255)) AND (("managed"."name")::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+- Check `managed_status_check`: `status IS NULL OR status IN ('provisioning','applying','ready','stopped','failed')`
+
+## `recovery` [#recovery]
+
+Durable HA journal entry for one managed cluster recovery (failover, switchover or DR); at most one non-terminal row per managed_id, written by the HA flow.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Fencing and progress facts: `fencingEpoch`, `fenceCommandIds`, `promoteCommandId`, `haPresent`, `fenced`, `drainApplied`, `lagBytes`, `blockedReason`. |
+| `options` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `managed_id` | `uuid` | no |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
+| `kind` | `text` | no |  | `automatic-failover`, `switchover` (planned promotion of a failover replica) or `disaster-recovery` (promotion of a remote read replica). |
+| `source_primary_member_id` | `uuid` | no |  | `replica.id` of the primary being replaced, stored without an FK so deleting the member cannot block the journal. |
+| `target_member_id` | `uuid` | yes |  | `replica.id` of the member being promoted, stored without an FK; null when an automatic failover was `blocked` with no eligible candidate. |
+| `state` | `text` | no |  | Journal phase: `detecting`, `fencing`, `promoting`, `repointing`, `reconciling-ingress`, `verifying`, then terminal `completed`, `failed` or `blocked`. |
+| `started_at` | `timestamp(3) with time zone` | no | `now()` | When the recovery was opened; set explicitly by `insertRecovery` together with the initial state. |
+| `completed_at` | `timestamp(3) with time zone` | yes |  | When the recovery reached a terminal state; null while still in flight. |
+
+**Constraints and indexes**
+
+- Index `idx_recovery_managed_id`: (`managed_id`)
+- Unique index `uniq_recovery_inflight_managed`: (`managed_id`) where `"recovery"."state" NOT IN ('completed','failed','blocked')`
+- Check `recovery_kind_check`: `"recovery"."kind" IN ('automatic-failover','switchover','disaster-recovery')`
+- Check `recovery_state_check`: `"recovery"."state" IN ('detecting','fencing','promoting','repointing','reconciling-ingress','verifying','completed','failed','blocked')`
+
+## `replica` [#replica]
+
+One server's membership in a managed cluster (primary plus replicas); exactly one `primary` per managed_id, written by the member lifecycle and the consumer.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Daemon-observed `replication` health (`state`, `observedAt`, optional `lagBytes`, `lagSeconds`) written by the consumer after apply and lifecycle commands. |
+| `options` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `managed_id` | `uuid` | no |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Host running this member; one member per server per cluster and a private port is unique per server; deleting the server is restricted. |
+| `role` | `text` | no | `'primary'` | `primary` or `replica`; a partial unique index allows one primary per cluster and the consumer swaps roles on promote and failover. |
+| `replica_class` | `text` | yes |  | `failover` (same datacenter, promotable) or `read` (any org server, never auto-promoted); null on the primary and ignored when role is primary. |
+| `is_read_eligible` | `boolean` | no | `false` | Whether the listener may route read-only logins to this member; true on the primary, operator-chosen on replicas (API field `readEligible`). |
+| `ordinal` | `integer` | no | `1` | 1-based member ordinal, unique per cluster; the primary is 1 and it mirrors the engine service's container ordinal. |
+| `replication_transport` | `text` | yes |  | Resolved private path from this member to the primary: `local`, `datacenter`, `fabric` or `public`; null until resolved or on the primary. |
+| `private_port` | `integer` | yes |  | Host port 45000-45999 published on the member's private address for replication and ProxySQL backends; allocated per server, null for single-member clusters. |
+| `status` | `text` | yes |  | Per-member state: `provisioning`, `applying`, `ready`, `stopped`, `failed` or `needs_resync` (set on demote or a failed fence, never auto-cleared). |
+
+**Constraints and indexes**
+
+- Unique `uniq_replica_managed_ordinal`: (`managed_id`, `ordinal`)
+- Unique `uniq_replica_managed_server`: (`managed_id`, `server_id`)
+- Index `idx_replica_managed_id`: (`managed_id`)
+- Index `idx_replica_server_id`: (`server_id`)
+- Unique index `uniq_replica_primary`: (`managed_id`) where `"replica"."role" = 'primary'`
+- Unique index `uniq_replica_server_private_port`: (`server_id`, `private_port`) where `"replica"."private_port" IS NOT NULL`
+- Check `replica_role_check`: `"replica"."role" IN ('primary','replica')`
+- Check `replica_replica_class_check`: `"replica"."replica_class" IS NULL OR "replica"."replica_class" IN ('failover','read')`
+- Check `replica_ordinal_positive_check`: `"replica"."ordinal" >= 1`
+- Check `replica_transport_check`: `"replica"."replication_transport" IS NULL OR "replica"."replication_transport" IN ('local','fabric','datacenter','public')`
+- Check `replica_status_check`: `status IS NULL OR status IN ('provisioning','applying','ready','stopped','failed','needs_resync')`

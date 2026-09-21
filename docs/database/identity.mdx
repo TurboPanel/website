@@ -1,0 +1,144 @@
+---
+title: "Identity"
+description: "Data dictionary — identity tables: 2fa, account, passkey, session, user, verification"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Identity
+
+Who a person is to the control plane: the Better Auth-compatible user, credential, session and verification tables.
+
+Tables on this page: [`2fa`](#2fa) · [`account`](#account) · [`passkey`](#passkey) · [`session`](#session) · [`user`](#user) · [`verification`](#verification). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `2fa` [#2fa]
+
+TOTP enrolment for a user, at most one row per user (`uniq_2fa_user_id`); inserted or reset on enable, verified once, and deleted when two-factor is disabled.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). Enrolled user; unique, so re-enabling resets the existing row instead of adding one, and disable deletes it. |
+| `secret` | `text` | no |  | TOTP shared secret sealed as a `tpsecret` envelope with the data-encryption key; never plaintext and never returned after enrolment. |
+| `is_verified` | `boolean` | no | `false` | False until the user proves the first six-digit code; only a verified row turns on `user.is_2fa_enabled` and receives backup codes. |
+| `backup_codes` | `text` | no |  | JSON array of HMAC verifier envelopes (`tpotp.vN.hex`) for the ten one-time backup codes, `[]` until verified; a used code is removed from the array. |
+
+**Constraints and indexes**
+
+- Unique `uniq_2fa_user_id`: (`user_id`)
+- Index `idx_2fa_user_id`: (`user_id`)
+
+## `account` [#account]
+
+One sign-in credential per user and provider: the local password account (`credential`) or a linked GitHub/Google identity; unique on provider plus subject.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). |
+| `provider_id` | `text` | no |  | `credential` for the local password account, or the OAuth provider id `github` or `google` for a linked identity. |
+| `provider_user_id` | `text` | no |  | Provider-side subject: the user's own uuid on `credential` rows, else the GitHub/Google account id; unique together with `provider_id`. |
+| `access_token` | `text` | yes |  | Reserved OAuth column; the provider flow deliberately writes null and never persists provider tokens. |
+| `refresh_token` | `text` | yes |  | Reserved OAuth column; the provider flow deliberately writes null and never persists provider tokens. |
+| `id_token` | `text` | yes |  | Reserved OAuth column; the provider flow deliberately writes null and never persists provider tokens. |
+| `access_token_expires_at` | `timestamp(3) with time zone` | yes |  | Reserved OAuth column; never written by any first-party code path. |
+| `refresh_token_expires_at` | `timestamp(3) with time zone` | yes |  | Reserved OAuth column; never written by any first-party code path. |
+| `scope` | `text` | yes |  | Reserved OAuth column; never written by any first-party code path. |
+| `password` | `text` | yes |  | Argon2id PHC-format hash (`$argon2id$v=19$m=N,t=N,p=N$salt$digest`) on `credential` rows, set at sign-up, install and password reset; null on OAuth rows. |
+
+**Constraints and indexes**
+
+- Unique `uniq_account_provider_user`: (`provider_id`, `provider_user_id`)
+- Index `idx_account_user_id`: (`user_id`)
+
+## `passkey` [#passkey]
+
+One WebAuthn credential registered by a user (several per user allowed), unique by `credential_id`; inserted at registration, updated on each passkey sign-in.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). |
+| `aaguid` | `text` | yes |  | Authenticator model AAGUID decoded from the attestation as a dashed lowercase UUID string; identifies the make, not the individual key. |
+| `name` | `text` | yes |  | User-chosen label given at registration (the device or authenticator it lives on); shown in the Security screen, never used for matching. |
+| `public_key` | `text` | no |  | Credential public key as a JSON-serialised JWK (ES256 or RS256) converted from the attestation's COSE key; verifies sign-in assertions. |
+| `credential_id` | `text` | no |  | Base64url credential id from the attestation; unique across the instance and the lookup key for passkey sign-in. |
+| `counter` | `bigint` | no | `0` | Authenticator signature counter from the last accepted assertion; a lower value rejects the sign-in (clone detection) and updates are compare-and-swap. |
+| `device_type` | `varchar(32)` | no |  | `multiDevice` when the attestation flags the credential backup-eligible, else `singleDevice`; derived once at registration. |
+| `is_backed_up` | `boolean` | no |  | Backup-state flag from the attestation (credential synced by its provider); with `device_type` it drives the Synced / Multi-device / This device label. |
+| `transports` | `text` | yes |  | JSON array string of WebAuthn transports reported at registration (for example `internal`, `usb`, `hybrid`), or null when none were reported. |
+
+**Constraints and indexes**
+
+- Unique `uniq_passkey_credential_id`: (`credential_id`)
+- Index `idx_passkey_user_id`: (`user_id`)
+
+## `session` [#session]
+
+One row per signed-in session keyed by the opaque cookie `token`; rows are deleted (never extended) on sign-out or security changes and ignored once expired.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `user_id` | `uuid` | no |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). |
+| `expires_at` | `timestamp(3) with time zone` | no |  | Fixed at creation to now + 7 days (`SESSION_EXPIRES_IN_MS`); never extended, and lookups treat rows past it as absent. |
+| `token` | `text` | no |  | Opaque server-generated value, 32 random bytes base64url-encoded; unique, carried by the session cookie and matched verbatim. |
+| `ip_address` | `varchar(45)` | yes |  | Client address captured at sign-in as IPv4 or IPv6 text (hence 45 chars); informational only, null when unknown. |
+| `user_agent` | `text` | yes |  | Browser UA request header captured at sign-in; informational only, null when unknown. |
+
+**Constraints and indexes**
+
+- Unique `session_token_unique`: (`token`)
+- Index `idx_session_user_id`: (`user_id`)
+
+## `user` [#user]
+
+One row per person who can sign in to the instance, keyed by unique `email`; created by password sign-up, OTP sign-in, OAuth sign-up or the install wizard.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Reserved pairing jsonb with no first-party reader or writer today; stays null. |
+| `options` | `jsonb` | yes |  | Reserved pairing jsonb with no first-party reader or writer today; stays null. |
+| `name` | `varchar(255)` | yes |  | Optional display name copied at creation from the OAuth profile or the OTP sign-in form (1-255 chars); absent on password sign-up and never edited later. |
+| `email` | `varchar(255)` | no |  | Unique sign-in address, trimmed at write; the identity that accounts, sessions, OTP flows and invitation accepts are matched against. |
+| `is_email_verified` | `boolean` | no | `false` | True once the address is proven: set at creation by OTP or OAuth sign-up and the install wizard, or later by the verify-email link and OTP routes. |
+| `is_2fa_enabled` | `boolean` | no | `false` | Derived flag kept in step with the `2fa` row: set true when TOTP enrolment is verified and false when two-factor is disabled. |
+| `is_disabled` | `boolean` | no | `false` | Sign-in gate read by every authn path (password, OTP, passkey, OAuth) and refused with `account_disabled`; no control-plane route writes it today. |
+| `role` | `text` | no | `'user'` | Instance role `user`, `admin` or `superadmin`; sign-ups get `user`, the install wizard mints the one `superadmin`, and admins bypass org grants. |
+
+**Constraints and indexes**
+
+- Unique `user_email_unique`: (`email`)
+- Check `user_name_format_check`: `(name IS NULL) OR ((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255))`
+- Check `user_role_check`: `role IN ('user', 'admin', 'superadmin')`
+
+## `verification` [#verification]
+
+Short-lived email verification tokens and OTP verifiers keyed by unique `identifier`; rows are upserted per purpose and deleted or left to expire on use.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `expires_at` | `timestamp(3) with time zone` | no |  | Hard expiry compared at read: 24 h for verify-email links, 300 s for OTPs and their attempt counters; expired rows are ignored and replaced. |
+| `identifier` | `varchar(255)` | no |  | Lookup key: the bare email for verify-email links, `otp:TYPE:sha256(email)` for an OTP and `otp-attempts:TYPE:sha256(email)` for its attempt counter. |
+| `value` | `text` | no |  | Never the raw secret: SHA-256 hex of the link token, a keyed HMAC envelope `tpotp.vN.hex` for an OTP, or the decimal failed-attempt count. |
+
+**Constraints and indexes**
+
+- Unique `verification_identifier_unique`: (`identifier`)

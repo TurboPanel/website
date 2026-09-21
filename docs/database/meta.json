@@ -1,0 +1,17 @@
+{
+  "title": "Database",
+  "pages": [
+    "index",
+    "identity",
+    "organizations",
+    "billing",
+    "platform",
+    "networking",
+    "resources",
+    "managed",
+    "storage",
+    "runtime",
+    "git",
+    "notifications"
+  ]
+}
