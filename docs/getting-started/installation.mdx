@@ -80,7 +80,8 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
     the host with the daemon's Ansible roles (Postgres, Redis, RabbitMQ, Docker, certificates, Caddy),
     applies the database migrations and starts the units — see [Control plane](/docs/deployment/control-plane)
-    for the flags. It takes no license and enrols no daemon; the wizard issues the first license.
+    for the flags. It takes no license: the co-located daemon it installs starts without one and
+    enrols itself once the wizard has issued the first license, so **this server** goes Online on its own.
   </Step>
   <Step>
     Complete the install wizard at `https://<host>:8443` (host PAM + superadmin).
@@ -107,7 +108,8 @@ When access is available, you create an organization in the hosted panel, obtain
 
 ## Additional managed server daemons
 
-Install the daemon on servers that should be managed remotely (not the co-located control plane). Obtain a license from your organization first.
+Install the daemon on servers that should be managed remotely. The control-plane host already runs its
+co-located daemon — never enrol it with this command. Obtain a license from your organization first.
 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
