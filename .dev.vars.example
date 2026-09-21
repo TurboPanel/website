@@ -1,3 +1,0 @@
-# Copy to `.dev.vars` for local Wrangler / OpenNext preview.
-# See https://opennext.js.org/cloudflare/get-started
-NEXTJS_ENV=development

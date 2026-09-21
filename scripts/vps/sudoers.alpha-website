@@ -1,0 +1,3 @@
+# alpha may run website's deploy script with arguments.
+# visudo -c -f this file, then install as /etc/sudoers.d/alpha-website (0440).
+alpha ALL=(website) NOPASSWD: /home/website/bin/deploy.sh *

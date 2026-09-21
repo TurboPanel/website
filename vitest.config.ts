@@ -35,6 +35,9 @@ export default defineConfig({
         'scripts/**/*.test.ts',
         // Fumadocs loader wiring — integration-only (no extractable helpers)
         'src/lib/source.ts',
+        // Host-run VPS ops (hook.mjs listens at import; CI already typechecks
+        // the Next app before deploy.sh skips tsc on the 1 GiB box).
+        'scripts/vps/**',
       ],
     },
   },

@@ -4,7 +4,7 @@ import nextConfig from 'eslint-config-next'
 const config = [
   ...nextConfig,
   {
-    ignores: ['.tamagui/**', 'cloudflare-env.d.ts'],
+    ignores: ['.tamagui/**'],
   },
 ]
 

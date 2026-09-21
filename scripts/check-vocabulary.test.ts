@@ -97,7 +97,7 @@ describe('walk', () => {
     writeTree(root, {
       'src/kept.md': 'kept\n',
       'pnpm-lock.yaml': 'lockfile\n',
-      'cloudflare-env.d.ts': 'generated\n',
+      'worker-configuration.d.ts': 'generated\n',
       [SELF]: 'this is the walker\n',
       [VOCABULARY_PHRASE_SOURCE]: 'phrase source\n',
     })

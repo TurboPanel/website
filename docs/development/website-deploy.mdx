@@ -1,20 +1,16 @@
 ---
 title: Website deployment
-description: Build and deploy the TurboPanel marketing site and docs to Cloudflare Workers
+description: Build and deploy the TurboPanel marketing site and docs on alpha.turbopanel.net
 ---
 
 # Website deployment
 
-Contributor reference for [TurboPanel/website](https://github.com/TurboPanel/website). Production traffic is served from Cloudflare Workers via OpenNext.
+Contributor reference for [TurboPanel/website](https://github.com/TurboPanel/website). Production traffic is vanilla Next.js 16 (`output: 'standalone'`, `node server.js`) behind Caddy with Let's Encrypt on **`alpha.turbopanel.net`**. This is a stopgap until the marketing site can be a TurboPanel native app.
 
 ## Prerequisites
 
-- Node.js and `pnpm` (see `packageManager` in `package.json`). Cloudflare
-  Workers Builds runs `pnpm install --frozen-lockfile`; `pnpm-workspace.yaml`
-  must `allowBuilds` wrangler native postinstalls (`esbuild`, `workerd`,
-  `sharp`, …) or pnpm 12 fails with `ERR_PNPM_IGNORED_BUILDS`.
-- Cloudflare account with Workers deploy access
-- `wrangler` authenticated (`pnpm cf-typegen` after binding changes)
+- Node.js **26.7.0** or newer (`engines.node` in `package.json`; CI and the VPS pin the same release)
+- `pnpm` (see `packageManager` in `package.json`). `pnpm-workspace.yaml` must `allowBuilds` Next native postinstalls (`esbuild`, `sharp`, …) or pnpm 12 fails with `ERR_PNPM_IGNORED_BUILDS`.
 
 ## Local preview
 
@@ -24,7 +20,7 @@ pnpm install
 pnpm dev    # http://localhost:19820
 ```
 
-Co-located dev: `turbopanel-website.service` runs the same dev server; logs under `/var/log/turbopanel/website/`.
+Co-located dev: `turbopanel-website.service` runs the same dev server; logs under `/var/log/turbopanel/website/`. Contributor Vagrant stays on `next dev` — do not point it at the VPS.
 
 ## Production build
 
@@ -33,15 +29,21 @@ pnpm build
 pnpm check:docs-ssr
 ```
 
-`pnpm build` uses `next build --webpack` for OpenNext compatibility.
+`pnpm build` is vanilla `next build` (Turbopack) and writes a standalone Node server under `.next/standalone/`.
 
-## Deploy
+## Deploy (VPS)
 
-```bash
-pnpm deploy    # or pnpm upload for asset-only upload flows
-```
+GitHub **push** webhooks rebuild one environment. Payload URL: `https://alpha.turbopanel.net/hooks/github`.
 
-Configuration: `open-next.config.ts`, `wrangler.jsonc`. Control-plane URLs and API-reference server labels derive from the request host through `src/lib/control-plane-hosts.ts`; there is no per-environment Wrangler variable to keep in sync.
+| Branch | Hostname | Notes |
+| --- | --- | --- |
+| `trunk` | `testing.turbopanel.io` | Default development drop |
+| `staging` | `staging.turbopanel.io` | |
+| `live` | `turbopanel.io` | `www` 301s to the apex |
+
+Two Linux users on the box: **`alpha`** owns Caddy, Let's Encrypt (`noc@turbopanel.io`), and the webhook HMAC secret; **`website`** owns the git clones and Next processes. Shared Node lives at `/opt/node`. Operator scripts and the Caddyfile are in [`scripts/vps/`](https://github.com/TurboPanel/website/tree/trunk/scripts/vps).
+
+Control-plane URLs and API-reference server labels derive from the request host through `src/lib/control-plane-hosts.ts`; `NEXT_PUBLIC_SITE_URL` is injected at **build** time inside `deploy.sh`.
 
 ## Docs content
 
