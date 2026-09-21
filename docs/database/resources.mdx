@@ -1,0 +1,371 @@
+---
+title: "Resource tree and tagging"
+description: "Data dictionary — resource tree and tagging tables: binding, container, environment, hosting, hostname, marker, principal, project, service, tag, tenancy, variable, workspace"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Resource tree and tagging
+
+Workspace → project → environment → service → hosting / container, plus the principals, tenancies, bindings and variables that hang off them, and the free-form tag and marker tables.
+
+Tables on this page: [`binding`](#binding) · [`container`](#container) · [`environment`](#environment) · [`hosting`](#hosting) · [`hostname`](#hostname) · [`marker`](#marker) · [`principal`](#principal) · [`project`](#project) · [`service`](#service) · [`tag`](#tag) · [`tenancy`](#tenancy) · [`variable`](#variable) · [`workspace`](#workspace). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `binding` [#binding]
+
+Join edge attaching a managed-database principal to a consuming compose service; materializes system-owned `variable` rows for deploy credential injection.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `options` | `jsonb` | yes |  | Reserved jsonb; no current code path writes it. |
+| `principal_id` | `uuid` | no |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete cascade). Managed database user whose credentials are injected; cascade-deleted with the principal (user gone, binding gone). |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete restrict). Consuming compose service; ON DELETE RESTRICT so a service with bindings cannot be deleted. |
+| `database_name` | `varchar(255)` | no |  | Database inside the cluster the credentials point at (1-63 chars, identifier charset); must be one of the cluster's `options.databases`. |
+| `key_prefix` | `varchar(64)` | no | `'DATABASE'` | Environment variable prefix for the emitted credential keys (default `DATABASE`), unique per service; identifier charset, 1-64 chars. |
+| `is_emit_engine_defaults` | `boolean` | no | `true` | When true, also emit the unprefixed conventional engine keys (PG*, MYSQL_*); at most one such binding per service (API field `emitEngineDefaults`). |
+
+**Constraints and indexes**
+
+- Unique `uniq_binding_service_prefix`: (`service_id`, `key_prefix`)
+- Index `idx_binding_principal_id`: (`principal_id`)
+- Index `idx_binding_service_id`: (`service_id`)
+- Unique index `uniq_binding_service_engine_defaults`: (`service_id`) where `"binding"."is_emit_engine_defaults"`
+- Check `binding_key_prefix_format_check`: `(char_length((key_prefix)::text) >= 1) AND (char_length((key_prefix)::text) <= 64) AND ((key_prefix)::text ~ '^[A-Za-z_][A-Za-z0-9_]*$'::text)`
+- Check `binding_database_name_format_check`: `(char_length((database_name)::text) >= 1) AND (char_length((database_name)::text) <= 63) AND ((database_name)::text ~ '^[A-Za-z_][A-Za-z0-9_]*$'::text)`
+
+## `container` [#container]
+
+Pins one Docker container to a service and the server observed to host it; rows are pre-allocated at deploy and upserted from the daemon's post-deploy report.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb accepted from `POST /containers` and `PATCH` with identity keys stripped; no platform code path writes or reads it. |
+| `options` | `jsonb` | yes |  | Free-form jsonb accepted from `POST /containers` and `PATCH` with identity keys stripped; no platform code path writes or reads it. |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete restrict). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Observed placement: the server hosting this container (RESTRICT), distinct from the desired pin on `environment.server_id`. |
+| `container_id` | `text` | yes |  | Docker container id from the daemon's report; NULL between pre-allocation and the first report, and reset to NULL on an empty (stop/destroy) report. |
+| `container_name` | `text` | no |  | Docker `container_name`; `uuid` naming yields the service UUID plus `-N` per ordinal, `-in` for ingress, `-ha` for Orchestrator; `custom` keeps authored names. |
+| `status` | `text` | no | `'pending'` | `pending` until the daemon reports, then Docker's compose ps State verbatim (`created` through `dead`), `unknown` for an unlisted state, `exited` on stop. |
+| `role` | `text` | no | `'service'` | `service` for workload or engine replicas, `ingress` for the per-service Traefik or shared ProxySQL frontend (ordinal 1), `turbopanel` for the platform stack. |
+| `compose_service_name` | `text` | no |  | Compose service key the container was started under, as reported by the daemon; multi-instance clones carry a `-N` suffix on the base key. |
+| `ordinal` | `integer` | no | `1` | 1-based instance index within the service, unique with `service_id` and `role`; ingress rows are always 1 and managed replicas match `replica.ordinal`. |
+
+**Constraints and indexes**
+
+- Index `idx_container_service_id`: (`service_id`)
+- Index `idx_container_server_id`: (`server_id`)
+- Index `idx_container_status`: (`status`)
+- Unique index `uniq_container_server_container_id`: (`server_id`, `container_id`) where `container_id IS NOT NULL`
+- Unique index `uniq_container_service_role_ordinal`: (`service_id`, `role`, `ordinal`)
+- Check `container_ordinal_positive_check`: `ordinal >= 1`
+- Check `container_role_check`: `role IN ('service', 'ingress', 'turbopanel')`
+- Check `container_status_check`: `status IN ('pending', 'created', 'running', 'paused', 'restarting', 'removing', 'exited', 'dead', 'unknown')`
+
+## `environment` [#environment]
+
+One deployable copy of a project (staging, production) pinned to a server and deployed as a unit; created via the API or by the platform for system projects.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Client jsonb; the promoted keys `serverId` and `component` are stripped on create and patch so placement and system identity never live here. |
+| `options` | `jsonb` | yes |  | Jsonb whose `compose` key is the per-environment ComposeDocument overlay merged onto the project compose at deploy; placement keys are stripped on save. |
+| `project_id` | `uuid` | no |  | FK → [`project`](/docs/database/resources#project).`id` (on delete restrict). |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Desired whole-server placement pin and single source of truth; NULL inherits `project.options.defaultServerId` at deploy, lifecycle and stop. |
+| `generation` | `integer` | no | `0` | Monotonic desired generation, incremented once per deploy plan by `bumpEnvironmentGeneration` and fanned into `deployment.desired_generation`. |
+| `name` | `text` | yes |  | Display label under `environment_name_format_check` (letters, digits, space, `._/-`, 1-255 chars); the first environment takes the organization default name. |
+| `description` | `text` | yes |  | Optional free-text description written by the client API; the first environment is created with 'Default environment'. |
+
+**Constraints and indexes**
+
+- Index `idx_environment_project_id`: (`project_id`)
+- Index `idx_environment_server_id`: (`server_id`)
+- Check `environment_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._/-]+$'::text))`
+
+## `hosting` [#hosting]
+
+Routing entry for a service (hostnames or TCP/UDP ports, bind scope, TLS pin) rendered into Caddy and Traefik; written by the panel API or compose reconcile.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Compose provenance markers `composeOwned`, `composeServiceName`, `composeRoute`, `composeTlsMode`, `composeAdopted` set by reconcile; other keys are client-set. |
+| `options` | `jsonb` | yes |  | Validated routing jsonb: `hostnames`, `pathPrefix`, `targetPort`, `protocol`, `ports`, `bind` (`public`, `datacenter`, `local`), `proxy` toggles, `web` hints. |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete restrict). |
+| `tls_id` | `uuid` | yes |  | FK → [`tls`](/docs/database/organizations#tls).`id` (on delete set null). Optional pin into the organization TLS library; NULL means Caddy `tls internal` (self-signed), and the pin is cleared when the certificate row is deleted. |
+| `ip_id` | `uuid` | yes |  | FK → [`ip`](/docs/database/networking#ip).`id` (on delete set null). Optional pin to a registered `ip` row of scope `public` for ingress addressing; requires `bind: public` and is cleared when the ip row is deleted. |
+| `name` | `text` | yes |  | Display label: compose reconcile sets it to the hostname on compose-owned rows, otherwise the panel API writes it; no format CHECK, app-side length cap. |
+| `description` | `text` | yes |  | Optional free-text description; panel-authored and preserved across compose reconcile. |
+| `protocol` | `text` | yes |  | Mirror of validated `options.protocol` (`http`, `tcp`, `udp`) kept so SQL can filter ingress decisions without a jsonb cast; NULL reads as `http`. |
+
+**Constraints and indexes**
+
+- Index `idx_hosting_service_id`: (`service_id`)
+- Index `idx_hosting_tls_id`: (`tls_id`)
+- Index `idx_hosting_ip_id`: (`ip_id`)
+- Check `hosting_protocol_check`: `protocol IS NULL OR protocol IN ('http', 'tcp', 'udp')`
+
+## `hostname` [#hostname]
+
+Uniqueness mirror of `hosting.options.hostnames`, one row per hostname, replaced on every hosting write so Postgres can enforce one hostname per organization.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `hosting_id` | `uuid` | no |  | FK → [`hosting`](/docs/database/resources#hosting).`id` (on delete cascade). |
+| `routing_organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization whose routing owns the hostname, half of the unique key; today always the hosting's own organization, named for future cross-organization hosting. |
+| `hostname` | `text` | no |  | One DNS name copied verbatim from `hosting.options.hostnames` by `replaceHostingHostnames`; unique per routing organization regardless of path prefix. |
+
+**Constraints and indexes**
+
+- Unique `uniq_hostname_routing_organization_id_hostname`: (`routing_organization_id`, `hostname`)
+- Index `idx_hostname_hosting_id`: (`hosting_id`)
+
+## `marker` [#marker]
+
+Join edge applying one tag to exactly one taggable entity; org is derived through `tag`, and `setEntityTags` replaces an entity's whole set.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `tag_id` | `uuid` | no |  | FK → [`tag`](/docs/database/resources#tag).`id` (on delete cascade). |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). Tagged server when the parent is a server; exactly one of the seven parent columns is non-NULL (CHECK), unique per tag, cascades on delete. |
+| `workspace_id` | `uuid` | yes |  | FK → [`workspace`](/docs/database/resources#workspace).`id` (on delete cascade). Tagged workspace when the parent is a workspace; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+| `project_id` | `uuid` | yes |  | FK → [`project`](/docs/database/resources#project).`id` (on delete cascade). Tagged project when the parent is a project; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+| `environment_id` | `uuid` | yes |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete cascade). Tagged environment when the parent is an environment; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+| `service_id` | `uuid` | yes |  | FK → [`service`](/docs/database/resources#service).`id` (on delete cascade). Tagged service when the parent is a service; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+| `datacenter_id` | `uuid` | yes |  | FK → [`datacenter`](/docs/database/networking#datacenter).`id` (on delete cascade). Tagged datacenter when the parent is a datacenter; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+| `storage_id` | `uuid` | yes |  | FK → [`storage`](/docs/database/storage#storage).`id` (on delete cascade). Tagged storage when the parent is a storage; exactly one of the seven parent columns is non-NULL, unique per tag, cascades on delete. |
+
+**Constraints and indexes**
+
+- Index `idx_marker_tag_id`: (`tag_id`)
+- Index `idx_marker_server_id`: (`server_id`)
+- Index `idx_marker_workspace_id`: (`workspace_id`)
+- Index `idx_marker_project_id`: (`project_id`)
+- Index `idx_marker_environment_id`: (`environment_id`)
+- Index `idx_marker_service_id`: (`service_id`)
+- Index `idx_marker_datacenter_id`: (`datacenter_id`)
+- Index `idx_marker_storage_id`: (`storage_id`)
+- Unique index `uniq_marker_server`: (`tag_id`, `server_id`) where `"marker"."server_id" IS NOT NULL`
+- Unique index `uniq_marker_workspace`: (`tag_id`, `workspace_id`) where `"marker"."workspace_id" IS NOT NULL`
+- Unique index `uniq_marker_project`: (`tag_id`, `project_id`) where `"marker"."project_id" IS NOT NULL`
+- Unique index `uniq_marker_environment`: (`tag_id`, `environment_id`) where `"marker"."environment_id" IS NOT NULL`
+- Unique index `uniq_marker_service`: (`tag_id`, `service_id`) where `"marker"."service_id" IS NOT NULL`
+- Unique index `uniq_marker_datacenter`: (`tag_id`, `datacenter_id`) where `"marker"."datacenter_id" IS NOT NULL`
+- Unique index `uniq_marker_storage`: (`tag_id`, `storage_id`) where `"marker"."storage_id" IS NOT NULL`
+- Check `marker_exactly_one_parent_check`: `((server_id IS NOT NULL)::int +
+        (workspace_id IS NOT NULL)::int +
+        (project_id IS NOT NULL)::int +
+        (environment_id IS NOT NULL)::int +
+        (service_id IS NOT NULL)::int +
+        (datacenter_id IS NOT NULL)::int +
+        (storage_id IS NOT NULL)::int) = 1`
+
+## `principal` [#principal]
+
+Account identity attachable to services: a Linux host account (`system`) or a managed database user (`database`); written by principal store and managed API.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | System principals: `home` (under `/srv/users`), optional `uid`/`gid` mirror, `composeAlias`; managed users: `managedRoot`, `engine`, `databases`. |
+| `options` | `jsonb` | yes |  | Host-account settings: `shell` (closed allowlist, default `/usr/sbin/nologin`) and optional operator `uid`/`gid` override; parsed by `parsePrincipalOptions`. |
+| `kind` | `text` | no |  | `system` for a Linux server host account or `database` for a managed engine user. |
+| `provider` | `text` | no |  | System that owns the account: `server` for host accounts, or the engine (`postgres`, `mysql`, `redis`, `clickhouse`) for database users. |
+| `username` | `varchar(255)` | no |  | Short internal account name (letter or underscore first, then letters, digits, underscore, hyphen); server accounts get a shorter API-layer cap. |
+| `applied_username` | `varchar(255)` | no |  | Login actually created on the host or engine: `username`, or `username` plus an underscore and 11 random chars when the org randomizes names; fixed at create. |
+| `password` | `text` | yes |  | Write-only credential sealed as a `tpsecret` envelope, never returned on GET and resealed to `tpdaemon` for delivery; null when no engine password exists. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Home organization set on every insert, not derived; for a managed user it is the cluster's home org via its environment, not the hosting servers' orgs. |
+| `project_id` | `uuid` | yes |  | FK → [`project`](/docs/database/resources#project).`id` (on delete cascade). Optional project scope for compose-declared hosting principals; cascade-deleted with the project. |
+| `managed_id` | `uuid` | yes |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). Optional managed-engine scope for database users (root and per-user rows); cascade-deleted with the cluster. |
+
+**Constraints and indexes**
+
+- Index `idx_principal_organization_id`: (`organization_id`)
+- Index `idx_principal_project_id`: (`project_id`)
+- Index `idx_principal_managed_id`: (`managed_id`)
+- Check `principal_kind_check`: `kind IN ('system', 'database')`
+- Check `principal_provider_check`: `provider IN ('server', 'postgres', 'mysql', 'redis', 'clickhouse')`
+- Check `principal_username_format_check`: `(char_length((username)::text) >= 1) AND (char_length((username)::text) <= 255) AND ((username)::text ~ '^[A-Za-z_][A-Za-z0-9_-]*$'::text)`
+- Check `principal_applied_username_format_check`: `(char_length((applied_username)::text) >= 1) AND (char_length((applied_username)::text) <= 255) AND ((applied_username)::text ~ '^[A-Za-z_][A-Za-z0-9_-]*$'::text)`
+
+## `project` [#project]
+
+One application or stack described by one compose document, owned by a workspace; user projects come from the API, system projects from the platform hierarchy.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Client jsonb: `type` is `docker-compose`, `managed`, `template` or platform-only `system` (absent means setup not chosen yet), plus optional catalog `code`. |
+| `options` | `jsonb` | yes |  | Jsonb holding `compose` (the base ComposeDocument), `containerNaming` (`uuid` or `custom`), `defaultServerId` and `composeSource` seed provenance. |
+| `workspace_id` | `uuid` | no |  | FK → [`workspace`](/docs/database/resources#workspace).`id` (on delete restrict). |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Denormalized copy of the workspace's organization, resolved on every insert; exists so `uniq_project_organization_name` can be a real per-organization unique. |
+| `repository_id` | `uuid` | yes |  | FK → [`repository`](/docs/database/git#repository).`id` (on delete restrict). The single Git repository this project is; NULL when not repository-backed, adopted from the first compose `sourceId` on save, RESTRICT on delete. |
+| `name` | `text` | yes |  | Display label, unique per organization after trim and case-fold (partial unique index, 409 `project_name_in_use`); four system project names are reserved. |
+| `description` | `text` | yes |  | Optional free-text description written by the client API; no format CHECK, app-side length cap only. |
+| `component` | `text` | yes |  | System-component discriminator (`hosting-ingress`, `managed-ingress`, `managed-ha`, `turbopanel`) written by the platform hierarchy; NULL on every user project. |
+
+**Constraints and indexes**
+
+- Index `idx_project_workspace_id`: (`workspace_id`)
+- Index `idx_project_repository_id`: (`repository_id`)
+- Index `idx_project_organization_id`: (`organization_id`)
+- Unique index `uniq_project_organization_name`: (`organization_id`, `lower(btrim(("name")::text))`) where `name IS NOT NULL`
+- Unique index `uniq_project_workspace_system_component`: (`workspace_id`, `component`) where `component IS NOT NULL`
+
+## `service` [#service]
+
+One deployable unit (a compose service) within an environment; rows are derived from the compose document by reconcile, managed allocation or daemon reports.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Client jsonb reserved for non-indexed facts; promoted identity keys are stripped on write and the compose name never lives here. |
+| `options` | `jsonb` | yes |  | Validated per-service settings jsonb: `instances`, `build`, `operations`, `healthCheck`, `resources`, plus deploy hooks when the organization enables them. |
+| `environment_id` | `uuid` | no |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete restrict). |
+| `name` | `varchar(255)` | yes |  | User-facing label (formerly `display_name`) under `service_name_format_check`, nullable and not unique; reconcile defaults it to the compose service key. |
+| `description` | `text` | yes |  | Optional free-text description written by the client API. |
+| `compose_service_name` | `varchar(255)` | no |  | Compose service key, derived only: written by compose reconcile, managed allocation and daemon-report reconcile, never by a client; unique per environment. |
+
+**Constraints and indexes**
+
+- Index `idx_service_environment_id`: (`environment_id`)
+- Unique index `uniq_service_environment_compose_name`: (`environment_id`, `compose_service_name`)
+- Check `service_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+
+## `tag` [#tag]
+
+Organization-owned tag definition written by the tags routes; names are labels unique per organization after lower-casing and trimming.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for tag rows today. |
+| `options` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for tag rows today. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `name` | `text` | no |  | Operator-chosen label, unique per organization on `lower(btrim(name))`; no format CHECK in the database. |
+| `description` | `text` | yes |  | Optional free-text description normalized like a display name; NULL when empty. |
+| `color` | `varchar(32)` | yes |  | Optional display colour as a `#rgb` or `#rrggbb` hex string; NULL when unset. |
+
+**Constraints and indexes**
+
+- Index `idx_tag_organization_id`: (`organization_id`)
+- Unique index `uniq_tag_organization_name`: (`organization_id`, `lower(btrim(("name")::text))`)
+
+## `tenancy` [#tenancy]
+
+Join edge marking the Linux/system principal a compose service runs as; unique (principal_id, service_id), written by the principal store and compose reconcile.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `principal_id` | `uuid` | no |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete cascade). System principal that stewards the service (runs as, owns the site tree); cascade-deleted with the principal. |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete restrict). Consuming compose service; ON DELETE RESTRICT so a service delete must clear its run-as edges first. |
+
+**Constraints and indexes**
+
+- Unique `tenancy_principal_service_unique`: (`principal_id`, `service_id`)
+- Index `idx_tenancy_principal_id`: (`principal_id`)
+- Index `idx_tenancy_service_id`: (`service_id`)
+
+## `variable` [#variable]
+
+One config key/value at exactly one scope (organization, workspace, project, environment, service, hosting or server), resolved narrowest-wins into deploy env.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization scope parent, the widest inheritance level; exactly one of the seven scope columns is non-null (`variable_exactly_one_parent_check`). |
+| `workspace_id` | `uuid` | yes |  | FK → [`workspace`](/docs/database/resources#workspace).`id` (on delete cascade). Workspace scope parent, overriding organization values; exactly one of the seven scope columns is non-null, and rows cascade with the parent. |
+| `project_id` | `uuid` | yes |  | FK → [`project`](/docs/database/resources#project).`id` (on delete cascade). Project scope parent, overriding workspace values; exactly one of the seven scope columns is non-null, and rows cascade with the parent. |
+| `environment_id` | `uuid` | yes |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete cascade). Environment scope parent, overriding project values; exactly one of the seven scope columns is non-null, and rows cascade with the parent. |
+| `service_id` | `uuid` | yes |  | FK → [`service`](/docs/database/resources#service).`id` (on delete cascade). Service scope parent, overriding environment values; exactly one of the seven scope columns is non-null, and rows cascade with the parent. |
+| `hosting_id` | `uuid` | yes |  | FK → [`hosting`](/docs/database/resources#hosting).`id` (on delete cascade). Hosting scope parent, the narrowest level, merged per service at deploy (later hosting wins); exactly one of the seven scope columns is non-null. |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). Server scope parent, resolved per server at deploy and outside the inheritance chain; exactly one of the seven scope columns is non-null. |
+| `binding_id` | `uuid` | yes |  | FK → [`binding`](/docs/database/resources#binding).`id` (on delete cascade). When set the row is system-owned, materialized by a managed-database binding; client PATCH/DELETE return 403 and the row cascades with the binding. |
+| `key` | `varchar(255)` | no |  | Environment variable name matching `^[A-Za-z_][A-Za-z0-9_]*$`, unique per scope parent via partial unique indexes. |
+| `value` | `text` | no | `''` | Plaintext for non-secrets; for secrets a sealed `tpsecret` envelope (data-encryption key) the API never returns and deploy delivers as a file. |
+| `is_secret` | `boolean` | no | `false` | True marks the value sealed and write-only: read back as null, never interpolated into YAML or `.env`, compiled to a Compose secret file at deploy. |
+| `is_literal` | `boolean` | no | `false` | True escapes `$` so Docker Compose does not interpolate the value; false leaves a `$OTHER` reference for Compose to expand (API field `isLiteral`). |
+| `is_for_build` | `boolean` | no | `false` | True injects the non-secret value into `build.args` at deploy (API field `forBuild`); default false. |
+| `is_for_runtime` | `boolean` | no | `true` | True injects the non-secret value into the container `environment` at deploy (API field `forRuntime`); default true. |
+| `description` | `text` | yes |  | Optional free-text note written by the client API. |
+
+**Constraints and indexes**
+
+- Index `idx_variable_organization_id`: (`organization_id`)
+- Index `idx_variable_workspace_id`: (`workspace_id`)
+- Index `idx_variable_project_id`: (`project_id`)
+- Index `idx_variable_environment_id`: (`environment_id`)
+- Index `idx_variable_service_id`: (`service_id`)
+- Index `idx_variable_hosting_id`: (`hosting_id`)
+- Index `idx_variable_server_id`: (`server_id`)
+- Index `idx_variable_binding_id`: (`binding_id`)
+- Unique index `uniq_var_org`: (`key`, `organization_id`) where `"variable"."organization_id" IS NOT NULL`
+- Unique index `uniq_var_workspace`: (`key`, `workspace_id`) where `"variable"."workspace_id" IS NOT NULL`
+- Unique index `uniq_var_project`: (`key`, `project_id`) where `"variable"."project_id" IS NOT NULL`
+- Unique index `uniq_var_environment`: (`key`, `environment_id`) where `"variable"."environment_id" IS NOT NULL`
+- Unique index `uniq_var_service`: (`key`, `service_id`) where `"variable"."service_id" IS NOT NULL`
+- Unique index `uniq_var_hosting`: (`key`, `hosting_id`) where `"variable"."hosting_id" IS NOT NULL`
+- Unique index `uniq_var_server`: (`key`, `server_id`) where `"variable"."server_id" IS NOT NULL`
+- Check `variable_exactly_one_parent_check`: `((organization_id IS NOT NULL)::int +
+        (workspace_id IS NOT NULL)::int +
+        (project_id IS NOT NULL)::int +
+        (environment_id IS NOT NULL)::int +
+        (service_id IS NOT NULL)::int +
+        (hosting_id IS NOT NULL)::int +
+        (server_id IS NOT NULL)::int) = 1`
+- Check `variable_key_format_check`: `(char_length(key) >= 1) AND (char_length(key) <= 255) AND (key ~ '^[A-Za-z_][A-Za-z0-9_]*$'::text)`
+
+## `workspace` [#workspace]
+
+Grouping of projects inside one organization; operator rows are `kind='user'` and each organization also holds exactly one platform `turbopanel` workspace.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `name` | `text` | yes |  | Display label under `workspace_name_format_check` (letters, digits, space, `._-`), unique per organization at the API; 'TurboPanel' is reserved from first boot. |
+| `description` | `text` | yes |  | Optional free-text description written by the client API; no format CHECK, app-side length cap only. |
+| `kind` | `varchar(32)` | no | `'user'` | Workspace discriminator: `user` (default, operator-created) or `turbopanel` (the single machine workspace per organization, provisioned at install). |
+
+**Constraints and indexes**
+
+- Index `idx_workspace_organization_id`: (`organization_id`)
+- Unique index `uniq_workspace_organization_turbopanel`: (`organization_id`) where `kind = 'turbopanel'`
+- Check `workspace_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+- Check `workspace_kind_check`: `kind IN ('user', 'turbopanel')`

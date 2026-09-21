@@ -1,0 +1,193 @@
+---
+title: "Networking"
+description: "Data dictionary — networking tables: datacenter, fabric, ip, network, relay, subnet"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Networking
+
+Datacenters as logical routing domains, the org network registry, managed addresses, and the TurboFabric mesh (fabric, relays, subnets).
+
+Tables on this page: [`datacenter`](#datacenter) · [`fabric`](#fabric) · [`ip`](#ip) · [`network`](#network) · [`relay`](#relay) · [`subnet`](#subnet). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `datacenter` [#datacenter]
+
+Logical routing domain (not a building) of mutually routable private subnets, operator-created per org; a server may belong to zero or many via `ip` pins.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb returned by the datacenter API; no control-plane code path writes or interprets any key on it today. |
+| `options` | `jsonb` | yes |  | Operator policy jsonb: `priority` (0..1000, lower wins, default 100), `trusted` (default true), `addressPreference`, `sshPort`, `ntp`, timezone defaults. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `name` | `text` | yes |  | Operator-chosen display name; also seeded onto the site `network` row created together with the datacenter. |
+| `description` | `text` | yes |  | Optional operator free-text note about the datacenter. |
+
+**Constraints and indexes**
+
+- Index `idx_datacenter_organization_id`: (`organization_id`)
+
+## `fabric` [#fabric]
+
+Org TurboFabric WireGuard mesh (host interface `tp0`), at most one row per organization; absence means TurboFabric is off and private keys are never stored.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb; no control-plane code path writes or reads it today. |
+| `options` | `jsonb` | yes |  | Mesh policy jsonb: `containerPool` (relay prefix pool, default `10.192.0.0/12`), `listenPort` (default 51821), `mtu` (1280..9000, default 1420), `allowRelay`. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `cidr` | `cidr` | no |  | Host `tp0` address range that relay `address` values are carved from, auto-picked at enable to avoid every occupied org range (default `10.250.0.0/16`). |
+| `name` | `text` | yes |  | Optional display name (1..255 chars of letters, digits, space, dot, underscore, dash); no control-plane code path writes it today. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_fabric_organization_id`: (`organization_id`)
+- Index `idx_fabric_organization_id`: (`organization_id`)
+- Check `fabric_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+
+## `ip` [#ip]
+
+Single registry of every managed address per org, one row per address: public VPS addresses, datacenter free-pool rows and per-server membership pins.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Pin markers written by the automatic repin pass: `repin` (`at`, `from` = previous address) and `stale` (`since`, `reason`) when no clear replacement exists. |
+| `options` | `jsonb` | yes |  | Free-form jsonb accepted on address create and echoed by the API; no control-plane code path interprets any key on it. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `datacenter_id` | `uuid` | yes |  | FK → [`datacenter`](/docs/database/networking#datacenter).`id` (on delete cascade). Datacenter this address belongs to; required when `scope = 'datacenter'`, null on public addresses; rows cascade away when the datacenter is deleted. |
+| `network_id` | `uuid` | yes |  | FK → [`network`](/docs/database/networking#network).`id` (on delete set null). Site subnet the address sits in; required on a membership pin (`scope = 'datacenter'` plus `server_id`), null on public and free-pool rows, set null on delete. |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Server holding this address; null marks a datacenter free-pool row, non-null together with `datacenter_id` makes a membership pin; server delete is restricted. |
+| `address` | `inet` | no |  | IPv4 or IPv6 address (inet, unique per organization); the family is derived from it, not stored; immutable after create except via the automatic repin pass. |
+| `allocation` | `text` | no |  | Operator-chosen consumer model, `dedicated` (one consumer) or `shared`; immutable after create, and pins made by the datacenter routes are always `dedicated`. |
+| `scope` | `text` | no |  | Reachability class, `public` (world-reachable) or `datacenter` (inside one of the org's site subnets, `datacenter_id` required); immutable after create. |
+| `description` | `text` | yes |  | Optional operator note and the only editable field on an address; addresses are identified by `address`, never named. |
+| `repin_pending_fanout_at` | `timestamp(3) with time zone` | yes |  | Set by the automatic repin apply pass when a pin moved address, cleared by the maintenance sweep once the routing fan-out was enqueued; null = nothing pending. |
+
+**Constraints and indexes**
+
+- Index `idx_ip_organization_id`: (`organization_id`)
+- Index `idx_ip_datacenter_id`: (`datacenter_id`)
+- Index `idx_ip_network_id`: (`network_id`)
+- Index `idx_ip_server_id`: (`server_id`)
+- Index `idx_ip_scope_server_datacenter`: (`scope`, `server_id`, `datacenter_id`)
+- Index `idx_ip_repin_pending_fanout_at`: (`repin_pending_fanout_at`) where `"ip"."repin_pending_fanout_at" IS NOT NULL`
+- Unique index `uniq_ip_org_address`: (`organization_id`, `address`)
+- Check `ip_allocation_check`: `allocation IN ('dedicated', 'shared')`
+- Check `ip_scope_check`: `scope IN ('public', 'datacenter')`
+- Check `ip_datacenter_scope_check`: `("ip"."scope" <> 'datacenter') OR ("ip"."datacenter_id" IS NOT NULL)`
+- Check `ip_datacenter_anchor_check`: `(
+        "ip"."datacenter_id" IS NULL OR
+        ("ip"."server_id" IS NULL AND "ip"."network_id" IS NULL) OR
+        "ip"."server_id" IS NOT NULL
+      )`
+- Check `ip_datacenter_member_network_check`: `(
+        "ip"."scope" <> 'datacenter' OR
+        "ip"."server_id" IS NULL OR
+        "ip"."network_id" IS NOT NULL
+      )`
+
+## `network` [#network]
+
+Org-owned network registry row of `kind` datacenter, docker, compose, managed or reserved; which scope FKs and `cidr` may be set is fixed per kind by a CHECK.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb; the only reader is a legacy fallback that accepts `metadata.dockerNetworkName` when `options` lacks it, and nothing writes it today. |
+| `options` | `jsonb` | yes |  | Kind-specific jsonb: `dockerNetworkName` plus optional `subnet`, `ipRange`, `gateway`, `mtu` on docker rows; `dockerNetworkName` (row UUID) on compose/managed. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `datacenter_id` | `uuid` | yes |  | FK → [`datacenter`](/docs/database/networking#datacenter).`id` (on delete restrict). Owning datacenter, required and only allowed on `kind = 'datacenter'` site CIDR rows (a datacenter may own several); datacenter delete is restricted meanwhile. |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Optional host pin allowed only on `kind = 'docker'` external Docker registrations (null = org-wide); every other kind must leave it null. |
+| `environment_id` | `uuid` | yes |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete set null). Optional environment pin for `kind = 'compose'` spanning networks (null = org-shared); set null when the environment is deleted so the row survives. |
+| `kind` | `text` | no |  | Row kind: `datacenter` (site CIDR), `docker` (external Docker network), `compose` (TurboFabric spanning network), `managed` (one per org) or `reserved`. |
+| `cidr` | `cidr` | yes |  | Registered range: required on `datacenter` and `reserved` rows, mirrored from `options.subnet` on `docker` rows, null on `managed`; checked for collisions. |
+| `name` | `varchar(255)` | yes |  | Display name; operator-set on docker and reserved rows, seeded from the datacenter name on site rows, and the Compose network key on compose rows. |
+| `compose_key` | `text` | yes |  | Compose network key from the environment's document on `kind = 'compose'` rows (unique per environment), written by `ensureComposeNetworkRow`; null otherwise. |
+
+**Constraints and indexes**
+
+- Index `idx_network_server_id`: (`server_id`)
+- Index `idx_network_organization_id`: (`organization_id`)
+- Index `idx_network_datacenter_id`: (`datacenter_id`)
+- Index `idx_network_environment_id`: (`environment_id`)
+- Unique index `uniq_network_datacenter_cidr`: (`datacenter_id`, `cidr`) where `"network"."kind" = 'datacenter'`
+- Unique index `uniq_network_organization_managed`: (`organization_id`) where `"network"."kind" = 'managed'`
+- Unique index `uniq_network_environment_compose_key`: (`environment_id`, `compose_key`) where `"network"."kind" = 'compose'`
+- Check `network_kind_check`: `kind IN ('datacenter', 'docker', 'compose', 'managed', 'reserved')`
+- Check `network_single_scope_check`: `(
+        ("network"."kind" = 'datacenter' AND "network"."datacenter_id" IS NOT NULL AND "network"."server_id" IS NULL AND "network"."environment_id" IS NULL AND "network"."cidr" IS NOT NULL) OR
+        ("network"."kind" = 'docker' AND "network"."datacenter_id" IS NULL AND "network"."environment_id" IS NULL) OR
+        ("network"."kind" = 'compose' AND "network"."datacenter_id" IS NULL AND "network"."server_id" IS NULL) OR
+        ("network"."kind" = 'managed' AND "network"."datacenter_id" IS NULL AND "network"."server_id" IS NULL AND "network"."environment_id" IS NULL AND "network"."cidr" IS NULL) OR
+        ("network"."kind" = 'reserved' AND "network"."datacenter_id" IS NULL AND "network"."server_id" IS NULL AND "network"."environment_id" IS NULL AND "network"."cidr" IS NOT NULL)
+      )`
+- Check `network_name_format_check`: `(name IS NULL) OR (((char_length((name)::text) >= 1) AND (char_length((name)::text) <= 255)) AND ((name)::text ~ '^[A-Za-z0-9 ._-]+$'::text))`
+
+## `relay` [#relay]
+
+One server's membership in an org TurboFabric mesh (one row per fabric and server), allocated by `ensureFabricRelays`; holds its `tp0` address and peer config.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Control-plane reconcile stamps: `appliedPayloadHash`, `appliedAt`, `observed` (peers the daemon saw) and diagnostics-only `paths` (selected path per peer). |
+| `options` | `jsonb` | yes |  | Relay policy jsonb merged by PATCH: `allowRelay` (true or false, null inherits the org and may only tighten) and `preferredGatewayIds` (ordered, deduped). |
+| `fabric_id` | `uuid` | no |  | FK → [`fabric`](/docs/database/networking#fabric).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Member server, unique per fabric; delete is restricted, so `deleteServerFabricMembership` must remove the relay and its subnets first. |
+| `address` | `inet` | no |  | Allocated `tp0` host address (inet) carved from `fabric.cidr`, unique per fabric and rendered as a /32 host route in peer AllowedIPs. |
+| `role` | `text` | no | `'member'` | Mesh role, `gateway` (advertises `advertised_cidrs` to remote peers, must belong to a datacenter with a subnet) or `member` (host route only, the default). |
+| `keepalive` | `integer` | yes |  | Operator WireGuard PersistentKeepalive in seconds (1..65535); null means auto, which is 25 s on `direct_nat` paths and none otherwise. |
+| `endpoint_address` | `inet` | yes |  | Operator endpoint override (inet, no port); null means the path planner derives the endpoint from datacenter, public and daemon-reported addresses. |
+| `public_key` | `text` | yes |  | Server's WireGuard public key, stamped by the control plane from the first successful `server.fabric.reconcile` result; null until then, unique per fabric. |
+| `prefix` | `cidr` | no |  | Container aggregate CIDR (a /16 from `fabric.options.containerPool`) allocated to this server and forwarded over `tp0`; per-network subnets are carved from it. |
+| `advertised_cidrs` | `cidr[]` | no | `'{}'::cidr[]` | Operator-configured LAN CIDRs a `gateway` relay advertises to remote peers (native cidr[], host bits cleared); must be empty when `role = 'member'`. |
+| `preshared_key` | `text` | yes |  | Sealed `tpsecret` envelope of the operator-set WireGuard preshared key; write-only, never returned by the API, resealed for the daemon at reconcile. |
+
+**Constraints and indexes**
+
+- Unique `relay_fabric_server_unique`: (`fabric_id`, `server_id`)
+- Unique `uniq_relay_fabric_address`: (`fabric_id`, `address`)
+- Unique `uniq_relay_fabric_public_key`: (`fabric_id`, `public_key`)
+- Index `idx_relay_fabric_id`: (`fabric_id`)
+- Index `idx_relay_server_id`: (`server_id`)
+- Check `relay_role_check`: `role IN ('gateway', 'member')`
+- Check `relay_keepalive_check`: `"relay"."keepalive" IS NULL OR ("relay"."keepalive" BETWEEN 1 AND 65535)`
+- Check `relay_member_advertised_cidrs_empty_check`: `"relay"."role" <> 'member' OR cardinality("relay"."advertised_cidrs") = 0`
+
+## `subnet` [#subnet]
+
+Per-server realization of a `kind = 'compose'` spanning network, one row per network and server, written by `ensureNetworkSubnet` when spanning networks build.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb; no control-plane code path writes or reads it today. |
+| `options` | `jsonb` | yes |  | Optional segment extras read by `parseSegmentNetworkExtras` when rendering the Docker bridge: `mtu` (1280..9000) and an IPv4 `gateway`; no writer found today. |
+| `network_id` | `uuid` | no |  | FK → [`network`](/docs/database/networking#network).`id` (on delete cascade). Spanning network (`kind = 'compose'` row) this per-server subnet realizes, unique together with `server_id`; rows cascade away with the network. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Server hosting this segment; delete is restricted, so `deleteServerFabricMembership` removes the subnets first. |
+| `cidr` | `cidr` | no |  | Server-local Docker bridge subnet for the network, the lowest free /24 carved from the server's `relay.prefix` around org exclusions by `requireSubnetCidr`. |
+
+**Constraints and indexes**
+
+- Unique `subnet_network_server_unique`: (`network_id`, `server_id`)
+- Index `idx_subnet_network_id`: (`network_id`)
+- Index `idx_subnet_server_id`: (`server_id`)

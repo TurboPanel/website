@@ -1,0 +1,169 @@
+---
+title: "Git and SSH"
+description: "Data dictionary — git and ssh tables: connection, delivery, forge, repository, ssh"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Git and SSH
+
+Git forges, connections, repositories, the webhook delivery ledger and user SSH keys.
+
+Tables on this page: [`connection`](#connection) · [`delivery`](#delivery) · [`forge`](#forge) · [`repository`](#repository) · [`ssh`](#ssh). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `connection` [#connection]
+
+One Git provider grant to one organization, a GitHub App installation or a GitLab OAuth account connection, made through a `forge` row.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for connection rows today. |
+| `options` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for connection rows today. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `forge_id` | `uuid` | no |  | FK → [`forge`](/docs/database/git#forge).`id` (on delete cascade). Application the grant was made through; with `external_installation_id` it resolves a webhook delivery to exactly one row (cascades on forge delete). |
+| `provider` | `text` | no |  | `github` or `gitlab`, denormalized from the forge as a filter column. |
+| `external_installation_id` | `text` | no |  | Provider-side id as text: the numeric GitHub App installation id, or the GitLab user/group id; for GitHub unique per forge across the instance. |
+| `account_login` | `varchar(255)` | yes |  | Login of the provider account the grant sits on (GitHub installation account or GitLab user), refreshed on every connect or reconnect. |
+| `account_type` | `text` | yes |  | Provider account kind as GitHub reports it (`User` or `Organization`); always `User` for GitLab connections. |
+| `suspended_at` | `timestamp(3) with time zone` | yes |  | Set while the provider reports the installation suspended or a token refresh failed; cleared on reconnect, and suspended rows are skipped by the trigger. |
+| `oauth_envelope` | `jsonb` | yes |  | GitLab only: sealed OAuth pair as JSON `accessTokenEnvelope`, `refreshTokenEnvelope`, `expiresAt`, `scope` (tpsecret strings); NULL for GitHub. |
+
+**Constraints and indexes**
+
+- Unique `uniq_connection_organization_forge_external`: (`organization_id`, `forge_id`, `external_installation_id`)
+- Index `idx_connection_organization_id`: (`organization_id`)
+- Index `idx_connection_forge_id`: (`forge_id`)
+- Unique index `uniq_connection_forge_external_github`: (`forge_id`, `external_installation_id`) where `"connection"."provider" = 'github'`
+- Check `connection_provider_check`: `provider IN ('github', 'gitlab')`
+
+## `delivery` [#delivery]
+
+Replay-protection ledger of inbound webhook deliveries for every gate kind (GitHub, GitLab, Stripe); org-agnostic, secret-free, pruned after 7 days.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `provider` | `text` | no |  | Webhook gate kind that claimed the delivery: `github`, `gitlab` or `stripe`. |
+| `external_delivery_id` | `text` | no |  | Provider delivery id: GitHub `X-GitHub-Delivery`, GitLab `X-Gitlab-Event-UUID` (else `sha256:` digest of the body), or the Stripe event id. |
+| `event` | `text` | yes |  | Provider event name (`push`, `check_suite`, a Stripe event `type`) recorded for tracing only. |
+| `object_id` | `text` | yes |  | Stripe `data.object.id` kept until projection settles so entitlement survives a crash after the 2xx; NULL for git deliveries. |
+| `object_type` | `text` | yes |  | Stripe `data.object.object` (for example `subscription`) kept beside `object_id` for the projection sweep; NULL for git deliveries. |
+| `projected_at` | `timestamp(3) with time zone` | yes |  | When the Stripe projection settled (success, skip or permanent error); NULL means pending retry and exempt from pruning, git rows stay NULL. |
+
+**Constraints and indexes**
+
+- Unique `uniq_delivery_provider_external`: (`provider`, `external_delivery_id`)
+- Index `idx_delivery_created_at`: (`created_at`)
+- Index `idx_delivery_stripe_pending`: (`created_at`) where `"delivery"."provider" = 'stripe' AND "delivery"."projected_at" IS NULL`
+- Check `delivery_provider_check`: `provider IN ('github', 'gitlab', 'stripe')`
+
+## `forge` [#forge]
+
+A registered Git provider application (GitHub App or GitLab OAuth app) that connections are granted through; `organization_id` NULL means instance-wide.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for forge rows today. |
+| `options` | `jsonb` | yes |  | Sparse jsonb bag reserved by the repo-wide column convention; no code path writes it for forge rows today. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). NULL means instance-wide (any organization may connect through it); set means the app belongs to that organization alone. |
+| `provider` | `text` | no |  | Git provider kind, `github` or `gitlab`, chosen at registration and never changed. |
+| `name` | `varchar(255)` | no |  | Display name of the app; for GitHub Apps it is overwritten from the provider on each sync, and varchar(255) is that write's only length guard. |
+| `base_url` | `text` | no |  | Origin the app lives on (github.com, gitlab.com or a self-managed host); part of the unique key with `provider` and `external_app_id`. |
+| `api_url` | `text` | yes |  | Explicit API origin for a GitHub Enterprise Server or self-managed GitLab; NULL means derive it from `base_url`. |
+| `external_app_id` | `text` | no |  | Provider-side application id as text: the numeric GitHub App id (matches `X-GitHub-Hook-Installation-Target-ID`) or the GitLab OAuth application id. |
+| `app_slug` | `varchar(255)` | yes |  | GitHub App slug used to build the install URL; filled by the manifest flow or sync, NULL for GitLab. |
+| `client_id` | `text` | yes |  | OAuth client id the provider issued for this app; its secret is sealed in `envelopes.clientSecretEnvelope`. |
+| `redirect_uri` | `text` | yes |  | OAuth redirect URI registered with the provider for the GitLab authorize flow; NULL for GitHub Apps. |
+| `webhook_origin` | `text` | yes |  | Public origin the provider was told to deliver webhooks to at registration; NULL on apps registered before that choice existed. |
+| `is_public` | `boolean` | no | `false` | Whether the provider was told the app is publicly installable; set at creation (true for instance-wide apps) and refreshed from GitHub on sync. |
+| `custom_git_user` | `varchar(64)` | yes |  | SSH user for clone URLs of a self-hosted forge on a non-standard port (`ssh://user@host:port/path`); unused by GitHub App sources. |
+| `custom_git_port` | `integer` | yes |  | SSH port for clone URLs of a self-hosted forge, paired with `custom_git_user`; unused by GitHub App sources. |
+| `synced_at` | `timestamp(3) with time zone` | yes |  | Last successful reconcile of this row against the provider's own record of the app (the sync handler); NULL if never synced. |
+| `envelopes` | `jsonb` | no |  | Sealed `tpsecret` envelopes under JSON keys `privateKeyEnvelope`, `clientSecretEnvelope`, `webhookSecretEnvelope`; never returned by the API. |
+| `webhook_ref` | `varchar(64)` | no |  | Opaque unguessable routing token that ends this app's webhook URL (`/webhook/github/` plus the token); it routes a delivery to its app, not a credential. |
+| `webhook_token_hash` | `text` | yes |  | GitLab only: HMAC of the webhook token so a delivery on the unscoped path resolves in one indexed lookup; NULL for GitHub apps. |
+
+**Constraints and indexes**
+
+- Unique `uniq_forge_webhook_ref`: (`webhook_ref`)
+- Unique `uniq_forge_provider_base_external`: (`provider`, `base_url`, `external_app_id`)
+- Unique `uniq_forge_webhook_token_hash`: (`webhook_token_hash`)
+- Index `idx_forge_organization_id`: (`organization_id`)
+- Index `idx_forge_provider`: (`provider`)
+- Check `forge_provider_check`: `provider IN ('github', 'gitlab')`
+
+## `repository` [#repository]
+
+One Git repository registered to an organization (one row per repo per org); workloads attach via `project.repository_id` or compose `x-turbopanel.source` refs.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Free-form jsonb the caller may send on repository create or patch; bookkeeping, never load-bearing, and the API folds the inspect columns into it on the wire. |
+| `options` | `jsonb` | yes |  | Caller-supplied policy jsonb; the webhook trigger also parks `pendingChecks` (`commitSha`, `ref`, `recordedAt`) here in `checks_passed` mode. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `connection_id` | `uuid` | yes |  | FK → [`connection`](/docs/database/git#connection).`id` (on delete set null). Provider connection that authorizes clones and webhook matching; NULL for deploy-key and anonymous git lanes, set NULL when the connection is deleted. |
+| `secret_id` | `uuid` | yes |  | FK → [`secret`](/docs/database/storage#secret).`id` (on delete set null). Deploy key (`secret` row with the sealed private key) for SSH and deploy-key GitLab sources; NULL for connection-backed or anonymous repositories. |
+| `provider` | `text` | no |  | `github`, `gitlab`, or `git` for a plain URL read through a connected server instead of a provider API. |
+| `repository_url` | `text` | no |  | Clone URL stored canonicalized (lower-cased host, `.git` suffix, no trailing slash) so the per-organization unique dedupes spellings. |
+| `repository_external_id` | `text` | yes |  | Provider-side repository/project id as text, used to match webhook deliveries because it survives renames; NULL for plain git. |
+| `default_branch` | `varchar(255)` | yes |  | Tracked branch: operator-set, or copied from `detected_default_branch` while the row still follows the provider's default. |
+| `subdirectory` | `text` | yes |  | Relative checkout subdirectory used as the build root, same rule as compose `x-turbopanel.root`; NULL means the repository root. |
+| `auto_deploy` | `text` | no | `'disabled'` | Push-to-deploy mode: `immediate`, `checks_passed` (wait for a green check suite) or `disabled` (default); plain git never deploys on push. |
+| `detected_default_branch` | `varchar(255)` | yes |  | Provider-reported default branch from the latest refresh or inspect, compared with `default_branch` to show drift. |
+| `default_branch_checked_at` | `timestamp(3) with time zone` | yes |  | When `detected_default_branch` was last read from the provider. |
+| `last_inspected_at` | `timestamp(3) with time zone` | yes |  | When the head commit was last inspected through the provider (the inspect route's bookkeeping). |
+| `last_inspected_commit_sha` | `text` | yes |  | Head commit SHA observed at `last_inspected_at`. |
+
+**Constraints and indexes**
+
+- Unique `uniq_repository_organization_url`: (`organization_id`, `repository_url`)
+- Unique `uniq_repository_organization_connection_repository`: (`organization_id`, `connection_id`, `repository_external_id`)
+- Index `idx_repository_organization_id`: (`organization_id`)
+- Index `idx_repository_connection_id`: (`connection_id`)
+- Index `idx_repository_secret_id`: (`secret_id`)
+- Check `repository_provider_check`: `provider IN ('github', 'gitlab', 'git')`
+- Check `repository_auto_deploy_check`: `auto_deploy IN ('immediate', 'checks_passed', 'disabled')`
+
+## `ssh` [#ssh]
+
+A public key that may authenticate as a principal over SSH; the daemon renders `authorized_keys` from it, and fingerprint lookups answer lost-laptop revocation.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `principal_id` | `uuid` | no |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete cascade). |
+| `name` | `text` | no |  | Operator-facing label (1 to 255 chars), distinct from the key's own `comment`. |
+| `key_type` | `text` | no |  | SSH key algorithm from the CHECK list (`ssh-ed25519`, `ecdsa-sha2-nistp*`, their `sk-` FIDO variants, `ssh-rsa`); `ssh-dss` is rejected. |
+| `public_key` | `text` | no |  | Canonical `type base64` re-rendered from the decoded blob, never the pasted line; the comment moves to `comment` and a leading options field is rejected. |
+| `fingerprint` | `text` | no |  | `SHA256:` plus unpadded base64 digest of the decoded blob, byte-identical to `ssh-keygen -lf`; unique per principal. |
+| `comment` | `text` | yes |  | Sanitized display comment from the pasted line (printable ASCII, no quotes or backslashes, max 255); NULL when none. |
+| `user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). Org member who added the key: audit provenance, not ownership; set NULL on user delete so the key survives. |
+| `bits` | `integer` | yes |  | RSA modulus size in bits (minimum 2048); NULL for the fixed-size key types. |
+
+**Constraints and indexes**
+
+- Unique `ssh_fingerprint_unique`: (`principal_id`, `fingerprint`)
+- Index `idx_ssh_principal_id`: (`principal_id`)
+- Index `idx_ssh_fingerprint`: (`fingerprint`)
+- Index `idx_ssh_user_id`: (`user_id`)
+- Check `ssh_type_check`: `"ssh"."key_type" IN ('ssh-ed25519', 'sk-ssh-ed25519@openssh.com', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'sk-ecdsa-sha2-nistp256@openssh.com', 'ssh-rsa')`
+- Check `ssh_fingerprint_check`: `"ssh"."fingerprint" ~ '^SHA256:[A-Za-z0-9+/]{43}$'`
+- Check `ssh_public_key_check`: `"ssh"."public_key" ~ '^[A-Za-z0-9@.-]+ [A-Za-z0-9+/]+={0,2}$'`
+- Check `ssh_name_check`: `char_length("ssh"."name") >= 1`

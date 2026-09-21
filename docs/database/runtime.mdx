@@ -1,0 +1,292 @@
+---
+title: "Servers, runtime and metrics"
+description: "Data dictionary — servers, runtime and metrics tables: capability, command, deployment, dispatch, generation, key, label, monitor, server, slot, task"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Servers, runtime and metrics
+
+Enrolled servers and their daemon keys, the command / dispatch pipeline, deployments, slots, tasks, labels, and the metrics topology generations.
+
+Tables on this page: [`capability`](#capability) · [`command`](#command) · [`deployment`](#deployment) · [`dispatch`](#dispatch) · [`generation`](#generation) · [`key`](#key) · [`label`](#label) · [`monitor`](#monitor) · [`server`](#server) · [`slot`](#slot) · [`task`](#task). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `capability` [#capability]
+
+Append-only history of resolved v5 metrics capability plans per server (one row per server and generation), inserted only when the resolved plan hash changes.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `generation` | `integer` | no |  | Control-plane counter starting at 0 and incremented by one each time the resolved plan hash differs from the latest recorded row; unique per server. |
+| `plan_hash` | `text` | no |  | SHA-256 hex of the canonical field-ordered plan, domain-separated with the prefix `turbopanel:metrics-capability-plan:`; the cheap did-it-change comparison key. |
+| `plan` | `jsonb` | yes |  | Full resolved `MetricsCapabilityPlan` snapshot stored for audit and debugging; jsonb so the plan shape needs no migration. |
+| `applied_at` | `timestamp(3) with time zone` | no |  | Control-plane timestamp taken when this generation row was written during metrics ingest plan resolution, not a daemon-reported time. |
+
+**Constraints and indexes**
+
+- Unique `uniq_capability_server_generation`: (`server_id`, `generation`)
+- Index `idx_capability_server_generation`: (`server_id`, `generation`)
+
+## `command` [#command]
+
+Append-only command history, one row per attempt dispatched to a daemon; created by routes and reconcilers, advanced by `transitionCommand`; UI status source.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Follow-up-chain blob only (`pendingStandbyApplies`, `managedDestroyGate`, `followUpPromote`, `pendingTlsLeaf`, `desiredHash`) and one-shot claim flags. |
+| `options` | `jsonb` | yes |  | Unused today; kept only for the schema rule that pairs `metadata` with `options`. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `actor_type` | `text` | no |  | `user` for an operator request or `system` for the control plane's own reconcilers, sweeps and webhooks (mirrors `COMMAND_ACTOR_TYPES`); no FK. |
+| `actor_id` | `uuid` | no |  | Id of the acting user, or of the triggering entity (usually the server) when `actor_type` is `system`; no FK. |
+| `name` | `text` | no |  | Command type from `COMMAND_TYPES` in commands/types.ts, such as `daemon.ping`, `environment.deploy`, `managed.apply` or `system.reconcile`. |
+| `status` | `text` | no | `'queued'` | State `queued`, `dispatching`, `sent`, `acked`, `running`, then terminal `succeeded`, `failed`, `timed_out` or `cancelled`; set by `transitionCommand`. |
+| `attempts` | `integer` | no | `0` | Dispatch retry count, incremented by the queue consumer each time it picks the command up. |
+| `context` | `jsonb` | yes |  | Allowlisted non-secret identifier bag (`managedId`, `environmentId`, `generation`) extracted by commands/context.ts so reads never need the dispatch payload. |
+| `result_summary` | `jsonb` | yes |  | Small bounded typed result reported by the daemon on completion (API field `result`); execution logs live in the execution-log store, not here. |
+| `error_code` | `text` | yes |  | Machine-readable terminal error code set when the command fails or times out. |
+| `error_message` | `text` | yes |  | Human-readable terminal error text (API field `error`) set alongside `error_code`. |
+| `queued_at` | `timestamp(3) with time zone` | yes |  | Set by `transitionCommand` when the status becomes `queued`. |
+| `dispatch_started_at` | `timestamp(3) with time zone` | yes |  | Set when the queue consumer picks the command up (status `dispatching`). |
+| `sent_at` | `timestamp(3) with time zone` | yes |  | Set when the command is enqueued to the daemon cell outbox (status `sent`). |
+| `acked_at` | `timestamp(3) with time zone` | yes |  | Set when the daemon acknowledges receipt (status `acked`). |
+| `started_at` | `timestamp(3) with time zone` | yes |  | Set when the daemon reports that execution has begun (status `running`). |
+| `finished_at` | `timestamp(3) with time zone` | yes |  | Set when the command reaches any terminal status. |
+| `expires_at` | `timestamp(3) with time zone` | yes |  | Optional deadline: once passed, the consumer marks the command `timed_out` instead of dispatching it; consumer-made follow-ups set 10 minutes, NULL means none. |
+| `managed_destroy_gate_id` | `text` | yes |  | `metadata.managedDestroyGate.gateId` promoted to an indexed column so gated replica-destroy completions can be filtered; `memberIds` stays in jsonb. |
+
+**Constraints and indexes**
+
+- Index `idx_command_managed_destroy_gate_id`: (`managed_destroy_gate_id`)
+- Index `idx_command_server_id_created_at`: (`server_id`, `created_at`)
+- Index `idx_command_status`: (`status`)
+- Index `idx_command_deploy_environment_created`: (`((context ->> 'environmentId'))`, `created_at`) where `name = 'environment.deploy'`
+- Check `command_status_check`: `status IN ('queued', 'dispatching', 'sent', 'acked', 'running', 'succeeded', 'failed', 'timed_out', 'cancelled')`
+- Check `command_actor_type_check`: `actor_type IN ('user', 'system')`
+
+## `deployment` [#deployment]
+
+Current desired and applied state per (environment, server) pair, upserted on each redeploy by deploy-routes.ts; history lives in `environment.deploy` commands.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Jsonb patched on apply outcome: `error` holds the last failure message and is reset to null on success. |
+| `options` | `jsonb` | yes |  | Per-target apply inputs written at deploy time: `secretPlan` and `siteReleases` (release trees the compose declares) for that server. |
+| `environment_id` | `uuid` | no |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). |
+| `desired_generation` | `integer` | no | `0` | Environment deploy generation this row targets, written by deploy-routes.ts for every planned and drained server on each deploy. |
+| `applied_generation` | `integer` | yes |  | Generation the daemon last applied successfully on this server, set on the `applied` transition; NULL until a first success. |
+| `desired_hash` | `text` | yes |  | sha256 of this server's compiled runtime compose.yaml for the desired generation; NULL for draining targets. |
+| `status` | `text` | no | `'pending'` | `pending`, `applying` (deploy command created), `applied`, `failed`, or `draining` (server dropped from the plan, awaiting cleanup); set by deploy-routes. |
+| `last_command_id` | `uuid` | yes |  | Id of the `command` row for the most recent apply attempt on this pair; no FK, it is the join key from current state into the append-only command history. |
+| `finished_at` | `timestamp(3) with time zone` | yes |  | When the last apply attempt reached a terminal state; summarizes only the latest attempt. |
+| `duration_ms` | `integer` | yes |  | Wall-clock duration of the last apply attempt in milliseconds; NULL when unknown. |
+| `outcome` | `text` | yes |  | Terminal outcome of the last apply attempt: `applied`, `failed` or `timed_out` (the command's own terminal status); NULL until one finishes. |
+
+**Constraints and indexes**
+
+- Unique `uniq_deployment_environment_server`: (`environment_id`, `server_id`)
+- Index `idx_deployment_environment_id`: (`environment_id`)
+- Index `idx_deployment_server_id`: (`server_id`)
+- Check `deployment_status_check`: `"deployment"."status" IN ('pending','applying','applied','failed','draining')`
+- Check `deployment_generation_check`: `"deployment"."desired_generation" >= 0 AND ("deployment"."applied_generation" IS NULL OR "deployment"."applied_generation" >= 0)`
+- Check `deployment_outcome_check`: `"deployment"."outcome" IS NULL OR "deployment"."outcome" IN ('applied','failed','timed_out')`
+
+## `dispatch` [#dispatch]
+
+One-shot daemon execution payload for a command and the only place secret-bearing command input lives; inserted with its command row, deleted on success.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `command_id` (PK) | `uuid` | no |  | FK → [`command`](/docs/database/runtime#command).`id` (on delete cascade). Primary key and FK to `command.id` (cascade): exactly one payload per command, written in the same transaction as the command row. |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `payload` | `jsonb` | no |  | Typed, bounded daemon command input (may carry compose YAML, credential envelopes or TLS material); read once by the consumer just before dispatch. |
+| `expires_at` | `timestamp(3) with time zone` | yes |  | Failure-retention deadline: NULL until a terminal failure, then now plus 24h (`failed`, `timed_out`, `cancelled`); the maintenance sweep deletes expired rows. |
+
+**Constraints and indexes**
+
+- Index `idx_dispatch_expires_at`: (`expires_at`)
+
+## `generation` [#generation]
+
+Append-only history of every topology generation a server's daemon reported (one row per server and generation), inserted verbatim from `topology-report`.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `generation` | `integer` | no |  | Daemon-maintained topology generation counter, bumped only when the enumerated NIC, GPU, filesystem, disk or signal identity set or slot mapping changes. |
+| `boot_generation` | `integer` | no |  | Daemon boot counter, incremented when `/proc/sys/kernel/random/boot_id` differs from the value persisted in its state directory; sent with the snapshot. |
+| `snapshot` | `jsonb` | yes |  | Full daemon-reported topology object stored verbatim: networks, filesystems, blockDevices, gpus, hardwareSignals, cpu, numaNodes, capacities, machineClass. |
+| `applied_at` | `timestamp(3) with time zone` | no |  | Daemon's own report timestamp (`topology-report.at`) for when this generation took effect, never the control-plane receipt time. |
+
+**Constraints and indexes**
+
+- Unique `uniq_generation_server_generation`: (`server_id`, `generation`)
+- Index `idx_generation_server_generation`: (`server_id`, `generation`)
+
+## `key` [#key]
+
+The Ed25519 daemon identity key of a server, one row per server (unique `server_id` and `fingerprint`), written on enroll and re-enroll by server-identity-db.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). Owning server, UNIQUE so re-enrolment replaces the row in place (fresh id, cleared `revoked_at`) unless the row is revoked; cascades on server delete. |
+| `algorithm` | `text` | no |  | Signature algorithm of the key, constrained to `Ed25519`. |
+| `public_jwk` | `jsonb` | no |  | Raw Ed25519 public JWK with `crv`, `kty` and `x` as sent by the daemon at enrolment; the private half never leaves the host. |
+| `fingerprint` | `text` | no |  | SHA-256 hex digest of the canonical JSON of `crv`, `kty` and `x`; globally UNIQUE and used to look up the server on daemon auth. |
+| `revoked_at` | `timestamp(3) with time zone` | yes |  | Set by `revokeDaemonKey`; non-null blocks new JWT issuance and is sticky, so a re-enrolment against a revoked row is refused rather than replacing it. |
+| `last_used_at` | `timestamp(3) with time zone` | yes |  | Stamped by `touchDaemonKeyLastUsed` when a daemon JWT session is issued (single-column write, no cell wake); reset to NULL on re-enrolment. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_key_server`: (`server_id`)
+- Unique index `uniq_key_fingerprint`: (`fingerprint`)
+- Check `key_algorithm_check`: `algorithm = 'Ed25519'`
+
+## `label` [#label]
+
+Key/value labels on a server, the source for compose `deploy.placement.constraints` (`node.labels.*`); replaced as a whole set by the labels API, max 64.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `key` | `text` | no |  | Label key, 1 to 255 chars matching `^[A-Za-z0-9][A-Za-z0-9._-]*$` and unique per server; matched by `node.labels.KEY` placement constraints. |
+| `value` | `text` | no | `''` | Label value string (empty allowed, default `''`) capped at the description max length; compared with `==` or `!=` in placement constraints. |
+
+**Constraints and indexes**
+
+- Unique `uniq_label_server_key`: (`server_id`, `key`)
+- Index `idx_label_server_id`: (`server_id`)
+- Check `label_key_format_check`: `(char_length(("label"."key")::text) >= 1) AND (char_length(("label"."key")::text) <= 255) AND (("label"."key")::text ~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'::text)`
+
+## `monitor` [#monitor]
+
+Per-server ProxySQL backend monitor credential minted by the control plane, one row per server; kept off `server.options` since that jsonb is served and cached.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). Owning server, UNIQUE because one ProxySQL runs per host with a single global monitor credential; ON DELETE CASCADE so a deleted host leaves no orphaned secret. |
+| `username` | `varchar(64)` | no |  | Deterministic monitor role name: `tp_monitor_` plus the first 12 hex chars of the server UUID without dashes, kept within engine identifier limits. |
+| `secret_envelope` | `text` | no |  | Password sealed with the data-encryption key (`ENVELOPE_PREFIX_SECRET` prefix); resealed to a `tpdaemon` envelope per recipient at send time. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_monitor_server`: (`server_id`)
+
+## `server` [#server]
+
+One enrolled host per row (uuidv7 id); daemon enroll and heartbeats project host facts onto it, operators set the name, options and pins via PATCH.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Daemon-projected host facts jsonb: `resources`, `geo`, `docker`, `runtimes`, `cell` plus the operator `hardwareProfile`; hostname, OS and NTP have own columns. |
+| `options` | `jsonb` | yes |  | Operator config jsonb served verbatim by GET /servers: `timezone`, `sshPort`, `ntp`, `hosting`, `cellLocationHint`, `cellGeneration`, `metricsCapabilityPlan`. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete restrict). Owning organization, nullable; ON DELETE RESTRICT so an organization that still has server rows cannot be deleted. |
+| `name` | `text` | yes |  | Optional operator-chosen display name, set when the registration key is minted or via PATCH; the UI falls back to `hostname` when null. |
+| `hostname` | `varchar(255)` | yes |  | Daemon-reported host name written on enroll, hello and identity projection; used with `machine_key` to match a reconnecting daemon to its row. |
+| `machine_key` | `text` | yes |  | Deterministic HMAC-SHA256 digest of the host machine-id (never the raw id, not a secret), echoed into signed enroll/auth payloads and used to match reconnects. |
+| `os_id` | `varchar(255)` | yes |  | Distro `ID` from /etc/os-release as reported by the daemon; Raspberry Pi OS (including 64-bit `ID=debian` with /etc/rpi-issue) is stored as `raspberry-pi-os`. |
+| `os_family` | `varchar(32)` | yes |  | Daemon-reported OS family, one of `linux`, `windows`, `freebsd` or `darwin`. |
+| `os_version` | `varchar(64)` | yes |  | Daemon-reported OS version, preferring `DEBIAN_VERSION_FULL` or /etc/debian_version over `VERSION_ID` (such as `13.5`). |
+| `os_codename` | `varchar(64)` | yes |  | Daemon-reported `VERSION_CODENAME` from /etc/os-release. |
+| `os_pretty_name` | `varchar(255)` | yes |  | Daemon-reported `PRETTY_NAME` from /etc/os-release. |
+| `os_architecture` | `varchar(64)` | yes |  | Daemon-reported CPU architecture from the Deno build, such as `x86_64` or `aarch64`. |
+| `machine_class` | `text` | yes |  | `physical` or `virtual` for sensor entitlement; NULL means auto, where ingest writes `physical` once sensors are found (never `virtual`); PATCH can pin. |
+| `timezone` | `varchar(64)` | yes |  | Daemon-observed IANA host timezone; the operator override lives in `options.timezone` and wins when set. |
+| `is_time_sync_enabled` | `boolean` | yes |  | Daemon-reported NTP client enabled flag (`ntpEnabled` from the systemd-timesyncd facts); NULL when never reported. |
+| `ntp_servers` | `jsonb` | yes |  | Daemon-reported jsonb array of objects with `host` and optional `fallback` (FallbackNTP entries), read from timesyncd.conf or timedatectl. |
+| `ntp_last_synced_at` | `timestamp(3) with time zone` | yes |  | Last successful NTP sync: set from the daemon stamp or first synced observation, cleared when the host reports unsynced, never bumped to now() per heartbeat. |
+| `assigned_tier_id` | `uuid` | yes |  | FK → [`tier`](/docs/database/billing#tier).`id` (on delete set null). Derived, never chosen: the purchased tier covering this server, recomputed by assignment-records.ts on seat, grant, enroll or hardware change; NULL if none. |
+| `is_connected` | `boolean` | no | `false` | Daemon liveness flag written by the cell projection on connect and disconnect; `online`, `offline` or `unknown` is derived from it and `status_changed_at`. |
+| `status_changed_at` | `timestamp(3) with time zone` | yes |  | Time of the last `is_connected` flip in either direction; read as `connectedAt` while connected and offline-since otherwise, NULL if never transitioned. |
+| `daemon` | `jsonb` | yes |  | Sparse jsonb with an optional `projection` (hostname, machineKey, remoteAddress, keyId, daemonBuild) written by the cell; the key lives in `key`. |
+| `is_hosting_enabled` | `boolean` | yes |  | Boolean mirror of validated `options.hosting.enabled`, written by the same PATCH route so system/reconcile.ts can filter hosting in SQL; NULL means not set. |
+
+**Constraints and indexes**
+
+- Index `idx_server_organization_id`: (`organization_id`)
+- Index `idx_server_machine_key`: (`machine_key`)
+- Index `idx_server_hostname`: (`hostname`)
+- Index `idx_server_connected`: (`id`) where `"server"."is_connected"`
+- Index `idx_server_assigned_tier_id`: (`assigned_tier_id`)
+- Check `server_machine_class_check`: `"server"."machine_class" IN ('physical', 'virtual')`
+
+## `slot` [#slot]
+
+One scheduled replica instance of a service on a server; derived scheduling state the planner writes through `replaceEnvironmentSlots` on each deploy.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Reserved; never written by the slot re-plan today. |
+| `options` | `jsonb` | yes |  | Reserved; never written by the slot re-plan today. |
+| `environment_id` | `uuid` | no |  | FK → [`environment`](/docs/database/resources#environment).`id` (on delete cascade). |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete restrict). Server the planner placed this replica on; sticky across re-plans (only `generation` is rewritten) unless the planner moves it; ON DELETE RESTRICT. |
+| `address` | `inet` | yes |  | Cross-host inet address allocated on the environment's spanning compose network; at most one per slot, NULL clears a prior allocation. |
+| `slot` | `integer` | no |  | 0-based replica index within the service (unlike 1-based `container.ordinal`), unique per service. |
+| `generation` | `integer` | no | `0` | Environment deploy generation of the plan that last wrote this row; matches `deployment.desired_generation`. |
+| `desired_state` | `text` | no | `'running'` | Intended state, `running`, `stopped` or `removed`; the planner only writes `running` today. |
+
+**Constraints and indexes**
+
+- Unique `uniq_slot_service_slot`: (`service_id`, `slot`)
+- Index `idx_slot_environment_generation`: (`environment_id`, `generation`)
+- Index `idx_slot_server_id`: (`server_id`)
+- Check `slot_slot_nonnegative_check`: `"slot"."slot" >= 0`
+- Check `slot_desired_state_check`: `"slot"."desired_state" IN ('running','stopped','removed')`
+
+## `task` [#task]
+
+Cron-style scheduled command on a service, created and edited by operators via the tasks API and rendered into systemd timers at deploy time; no run history.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `metadata` | `jsonb` | yes |  | Accepted by the record helper but never written by the tasks API today; reserved. |
+| `options` | `jsonb` | yes |  | Accepted by the record helper but never written by the tasks API today; reserved. |
+| `service_id` | `uuid` | no |  | FK → [`service`](/docs/database/resources#service).`id` (on delete cascade). |
+| `name` | `text` | no |  | Operator display name, unique per service and normalized as a display name (no format CHECK). |
+| `schedule` | `text` | no |  | Cron expression validated by `parseCronSchedule` in lib/cron.ts and converted to a systemd `OnCalendar` value at deploy time. |
+| `command` | `text` | no |  | Shell command line to run (under 1000 chars, each argument under 512), validated by `parseCronCommand`. |
+| `timezone` | `text` | yes |  | Optional IANA timezone (validated against the allowed list) applied when the schedule is converted to a systemd `OnCalendar` value; NULL means none set. |
+| `is_enabled` | `boolean` | no | `true` | Operator toggle; a disabled task stays stored but `renderCronForDeploy` skips it, so no timer is rendered at deploy time. |
+| `concurrency_policy` | `text` | no | `'forbid'` | What happens when a run is still going at the next tick: `allow` overlapping runs, `forbid` skips the tick (default), `replace` restarts the run. |
+| `timeout_seconds` | `integer` | yes |  | Longest a run may take before it is stopped, at most 86400 (24h); NULL means no declared limit. |
+
+**Constraints and indexes**
+
+- Unique `uniq_task_service_name`: (`service_id`, `name`)
+- Index `idx_task_service_id`: (`service_id`)
+- Check `task_concurrency_policy_check`: `"task"."concurrency_policy" IN ('allow','forbid','replace')`

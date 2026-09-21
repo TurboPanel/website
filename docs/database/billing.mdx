@@ -1,0 +1,172 @@
+---
+title: "Billing"
+description: "Data dictionary — billing tables: allowance, entitlement, license, payer, seat, subscription, tier"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Billing
+
+Tiers are platform-global priced offerings; licenses, payers, subscriptions and seats record what an organization bought and how each server is entitled.
+
+Tables on this page: [`allowance`](#allowance) · [`entitlement`](#entitlement) · [`license`](#license) · [`payer`](#payer) · [`seat`](#seat) · [`subscription`](#subscription) · [`tier`](#tier). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `allowance` [#allowance]
+
+Self-hosted entitlement grant: at most one row per organization giving `quantity` free units at the custom `SX` tier so assignment runs with no subscription.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization holding the grant; unique (`uniq_allowance_organization`), so an organization has zero or one row. |
+| `tier_id` | `uuid` | no |  | FK → [`tier`](/docs/database/billing#tier).`id` (on delete restrict). Always the `SX` custom-rung tier row (`ensureCustomTierRow`), stored rather than looked up by label so entitlement reads on the ingest path add no query. |
+| `quantity` | `integer` | no |  | Free `SX` units the self-hosted runtime grants to match its active licenses; always at least 1 because writing zero deletes the row instead. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_allowance_organization`: (`organization_id`)
+- Check `allowance_quantity_check`: `quantity >= 1`
+
+## `entitlement` [#entitlement]
+
+Which runtime series a principal may execute on its host: one row per principal, runtime and series, realised by the daemon as a unix group membership.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `principal_id` | `uuid` | no |  | FK → [`principal`](/docs/database/resources#principal).`id` (on delete cascade). |
+| `runtime` | `text` | no |  | Runtime family the grant covers, `php` or `node` (CHECK `entitlement_runtime_check`). |
+| `series` | `text` | no |  | Exec boundary series such as `8.4` or `24` (digits with an optional dotted minor, CHECKed), never a patch pin; realised as group `tpphp84` or `tpnode24`. |
+| `granted_by` | `text` | no | `'operator'` | `operator` for an explicit grant via the principal routes, `deploy` for a row deploy-prepare inserted because a service declared the runtime; both revocable. |
+
+**Constraints and indexes**
+
+- Unique `entitlement_unique`: (`principal_id`, `runtime`, `series`)
+- Index `idx_entitlement_principal_id`: (`principal_id`)
+- Check `entitlement_runtime_check`: `"entitlement"."runtime" IN ('php', 'node')`
+- Check `entitlement_series_check`: `"entitlement"."series" ~ '^[0-9]{1,3}([.][0-9]{1,3})?$'`
+- Check `entitlement_granted_by_check`: `"entitlement"."granted_by" IN ('operator', 'deploy')`
+
+## `license` [#license]
+
+Organization-scoped server registration key: one row per minted key, latched to one server on first enroll, soft-deleted via `revoked_at`, never tied to a tier.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). |
+| `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete set null). Server that consumed this key, set once on first successful enroll (partial unique index: one license per server); null while unconsumed, SET NULL on delete. |
+| `name` | `text` | yes |  | Optional operator display name; `this server` is reserved for the colocated control-plane license minted at install and refused by `POST /licenses`. |
+| `token` | `text` | no |  | Argon2id PHC hash of the registration key (same format as `account.password`); the plaintext is returned once at mint and cannot be recovered from this row. |
+| `revoked_at` | `timestamp(3) with time zone` | yes |  | Soft-delete timestamp set by a revoke or by an ended subscription revoking every license; non-null means inactive, and the row keeps `server_id` for audit. |
+
+**Constraints and indexes**
+
+- Index `idx_license_organization_id`: (`organization_id`)
+- Unique index `uniq_license_server_id`: (`server_id`) where `"license"."server_id" IS NOT NULL`
+
+## `payer` [#payer]
+
+Projection of one provider customer (who pays), written only by the Stripe webhook ingress; its subject is exactly one of an organization or a user.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | yes |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Organization subject; exactly one of `organization_id` and `user_id` is non-null (`payer_subject_check`), and it is unique per provider when set. |
+| `user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete cascade). User subject for a personal subscription; exactly one of `organization_id` and `user_id` is non-null (`payer_subject_check`), unique per provider when set. |
+| `provider` | `text` | no |  | Payment provider that owns this customer; only `stripe` is allowed today (CHECK `payer_provider_check`), `apple` is reserved in comments but not accepted. |
+| `provider_customer_id` | `text` | no |  | Provider-side customer id (Stripe `cus_...`); unique together with `provider` and the conflict target of the webhook upsert. |
+| `tax_id` | `text` | yes |  | Value of the first tax id the provider reports on the customer (`customer.tax_ids`), copied by the webhook for display; presence only, never validated here. |
+
+**Constraints and indexes**
+
+- Index `idx_payer_organization_id`: (`organization_id`)
+- Index `idx_payer_user_id`: (`user_id`)
+- Unique index `uniq_payer_provider_customer`: (`provider`, `provider_customer_id`)
+- Unique index `uniq_payer_organization_provider`: (`organization_id`, `provider`) where `"payer"."organization_id" IS NOT NULL`
+- Unique index `uniq_payer_user_provider`: (`user_id`, `provider`) where `"payer"."user_id" IS NOT NULL`
+- Check `payer_subject_check`: `("payer"."organization_id" IS NULL) <> ("payer"."user_id" IS NULL)`
+- Check `payer_provider_check`: `provider IN ('stripe')`
+
+## `seat` [#seat]
+
+Subscription line: `quantity` purchased licenses at one `tier`, projected from provider subscription items by the Stripe webhook (export `subscriptionItem`).
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `subscription_id` | `uuid` | no |  | FK → [`subscription`](/docs/database/billing#subscription).`id` (on delete cascade). |
+| `tier_id` | `uuid` | no |  | FK → [`tier`](/docs/database/billing#tier).`id` (on delete restrict). Tier this line counts against, resolved from the item product via `tier.provider_product_id`; unique per subscription, RESTRICT so a used tier stays readable. |
+| `provider_item_id` | `text` | no |  | Provider-side subscription item id (Stripe `si_...`), unique; when two provider items map to one tier the row keeps the first id with the summed quantity. |
+| `provider_price_id` | `text` | no |  | Provider price the item bills at (Stripe `price_...`), projected from the item and restated by every mutation; the tier knows its product, not its price. |
+| `quantity` | `integer` | no |  | Number of licenses purchased at this tier, copied from the provider item quantity (summed when items share a tier); an ended subscription counts as zero. |
+
+**Constraints and indexes**
+
+- Index `idx_seat_subscription_id`: (`subscription_id`)
+- Index `idx_seat_tier_id`: (`tier_id`)
+- Unique index `uniq_seat_provider_item`: (`provider_item_id`)
+- Unique index `uniq_seat_subscription_tier`: (`subscription_id`, `tier_id`)
+
+## `subscription` [#subscription]
+
+One provider subscription per `payer`, upserted by the Stripe webhook on `provider_subscription_id`; holds status, period end, parked schedule and grace clock.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `payer_id` | `uuid` | no |  | FK → [`payer`](/docs/database/billing#payer).`id` (on delete cascade). |
+| `provider_subscription_id` | `text` | no |  | Provider-side subscription id (Stripe `sub_...`); unique and the conflict target of the webhook upsert. |
+| `status` | `text` | no |  | Checked status: `incomplete`, `incomplete_expired`, `trialing`, `active`, `past_due`, `canceled`, `unpaid`, `paused`, or `unknown` for an unrecognised value. |
+| `provider_status` | `text` | no |  | Provider status string verbatim, never interpreted; kept beside `status` so an unknown Stripe value lands as `unknown` plus the raw string, not a refused event. |
+| `current_period_end` | `timestamp(3) with time zone` | yes |  | End of the current billing period as the provider reports it, taken from the subscription or else its first item; null when the provider gives none. |
+| `schedule_id` | `text` | yes |  | Provider subscription schedule id (Stripe `sub_sched_...`) while a downgrade is parked on a schedule; null otherwise, written by the webhook projection. |
+| `grace_expires_at` | `timestamp(3) with time zone` | yes |  | Moment entitlement lapses after non-payment: latched to `past_due_since` plus 65 days while status is `past_due` or `unpaid`, cleared on any other status. |
+| `past_due_since` | `timestamp(3) with time zone` | yes |  | First moment the provider reported `past_due` or `unpaid`; latched while delinquent, cleared by any other status so a second lapse restarts the grace clock. |
+
+**Constraints and indexes**
+
+- Index `idx_subscription_payer_id`: (`payer_id`)
+- Unique index `uniq_subscription_provider_id`: (`provider_subscription_id`)
+- Check `subscription_status_check`: `status IN ('incomplete', 'incomplete_expired', 'trialing', 'active', 'past_due', 'canceled', 'unpaid', 'paused', 'unknown')`
+
+## `tier` [#tier]
+
+Global billed offering: one row per ladder label (`S1` to `S7`, `SX`) bound to a provider product; written under Admin Tiers, deactivated and never deleted.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `label` | `text` | no |  | Ladder label `S1` to `S7` or `SX`, the unique key into the in-code ladder (`src/lib/tiers/ladder.ts`) that holds everything the tier entitles. |
+| `rank` | `integer` | no |  | Ladder position copied from the in-code ladder on insert, never from a request; unique, orders tiers and decides upgrade versus downgrade and greedy assignment. |
+| `provider` | `text` | no | `'stripe'` | Payment provider the row bills through; only `stripe` is allowed today (CHECK `tier_provider_check`), matching `payer.provider`. |
+| `provider_product_id` | `text` | yes |  | Provider Product id (Stripe `prod_...`) chosen from the provider catalogue and verified before write; null on the custom `SX` row, which is never purchasable. |
+| `price_cents` | `integer` | yes |  | Display cache of the product default price in minor units, written on verify and refreshed by the provider price webhooks; nothing does arithmetic on it. |
+| `currency` | `text` | yes |  | Display cache beside `price_cents`: lower-case ISO currency code of the provider default price, written on verify and by the price webhooks. |
+| `is_custom` | `boolean` | no | `false` | Copied from the in-code ladder on insert (true only for `SX`); identity like `label` and `rank`, never changed by a patch. |
+| `is_active` | `boolean` | no | `true` | Set false by a superadmin to hide the tier from new purchases; rows are deactivated, never deleted, so seats that count against it keep resolving. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_tier_label`: (`label`)
+- Unique index `uniq_tier_rank`: (`rank`)
+- Unique index `uniq_tier_provider_product`: (`provider`, `provider_product_id`) where `"tier"."provider_product_id" IS NOT NULL`
+- Check `tier_provider_check`: `provider IN ('stripe')`
