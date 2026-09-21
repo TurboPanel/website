@@ -1,0 +1,16 @@
+[Unit]
+Description=TurboPanel website %i
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/website/run/%i
+Environment=HOSTNAME=127.0.0.1
+Environment=NODE_ENV=production
+EnvironmentFile=/home/website/run/%i.env
+ExecStart=/opt/node/current/bin/node server.js
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

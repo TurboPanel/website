@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - trunk
+      - staging
+      - live
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -54,7 +56,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
@@ -79,6 +81,12 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Check docs SSR
+        run: pnpm check:docs-ssr
 
       - name: Test with coverage
         run: pnpm test:coverage

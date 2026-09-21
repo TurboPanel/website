@@ -84,22 +84,22 @@ describe('packagesFromNpmLockfile', () => {
     const packages = packagesFromNpmLockfile({
       packages: {
         '': { name: 'tool' },
-        'node_modules/wrangler': {
-          version: '4.124.0',
+        'node_modules/eslint': {
+          version: '9.0.0',
           license: 'MIT',
           dev: true,
         },
-        'node_modules/miniflare': {
-          version: '4.0.0',
-          license: 'MIT',
+        'node_modules/typescript': {
+          version: '5.0.0',
+          license: 'Apache-2.0',
           dev: true,
         },
       },
     })
     expect(packages.every((row) => row.role === 'development')).toBe(true)
     expect(packages.map((row) => row.name).sort((a, b) => a.localeCompare(b))).toEqual([
-      'miniflare',
-      'wrangler',
+      'eslint',
+      'typescript',
     ])
   })
 })

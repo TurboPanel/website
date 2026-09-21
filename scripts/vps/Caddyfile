@@ -1,0 +1,39 @@
+{
+	email noc@turbopanel.io
+}
+
+# Box hostname: SSH, ACME, health, webhook. Not a marketing site.
+alpha.turbopanel.net {
+	handle /hooks/github {
+		reverse_proxy 127.0.0.1:8790
+	}
+	handle /health {
+		respond "ok" 200
+	}
+	respond 404
+}
+
+testing.turbopanel.io {
+	import /home/website/sites/testing/upstream
+	encode gzip
+	header /_next/static/* Cache-Control "public, max-age=31536000, immutable"
+	header -Server
+}
+
+staging.turbopanel.io {
+	import /home/website/sites/staging/upstream
+	encode gzip
+	header /_next/static/* Cache-Control "public, max-age=31536000, immutable"
+	header -Server
+}
+
+www.turbopanel.io {
+	redir https://turbopanel.io{uri} permanent
+}
+
+turbopanel.io {
+	import /home/website/sites/live/upstream
+	encode gzip
+	header /_next/static/* Cache-Control "public, max-age=31536000, immutable"
+	header -Server
+}

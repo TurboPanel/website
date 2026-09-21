@@ -1,0 +1,13 @@
+[Unit]
+Description=GitHub webhook HMAC receiver
+After=network.target
+
+[Service]
+Type=simple
+Environment=PATH=/opt/node/current/bin:/home/alpha/.local/bin:/usr/bin:/bin
+ExecStart=/opt/node/current/bin/node /home/alpha/bin/hook.mjs
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
