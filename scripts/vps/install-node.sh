@@ -47,7 +47,7 @@ else
   tmp=$(mktemp -d)
   trap 'rm -rf "${tmp}"' EXIT
   echo "Downloading ${url}"
-  curl -fsSL -o "${tmp}/${tarball}" "${url}"
+  curl --proto "=https" --tlsv1.2 -fsSL -o "${tmp}/${tarball}" "${url}"
   actual=$(sha256sum "${tmp}/${tarball}" | awk '{print $1}')
   if [ "${actual}" != "${node_sha}" ]; then
     echo "Node tarball checksum mismatch (got ${actual})" >&2
@@ -73,7 +73,7 @@ corepack_tgz="${VERSION_DIR}/lib/corepack-${COREPACK_VERSION}.tgz"
 if [ ! -x "${VERSION_DIR}/bin/corepack" ]; then
   tmp=$(mktemp -d)
   trap 'rm -rf "${tmp}"' EXIT
-  curl -fsSL -o "${tmp}/corepack.tgz" \
+  curl --proto "=https" --tlsv1.2 -fsSL -o "${tmp}/corepack.tgz" \
     "https://registry.npmjs.org/corepack/-/corepack-${COREPACK_VERSION}.tgz"
   actual=$(sha256sum "${tmp}/corepack.tgz" | awk '{print $1}')
   if [ "${actual}" != "${COREPACK_SHA256}" ]; then
@@ -81,7 +81,7 @@ if [ ! -x "${VERSION_DIR}/bin/corepack" ]; then
     exit 1
   fi
   install -m 0644 "${tmp}/corepack.tgz" "${corepack_tgz}"
-  npm install -g --prefix "${VERSION_DIR}" --no-fund --no-audit "${corepack_tgz}"
+  npm install -g --prefix "${VERSION_DIR}" --no-fund --no-audit --ignore-scripts "${corepack_tgz}"
   trap - EXIT
   rm -rf "${tmp}"
 fi

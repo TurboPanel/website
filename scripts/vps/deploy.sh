@@ -55,7 +55,8 @@ port_for() {
 }
 
 other_color() {
-  if [ "$1" = blue ]; then
+  color=$1
+  if [ "${color}" = blue ]; then
     printf '%s' green
   else
     printf '%s' blue

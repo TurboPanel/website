@@ -43,7 +43,7 @@ fi
 tmp=$(mktemp -d)
 trap 'rm -rf "${tmp}"' EXIT
 echo "Downloading ${url}"
-curl -fsSL -o "${tmp}/${asset}" "${url}"
+curl --proto "=https" --tlsv1.2 -fsSL -o "${tmp}/${asset}" "${url}"
 actual=$(sha512sum "${tmp}/${asset}" | awk '{print $1}')
 if [ "${actual}" != "${caddy_sha}" ]; then
   echo "Caddy tarball checksum mismatch (got ${actual})" >&2
