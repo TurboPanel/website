@@ -25,7 +25,7 @@ Three behaviours matter more than any single value:
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
 | `TURBOPANEL_REDIS_SOCKET` | `/run/turbopanel/redis.sock` | Redis over a Unix socket: daemon cell (presence, outbox, request correlation), query cache, auth and daemon rate limiters. Opened lazily; not validated at boot. |
-| `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the mailer consumes it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
+| `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the instance's in-process email consumer drains it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
 | `TURBOPANEL_UPDATE_CHANNEL` | `trunk` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
 | `TURBOPANEL_INSTANCE_SERVICE` | `turbopanel-instance` | The systemd unit the developer surface restarts after Upgrade System. Set it only when the unit has a non-standard name. |
 
@@ -64,7 +64,7 @@ Three behaviours matter more than any single value:
 
 ## Email
 
-Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, or `mailpit` for development), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. The compiled mailer (`turbopanel-mailer`) reads the same variables and reaches whatever host `SMTP_HOST` names — its network grant is unrestricted, unlike the instance's.
+Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, or `mailpit` for development), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. The email consumer runs inside the instance process, reads the same variables and reaches whatever host `SMTP_HOST` names.
 
 ## Metrics and logs
 
@@ -89,4 +89,4 @@ Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written 
 
 ## The install-time verbs
 
-The compiled instance binary carries three verbs the installer runs before the unit exists, each reading the variables above: `turbopanel-instance migrate` (`TURBOPANEL_DATABASE_URL`), `generate-secret` (none), and `generate-self-signed-cert` (`TURBOPANEL_STATE_DIR`, `TURBOPANEL_TLS_*`, `TURBOPANEL_PUBLIC_URLS`, `TURBOPANEL_TLS_EXTRA_SANS`). None of them loads the metrics store, so they run without `libduckdb.so` on the library path.
+The compiled instance binary carries three verbs the installer runs before the unit exists, each reading the variables above: `turbopanel migrate` (`TURBOPANEL_DATABASE_URL`), `generate-secret` (none), and `generate-self-signed-cert` (`TURBOPANEL_STATE_DIR`, `TURBOPANEL_TLS_*`, `TURBOPANEL_PUBLIC_URLS`, `TURBOPANEL_TLS_EXTRA_SANS`). None of them loads the metrics store, so they run without `libduckdb.so` on the library path.
