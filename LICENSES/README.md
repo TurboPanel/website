@@ -5,7 +5,7 @@
 | Site and application code (`src/`, `scripts/`, configuration, and other software) | [Apache License 2.0](../LICENSE) |
 | Documentation and editorial prose (`docs/`) | [CC BY 4.0](./CC-BY-4.0.txt) |
 | TurboPanel name, logos, and other brand assets (`public/brand/` and equivalent) | All rights reserved — see [TRADEMARKS.md](../TRADEMARKS.md) |
-| Other files under `public/` (`favicon.svg`, `screenshots/`, `_headers`) | Original TurboPanel material: software and config follow Apache-2.0; screenshots and other branded media are not CC BY 4.0. Third-party files keep their original terms (see below). |
+| Other files under `public/` (`favicon.svg`, `screenshots/`) | Original TurboPanel material: software and config follow Apache-2.0; screenshots and other branded media are not CC BY 4.0. Third-party files keep their original terms (see below). |
 
 Product screenshots and other media that include TurboPanel branding are not
 licensed under CC BY 4.0.

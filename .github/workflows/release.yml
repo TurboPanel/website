@@ -1,8 +1,8 @@
 # Cuts a GitHub Release on a v* tag. website has no build/package step to
-# release — it deploys from trunk via Cloudflare Workers Builds, unrelated to
-# this — so this is a notes-only release, purely for version tracking and to
-# give the compatibility matrix / release notes a place to link to. See the
-# Road to 0.1.x page's `other-repos` item.
+# release — production is a VPS `node server.js` deploy driven by GitHub
+# webhooks, unrelated to this — so this is a notes-only release, purely for
+# version tracking and to give the compatibility matrix / release notes a
+# place to link to. See the Road to 0.1.x page's `other-repos` item.
 
 name: Release
 

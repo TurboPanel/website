@@ -3,10 +3,6 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   vue-demi: true
-  workerd: true
-minimumReleaseAgeExclude:
-  - miniflare@5.20260815.0-alpha
-  - wrangler@4.124.0
 overrides:
   dompurify: ^3.4.13
   postcss: ^8.5.23

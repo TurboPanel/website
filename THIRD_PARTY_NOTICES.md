@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e78965c0
+pnpm-lock.yaml sha256:2c523d2e87ba4a7bd02e5d1d7c5c65a79a93579140cd51b9d5ecf45059cfa447
 -->
 
 ## Production dependencies
@@ -43,299 +43,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Anthony Fu
 - Homepage: https://github.com/antfu/install-pkg#readme
 
-### @ast-grep/napi@0.40.5
-
-- License: MIT
-- Homepage: https://ast-grep.github.io
-
-### @aws-crypto/crc32@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/crc32
-
-### @aws-crypto/crc32c@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/crc32c
-
-### @aws-crypto/sha1-browser@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/sha1-browser
-
-### @aws-crypto/sha256-browser@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/sha256-browser
-
-### @aws-crypto/sha256-js@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/sha256-js
-
-### @aws-crypto/supports-web-crypto@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/supports-web-crypto
-
-### @aws-crypto/util@5.2.0
-
-- License: Apache-2.0
-- Copyright: AWS Crypto Tools Team
-- Homepage: https://github.com/aws/aws-sdk-js-crypto-helpers/tree/master/packages/util
-
-### @aws-sdk/checksums@3.1000.4
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/checksums
-
-### @aws-sdk/client-cloudfront@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-cloudfront
-
-### @aws-sdk/client-dynamodb@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-dynamodb
-
-### @aws-sdk/client-lambda@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-lambda
-
-### @aws-sdk/client-s3@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-s3
-
-### @aws-sdk/client-sqs@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-sqs
-
-### @aws-sdk/core@3.974.20
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/core
-
-### @aws-sdk/credential-provider-env@3.972.46
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-env
-
-### @aws-sdk/credential-provider-http@3.972.48
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-http
-
-### @aws-sdk/credential-provider-ini@3.972.52
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-ini
-
-### @aws-sdk/credential-provider-login@3.972.51
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-login
-
-### @aws-sdk/credential-provider-node@3.972.54
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-node
-
-### @aws-sdk/credential-provider-process@3.972.46
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-process
-
-### @aws-sdk/credential-provider-sso@3.972.51
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-sso
-
-### @aws-sdk/credential-provider-web-identity@3.972.51
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/credential-provider-web-identity
-
-### @aws-sdk/dynamodb-codec@3.973.20
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/dynamodb-codec
-
-### @aws-sdk/endpoint-cache@3.972.7
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/endpoint-cache
-
-### @aws-sdk/middleware-bucket-endpoint@3.972.23
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-bucket-endpoint
-
-### @aws-sdk/middleware-endpoint-discovery@3.972.18
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-endpoint-discovery
-
-### @aws-sdk/middleware-expect-continue@3.972.19
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-expect-continue
-
-### @aws-sdk/middleware-flexible-checksums@3.974.29
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-flexible-checksums
-
-### @aws-sdk/middleware-host-header@3.972.21
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-host-header
-
-### @aws-sdk/middleware-location-constraint@3.972.16
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-location-constraint
-
-### @aws-sdk/middleware-logger@3.972.20
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-logger
-
-### @aws-sdk/middleware-recursion-detection@3.972.22
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-recursion-detection
-
-### @aws-sdk/middleware-sdk-s3@3.972.50
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-sdk-s3
-
-### @aws-sdk/middleware-sdk-sqs@3.972.30
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-sdk-sqs
-
-### @aws-sdk/middleware-ssec@3.972.16
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-ssec
-
-### @aws-sdk/middleware-user-agent@3.972.50
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/middleware-user-agent
-
-### @aws-sdk/nested-clients@3.997.19
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/nested-clients
-
-### @aws-sdk/region-config-resolver@3.972.24
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages-internal/region-config-resolver
-
-### @aws-sdk/signature-v4-multi-region@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/signature-v4-multi-region
-
-### @aws-sdk/signature-v4-multi-region@3.996.33
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/signature-v4-multi-region
-
-### @aws-sdk/token-providers@3.1065.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/token-providers
-
-### @aws-sdk/types@3.973.12
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/types
-
-### @aws-sdk/util-endpoints@3.984.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages/util-endpoints
-
-### @aws-sdk/util-locate-window@3.965.7
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/util-locate-window
-
-### @aws-sdk/util-user-agent-browser@3.972.21
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/util-user-agent-browser
-
-### @aws-sdk/util-user-agent-node@3.973.36
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/util-user-agent-node
-
-### @aws-sdk/xml-builder@3.972.29
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/aws/aws-sdk-js-v3/tree/main/packages-internal/xml-builder
-
-### @aws/lambda-invoke-store@0.2.4
-
-- License: Apache-2.0
-- Copyright: Amazon Web Services
-- Homepage: https://github.com/awslabs/aws-lambda-invoke-store
-
 ### @babel/helper-string-parser@7.29.7
 
 - License: MIT
@@ -370,17 +77,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: Apache-2.0
 - Copyright: Shahar Soel
 - Homepage: https://chevrotain.io/documentation/
-
-### @cloudflare/kv-asset-handler@0.5.0
-
-- License: MIT OR Apache-2.0
-- Copyright: wrangler@cloudflare.com
-- Homepage: https://github.com/cloudflare/workers-sdk#readme
-
-### @cloudflare/unenv-preset@2.16.1
-
-- License: MIT OR Apache-2.0
-- Homepage: https://github.com/cloudflare/workers-sdk#readme
 
 ### @codemirror/autocomplete@6.20.3
 
@@ -450,23 +146,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 
 - License: MIT
 - Copyright: Marijn Haverbeke
-
-### @cspotcode/source-map-support@0.8.1
-
-- License: MIT
-- Homepage: https://github.com/cspotcode/node-source-map-support#readme
-
-### @dotenvx/dotenvx@1.31.0
-
-- License: BSD-3-Clause
-- Copyright: @motdotla
-- Homepage: https://github.com/dotenvx/dotenvx
-
-### @ecies/ciphers@0.2.6
-
-- License: MIT
-- Copyright: Weiliang Li
-- Homepage: https://github.com/ecies/js-ciphers#readme
 
 ### @floating-ui/core@1.7.5
 
@@ -538,11 +217,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Vjacheslav Trushkin
 - Homepage: https://iconify.design/docs/libraries/utils/
 
-### @img/colour@1.1.0
-
-- License: MIT
-- Homepage: https://github.com/lovell/colour#readme
-
 ### @internationalized/date@3.12.2
 
 - License: Apache-2.0
@@ -553,46 +227,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: Apache-2.0
 - Homepage: https://github.com/adobe/react-spectrum#readme
 
-### @isaacs/cliui@9.0.0
-
-- License: BlueOak-1.0.0
-- Homepage: https://github.com/isaacs/cliui#readme
-
-### @jridgewell/gen-mapping@0.3.13
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
-
-### @jridgewell/resolve-uri@3.1.2
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/resolve-uri#readme
-
-### @jridgewell/source-map@0.3.11
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/source-map
-
 ### @jridgewell/sourcemap-codec@1.5.5
 
 - License: MIT
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
-
-### @jridgewell/trace-mapping@0.3.31
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
-
-### @jridgewell/trace-mapping@0.3.9
-
-- License: MIT
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 
 ### @lezer/common@1.5.2
 
@@ -671,58 +310,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Next.js Team
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @noble/ciphers@1.3.0
-
-- License: MIT
-- Copyright: Paul Miller
-- Homepage: https://paulmillr.com/noble/
-
-### @noble/curves@1.9.7
-
-- License: MIT
-- Copyright: Paul Miller
-- Homepage: https://paulmillr.com/noble/
-
-### @noble/hashes@1.8.0
-
-- License: MIT
-- Copyright: Paul Miller
-- Homepage: https://paulmillr.com/noble/
-
-### @nodable/entities@2.1.1
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/nodable/val-parsers#readme
-
-### @node-minify/core@8.0.6
-
-- License: MIT
-- Copyright: Rodolphe Stoclin
-- Homepage: https://github.com/srod/node-minify/tree/master/packages/core#readme
-
-### @node-minify/terser@8.0.6
-
-- License: MIT
-- Copyright: Rodolphe Stoclin
-- Homepage: https://github.com/srod/node-minify/tree/master/packages/terser#readme
-
-### @node-minify/utils@8.0.6
-
-- License: MIT
-- Copyright: Rodolphe Stoclin
-- Homepage: https://github.com/srod/node-minify/tree/master/packages/utils#readme
-
-### @opennextjs/aws@4.0.2
-
-- License: MIT
-- Homepage: https://opennext.js.org/aws
-
-### @opennextjs/cloudflare@1.19.11
-
-- License: MIT
-- Homepage: https://github.com/opennextjs/opennextjs-cloudflare
-
 ### @opentelemetry/api@1.9.0
 
 - License: Apache-2.0
@@ -740,24 +327,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Tobias Fried
 - Homepage: https://github.com/phosphor-icons/phosphor-core#readme
-
-### @poppinss/colors@4.1.6
-
-- License: MIT
-- Copyright: virk
-- Homepage: https://github.com/poppinss/colors#readme
-
-### @poppinss/dumper@0.6.5
-
-- License: MIT
-- Copyright: Harminder Virk
-- Homepage: https://github.com/poppinss/dumper#readme
-
-### @poppinss/exception@1.2.3
-
-- License: MIT
-- Copyright: Harminder Virk
-- Homepage: https://github.com/poppinss/exception#readme
 
 ### @radix-ui/number@1.1.2
 
@@ -1145,246 +714,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Microsoft Corporation
 - Homepage: https://github.com/shikijs/vscode-textmate#readme
 
-### @sindresorhus/is@7.2.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/is#readme
-
-### @smithy/config-resolver@4.5.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/config-resolver
-
-### @smithy/core@3.24.6
-
-- License: Apache-2.0
-- Copyright: AWS Smithy Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/core
-
-### @smithy/credential-provider-imds@4.3.8
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/credential-provider-imds
-
-### @smithy/eventstream-serde-browser@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/eventstream-serde-browser
-
-### @smithy/eventstream-serde-config-resolver@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/eventstream-serde-config-resolver
-
-### @smithy/eventstream-serde-node@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/eventstream-serde-node
-
-### @smithy/fetch-http-handler@5.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/fetch-http-handler
-
-### @smithy/hash-blob-browser@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/hash-blob-browser
-
-### @smithy/hash-node@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/hash-node
-
-### @smithy/hash-stream-node@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/hash-stream-node
-
-### @smithy/invalid-dependency@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/invalid-dependency
-
-### @smithy/is-array-buffer@2.2.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages/is-array-buffer
-
-### @smithy/md5-js@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/md5-js
-
-### @smithy/middleware-content-length@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/middleware-content-length
-
-### @smithy/middleware-endpoint@4.5.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/middleware-endpoint
-
-### @smithy/middleware-retry@4.6.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/middleware-retry
-
-### @smithy/middleware-serde@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/middleware-serde
-
-### @smithy/middleware-stack@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/middleware-stack
-
-### @smithy/node-config-provider@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/node-config-provider
-
-### @smithy/node-http-handler@4.7.7
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/node-http-handler
-
-### @smithy/protocol-http@5.4.6
-
-- License: Apache-2.0
-- Copyright: AWS Smithy Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/protocol-http
-
-### @smithy/signature-v4@5.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/signature-v4
-
-### @smithy/smithy-client@4.13.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/smithy-client
-
-### @smithy/types@4.14.3
-
-- License: Apache-2.0
-- Copyright: AWS Smithy Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/types
-
-### @smithy/url-parser@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/url-parser
-
-### @smithy/util-base64@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-base64
-
-### @smithy/util-body-length-browser@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-body-length-browser
-
-### @smithy/util-body-length-node@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-body-length-node
-
-### @smithy/util-buffer-from@2.2.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/awslabs/smithy-typescript/tree/main/packages/util-buffer-from
-
-### @smithy/util-defaults-mode-browser@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-defaults-mode-node
-
-### @smithy/util-defaults-mode-node@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-defaults-mode-node
-
-### @smithy/util-endpoints@3.5.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/master/packages/util-endpoints
-
-### @smithy/util-middleware@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/master/packages/util-middleware
-
-### @smithy/util-retry@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/master/packages/util-retry
-
-### @smithy/util-stream@4.6.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-stream
-
-### @smithy/util-utf8@2.3.0
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-utf8
-
-### @smithy/util-utf8@4.3.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-utf8
-
-### @smithy/util-waiter@4.4.6
-
-- License: Apache-2.0
-- Copyright: AWS SDK for JavaScript Team
-- Homepage: https://github.com/smithy-lang/smithy-typescript/tree/main/packages/util-waiter
-
-### @speed-highlight/core@1.2.24
-
-- License: CC0-1.0
-- Copyright: matubu
-- Homepage: https://github.com/speed-highlight/core#readme
-
 ### @standard-schema/spec@1.1.0
 
 - License: MIT
@@ -1408,11 +737,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Tanner Linsley
 - Homepage: https://tanstack.com/virtual
-
-### @tsconfig/node18@1.0.3
-
-- License: MIT
-- Homepage: https://github.com/tsconfig/bases#readme
 
 ### @types/d3@7.4.3
 
@@ -1614,25 +938,10 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ms
 
-### @types/node@18.19.130
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-
 ### @types/node@24.13.3
 
 - License: MIT
 - Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-
-### @types/node@26.2.0
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
-
-### @types/node-fetch@2.6.13
-
-- License: MIT
-- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node-fetch
 
 ### @types/unist@2.0.11
 
@@ -1773,17 +1082,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Anthony Fu
 - Homepage: https://github.com/vueuse/vueuse/tree/main/packages/shared#readme
 
-### abort-controller@3.0.0
-
-- License: MIT
-- Copyright: Toru Nagashima
-- Homepage: https://github.com/mysticatea/abort-controller#readme
-
-### accepts@2.0.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/accepts#readme
-
 ### acorn@8.16.0
 
 - License: MIT
@@ -1794,46 +1092,10 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Homepage: https://github.com/acornjs/acorn-jsx
 
-### agentkeepalive@4.6.0
-
-- License: MIT
-- Copyright: fengmk2
-- Homepage: https://github.com/node-modules/agentkeepalive#readme
-
 ### ai@6.0.33
 
 - License: Apache-2.0
 - Homepage: https://ai-sdk.dev/docs
-
-### ansi-colors@4.1.3
-
-- License: MIT
-- Copyright: Brian Woodward
-- Homepage: https://github.com/doowb/ansi-colors
-
-### ansi-regex@5.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-regex#readme
-
-### ansi-regex@6.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-regex#readme
-
-### ansi-styles@6.2.3
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-styles#readme
-
-### anynum@1.0.0
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/anynum#readme
 
 ### argparse@2.0.1
 
@@ -1846,28 +1108,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Anton Korzunov
 - Homepage: https://github.com/theKashey/aria-hidden#readme
 
-### array-timsort@1.0.3
-
-- License: MIT
-- Homepage: https://github.com/kaelzhang/node-array-timsort
-
 ### astring@1.9.0
 
 - License: MIT
 - Copyright: David Bonnet
 - Homepage: https://github.com/davidbonnet/astring#readme
-
-### asynckit@0.4.0
-
-- License: MIT
-- Copyright: Alex Indigo
-- Homepage: https://github.com/alexindigo/asynckit#readme
-
-### aws4fetch@1.0.20
-
-- License: MIT
-- Copyright: Michael Hart
-- Homepage: https://github.com/mhart/aws4fetch#readme
 
 ### bail@2.0.2
 
@@ -1875,70 +1120,10 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/bail#readme
 
-### balanced-match@1.0.2
-
-- License: MIT
-- Homepage: https://github.com/juliangruber/balanced-match#readme
-
-### balanced-match@4.0.4
-
-- License: MIT
-- Homepage: https://github.com/juliangruber/balanced-match#readme
-
 ### baseline-browser-mapping@2.11.23
 
 - License: Apache-2.0
 - Homepage: https://github.com/web-platform-dx/baseline-browser-mapping#readme
-
-### blake3-wasm@2.1.5
-
-- License: MIT
-- Copyright: Connor Peet
-- Homepage: https://github.com/connor4312/blake3#readme
-
-### body-parser@2.3.0
-
-- License: MIT
-- Homepage: https://github.com/expressjs/body-parser#readme
-
-### bowser@2.14.1
-
-- License: MIT
-- Copyright: Dustin Diaz
-- Homepage: https://github.com/bowser-js/bowser
-
-### brace-expansion@2.1.7
-
-- License: MIT
-- Homepage: https://github.com/juliangruber/brace-expansion#readme
-
-### brace-expansion@5.0.12
-
-- License: MIT
-- Homepage: https://github.com/juliangruber/brace-expansion#readme
-
-### buffer-from@1.1.2
-
-- License: MIT
-- Homepage: https://github.com/LinusU/buffer-from#readme
-
-### bytes@3.1.2
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/visionmedia/bytes.js#readme
-
-### call-bind-apply-helpers@1.0.2
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/call-bind-apply-helpers#readme
-
-### call-bound@1.0.4
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/call-bound#readme
 
 ### caniuse-lite@1.0.30001797
 
@@ -1987,12 +1172,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Paul Miller
 - Homepage: https://github.com/paulmillr/chokidar
 
-### ci-info@4.4.0
-
-- License: MIT
-- Copyright: Thomas Watson Steen
-- Homepage: https://github.com/watson/ci-info
-
 ### class-variance-authority@0.7.1
 
 - License: Apache-2.0
@@ -2003,18 +1182,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 
 - License: MIT
 - Homepage: https://reactjs.org/
-
-### cliui@9.0.1
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/yargs/cliui#readme
-
-### cloudflare@4.5.0
-
-- License: Apache-2.0
-- Copyright: Cloudflare
-- Homepage: https://github.com/cloudflare/cloudflare-typescript#readme
 
 ### clsx@2.1.1
 
@@ -2028,29 +1195,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/collapse-white-space#readme
 
-### combined-stream@1.0.8
-
-- License: MIT
-- Copyright: Felix Geisendörfer
-- Homepage: https://github.com/felixge/node-combined-stream
-
 ### comma-separated-tokens@2.0.3
 
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/comma-separated-tokens#readme
-
-### commander@11.1.0
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/tj/commander.js#readme
-
-### commander@2.20.3
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/tj/commander.js#readme
 
 ### commander@7.2.0
 
@@ -2064,59 +1213,17 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: TJ Holowaychuk
 - Homepage: https://github.com/tj/commander.js#readme
 
-### comment-json@4.6.2
-
-- License: MIT
-- Copyright: kaelzhang
-- Homepage: https://github.com/kaelzhang/node-comment-json#readme
-
 ### compute-scroll-into-view@3.1.1
 
 - License: MIT
 - Copyright: Cody Olsen
 - Homepage: https://scroll-into-view.dev
 
-### content-disposition@1.1.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/content-disposition#readme
-
-### content-type@1.0.5
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/content-type#readme
-
-### content-type@2.0.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/content-type#readme
-
 ### convert-hrtime@5.0.0
 
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/convert-hrtime#readme
-
-### cookie@0.7.2
-
-- License: MIT
-- Copyright: Roman Shtylman
-- Homepage: https://github.com/jshttp/cookie#readme
-
-### cookie@1.1.1
-
-- License: MIT
-- Copyright: Roman Shtylman
-- Homepage: https://github.com/jshttp/cookie#readme
-
-### cookie-signature@1.2.2
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/visionmedia/node-cookie-signature#readme
 
 ### cose-base@1.0.3
 
@@ -2133,12 +1240,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Marijn Haverbeke
 - Homepage: https://github.com/marijnh/crelt#readme
-
-### cross-spawn@7.0.6
-
-- License: MIT
-- Copyright: André Cruz
-- Homepage: https://github.com/moxystudio/node-cross-spawn
 
 ### csstype@3.2.3
 
@@ -2412,29 +1513,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Vladimir Agafonkin
 - Homepage: https://github.com/mapbox/delaunator#readme
 
-### delayed-stream@1.0.0
-
-- License: MIT
-- Copyright: Felix Geisendörfer
-- Homepage: https://github.com/felixge/node-delayed-stream
-
-### depd@2.0.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/dougwilson/nodejs-depd#readme
-
 ### dequal@2.0.3
 
 - License: MIT
 - Copyright: Luke Edwards
 - Homepage: https://github.com/lukeed/dequal#readme
-
-### detect-libc@2.1.2
-
-- License: Apache-2.0
-- Copyright: Lovell Fuller
-- Homepage: https://github.com/lovell/detect-libc#readme
 
 ### detect-node-es@1.1.0
 
@@ -2454,52 +1537,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Dr.-Ing. Mario Heiderich, Cure53
 - Homepage: https://github.com/cure53/DOMPurify
 
-### dotenv@16.6.1
-
-- License: BSD-2-Clause
-- Homepage: https://github.com/motdotla/dotenv#readme
-
-### dunder-proto@1.0.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/es-shims/dunder-proto#readme
-
-### duplexer@0.1.2
-
-- License: MIT
-- Copyright: Raynos
-- Homepage: https://github.com/Raynos/duplexer
-
-### eciesjs@0.4.18
-
-- License: MIT
-- Copyright: Weiliang Li
-- Homepage: https://github.com/ecies/js#readme
-
-### ee-first@1.1.1
-
-- License: MIT
-- Copyright: Jonathan Ong
-- Homepage: https://github.com/jonathanong/ee-first#readme
-
-### emoji-regex@10.6.0
-
-- License: MIT
-- Copyright: Mathias Bynens
-- Homepage: https://mths.be/emoji-regex
-
-### encodeurl@2.0.0
-
-- License: MIT
-- Homepage: https://github.com/pillarjs/encodeurl#readme
-
-### enquirer@2.4.1
-
-- License: MIT
-- Copyright: Jon Schlinkert
-- Homepage: https://github.com/enquirer/enquirer
-
 ### entities@6.0.1
 
 - License: BSD-2-Clause
@@ -2511,35 +1548,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: BSD-2-Clause
 - Copyright: Felix Boehm
 - Homepage: https://github.com/fb55/entities#readme
-
-### error-stack-parser-es@1.0.5
-
-- License: MIT
-- Homepage: https://github.com/antfu/error-stack-parser-es#readme
-
-### es-define-property@1.0.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/es-define-property#readme
-
-### es-errors@1.3.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/es-errors#readme
-
-### es-object-atoms@1.1.2
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/es-object-atoms#readme
-
-### es-set-tostringtag@2.1.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/es-shims/es-set-tostringtag#readme
 
 ### es-toolkit@1.49.0
 
@@ -2563,28 +1571,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Homepage: https://github.com/evanw/esbuild#readme
 
-### escalade@3.2.0
-
-- License: MIT
-- Copyright: Luke Edwards
-- Homepage: https://github.com/lukeed/escalade#readme
-
-### escape-html@1.0.3
-
-- License: MIT
-- Homepage: https://github.com/component/escape-html#readme
-
 ### escape-string-regexp@5.0.0
 
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/escape-string-regexp#readme
-
-### esprima@4.0.1
-
-- License: BSD-2-Clause
-- Copyright: Ariya Hidayat
-- Homepage: http://esprima.org
 
 ### estree-util-attach-comments@3.0.0
 
@@ -2640,34 +1631,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Rich Harris
 - Homepage: https://github.com/Rich-Harris/estree-walker#readme
 
-### etag@1.8.1
-
-- License: MIT
-- Homepage: https://github.com/jshttp/etag#readme
-
-### event-target-shim@5.0.1
-
-- License: MIT
-- Copyright: Toru Nagashima
-- Homepage: https://github.com/mysticatea/event-target-shim
-
 ### eventsource-parser@3.1.0
 
 - License: MIT
 - Copyright: Espen Hovlandsdal
 - Homepage: https://github.com/rexxars/eventsource-parser#readme
-
-### execa@5.1.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/execa#readme
-
-### express@5.2.1
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://expressjs.com/
 
 ### extend@3.0.2
 
@@ -2681,18 +1649,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Evgeny Poberezkin
 - Homepage: https://github.com/epoberezkin/fast-deep-equal#readme
 
-### fast-xml-builder@1.2.0
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/fast-xml-builder#readme
-
-### fast-xml-parser@5.7.3
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/fast-xml-parser#readme
-
 ### fastdom@1.0.12
 
 - License: MIT
@@ -2704,12 +1660,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: thecodrr
 - Homepage: https://github.com/thecodrr/fdir#readme
-
-### finalhandler@2.1.1
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/pillarjs/finalhandler#readme
 
 ### flatted@3.4.2
 
@@ -2723,51 +1673,10 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: David Clark
 - Homepage: https://github.com/focus-trap/focus-trap#readme
 
-### foreground-child@3.3.1
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/tapjs/foreground-child#readme
-
-### form-data@4.0.6
-
-- License: MIT
-- Copyright: Felix Geisendörfer
-- Homepage: https://github.com/form-data/form-data#readme
-
-### form-data-encoder@1.7.2
-
-- License: MIT
-- Copyright: Nick K.
-- Homepage: https://github.com/octet-stream/form-data-encoder#readme
-
-### formdata-node@4.4.1
-
-- License: MIT
-- Copyright: Nick K.
-- Homepage: https://github.com/octet-stream/form-data#readme
-
-### forwarded@0.2.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/forwarded#readme
-
 ### framer-motion@12.40.0
 
 - License: MIT
 - Copyright: Matt Perry
-
-### fresh@2.0.0
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/jshttp/fresh#readme
-
-### fs.realpath@1.0.0
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/fs.realpath#readme
 
 ### fumadocs-core@16.9.3
 
@@ -2787,12 +1696,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Fuma Nama
 - Homepage: https://fumadocs.dev
 
-### function-bind@1.1.2
-
-- License: MIT
-- Copyright: Raynos
-- Homepage: https://github.com/Raynos/function-bind
-
 ### function-timeout@1.0.2
 
 - License: MIT
@@ -2804,24 +1707,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: Apache-2.0
 - Copyright: Kiro Risk
 - Homepage: http://fusejs.io
-
-### get-caller-file@2.0.5
-
-- License: ISC
-- Copyright: Stefan Penner
-- Homepage: https://github.com/stefanpenner/get-caller-file#readme
-
-### get-east-asian-width@1.6.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/get-east-asian-width#readme
-
-### get-intrinsic@1.3.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/get-intrinsic#readme
 
 ### get-nonce@1.0.1
 
@@ -2835,41 +1720,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/get-own-enumerable-keys#readme
 
-### get-proto@1.0.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/get-proto#readme
-
-### get-stream@6.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/get-stream#readme
-
 ### github-slugger@2.0.0
 
 - License: ISC
 - Copyright: Dan Flettre
 - Homepage: https://github.com/Flet/github-slugger
-
-### glob@12.0.0
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-glob#readme
-
-### glob@9.3.5
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-glob#readme
-
-### gopd@1.2.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/gopd#readme
 
 ### guess-json-indent@3.0.1
 
@@ -2877,35 +1732,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: ehmicky
 - Homepage: https://www.github.com/ehmicky/guess-json-indent
 
-### gzip-size@6.0.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/gzip-size#readme
-
 ### hachure-fill@0.5.2
 
 - License: MIT
 - Copyright: Preet Shihn
 - Homepage: https://github.com/pshihn/hachure-fill#readme
-
-### has-symbols@1.1.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/has-symbols#readme
-
-### has-tostringtag@1.0.2
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/inspect-js/has-tostringtag#readme
-
-### hasown@2.0.4
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/inspect-js/hasOwn#readme
 
 ### hast-util-embedded@3.0.0
 
@@ -3044,35 +1875,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/rehypejs/rehype-minify/tree/main#readme
 
-### http-errors@2.0.1
-
-- License: MIT
-- Copyright: Jonathan Ong
-- Homepage: https://github.com/jshttp/http-errors#readme
-
-### human-signals@2.1.0
-
-- License: Apache-2.0
-- Copyright: ehmicky
-- Homepage: https://git.io/JeluP
-
-### humanize-ms@1.2.1
-
-- License: MIT
-- Copyright: dead-horse
-- Homepage: https://github.com/node-modules/humanize-ms#readme
-
 ### iconv-lite@0.6.3
 
 - License: MIT
 - Copyright: Alexander Shtuchkin
-- Homepage: https://github.com/pillarjs/iconv-lite
-
-### iconv-lite@0.7.2
-
-- License: MIT
-- Copyright: Alexander Shtuchkin
-- Homepage: https://github.com/pillarjs/iconv-lite
+- Homepage: https://github.com/ashtuchkin/iconv-lite
 
 ### identifier-regex@1.0.1
 
@@ -3080,22 +1887,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/identifier-regex#readme
 
-### ignore@5.3.2
-
-- License: MIT
-- Copyright: kael
-- Homepage: https://github.com/kaelzhang/node-ignore#readme
-
 ### import-meta-resolve@4.2.0
 
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/import-meta-resolve#readme
-
-### inherits@2.0.4
-
-- License: ISC
-- Homepage: https://github.com/isaacs/inherits#readme
 
 ### inline-style-parser@0.2.7
 
@@ -3113,12 +1909,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: ISC
 - Copyright: Mike Bostock
 - Homepage: https://github.com/mbostock/internmap/
-
-### ipaddr.js@1.9.1
-
-- License: MIT
-- Copyright: whitequark
-- Homepage: https://github.com/whitequark/ipaddr.js#readme
 
 ### is-absolute-url@4.0.1
 
@@ -3168,41 +1958,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/is-plain-obj#readme
 
-### is-promise@4.0.0
-
-- License: MIT
-- Copyright: ForbesLindesay
-- Homepage: https://github.com/then/is-promise#readme
-
 ### is-regexp@3.1.0
 
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/is-regexp#readme
-
-### is-stream@2.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/is-stream#readme
-
-### isexe@2.0.0
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/isexe#readme
-
-### isexe@3.1.5
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/isexe#readme
-
-### jackspeak@4.2.3
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/jackspeak#readme
 
 ### js-base64@3.7.8
 
@@ -3238,12 +1998,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Homepage: https://github.com/fabiospampinato/khroma#readme
 
-### kleur@4.1.5
-
-- License: MIT
-- Copyright: Luke Edwards
-- Homepage: https://github.com/lukeed/kleur#readme
-
 ### layout-base@1.0.2
 
 - License: MIT
@@ -3271,18 +2025,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/lowlight#readme
-
-### lru-cache@10.4.3
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-lru-cache#readme
-
-### lru-cache@11.5.1
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-lru-cache#readme
 
 ### lucide-react@1.17.0
 
@@ -3319,12 +2061,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Christopher Jeffrey
 - Homepage: https://marked.js.org
-
-### math-intrinsics@1.1.0
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/es-shims/math-intrinsics#readme
 
 ### mdast-util-find-and-replace@3.0.2
 
@@ -3421,23 +2157,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/syntax-tree/mdast-util-to-string#readme
-
-### media-typer@1.1.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/media-typer#readme
-
-### merge-descriptors@2.0.0
-
-- License: MIT
-- Homepage: https://github.com/sindresorhus/merge-descriptors#readme
-
-### merge-stream@2.0.0
-
-- License: MIT
-- Copyright: Stephen Sugden
-- Homepage: https://github.com/grncdr/merge-stream#readme
 
 ### mermaid@11.17.2
 
@@ -3661,73 +2380,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/micromark/micromark/tree/main#readme
 
-### mime-db@1.52.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/mime-db#readme
-
-### mime-db@1.54.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/mime-db#readme
-
-### mime-types@2.1.35
-
-- License: MIT
-- Homepage: https://github.com/jshttp/mime-types#readme
-
-### mime-types@3.0.2
-
-- License: MIT
-- Homepage: https://github.com/jshttp/mime-types#readme
-
-### mimic-fn@2.1.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/mimic-fn#readme
-
-### miniflare@5.20260815.0-alpha
-
-- License: MIT
-- Copyright: MrBBot
-- Homepage: https://github.com/cloudflare/workers-sdk/tree/main/packages/miniflare#readme
-
-### minimatch@10.2.5
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minimatch#readme
-
-### minimatch@8.0.7
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minimatch#readme
-
-### minipass@4.2.8
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minipass#readme
-
-### minipass@7.1.3
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minipass#readme
-
-### mkdirp@1.0.4
-
-- License: MIT
-- Homepage: https://github.com/isaacs/node-mkdirp#readme
-
-### mnemonist@0.38.3
-
-- License: MIT
-- Copyright: Guillaume Plique
-- Homepage: https://github.com/yomguithereal/mnemonist#readme
-
 ### motion@12.40.0
 
 - License: MIT
@@ -3757,11 +2409,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Andrey Sitnik
 - Homepage: https://github.com/ai/nanoid#readme
 
-### negotiator@1.0.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/negotiator#readme
-
 ### neverpanic@0.0.8
 
 - License: MIT
@@ -3776,59 +2423,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 
 - License: MIT
 - Homepage: https://github.com/pacocoursey/next-themes#readme
-
-### node-domexception@1.0.0
-
-- License: MIT
-- Copyright: Jimmy Wärting
-- Homepage: https://github.com/jimmywarting/node-domexception#readme
-
-### node-fetch@2.7.0
-
-- License: MIT
-- Copyright: David Frank
-- Homepage: https://github.com/bitinn/node-fetch
-
-### npm-run-path@4.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/npm-run-path#readme
-
-### object-inspect@1.13.4
-
-- License: MIT
-- Copyright: James Halliday
-- Homepage: https://github.com/inspect-js/object-inspect
-
-### object-treeify@1.1.33
-
-- License: MIT
-- Copyright: Lukas Siemon
-- Homepage: https://github.com/blackflux/object-treeify#readme
-
-### obliterator@1.6.1
-
-- License: MIT
-- Copyright: Guillaume Plique
-- Homepage: https://github.com/yomguithereal/obliterator#readme
-
-### on-finished@2.4.1
-
-- License: MIT
-- Homepage: https://github.com/jshttp/on-finished#readme
-
-### once@1.4.0
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/once#readme
-
-### onetime@5.1.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/onetime#readme
 
 ### oniguruma-parser@0.12.2
 
@@ -3854,12 +2448,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/p-timeout#readme
 
-### package-json-from-dist@1.0.1
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/package-json-from-dist#readme
-
 ### package-manager-detector@1.7.0
 
 - License: MIT
@@ -3884,50 +2472,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Ivan Nikulin
 - Homepage: https://parse5.js.org
 
-### parseurl@1.3.3
-
-- License: MIT
-- Homepage: https://github.com/pillarjs/parseurl#readme
-
 ### path-data-parser@0.1.0
 
 - License: MIT
 - Copyright: Preet Shihn
 - Homepage: https://github.com/pshihn/path-data-parser#readme
-
-### path-expression-matcher@1.5.0
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/path-expression-matcher#readme
-
-### path-key@3.1.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/path-key#readme
-
-### path-scurry@1.11.1
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/path-scurry#readme
-
-### path-scurry@2.0.2
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/path-scurry#readme
-
-### path-to-regexp@6.3.0
-
-- License: MIT
-- Homepage: https://github.com/pillarjs/path-to-regexp#readme
-
-### path-to-regexp@8.4.2
-
-- License: MIT
-- Homepage: https://github.com/pillarjs/path-to-regexp#readme
 
 ### pathe@2.0.3
 
@@ -3976,34 +2525,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/property-information#readme
 
-### proxy-addr@2.0.7
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/proxy-addr#readme
-
-### qs@6.16.0
-
-- License: BSD-3-Clause
-- Homepage: https://github.com/ljharb/qs
-
 ### radix-vue@1.9.17
 
 - License: MIT
 - Copyright: Radix Vue Contributors
 - Homepage: https://github.com/unovue/radix-vue
-
-### range-parser@1.2.1
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/jshttp/range-parser#readme
-
-### raw-body@3.0.2
-
-- License: MIT
-- Copyright: Jonathan Ong
-- Homepage: https://github.com/stream-utils/raw-body#readme
 
 ### react@19.2.7
 
@@ -4177,12 +2703,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Preet Shihn
 - Homepage: https://roughjs.com
 
-### router@2.2.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/pillarjs/router#readme
-
 ### rw@1.3.3
 
 - License: BSD-3-Clause
@@ -4206,101 +2726,17 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Cody Olsen
 - Homepage: https://scroll-into-view.dev
 
-### semver@7.8.5
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-semver#readme
-
-### send@1.2.1
-
-- License: MIT
-- Copyright: TJ Holowaychuk
-- Homepage: https://github.com/pillarjs/send#readme
-
-### serve-static@2.2.1
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/expressjs/serve-static#readme
-
 ### set-cookie-parser@3.1.0
 
 - License: MIT
 - Copyright: Nathan Friedly
 - Homepage: https://github.com/nfriedly/set-cookie-parser
 
-### setprototypeof@1.2.0
-
-- License: ISC
-- Copyright: Wes Todd
-- Homepage: https://github.com/wesleytodd/setprototypeof
-
-### sharp@0.35.4
-
-- License: Apache-2.0
-- Copyright: Lovell Fuller
-- Homepage: https://sharp.pixelplumbing.com
-
-### shebang-command@2.0.0
-
-- License: MIT
-- Copyright: Kevin Mårtensson
-- Homepage: https://github.com/kevva/shebang-command#readme
-
-### shebang-regex@3.0.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/shebang-regex#readme
-
 ### shiki@4.2.0
 
 - License: MIT
 - Copyright: Pine Wu
 - Homepage: https://github.com/shikijs/shiki#readme
-
-### side-channel@1.1.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/side-channel#readme
-
-### side-channel-list@1.0.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/side-channel-list#readme
-
-### side-channel-map@1.0.1
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/side-channel-map#readme
-
-### side-channel-weakmap@1.0.2
-
-- License: MIT
-- Copyright: Jordan Harband
-- Homepage: https://github.com/ljharb/side-channel-weakmap#readme
-
-### signal-exit@3.0.7
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/tapjs/signal-exit#readme
-
-### signal-exit@4.1.0
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/tapjs/signal-exit#readme
-
-### source-map@0.6.1
-
-- License: BSD-3-Clause
-- Copyright: Nick Fitzgerald
-- Homepage: https://github.com/mozilla/source-map
 
 ### source-map@0.7.6
 
@@ -4314,21 +2750,11 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Valentin 7rulnik Semirulnik
 - Homepage: https://github.com/7rulnik/source-map-js
 
-### source-map-support@0.5.21
-
-- License: MIT
-- Homepage: https://github.com/evanw/node-source-map-support#readme
-
 ### space-separated-tokens@2.0.2
 
 - License: MIT
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/space-separated-tokens#readme
-
-### statuses@2.0.2
-
-- License: MIT
-- Homepage: https://github.com/jshttp/statuses#readme
 
 ### strictdom@1.0.1
 
@@ -4348,12 +2774,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: ehmicky
 - Homepage: https://www.github.com/ehmicky/string-byte-slice
 
-### string-width@7.2.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/string-width#readme
-
 ### stringify-entities@4.0.4
 
 - License: MIT
@@ -4365,30 +2785,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: BSD-2-Clause
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/stringify-object#readme
-
-### strip-ansi@6.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/strip-ansi#readme
-
-### strip-ansi@7.2.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/strip-ansi#readme
-
-### strip-final-newline@2.0.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/strip-final-newline#readme
-
-### strnum@2.4.0
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/strnum#readme
 
 ### style-mod@4.1.3
 
@@ -4425,12 +2821,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/super-regex#readme
 
-### supports-color@10.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/supports-color#readme
-
 ### swrv@1.2.0
 
 - License: Apache-2.0
@@ -4465,12 +2855,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Homepage: https://tailwindcss.com
 
-### terser@5.16.9
-
-- License: BSD-2-Clause
-- Copyright: Mihai Bazon
-- Homepage: https://terser.org
-
 ### time-span@5.1.0
 
 - License: MIT
@@ -4488,18 +2872,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - License: MIT
 - Copyright: Superchupu
 - Homepage: https://superchupu.dev/tinyglobby
-
-### toidentifier@1.0.1
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/component/toidentifier#readme
-
-### tr46@0.0.3
-
-- License: MIT
-- Copyright: Sebastian Mayr
-- Homepage: https://github.com/Sebmaster/tr46.js#readme
 
 ### trim-lines@3.0.1
 
@@ -4525,12 +2897,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Tamino Martinius
 - Homepage: https://github.com/tamino-martinius/node-ts-dedent#readme
 
-### ts-tqdm@0.8.6
-
-- License: MIT
-- Copyright: Leandro Del Arco
-- Homepage: https://github.com/delarco/ts-tqdm
-
 ### tslib@2.8.1
 
 - License: 0BSD
@@ -4549,22 +2915,7 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/type-fest#readme
 
-### type-is@2.1.0
-
-- License: MIT
-- Homepage: https://github.com/jshttp/type-is#readme
-
 ### undici@6.28.1
-
-- License: MIT
-- Homepage: https://undici.nodejs.org
-
-### undici@7.29.0
-
-- License: MIT
-- Homepage: https://undici.nodejs.org
-
-### undici-types@5.26.5
 
 - License: MIT
 - Homepage: https://undici.nodejs.org
@@ -4573,16 +2924,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 
 - License: MIT
 - Homepage: https://undici.nodejs.org
-
-### undici-types@8.3.0
-
-- License: MIT
-- Homepage: https://undici.nodejs.org
-
-### unenv@2.0.0-rc.24
-
-- License: MIT
-- Homepage: https://github.com/unjs/unenv#readme
 
 ### unhead@2.1.15
 
@@ -4644,17 +2985,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/syntax-tree/unist-util-visit-parents#readme
 
-### unpipe@1.0.0
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/stream-utils/unpipe#readme
-
-### urlpattern-polyfill@10.1.0
-
-- License: MIT
-- Homepage: https://github.com/kenchris/urlpattern-polyfill#readme
-
 ### use-callback-ref@1.3.3
 
 - License: MIT
@@ -4670,12 +3000,6 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 
 - License: MIT
 - Homepage: https://github.com/uuidjs/uuid#readme
-
-### vary@1.1.2
-
-- License: MIT
-- Copyright: Douglas Christopher Wilson
-- Homepage: https://github.com/jshttp/vary#readme
 
 ### vfile@6.0.3
 
@@ -4730,110 +3054,16 @@ pnpm-lock.yaml sha256:9030b1e359c5494f63613e2ee89c8bdb7749d8ae53a16fadbcb31ea7e7
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/web-namespaces#readme
 
-### web-streams-polyfill@4.0.0-beta.3
-
-- License: MIT
-- Copyright: Mattias Buelens
-- Homepage: https://github.com/MattiasBuelens/web-streams-polyfill#readme
-
 ### web-worker@1.5.0
 
 - License: Apache-2.0
 - Homepage: https://github.com/developit/web-worker
-
-### webidl-conversions@3.0.1
-
-- License: BSD-2-Clause
-- Copyright: Domenic Denicola
-- Homepage: https://github.com/jsdom/webidl-conversions#readme
-
-### whatwg-url@5.0.0
-
-- License: MIT
-- Copyright: Sebastian Mayr
-- Homepage: https://github.com/jsdom/whatwg-url#readme
-
-### which@2.0.2
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-which#readme
-
-### which@4.0.0
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-which#readme
-
-### workerd@1.20260815.1
-
-- License: Apache-2.0
-- Homepage: https://github.com/cloudflare/workerd#readme
-
-### wrangler@4.124.0
-
-- License: MIT OR Apache-2.0
-- Copyright: wrangler@cloudflare.com
-- Homepage: https://github.com/cloudflare/workers-sdk#readme
-
-### wrap-ansi@9.0.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/wrap-ansi#readme
-
-### wrappy@1.0.2
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/npm/wrappy
-
-### ws@8.21.0
-
-- License: MIT
-- Copyright: Einar Otto Stangvik
-- Homepage: https://github.com/websockets/ws
-
-### xml-naming@0.1.0
-
-- License: MIT
-- Copyright: Amit Gupta
-- Homepage: https://github.com/NaturalIntelligence/xml-naming#readme
-
-### y18n@5.0.8
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/yargs/y18n
 
 ### yaml@2.9.0
 
 - License: ISC
 - Copyright: Eemeli Aro
 - Homepage: https://eemeli.org/yaml/
-
-### yargs@18.0.0
-
-- License: MIT
-- Homepage: https://yargs.js.org/
-
-### yargs-parser@22.0.0
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/yargs/yargs-parser#readme
-
-### youch@4.1.0-beta.10
-
-- License: MIT
-- Copyright: Harminder Virk
-- Homepage: https://github.com/poppinss/youch#readme
-
-### youch-core@0.3.3
-
-- License: MIT
-- Copyright: Harminder Virk
-- Homepage: https://github.com/poppinss/youch-core#readme
 
 ### zod@4.4.3
 
@@ -4862,11 +3092,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: Apache-2.0
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/ampproject/remapping#readme
-
-### @ast-grep/napi-linux-x64-gnu@0.40.5
-
-- License: MIT
-- Homepage: https://github.com/ast-grep/ast-grep#readme
 
 ### @babel/code-frame@7.29.7
 
@@ -4945,11 +3170,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Charles Samborski
 - Homepage: https://github.com/bcoe/v8-coverage#readme
-
-### @cloudflare/workerd-linux-64@1.20260815.1
-
-- License: Apache-2.0
-- Homepage: https://github.com/cloudflare/workerd#readme
 
 ### @esbuild/linux-x64@0.28.1
 
@@ -5038,6 +3258,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Nicholas C. Zaks
 - Homepage: https://github.com/humanwhocodes/retry#readme
 
+### @img/colour@1.1.0
+
+- License: MIT
+- Homepage: https://github.com/lovell/colour#readme
+
 ### @img/sharp-libvips-linux-x64@1.3.3
 
 - License: LGPL-3.0-or-later
@@ -5062,11 +3287,35 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Corey Farrell
 - Homepage: https://github.com/istanbuljs/schema#readme
 
+### @jridgewell/gen-mapping@0.3.13
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
+
 ### @jridgewell/remapping@2.3.5
 
 - License: MIT
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
+
+### @jridgewell/resolve-uri@3.1.2
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/resolve-uri#readme
+
+### @jridgewell/source-map@0.3.11
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/source-map
+
+### @jridgewell/trace-mapping@0.3.31
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 
 ### @napi-rs/lzma-linux-x64-gnu@1.5.1
 
@@ -5159,6 +3408,11 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jason Swearingen
 - Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped#readme
+
+### @types/node@26.2.0
+
+- License: MIT
+- Homepage: https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
 
 ### @types/react@19.2.17
 
@@ -5277,7 +3531,25 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Evgeny Poberezkin
 - Homepage: https://github.com/ajv-validator/ajv
 
+### ansi-regex@5.0.1
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/ansi-regex#readme
+
+### ansi-regex@6.2.2
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/ansi-regex#readme
+
 ### ansi-styles@4.3.0
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/ansi-styles#readme
+
+### ansi-styles@6.2.3
 
 - License: MIT
 - Copyright: Sindre Sorhus
@@ -5378,7 +3650,27 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jesse Beach
 - Homepage: https://github.com/A11yance/axobject-query#readme
 
+### balanced-match@1.0.2
+
+- License: MIT
+- Homepage: https://github.com/juliangruber/balanced-match#readme
+
+### balanced-match@4.0.4
+
+- License: MIT
+- Homepage: https://github.com/juliangruber/balanced-match#readme
+
 ### brace-expansion@1.1.21
+
+- License: MIT
+- Homepage: https://github.com/juliangruber/brace-expansion#readme
+
+### brace-expansion@2.1.7
+
+- License: MIT
+- Homepage: https://github.com/juliangruber/brace-expansion#readme
+
+### brace-expansion@5.0.12
 
 - License: MIT
 - Homepage: https://github.com/juliangruber/brace-expansion#readme
@@ -5395,6 +3687,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Andrey Sitnik
 - Homepage: https://github.com/browserslist/browserslist#readme
 
+### buffer-from@1.1.2
+
+- License: MIT
+- Homepage: https://github.com/LinusU/buffer-from#readme
+
 ### cac@6.7.14
 
 - License: MIT
@@ -5406,6 +3703,18 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/call-bind#readme
+
+### call-bind-apply-helpers@1.0.2
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/call-bind-apply-helpers#readme
+
+### call-bound@1.0.4
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/call-bound#readme
 
 ### callsites@3.1.0
 
@@ -5448,6 +3757,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: DY
 - Homepage: https://github.com/colorjs/color-name
 
+### commander@2.20.3
+
+- License: MIT
+- Copyright: TJ Holowaychuk
+- Homepage: https://github.com/tj/commander.js#readme
+
 ### concat-map@0.0.1
 
 - License: MIT
@@ -5459,6 +3774,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Thorsten Lorenz
 - Homepage: https://github.com/thlorenz/convert-source-map
+
+### cross-spawn@7.0.6
+
+- License: MIT
+- Copyright: André Cruz
+- Homepage: https://github.com/moxystudio/node-cross-spawn
 
 ### damerau-levenshtein@1.0.8
 
@@ -5514,10 +3835,22 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/define-properties#readme
 
+### detect-libc@2.1.2
+
+- License: Apache-2.0
+- Copyright: Lovell Fuller
+- Homepage: https://github.com/lovell/detect-libc#readme
+
 ### doctrine@2.1.0
 
 - License: Apache-2.0
 - Homepage: https://github.com/eslint/doctrine
+
+### dunder-proto@1.0.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/es-shims/dunder-proto#readme
 
 ### eastasianwidth@0.2.0
 
@@ -5555,6 +3888,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/es-abstract#readme
 
+### es-define-property@1.0.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/es-define-property#readme
+
+### es-errors@1.3.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/es-errors#readme
+
 ### es-iterator-helpers@1.3.2
 
 - License: MIT
@@ -5567,6 +3912,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Guy Bedford
 - Homepage: https://github.com/guybedford/es-module-lexer#readme
 
+### es-object-atoms@1.1.2
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/es-object-atoms#readme
+
+### es-set-tostringtag@2.1.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/es-shims/es-set-tostringtag#readme
+
 ### es-shim-unscopables@1.1.0
 
 - License: MIT
@@ -5578,6 +3935,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/es-to-primitive#readme
+
+### escalade@3.2.0
+
+- License: MIT
+- Copyright: Luke Edwards
+- Homepage: https://github.com/lukeed/escalade#readme
 
 ### escape-string-regexp@4.0.0
 
@@ -5746,6 +4109,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Raynos
 - Homepage: https://github.com/Raynos/for-each
 
+### foreground-child@3.3.1
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/tapjs/foreground-child#readme
+
+### function-bind@1.1.2
+
+- License: MIT
+- Copyright: Raynos
+- Homepage: https://github.com/Raynos/function-bind
+
 ### function.prototype.name@1.1.8
 
 - License: MIT
@@ -5769,6 +4144,18 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Logan Smyth
 - Homepage: https://github.com/loganfsmyth/gensync
+
+### get-intrinsic@1.3.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/get-intrinsic#readme
+
+### get-proto@1.0.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/get-proto#readme
 
 ### get-symbol-description@1.1.0
 
@@ -5818,6 +4205,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/System.global#readme
 
+### gopd@1.2.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/gopd#readme
+
 ### graceful-fs@4.2.11
 
 - License: ISC
@@ -5847,6 +4240,24 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/inspect-js/has-proto#readme
 
+### has-symbols@1.1.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/has-symbols#readme
+
+### has-tostringtag@1.0.2
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/inspect-js/has-tostringtag#readme
+
+### hasown@2.0.4
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/inspect-js/hasOwn#readme
+
 ### hermes-estree@0.25.1
 
 - License: MIT
@@ -5862,6 +4273,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Andrea Giammarchi
 - Homepage: https://github.com/WebReflection/html-escaper
+
+### ignore@5.3.2
+
+- License: MIT
+- Copyright: kael
+- Homepage: https://github.com/kaelzhang/node-ignore#readme
 
 ### ignore@7.0.5
 
@@ -6055,6 +4472,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Julian Gruber
 - Homepage: https://github.com/juliangruber/isarray
 
+### isexe@2.0.0
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/isexe#readme
+
 ### istanbul-lib-coverage@3.2.2
 
 - License: BSD-3-Clause
@@ -6213,6 +4636,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Veselin Todorov
 - Homepage: https://github.com/chaijs/loupe
 
+### lru-cache@10.4.3
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/node-lru-cache#readme
+
 ### lru-cache@5.1.1
 
 - License: ISC
@@ -6230,6 +4659,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/make-dir#readme
 
+### math-intrinsics@1.1.0
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/es-shims/math-intrinsics#readme
+
 ### merge2@1.4.1
 
 - License: MIT
@@ -6240,6 +4675,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jon Schlinkert
 - Homepage: https://github.com/micromatch/micromatch
+
+### minimatch@10.2.5
+
+- License: BlueOak-1.0.0
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/minimatch#readme
 
 ### minimatch@3.1.5
 
@@ -6258,6 +4699,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: James Halliday
 - Homepage: https://github.com/minimistjs/minimist
+
+### minipass@7.1.3
+
+- License: BlueOak-1.0.0
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/minipass#readme
 
 ### napi-postinstall@0.3.4
 
@@ -6288,6 +4735,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/object-assign#readme
+
+### object-inspect@1.13.4
+
+- License: MIT
+- Copyright: James Halliday
+- Homepage: https://github.com/inspect-js/object-inspect
 
 ### object-keys@1.1.1
 
@@ -6349,6 +4802,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/p-locate#readme
 
+### package-json-from-dist@1.0.1
+
+- License: BlueOak-1.0.0
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/package-json-from-dist#readme
+
 ### parent-module@1.0.1
 
 - License: MIT
@@ -6361,11 +4820,23 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/path-exists#readme
 
+### path-key@3.1.1
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/sindresorhus/path-key#readme
+
 ### path-parse@1.0.7
 
 - License: MIT
 - Copyright: Javier Blanco
 - Homepage: https://github.com/jbgutierrez/path-parse#readme
+
+### path-scurry@1.11.1
+
+- License: BlueOak-1.0.0
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/path-scurry#readme
 
 ### pathval@2.0.1
 
@@ -6491,6 +4962,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: GitHub Inc.
 - Homepage: https://github.com/npm/node-semver#readme
 
+### semver@7.8.5
+
+- License: ISC
+- Copyright: GitHub Inc.
+- Homepage: https://github.com/npm/node-semver#readme
+
 ### set-function-length@1.2.2
 
 - License: MIT
@@ -6509,11 +4986,70 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/set-proto#readme
 
+### sharp@0.35.4
+
+- License: Apache-2.0
+- Copyright: Lovell Fuller
+- Homepage: https://sharp.pixelplumbing.com
+
+### shebang-command@2.0.0
+
+- License: MIT
+- Copyright: Kevin Mårtensson
+- Homepage: https://github.com/kevva/shebang-command#readme
+
+### shebang-regex@3.0.0
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/sindresorhus/shebang-regex#readme
+
+### side-channel@1.1.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/side-channel#readme
+
+### side-channel-list@1.0.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/side-channel-list#readme
+
+### side-channel-map@1.0.1
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/side-channel-map#readme
+
+### side-channel-weakmap@1.0.2
+
+- License: MIT
+- Copyright: Jordan Harband
+- Homepage: https://github.com/ljharb/side-channel-weakmap#readme
+
 ### siginfo@2.0.0
 
 - License: ISC
 - Copyright: Emil Bay
 - Homepage: https://github.com/emilbayes/siginfo#readme
+
+### signal-exit@4.1.0
+
+- License: ISC
+- Copyright: Ben Coe
+- Homepage: https://github.com/tapjs/signal-exit#readme
+
+### source-map@0.6.1
+
+- License: BSD-3-Clause
+- Copyright: Nick Fitzgerald
+- Homepage: https://github.com/mozilla/source-map
+
+### source-map-support@0.5.21
+
+- License: MIT
+- Homepage: https://github.com/evanw/node-source-map-support#readme
 
 ### stable-hash@0.0.5
 
@@ -6586,6 +5122,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/es-shims/String.prototype.trimStart#readme
 
+### strip-ansi@6.0.1
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/strip-ansi#readme
+
+### strip-ansi@7.2.0
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/strip-ansi#readme
+
 ### strip-bom@3.0.0
 
 - License: MIT
@@ -6604,6 +5152,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Anthony Fu
 - Homepage: https://github.com/antfu/strip-literal#readme
 
+### supports-color@10.2.2
+
+- License: MIT
+- Copyright: Sindre Sorhus
+- Homepage: https://github.com/chalk/supports-color#readme
+
 ### supports-color@7.2.0
 
 - License: MIT
@@ -6621,6 +5175,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Tobias Koppers @sokra
 - Homepage: https://github.com/webpack/tapable
+
+### terser@5.16.9
+
+- License: BSD-2-Clause
+- Copyright: Mihai Bazon
+- Homepage: https://terser.org
 
 ### test-exclude@7.0.2
 
@@ -6719,6 +5279,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/unbox-primitive#readme
 
+### undici-types@8.3.0
+
+- License: MIT
+- Homepage: https://undici.nodejs.org
+
 ### unrs-resolver@1.12.2
 
 - License: MIT
@@ -6753,6 +5318,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Anthony Fu
 - Homepage: https://github.com/vitest-dev/vitest#readme
+
+### which@2.0.2
+
+- License: ISC
+- Copyright: Isaac Z. Schlueter
+- Homepage: https://github.com/isaacs/node-which#readme
 
 ### which-boxed-primitive@1.1.1
 

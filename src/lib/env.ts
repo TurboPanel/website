@@ -3,10 +3,10 @@
  * Use hostname and port (from window.location) to determine the correct API base URL.
  * When using turbopanel.app in /etc/hosts for local dev, hostname alone is not enough—
  * we must also check the port (WEBSITE_PORT on turbopanel-website.service, default 19820).
- * Local API calls target Caddy HTTPS (CADDY_PORT, default 8443), not the wrangler TCP port.
+ * Local API calls target Caddy HTTPS (CADDY_PORT, default 8443), not Metro.
  *
  * Host → control-plane mapping and Scalar server labels live in
- * {@link ./control-plane-hosts.ts}; both the Worker routes and the client
+ * {@link ./control-plane-hosts.ts}; both the API routes and the client
  * derive everything from the request host — no deployment variable.
  */
 

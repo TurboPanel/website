@@ -55,9 +55,7 @@ export const SKIP_DIR_NAMES = new Set([
   'dist',
   'coverage',
   '.next',
-  '.wrangler',
   '.turbo',
-  '.open-next',
   '.source',
 ])
 
@@ -69,10 +67,7 @@ export const SKIP_FILENAMES = new Set([
   'THIRD_PARTY_NOTICES.md',
 ])
 
-export const GENERATED_TYPE_FILES = new Set([
-  'cloudflare-env.d.ts',
-  'worker-configuration.d.ts',
-])
+export const GENERATED_TYPE_FILES = new Set(['worker-configuration.d.ts'])
 
 export const SCAN_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|md|mdx|yml|yaml|sh|json|css)$/
 

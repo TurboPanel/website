@@ -72,7 +72,7 @@ describe('shouldScanFile', () => {
     expect(shouldScanFile('package.json')).toBe(true)
     expect(shouldScanFile('scripts/run.sh')).toBe(true)
     expect(shouldScanFile('src/app/globals.css')).toBe(true)
-    expect(shouldScanFile('wrangler.jsonc')).toBe(false)
+    expect(shouldScanFile('tsconfig.jsonc')).toBe(false)
     expect(shouldScanFile('public/brand/turbopanel-logo.svg')).toBe(false)
     expect(shouldScanFile('README.TS')).toBe(false)
     expect(shouldScanFile('LICENSE')).toBe(false)

@@ -1,10 +1,10 @@
 /**
  * Canonical marketing-host → TurboPanel High Availability control-plane mapping.
  *
- * This map is the single source of truth for every environment: the Worker
+ * This map is the single source of truth for every environment: the API
  * routes (`/api/config`, `/api/reference`) and the client-side helpers in
  * `src/lib/env.ts` derive the control-plane origin and the Scalar server
- * entries from the request host. There is no per-environment Wrangler
+ * entries from the request host. There is no per-environment deploy
  * variable to keep in sync.
  */
 
