@@ -67,11 +67,13 @@ graph TD
 
 Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (Ansible extra-var; default `self_signed`). The Platform CA is still minted in every mode.
 
-| Mode | Caddyfile | Listen | Leaf material | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
+The Caddy site config is rendered by the daemon's `instance-launch` role into `/etc/turbopanel/caddy/Caddyfile` on every converge — one template whose branches are the three modes. It is never hand-edited; re-run the installer or converge to change it.
+
+| Mode | Rendered site block | Listen | Leaf material | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
 | --- | --- | --- | --- | --- | --- |
-| `self_signed` (default) | `Caddyfile` | `:8443` | `certs/self-signed.*` | 200 | yes |
-| `upload` | `Caddyfile` | `:8443` (or `caddy_port`) | operator pair copied to `certs/` | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
-| `lets_encrypt` | `Caddyfile.acme` | `:443` (+ `:80` challenge) | Caddy ACME storage | 404 | no |
+| `self_signed` (default) | port + platform-CA leaf, `auto_https off` | `:8443` | `certs/self-signed.*` | 200 | yes |
+| `upload` | port + operator pair, `auto_https off` | `:8443` (or `caddy_port`) | operator pair copied to `certs/` | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
+| `lets_encrypt` | public hostname, automatic HTTPS | `:443` (+ `:80` challenge) | Caddy ACME storage | 404 | no |
 
 | Port | When |
 | ---- | ---- |
@@ -124,7 +126,7 @@ See [Local development](/docs/getting-started/development). Logs: `journalctl -u
 
 ### Self-hosted control plane (private alpha — preview)
 
-The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian — the bootstrap refuses any other distribution up front — with dedicated service users (`tp`, `tpctrl`, `tpcaddy`), the compiled instance and mailer under `/opt/turbopanel/lib/instance`, the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is cut; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
+The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian — the bootstrap refuses any other distribution up front — with dedicated service users (`tp`, `tpctrl`, `tpcaddy`), one compiled instance binary, `/opt/turbopanel/bin/turbopanel`, beside the daemon (its DuckDB library in `/opt/turbopanel/lib`; the email consumer runs inside it, there is no separate mailer process), the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is cut; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
 
 <Steps>
   <Step>
