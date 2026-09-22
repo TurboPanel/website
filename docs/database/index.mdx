@@ -5,7 +5,7 @@ description: "Data dictionary for the TurboPanel control-plane PostgreSQL schema
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0005_snapshot.json (0005_tier_label_ladder_path).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -15,7 +15,7 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 
 | Generated from | Tables | Columns |
 | --- | --- | --- |
-| migration `0004_schema_comments` | 71 | 748 |
+| migration `0005_tier_label_ladder_path` | 71 | 748 |
 
 ## Tables by area
 
@@ -43,4 +43,4 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 - **Booleans** are named `is_*`; `NULL` on a boolean means *not set*, not `false`.
 - **Secrets** are never stored in the clear: a column holding one says so and names the envelope format.
 
-To change a description, edit `src/lib/db/schema-descriptions.ts` in the turbopanel repository and follow the *Schema descriptions* loop in its `AGENTS.md`; a schema change regenerates these pages as part of the same migration.
+To change a description, edit `src/db/schema-descriptions.ts` in the turbopanel repository and follow the *Schema descriptions* loop in its `AGENTS.md`; a schema change regenerates these pages as part of the same migration.

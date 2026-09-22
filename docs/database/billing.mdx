@@ -5,7 +5,7 @@ description: "Data dictionary — billing tables: allowance, entitlement, licens
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0005_snapshot.json (0005_tier_label_ladder_path).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — billing tables: allowance, entitlement, licens
 
 Tiers are platform-global priced offerings; licenses, payers, subscriptions and seats record what an organization bought and how each server is entitled.
 
-Tables on this page: [`allowance`](#allowance) · [`entitlement`](#entitlement) · [`license`](#license) · [`payer`](#payer) · [`seat`](#seat) · [`subscription`](#subscription) · [`tier`](#tier). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`allowance`](#allowance) · [`entitlement`](#entitlement) · [`license`](#license) · [`payer`](#payer) · [`seat`](#seat) · [`subscription`](#subscription) · [`tier`](#tier). Generated from migration `0005_tier_label_ladder_path`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `allowance` [#allowance]
 
@@ -155,7 +155,7 @@ Global billed offering: one row per ladder label (`S1` to `S7`, `SX`) bound to a
 | `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
 | `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
-| `label` | `text` | no |  | Ladder label `S1` to `S7` or `SX`, the unique key into the in-code ladder (`src/lib/tiers/ladder.ts`) that holds everything the tier entitles. |
+| `label` | `text` | no |  | Ladder label `S1` to `S7` or `SX`, the unique key into the in-code ladder (`src/features/tiers/ladder.ts`) that holds everything the tier entitles. |
 | `rank` | `integer` | no |  | Ladder position copied from the in-code ladder on insert, never from a request; unique, orders tiers and decides upgrade versus downgrade and greedy assignment. |
 | `provider` | `text` | no | `'stripe'` | Payment provider the row bills through; only `stripe` is allowed today (CHECK `tier_provider_check`), matching `payer.provider`. |
 | `provider_product_id` | `text` | yes |  | Provider Product id (Stripe `prod_...`) chosen from the provider catalogue and verified before write; null on the custom `SX` row, which is never purchasable. |
