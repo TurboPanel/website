@@ -9,22 +9,34 @@ Every release is a GitHub Release with its packages as assets. The installer and
 both follow a **channel** — `release` (the latest promoted release), `rc` (the current
 release candidate) or `canary` (the newest green build of `trunk`, for a
 [canary environment](/docs/development/canary)) — and resolve that channel's `manifest.json`
-straight from GitHub. There is no self-update inside the control plane: upgrading it means
-running the installer again.
+straight from GitHub. The control plane and the daemon are separate packages. Each can
+move from **Admin → Updates**, and re-running the installer still moves both.
 
 ## Control plane (self-hosted)
 
+The control plane and the co-located daemon each have a row on **Admin → Updates**.
+Upgrade on one row installs that unit and leaves the other where it is. They do
+not share a manifest pin: a daemon pinned with `TURBOPANEL_MANIFEST_URL` still
+follows the channel for the control plane, and `TURBOPANEL_INSTANCE_MANIFEST_URL`
+pins only the control plane.
+
 1. **Back up Postgres** (`pg_dump` or a volume snapshot) and `/etc/turbopanel`.
-2. Re-run the installer on the control-plane host:
+2. On **Admin → Updates**, use **Upgrade** on the **Control plane** row.
+
+   The control plane queues `instance-update` for the co-located daemon and
+   returns immediately. The daemon runs `run.sh --instance` for `canary`, `rc`,
+   or `release` (a `trunk` control plane has no package, so that Upgrade stays
+   disabled). The install restarts the panel, so the browser often sees a
+   gateway error while it proceeds. The page polls until the installed version
+   matches the target.
+
+   Re-running the installer does the same install and also refreshes the daemon:
 
    ```bash
    curl -fsSL turbopanel.sh | sh
    ```
 
-   It downloads the channel's current instance and UI packages, verifies each against the
-   release manifest, re-converges the host, applies pending database migrations with the
-   instance binary's own `migrate` verb, and restarts the units. Add
-   `TURBOPANEL_UPDATE_CHANNEL=rc` to move to the release candidate instead.
+   Add `TURBOPANEL_UPDATE_CHANNEL=rc` to move to the release candidate instead.
 3. Verify `GET /api/health` — it reports the version and the exact release commit — and sign in.
 
 The instance checks the database's migration history against the migrations it ships at every
@@ -33,10 +45,29 @@ binary (for example after a rollback of the binary alone) stops the instance wit
 `database was migrated by files this build does not ship`. Roll the database back with the
 binary, or move the binary forward — never serve one release's schema with another's code.
 
+The daemon refuses to install a control plane older than its own floor
+(`MIN_SUPPORTED_INSTANCE_VERSION`, today **0.1.0**). A target it cannot parse
+is allowed. The control plane accepts the dispatch from any connected daemon;
+the connection is how the install arrives. See
+[Version compatibility](/docs/deployment/compatibility).
+
 ### Rollback
 
-Restore the Postgres backup and re-run the installer on a channel that points at the previous
-release. Pinning the control plane itself to one exact release is not yet an installer flag.
+Restore the Postgres backup and re-run the installer pinned to one exact control-plane
+manifest. The pin is `TURBOPANEL_INSTANCE_MANIFEST_URL` / `--instance-manifest-url`
+(https only). It is independent of the daemon pin (`TURBOPANEL_MANIFEST_URL` /
+`--manifest-url`): each package keeps its own pin.
+
+```bash
+curl -fsSL turbopanel.sh \
+  | TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
+```
+
+`--instance-manifest-url` is the same pin when `run.sh` is invoked with flags.
+`tp-orchestrate update-instance` maps its `--manifest-url` onto that flag, which
+records `TURBOPANEL_INSTANCE_MANIFEST_URL` and leaves the daemon pin
+(`TURBOPANEL_MANIFEST_URL`) unchanged. The value is written to `daemon.env`; a
+later install that names only a channel clears it.
 
 ## Control plane (TurboPanel High Availability)
 
@@ -47,8 +78,19 @@ operator action unless the release notes say otherwise.
 
 ### In-console update
 
-Use **Update** on the server detail page when the daemon is online. The control plane resolves
-the target from the instance's own channel; the page names the target by version and commit.
+Use **Upgrade** on the **Daemon** row of **Admin → Updates** for the control-plane
+host. Use **Update** on any other server's detail page when that daemon is
+online. The control plane resolves the target from the instance's own channel;
+the page names the target by version and commit. The per-server action refuses
+the co-located host so it cannot race the **Daemon** row.
+
+The control plane keeps a daemon below its floor connected and fails that
+daemon's commands with `daemon_unsupported` until it updates. The floor today
+is **0.1.0**. A daemon that reports no version is treated as unknown and its
+commands still run. The other direction is the daemon's own floor for the
+control plane, also **0.1.0**: an older control plane stays connected and is
+flagged, and the daemon will not install a control plane below that floor.
+See [Version compatibility](/docs/deployment/compatibility).
 
 ### Manual refresh
 
@@ -83,14 +125,19 @@ Revoke a compromised daemon key from the server page if enrollment material chan
 ```mermaid
 graph TD
     A[Backup CP database + config] --> B[Upgrade control plane]
-    B --> C[Verify health + auth]
-    C --> D[Upgrade daemons fleet-wide]
-    D --> E[Smoke test deploy + WS presence]
+    A --> C[Upgrade co-located daemon]
+    B --> D[Verify health + auth]
+    C --> E[Upgrade remaining daemons]
+    D --> F[Smoke test deploy + WS presence]
+    E --> F
 ```
 
-Upgrade the control plane first. It refuses commands to a daemon older than its supported
-floor (`daemon_unsupported`) but keeps the connection up, so the update itself still reaches
-the daemon — see [Version compatibility](/docs/deployment/compatibility).
+Upgrade either unit when you are ready. The control plane refuses commands to a
+daemon older than its supported floor (`daemon_unsupported`) but keeps the
+connection up, so a daemon update still reaches that host. A control-plane
+update does not wait for the daemon to be on the newest build. There is no
+required order between the two units. See
+[Version compatibility](/docs/deployment/compatibility).
 
 ## Related
 

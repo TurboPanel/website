@@ -25,18 +25,9 @@ pin a Let's Encrypt row that Caddy issues on the serving host. See
   expose the control plane directly on HTTP in production.
 </Callout>
 
-Self-hosted Caddy TLS is selected by `turbopanel_tls_mode` (default `self_signed`):
+`:8443` always presents the Platform CA. A publicly trusted hostname (Let's Encrypt, or `TURBOPANEL_TLS_PUBLIC`) makes `GET /api/daemon/v1/instance/ca` answer 404 so daemons use the system trust store, and install commands omit `--insecure-tls`. See [Control plane listeners](/docs/deployment/control-plane#control-plane-listeners).
 
-| Mode | Listen | Platform CA served | `--insecure-tls` |
-| --- | --- | --- | --- |
-| `self_signed` (default) | `:8443` | yes | yes |
-| `upload` | `:8443` (or `caddy_port`) | unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
-| `lets_encrypt` | `:443` (+ `:80` challenge) | no (404) | no |
-
-`lets_encrypt` needs `:80`/`:443` free on the control-plane host. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
-
-Every control-plane Caddy mode (`self_signed`, `upload` and `lets_encrypt`) sends a
-baseline response-header set on every response: `Strict-Transport-Security`
+Control-plane Caddy sends a baseline response-header set on every response: `Strict-Transport-Security`
 (one year, `includeSubDomains`), `X-Content-Type-Options: nosniff`, and
 `X-Frame-Options: DENY`. This is control-plane only — per-tenant hosting sites
 are a separate Caddy config the daemon generates and do not inherit these
@@ -100,7 +91,7 @@ On Deno self-hosted, install endpoints are only available while the instance is 
 
 - Use Docker networks to isolate containers
 - Restrict Docker socket access to necessary containers only
-- Implement firewall rules to restrict access to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`)
+- Implement firewall rules to restrict access to the HTTPS entrypoint (**8443** always; **443** for each Let's Encrypt or uploaded hostname)
 - Use TurboFabric or private networks for daemon communication when possible
 - Consider Docker Swarm or Kubernetes network policies
 
@@ -262,7 +253,7 @@ A restore that has never been run is a backup you do not have.
 
 Recommended:
 
-- Allow inbound to the HTTPS entrypoint (default **8443**; **443** in `lets_encrypt`) only from trusted networks
+- Allow inbound to the HTTPS entrypoint (**8443** always; **443** for each Let's Encrypt or uploaded hostname; **80** forwarded to the solver on **8880** when a hostname uses Let's Encrypt) only from trusted networks
 - Restrict outbound to necessary services only. **The control-plane process itself places no outbound restriction on a self-hosted instance** (decided 2026-09-18): earlier builds ran the compiled binary under a fixed list of hosts it could reach, which made every operator-configured destination — an alert webhook, a chat integration, a push relay, a self-managed forge — impossible. That list is gone; the boundary is your host firewall, so shape egress there if the instance should reach only known hosts. Operator-supplied URLs are still checked at write and at fetch: `https` only, no credentials in the URL, no reserved names, a publicly routable address.
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
@@ -278,7 +269,7 @@ Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (
 ### Authentication
 
 - Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
-- Use TLS with the platform CA (or a public CA) for all daemon ↔ instance traffic. Public TLS (`lets_encrypt` / `TURBOPANEL_TLS_PUBLIC`) uses the system trust store and omits `--insecure-tls`.
+- Use TLS with the Platform CA (or a public certificate) for all daemon ↔ instance traffic. Public TLS (Let's Encrypt / `TURBOPANEL_TLS_PUBLIC`) uses the system trust store and omits `--insecure-tls`.
 - Rotate the instance root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
 
 ### Network Security
@@ -335,7 +326,8 @@ graph TD
 ```bash
 # Self-hosted: Caddy on 8443 with platform CA by default (Ansible install)
 # Optional outer nginx terminates public TLS and proxies to Caddy:
-# lets_encrypt binds :443 and omits --instance-ca / --insecure-tls.
+# :8443 always presents the Platform CA.
+# A Let's Encrypt or uploaded hostname also binds :443 and omits --instance-ca / --insecure-tls.
 
 # Remote managed server — the one installer, pointed at your control plane.
 # The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;

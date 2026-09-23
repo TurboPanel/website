@@ -52,6 +52,7 @@ them:
 - Tenant isolation and the compose passthrough policy — [Compose contract](/docs/architecture/compose-contract)
 - Daemon identity, command scope and revocation — [Daemon trust model](/docs/security/daemon-trust-model)
 - Certificate chains and rotation — [Organization CA](/docs/security/organization-ca)
+- Control-plane hostnames, instance Let's Encrypt, and tenant Let's Encrypt — [Hostnames and TLS](/docs/deployment/hostnames-and-tls). Those are three configurable surfaces. Instance Let's Encrypt applies to this control plane's hostnames. An organization's **Allow Let's Encrypt certificates** applies to that organization's hosting certificates. Saving one leaves the other unchanged, and neither is the Organization CA.
 - Host-level posture, backups and the audit trail — [Deployment security](/docs/deployment/security)
 
 ## What this model does not yet cover

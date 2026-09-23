@@ -40,7 +40,7 @@ graph TD
 
 | Feature | TurboPanel High Availability | Self-hosted instance |
 | ------- | ---------------------------- | -------------------- |
-| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` by default (`lets_encrypt` uses `:443`) |
+| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` always. A Let's Encrypt or uploaded hostname is also `https://<hostname>/` on `:443`. |
 | Co-located daemon | Contributor dev only (socket mode) | Installed with the control plane; dials the instance socket |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
@@ -48,15 +48,7 @@ graph TD
 
 Both control-plane models are in **private alpha** and not yet publicly available. The installer and daemon behavior below apply when you have access.
 
-Self-hosted TLS modes (`turbopanel_tls_mode`) and the ports they bind:
-
-| Mode | Listen | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
-| --- | --- | --- | --- |
-| `self_signed` (default) | `:8443` | 200 | yes |
-| `upload` | `:8443` (or `caddy_port`) | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
-| `lets_encrypt` | `:443` (+ `:80` challenge) | 404 | no |
-
-`lets_encrypt` needs `:80`/`:443` free on the control-plane host. Full table: [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
+`:8443` is always the Platform CA recovery address. Each published hostname uses the Platform CA, an uploaded pair, or Let's Encrypt. Let's Encrypt answers HTTP-01 on port 80 by forwarding the challenge to `:8880`. Full listeners: [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Installation
 
@@ -89,7 +81,7 @@ Self-hosted TLS modes (`turbopanel_tls_mode`) and the ports they bind:
   </Step>
 </Steps>
 
-Self-hosted examples below use `:8443` by default. Omit the port (or use `:443`) when `turbopanel_tls_mode=lets_encrypt`. Public TLS omits `--insecure-tls`.
+Self-hosted examples below use `:8443`. A Let's Encrypt or uploaded hostname is also reachable on `:443`. Public TLS omits `--insecure-tls`.
 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 

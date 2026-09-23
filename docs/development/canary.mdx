@@ -112,22 +112,38 @@ curl -fsSL turbopanel.sh | \
 
 ## How a canary moves
 
-**Daemons** update themselves: each daemon checks the channel manifest, and when the manifest's
-commit differs from the build it is running it downloads, verifies and installs the new build,
-keeping one previous generation beside it (`turbopaneld.prev`). The console's **Update** button
-on a server page does the same on demand.
+The control plane and the co-located daemon are two units. Each follows the
+instance's channel, each has its own manifest, and each moves on its own.
+Updating one leaves the other on the build it already has.
 
-**The control plane does not self-update.** To move a canary control plane to the newest trunk
-build, re-run the installer:
+**Admin → Updates** on the canary panel is the path. The page has two rows:
+
+| Row | What Upgrade installs | What stays up |
+| --- | --- | --- |
+| **Control plane** | The instance package and the static UI export, via `run.sh --instance` | The daemon. The panel restarts, so the browser request often ends in a gateway error while the install proceeds. The page polls until the installed version matches the target. |
+| **Daemon** | The daemon package for this host | The control plane |
+
+`canary`, `rc`, and `release` publish a control-plane package. `trunk` does
+not, so that row's Upgrade stays disabled and names the channel. A canary
+install is already on `canary`, so both rows can move.
+
+The same installer command still works, and it moves **both** packages in one
+run:
 
 ```bash
 curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 ```
 
-It fetches the current canary packages, re-converges the host, applies any new migrations with
-the instance binary's own `migrate` verb, and restarts the units — the same procedure as an
-[upgrade](/docs/deployment/upgrade). Do this as often as you want to see the newest merge; a
-canary that is not re-run simply stays on the build it installed.
+It fetches the current canary packages, re-converges the host, applies any new
+migrations with the instance binary's own `migrate` verb, and restarts the
+units — the same procedure as an [upgrade](/docs/deployment/upgrade). A unit
+you do not upgrade simply stays on the build it has.
+
+Daemons on other servers still update from the server page, or on their own
+when the channel manifest's commit differs from the build they are running.
+That path is the daemon package only. The control-plane host's daemon is the
+**Daemon** row above; the per-server Update action refuses that host so the
+two buttons cannot race.
 
 <Callout type="warn" title="Migrations only go forward">
   A trunk build may ship a database migration. Once a canary's database has been migrated by a
@@ -148,9 +164,7 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-The pin is written to `daemon.env`, so a later console-driven update honours it; a plain channel
-install clears it. Builds older than the newest 20 are pruned, and a pinned host whose build was
-pruned falls back to the channel on its next install.
+The pin is written to `daemon.env` as the **daemon** pin (`TURBOPANEL_MANIFEST_URL`), so a later console-driven daemon update honours it. The control plane has its own pin (`TURBOPANEL_INSTANCE_MANIFEST_URL`). Setting one leaves the other following the channel. A plain channel install clears the daemon pin. Builds older than the newest 20 are pruned, and a pinned host whose build was pruned falls back to the channel on its next install.
 
 ## How the canary builds are produced
 

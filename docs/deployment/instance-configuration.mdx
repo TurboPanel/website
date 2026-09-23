@@ -46,14 +46,22 @@ Three behaviours matter more than any single value:
 
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
-| `TURBOPANEL_PUBLIC_URLS` | derived | Comma-separated origins this instance answers on; seeds certificate SANs and the install command daemons are shown. Managed installs write it from the converge's `turbopanel_public_urls` (Admin → Public URLs); unset, the instance derives an origin from the host's interfaces. |
+| `TURBOPANEL_PUBLIC_URLS` | derived | Flat projection of the `platform-ca` hostnames. Seeds those SANs and the install-command host. **Admin → Access → Hostnames** is the editor; this variable stays in sync so older readers keep working. Unset, the instance derives an origin from the host's interfaces. |
 | `TURBOPANEL_BASE_URL` | derived from the request | The origin used in outbound links (verification and invitation emails, offline-sweep notices). Unset, it is resolved per request; behind a Unix socket the instance guards against the literal `null` origin. |
-| `TURBOPANEL_TLS_PUBLIC` | unset | `1` / `true` when the leaf certificate is publicly trusted (Let's Encrypt or an uploaded public cert): the daemon CA route `GET /api/daemon/v1/instance/ca` then 404s and install commands omit `--insecure-tls`. |
-| `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
-| `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the self-signed server leaf is written. |
-| `CADDY_PORT` | `8443` | The HTTPS listen port Caddy binds (`lets_encrypt` mode binds 443). Read by the instance to build install origins. |
-| `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | The leaf Caddy serves; the Caddy unit sets them from `TURBOPANEL_TLS_CERTS_DIR`. |
+| `TURBOPANEL_TLS_PUBLIC` | unset | `1` / `true` when a leaf is publicly trusted (any Let's Encrypt hostname, or an uploaded public cert): the daemon CA route `GET /api/daemon/v1/instance/ca` then 404s and install commands omit `--insecure-tls`. `:8443` still presents the Platform CA. |
+| `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The Platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
+| `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the Platform CA leaf (`platform-ca.*`, with `self-signed.*` linked to it) and uploaded pairs are written. |
+| `CADDY_PORT` | `8443` | The Platform CA recovery listener. Always bound. A Let's Encrypt or uploaded hostname is an extra site on port 443. |
+| `CADDY_HTTP_PORT` | `8880` | On a managed host, the HTTP-01 solver. Other paths redirect to `:8443`. On co-located dev, the plaintext mirror (accepted only with `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`). |
+| `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | Leaf paths the **development** Caddyfile reads. A managed Caddyfile bakes `platform-ca.*` and per-hostname files at render time. |
+| `TURBOPANEL_TRUSTED_PROXY_CIDRS` | `127.0.0.0/8,::1/128` | Peers whose `CF-Connecting-IP` / `X-Forwarded-For` the instance believes. The value **replaces** the loopback default. **Admin → Access → Trusted proxies** shows the effective list and does not edit it. |
+| `TURBOPANEL_INSTANCE_ACME__CONTACT_EMAIL` | unset | Contact email for this control plane's Let's Encrypt account. |
+| `TURBOPANEL_INSTANCE_ACME__TOS_ACCEPTED` | `false` | Terms acceptance for that account. |
+| `TURBOPANEL_INSTANCE_ACME__DIRECTORY_URL` | Let's Encrypt production directory | ACME directory URL. |
+| `TURBOPANEL_INSTANCE_ACME__USE_STAGING` | `false` | `true` selects the Let's Encrypt staging directory. |
 | `TURBOPANEL_REVISION` | stamped at build | The exact source commit `/api/health` reports for AGPL Corresponding Source. A release build carries its commit already; source-mode installs set it from `git rev-parse HEAD`. |
+
+The four `TURBOPANEL_INSTANCE_ACME__*` keys are this control plane's settings. Environment wins over **Admin → Access → Certificates**, the same way other Admin settings work, and an env-sourced key is read-only there. They have no effect on an organization's **Allow Let's Encrypt certificates**, and that organization toggle has no effect on them. Hostname rows (source, uploaded certificate, last issuance error) live in the database, edited from **Admin → Access → Hostnames**, not in these variables.
 
 ## Sign-up and providers
 

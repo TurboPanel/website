@@ -1,31 +1,85 @@
 ---
 title: Hostnames and TLS
-description: Public hostnames, Let's Encrypt via hosting Caddy, and which bind scopes can obtain a certificate
+description: Control-plane hostnames and certificate sources, and tenant hosting TLS on each managed server
 ---
 
 # Hostnames and TLS
 
-Hosting Caddy on each managed server listens on **:80** and **:443**. A hostname
-you pin to a service can use an uploaded or self-signed library certificate,
-Caddy `tls internal`, or a **Let's Encrypt** library row that Caddy issues and
-renews on the host (`tlsMode: acme`).
+Two hostname stories live side by side. The **control plane** publishes the names people and daemons use to reach the panel. **Tenant hosting** publishes the names of the sites you deploy. Each has its own certificate source, its own Let's Encrypt settings, and its own Caddy process.
 
-## Let's Encrypt (managed by Caddy)
+## Control plane
 
-A Let's Encrypt certificate in the organization TLS library is **intent only**
-until Caddy obtains the leaf. HTTP-01 is the only challenge. That requires:
+Self-hosted Caddy always listens on **:8443**. That listener serves the **Platform CA** leaf (`platform-ca.crt`). It stays bound when every published name uses another source, and when the operator has configured no Platform CA name at all. `https://<host>:8443` is the recovery address: the install wizard, a browser that still trusts the Platform CA, and a daemon that fetched `GET /api/daemon/v1/instance/ca` can all reach the panel there.
 
-- The hostname **resolves to the serving host** (the daemon that will run the
-  site).
+Each name in **Admin → Access → Hostnames** has its own certificate source:
+
+| Source | What answers the name | Where the material lives |
+| --- | --- | --- |
+| `platform-ca` | The `:8443` leaf. The name is a SAN on that leaf. | `platform-ca.crt` / `platform-ca.key` under the instance certs directory |
+| `uploaded` | That hostname on **:443**. Hosting Caddy presents the pair when it is installed; otherwise control-plane Caddy does. | `uploaded-<certificate id>.crt` / `.key` (a legacy pair with no id is `uploaded.crt` / `uploaded.key`) |
+| `lets-encrypt` | That hostname on **:443**, after the certificate exists. On a combined host, hosting Caddy presents a copy and control-plane Caddy obtains it on loopback **:8444**. | This unit's ACME storage (`XDG_DATA_HOME` under the control-plane Caddy state dir). The public copy is `<state>/caddy/public-edge`. Hosting Caddy's own store is a different directory. |
+
+`platform-ca` is the source a new name starts on. **Save & Apply** regenerates the Platform CA leaf for the Platform CA names and reloads Caddy. The browser is talking through that reload, so the request often ends in a gateway error while the apply succeeded. The console waits for the panel to answer again.
+
+A publicly trusted leaf (any `lets-encrypt` name, or `TURBOPANEL_TLS_PUBLIC`) makes `GET /api/daemon/v1/instance/ca` answer **404**. Daemons then use the system trust store, and install commands omit `--insecure-tls`. The Platform CA is still minted. `:8443` still presents it.
+
+TurboPanel High Availability terminates TLS at the edge. Hostname apply is a self-hosted action.
+
+### Why Let's Encrypt needs port 80
+
+The panel keeps serving on **:8443**. Let's Encrypt's HTTP-01 check does not look there. The validator connects to **port 80** of the public hostname and requests `/.well-known/acme-challenge/…`.
+
+Control-plane Caddy pins its ACME solver to **:8880** (`http_port`). Port 80 stays free for tenant hosting Caddy on a host that runs both. On **:8880**, the challenge path is the solver. Every other path redirects to `https://{host}:8443`.
+
+So a Let's Encrypt name needs three listeners, with different jobs:
+
+| Port | Who binds it | Job |
+| --- | --- | --- |
+| **8443** | Control-plane Caddy, always | Platform CA recovery address |
+| **8880** | Control-plane Caddy, always | HTTP-01 solver. Other paths redirect to `:8443` |
+| **443** | Hosting Caddy when that unit is installed; otherwise control-plane Caddy | The certificate the public name presents |
+| **80** | Whoever owns the public edge | Delivers the validator's request to the solver on `:8880` |
+
+A `lets-encrypt` hostname is managed-install only. The co-located development Caddyfile has no per-hostname sites, so a development host refuses that source.
+
+### Three ways the challenge reaches the solver
+
+Port 80 has to arrive at `:8880`. Which process accepts port 80 depends on the host:
+
+1. **Solver only.** `:8880` is always the answer address. `/.well-known/acme-challenge/*` is served there. This port is not the panel. Publishing `:8880` on the internet does not replace the port-80 check — Let's Encrypt dials port 80.
+2. **Hosting Caddy on the same host.** Hosting Caddy owns `:80` and `:443` for tenant sites and for these control-plane names. The daemon writes the reserved site `00-instance-acme-http01.caddy`. For each control-plane Let's Encrypt hostname it matches `http://<host>` and reverse-proxies only the challenge path to `127.0.0.1:8880`. After the certificate exists, the same file answers `:443` and reverse-proxies to control-plane Caddy on loopback `:8444`. An uploaded name is answered on `:443` from the uploaded pair and reverse-proxied to `:8443`. Tenant teardown does not delete that file. When no control-plane name is `lets-encrypt` or `uploaded`, the file is removed.
+3. **An edge in front, and no hosting Caddy yet.** Nothing on the host owns port 80, so the daemon's forward is a no-op. A firewall redirect, a tunnel, or another proxy has to send public port 80 to `:8880`. Issuance waits until that forward exists, or until hosting Caddy is installed and takes shape 2. With hosting Caddy absent, control-plane Caddy binds `:443` for the name.
+
+On a combined host, control-plane Caddy does not bind **:443**. Hosting Caddy
+does, including for the panel's uploaded and Let's Encrypt names. `:8443`
+stays up either way.
+
+### Wildcards are an uploaded certificate
+
+A name starting with `*.` covers one label (`*.example.com` covers `www.example.com`). Let's Encrypt can issue that name only with a DNS-01 challenge. The Caddy binary TurboPanel installs is the stock release build. It speaks HTTP-01. DNS-01 needs a DNS-provider module that build does not include, so a wildcard on this control plane is an uploaded pair. Let's Encrypt is also refused for a loopback or private hostname.
+
+Attach only hostnames the uploaded pair already covers. Detaching a name and saving leaves that name on the Platform CA leaf.
+
+### Separate from every organization
+
+Instance Let's Encrypt and an organization's Let's Encrypt opt-in are different settings, in both directions.
+
+- **Admin → Access → Certificates** stores the control plane's contact email, terms acceptance, directory URL, and staging flag (`INSTANCE_ACME_SETTINGS`). Those apply to the control plane's own hostnames.
+- **Servers → TLS → Allow Let's Encrypt certificates** is one organization's opt-in. It applies to that organization's hosting certificates.
+
+Saving one leaves the other unchanged. Issuing a certificate for a control-plane hostname does not issue a tenant certificate, and an organization's opt-in does not obtain a certificate for the panel. The two Caddy processes keep separate ACME storage. See [Organization CA](/docs/security/organization-ca).
+
+## Tenant hosting
+
+Hosting Caddy on each managed server listens on **:80** and **:443**. A hostname you pin to a service can use an uploaded or self-signed library certificate, Caddy `tls internal`, or a **Let's Encrypt** library row that Caddy issues and renews on the host (`tlsMode: acme`).
+
+That row is intent until the organization's opt-in is on and Caddy obtains the leaf. HTTP-01 is the only challenge. That requires:
+
+- The hostname **resolves to the serving host** (the daemon that will run the site).
 - **:80** and **:443** are reachable from the internet on that host.
-- **No wildcard names** (`*.example.com`). Request each hostname explicitly.
-- The hosting bind scope must be **public**. `local` and `datacenter` binds
-  cannot receive HTTP-01 traffic; deploy-prepare refuses those pins with
-  `acme_requires_public_bind`.
+- **No wildcard names** (`*.example.com`). Request each hostname explicitly. The same stock Caddy binary is why DNS-01 is refused (`dns_01_unsupported`).
+- The hosting bind scope must be **public**. `local` and `datacenter` binds cannot receive HTTP-01 traffic; deploy-prepare refuses those pins with `acme_requires_public_bind`.
 
-Caddy writes and renews the certificate on the host. TurboPanel does not run
-its own ACME client. Wildcards and DNS-01 are rejected when the library row is
-created.
+Caddy writes and renews the certificate on the host. TurboPanel does not run its own ACME client. The organization's opt-in is the gate (`lets_encrypt_not_enabled` until it is on, `acme_requires_org_opt_in` if a deploy still pins a Let's Encrypt row after the opt-in is turned off). Certificates already on the host stay there.
 
-See also [Organization CA](/docs/security/organization-ca) — hosting leaves are
-never issued by the Organization CA.
+Hosting leaves are never issued by the Organization CA. The control plane's Platform CA does not sign them either.
