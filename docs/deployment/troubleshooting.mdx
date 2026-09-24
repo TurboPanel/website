@@ -122,6 +122,33 @@ sudo systemctl restart turbopaneld
 
 Or reconcile by re-running `run.sh` — see [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
+## Stuck or failed platform upgrades
+
+**Problem:** **Admin → Updates** stays on **Updating…** or **Needs attention**, or a server row is `needs_attention`.
+
+**What the statuses mean:**
+
+| Status | What to do |
+| --- | --- |
+| `waiting` | The daemon is offline. It is dispatched when it reconnects. |
+| `failed` / `rolled_back` | The step ended. A rolled-back step is retried once; after that it becomes `needs_attention`. |
+| `needs_attention` | Retries are exhausted (3 dispatches with no progress for 15 minutes, or a rollback that was already retried). **Retry** on that row, or fix the host and retry. |
+| Run `failed` | The control-plane step failed. The fleet stays gated until a new run gets this host's daemon and the control plane onto the target. |
+
+Pre-flight codes (`preflight_disk`, `preflight_manifest`, `preflight_trust`, `preflight_backup`, `preflight_in_progress`) are explained on [Refresh a stuck daemon](/docs/deployment/daemon-update#pre-flight-errors). A control-plane health failure that restored the previous build reports `health_timeout`, `health_mismatch`, or `restart_failed`. `recovery_required` means that automatic restore did not bring the panel back.
+
+**Restore from the automatic backup.** On the control-plane host, as root, use the recovery command from the pre-flight sheet (the upgrade id is in the path):
+
+```bash
+sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i localhost, -c local \
+  -e turbopanel_upgrade_id=<upgrade id> \
+  instance-rollback.yml
+```
+
+The dump, the `/etc/turbopanel` tarball, and `meta.json` are under `/backup/control-plane/<upgrade id>/` (`TURBOPANEL_BACKUP_DIR` when that is set). The playbook restores the `.prev` builds and restores the database only when the migration fingerprint changed. The newest three attempts are kept.
+
+If the co-located daemon is too old to take that backup (`managed-upgrade-v1` missing), update only the daemon with a pinned manifest — [Upgrade and rollback](/docs/deployment/upgrade). That command does not install the control plane.
+
 ## Ansible / upgrade failures
 
 **Problem:** daemon orchestration fails (or, on a contributor dev host only, the console's **Upgrade System** action — managed installs have no such button; they re-run the installer).
@@ -212,4 +239,5 @@ It refuses to run outside a development guest, bounds every wait, and exits non-
 - [Security](/docs/deployment/security) — TLS and authentication
 - [Control plane](/docs/deployment/control-plane) — Service layout
 - [Daemon setup](/docs/deployment/daemon-setup) — Node installer
+- [Upgrade and rollback](/docs/deployment/upgrade) — managed order, backups, recovery command
 - [Dev console troubleshooting](/docs/getting-started/console-troubleshooting) — Local dev issues

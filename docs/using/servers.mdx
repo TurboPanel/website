@@ -54,7 +54,7 @@ Two rules:
 
 **Servers** shows every server the organization holds, in **Detail** or **Summary** layout: online / offline / initializing, hostname, class, cores and RAM, the daemon build, and whether an update is available. The Overview tiles (**Servers · Cores · RAM**) total the fleet.
 
-**Batch update:** select servers with updates available and **Update (n)**. Each runs the same update the control panel offers; a co-located server is skipped (it updates with the control plane).
+**Batch update:** on TurboPanel High Availability the fleet rolls out from **Admin → Updates**, and per-server **Update** stays hidden (`updates_managed`). On self-hosted, **Update (n)** is refused with `control_plane_upgrade_required` until **Admin → Updates** has this host's daemon and the control plane on the target build. After that gate opens, selected servers with an update available can move together; the co-located server is not in that list.
 
 ## The control panel
 
@@ -72,7 +72,7 @@ Open a server for five tabs: **Overview · Control · Time · Network · Metrics
 
 - **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. *Not provisioned* means no hosting has been deployed to this server yet.
 - **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the panel shows each command's outcome and log.
-- **Daemon update** — when a newer build is published, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. Co-located hosts say so and are updated with the control plane.
+- **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
 - **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. The co-located server cannot be deleted.
@@ -124,6 +124,8 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 | `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own console. |
 | `Co-located hosts are updated via local git, not remote updates` | 403 | Update the control plane instead. |
+| `control_plane_upgrade_required` | 409 | Self-hosted: the fleet gate is shut. The badge reads **Waiting for the control plane upgrade**. |
+| `updates_managed` | 409 | TurboPanel High Availability: per-server **Update** is hidden. Use **Admin → Updates**. |
 | `Daemon not connected`, `Up to date`, `Target unavailable` | 404 (update) | The daemon must be online to update; there is no newer build; or the release manifest could not be read. Other commands queue and wait. |
 | `Server is not enrolled` | 409 | The row has no daemon key yet — the install command has not run. |
 | `Invalid hostname`, `Invalid sshPort`, `Invalid ntp`, `Invalid timezone`, `Invalid machineClass` | 400 | The value did not validate. |

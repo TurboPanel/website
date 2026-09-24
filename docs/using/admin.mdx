@@ -77,7 +77,41 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 
 ## Updates
 
-**Admin → Updates.** Two rows, **Control plane** and **Daemon**. Each shows the installed version and the channel target, and each has its own **Upgrade**. Updating one leaves the other on the build it already has. `canary`, `rc`, and `release` publish a control-plane package. `trunk` does not, so that row's Upgrade stays disabled. The control-plane install restarts the panel; the page polls until the installed version matches. See [Upgrade and rollback](/docs/deployment/upgrade).
+**Admin → Updates** (`/admin/updates`). One platform upgrade for this instance. The run installs a pinned build: the manifest and commit resolved when the run started, so a channel that moves mid-rollout does not change a later batch.
+
+<Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
+  <Tab value="Self-hosted">
+    Order is fixed. **Co-located daemon** (this host), then **Control plane** (the panel and the web export on that host), then every other server. The fleet table stays waiting until both earlier steps are on the target build. A `trunk` channel has no control-plane package, so that step is skipped and only this host's daemon has to be on target first.
+
+    The status line is **TurboPanel is up to date**, **Update available**, **Updating…**, or **Needs attention**.
+
+    <Steps>
+      <Step>
+        **Update TurboPanel** opens **Ready to update TurboPanel?**. Read the checks. The sheet says the control-plane database is backed up before the install. Copy the **Recovery command** (**Copy command**) before you continue.
+      </Step>
+      <Step>
+        **Start update**. **Cancel** leaves the run unstarted. A second start while one is `pending` or `running` is refused.
+      </Step>
+      <Step>
+        Watch **Progress**: Preparing → Downloading → Installing → Restarting → Verifying → Done, first for **Co-located daemon**, then **Control plane**. The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
+      </Step>
+      <Step>
+        The fleet wave lists each other server. **Retry** on a row that failed or needs attention. A failed row does not hold the next batch.
+      </Step>
+    </Steps>
+
+    **Automatic updates.** **Auto-update fleet** is off until you turn it on. Automatic runs start only when a newer build is published, no run is active, and — when **Maintenance window** is on — only inside that UTC window. **Batch size** is **Percent** (default 100) or **Count**, then **Apply**.
+
+    The first upgrade onto this release needs a co-located daemon that can take the backup. If pre-flight says it cannot, re-run the installer once, then come back here. See [Upgrade and rollback](/docs/deployment/upgrade).
+  </Tab>
+  <Tab value="TurboPanel High Availability">
+    The control plane is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update fleet** toggle. Connected daemons roll out in batches on their own.
+
+    **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** is still **Percent** or **Count**, then **Apply**. **Maintenance window** limits when an automatic wave may start. **Retry** is on a row that needs it.
+
+    Per-server **Update** on a server's control panel stays hidden. The organization route answers `updates_managed`.
+  </Tab>
+</Tabs>
 
 ## Email
 
@@ -150,6 +184,11 @@ The interactive reference is at `/api/admin/v1/reference`.
 | Public URL entry | scheme + host + optional port; scheme-less entries expand to port 8443 in install commands. Each hostname has a source: Platform CA, uploaded, or Let's Encrypt. |
 | Live metrics session | 0 (off) or 5–240 minutes |
 | Sign-up override | `TURBOPANEL_IS_SIGNUP_ENABLED` locks the toggle |
+| Upgrade order (self-hosted) | co-located daemon → control plane → other servers; fleet waits until the first two are on target |
+| Upgrade batch | Percent 1–100 (default 100) or Count 1–10000 |
+| Upgrade run statuses | `pending` · `running` · `succeeded` · `partially_failed` · `failed` · `cancelled` |
+| Upgrade step statuses | `pending` · `waiting` · `dispatched` · `preparing` · `downloading` · `installing` · `restarting` · `verifying` · `done` · `failed` · `rolled_back` · `needs_attention` · `skipped` |
+| Successful step retention | `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS`, default 14 days; failed steps 90 days; runs 365 days (newest 50 kept) |
 
 ## Errors
 
@@ -168,6 +207,21 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `Encryption unavailable — no encryption key configured` | 503 | The instance has no root secret, so nothing can be sealed. |
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
+| `control_plane_upgrade_required` | 409 | Self-hosted `POST /servers/:id/update` and `POST /servers/updates` while the fleet gate is shut. The server badge reads **Waiting for the control plane upgrade**. Finish **Admin → Updates** first. |
+| `updates_managed` | 409 | The same routes on TurboPanel High Availability. Per-server **Update** stays hidden; the rollout is **Admin → Updates**. |
+| `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
+| `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
+| `preflight_trust` | step error | Automatic-update TLS is not public trust and not the Platform CA. |
+| `preflight_backup` | step error | `turbopanel-database` is not running, so the control-plane dump was not taken. |
+| `preflight_in_progress` | step error | Another install is already running on that host. |
+| `health_timeout` · `health_mismatch` · `restart_failed` | step error | The new control plane did not pass `GET /api/health`. The previous generation was restored (`rolled_back`). |
+| `recovery_required` | step error | Automatic rollback did not restore the control plane. Use the **Recovery command**. |
+| `step_timeout` | step error | No progress for 15 minutes. After 3 dispatches the step is `needs_attention`. |
+| `rolled_back` | step error | The host restored its previous build. One automatic retry, then `needs_attention`. |
+| `control-plane update is not applicable on this runtime` | 422 | The legacy `POST /instance/updates/instance` on TurboPanel High Availability. The control plane is deploy-managed. |
+| `This control plane follows <channel>, which has no control-plane package…` | 422 | `trunk` (and `edge`) have no control-plane package. Use `canary`, `rc`, or `release`. |
+| `no co-located daemon connected to update the control plane` | 503 | The legacy instance or daemon upgrade route needs this host's daemon connected. |
+| `co-located daemon disconnected` | 503 | The daemon dropped while that legacy route was dispatching. |
 
 ## Related
 
@@ -175,3 +229,5 @@ The interactive reference is at `/api/admin/v1/reference`.
 - [First-run tier catalogue](/docs/deployment/tier-catalogue) — the products to create before binding tiers.
 - [Security](/docs/deployment/security) — secret rotation and the egress boundary.
 - [Organizations, teams and access](/docs/using/access) — organization-level roles.
+- [Upgrade and rollback](/docs/deployment/upgrade) — backups, the recovery command, and the first installer re-run.
+- [Deployment troubleshooting](/docs/deployment/troubleshooting) — `needs_attention` and restoring a backup.

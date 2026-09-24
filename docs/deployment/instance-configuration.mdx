@@ -84,6 +84,7 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 | `TURBOPANEL_ARGON2ID_MEMORY_KIB`, `TURBOPANEL_ARGON2ID_TIME_COST` | built-in | Password-hash work factor; the hasher is verified available at boot. |
 | `TURBOPANEL_UI_CORS_ORIGINS` | unset | Extra browser origins (a docs site, a Metro dev server) allowed read-only cross-origin API access. *Workers too.* |
 | `TURBOPANEL_DAEMON_DEBUG` | unset | `1` / `true` turns on debug logging. |
+| `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | `14` | How long a finished successful upgrade step (`done` or `skipped`) is kept. Blank, non-integer, or out of range (not 1–3650) falls back to 14. Failed steps (`failed`, `rolled_back`, `needs_attention`) stay 90 days. Terminal upgrade runs stay 365 days, and the newest 50 are kept past that. *High Availability too.* |
 
 ## Development only
 

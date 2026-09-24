@@ -25,7 +25,7 @@ manifest names each asset with its `sha256` and size, and every download is veri
 | Channel | What it is | Where it resolves | Moves when |
 | --- | --- | --- | --- |
 | `canary` | The newest green build of `trunk` | `releases/download/canary/manifest.json` — one rolling pre-release tagged `canary` | Every merge to `trunk` that passes CI |
-| `rc` | A release candidate cut from a tag | `releases/download/rc/manifest.json` — a rolling pointer at the current `vX.Y.Z-rc.N` pre-release | A release candidate is cut |
+| `rc` | The current release candidate | `releases/download/rc/manifest.json` — the pointer at the newest versioned candidate (`0.1.0-rc1`, `0.1.0-rc2`, …) | A new `rcN` is cut |
 | `release` | The promoted release | `releases/latest/download/manifest.json` — GitHub's own *latest* pointer | A release candidate is promoted |
 
 TurboPanel High Availability (the hosted, Cloudflare Workers build of the same code) has the
@@ -112,23 +112,18 @@ curl -fsSL turbopanel.sh | \
 
 ## How a canary moves
 
-The control plane and the co-located daemon are two units. Each follows the
-instance's channel, each has its own manifest, and each moves on its own.
-Updating one leaves the other on the build it already has.
+A build soaks in order. The hosted environments and the package channels are the same ladder:
 
-**Admin → Updates** on the canary panel is the path. The page has two rows:
-
-| Row | What Upgrade installs | What stays up |
+| Environment | Channel | What lands |
 | --- | --- | --- |
-| **Control plane** | The instance package and the static UI export, via `run.sh --instance` | The daemon. The panel restarts, so the browser request often ends in a gateway error while the install proceeds. The page polls until the installed version matches the target. |
-| **Daemon** | The daemon package for this host | The control plane |
+| **testing** (`testing.turbopanel.dev`) | `canary` | The newest green build of `trunk`, on every merge that passes CI |
+| **staging** (`staging.turbopanel.dev`) | `rc` | A versioned release candidate: `rc1`, then `rc2`, and so on (`0.1.0-rc1`, `0.1.0-rc2`, …). The `rc` manifest pointer moves to the newest of those |
+| **live** | `release` | The candidate that was promoted. The bytes that soaked on staging are the bytes live serves |
 
-`canary`, `rc`, and `release` publish a control-plane package. `trunk` does
-not, so that row's Upgrade stays disabled and names the channel. A canary
-install is already on `canary`, so both rows can move.
-
-The same installer command still works, and it moves **both** packages in one
-run:
+A self-hosted canary follows the first row. **Admin → Updates** installs that
+channel in the managed order — this host's daemon, then the control plane, then
+other servers — and pins the manifest it resolved when the run started. The
+installer still moves this host in one shot:
 
 ```bash
 curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
@@ -136,14 +131,8 @@ curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 
 It fetches the current canary packages, re-converges the host, applies any new
 migrations with the instance binary's own `migrate` verb, and restarts the
-units — the same procedure as an [upgrade](/docs/deployment/upgrade). A unit
-you do not upgrade simply stays on the build it has.
-
-Daemons on other servers still update from the server page, or on their own
-when the channel manifest's commit differs from the build they are running.
-That path is the daemon package only. The control-plane host's daemon is the
-**Daemon** row above; the per-server Update action refuses that host so the
-two buttons cannot race.
+units. The same command with `rc` or `release` follows the later rows. Detail:
+[Upgrade and rollback](/docs/deployment/upgrade).
 
 <Callout type="warn" title="Migrations only go forward">
   A trunk build may ship a database migration. Once a canary's database has been migrated by a
@@ -204,9 +193,11 @@ carries the build id:
 The number is bumped to the *next* patch immediately after each release is tagged, so a canary
 always sorts **below** the release it leads to (`0.1.1-canary.*` < `0.1.1`) and the tag ↔
 version gate in each release workflow is already satisfied when that release is cut. The
-version a canary reports on the wire — `/api/health`, the daemon hello — is the bare number
+version a canary reports on the wire — `/api/health` `version`, the daemon hello — is the bare number
 (`0.1.1`); the suffix lives in the manifest, the asset names and the release notes, and daemons
-decide whether to update by the manifest's commit, not its version string.
+decide whether to update by the manifest's commit, not its version string. The console reload
+check compares `revision.commit` (the `x-turbopanel-revision` header) the same way, so two canary
+builds that both advertise `0.1.1` still ask for a reload. Semantic version stays the compatibility floor.
 
 ## Related
 

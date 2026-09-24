@@ -57,6 +57,31 @@ The installer:
 4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
 
+A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by **Update TurboPanel**.
+
+## Update guard
+
+A daemon self-update arms `/run/turbopanel/update-guard.json` with the target commit and a deadline, and starts `turbopaneld-update-guard.timer` (about 10 minutes, one shot per attempt). `turbopaneld.service` also starts that unit from `OnFailure=` if the new build crash-loops. The guard runs as root. It restores:
+
+- `/opt/turbopanel/bin/turbopaneld.prev`
+- `/opt/turbopanel/bin/turbopaneld.js.prev` on hosts that run the JS runtime
+- `/opt/turbopanel/share/orchestration.prev`
+
+It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. The restored build reports `rolled-back`. A new build that attaches successfully disarms the guard. A control-plane update is a different path: it keeps `bin/turbopanel.prev`, `lib/libduckdb.so.prev`, and `share/ui.prev`, and rolls those back when `GET /api/health` does not match the pinned manifest. See [Upgrade and rollback](/docs/deployment/upgrade).
+
+## Pre-flight errors
+
+The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the panel is driving the run):
+
+| Code | Meaning |
+| --- | --- |
+| `preflight_in_progress` | An install is already running on this host. The rejected attempt does not replace the one in progress. |
+| `preflight_disk` | Free space is below the minimum: 512 MiB on the install root, 128 MiB on the state directory, and 256 MiB on the temp directory (1 GiB on the install root and 1 GiB on the backup directory for a control-plane install). A failed measurement is the same code. |
+| `preflight_manifest` | The manifest could not be fetched or verified, the signature or schema failed, or `targetCommit` does not match the signed commit. |
+| `preflight_trust` | Automatic-update TLS is not public trust and not the configured Platform CA. Re-run the installer with `--instance-ca` to repair trust. The daemon does not disable verification for an automatic update. |
+
+A control-plane install adds `preflight_backup` when `turbopanel-database` is not running. After the swap, `health_timeout`, `health_mismatch`, and `restart_failed` mean the previous generation was restored; `recovery_required` means that restore did not bring the control plane back. The recovery command is on [Upgrade and rollback](/docs/deployment/upgrade#recovery-command).
+
 <Callout type="warning" title="Run as root">
   Pipe the installer to `sh` as **root** (`su -` or `sudo sh`). A non-root pipe will hang or fail when provisioning needs elevated privileges.
 </Callout>

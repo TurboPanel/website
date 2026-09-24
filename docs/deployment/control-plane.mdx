@@ -226,7 +226,8 @@ The complete list of what a self-hosted instance reads at boot — required, def
 | `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s for a hostname that presents a Let's Encrypt or uploaded leaf |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Forces sign-up open (`1`) or closed (`0`), overriding the admin setting — both runtimes |
 | `TURBOPANEL_REDIS_SOCKET` / `TURBOPANEL_AMQP_URL` | Redis socket (required, opened lazily) and the RabbitMQ URL for the email queue (unset → probe, then a silent no-op queue) |
-| `TURBOPANEL_UPDATE_CHANNEL` | The channel this instance resolves daemon updates on (`trunk` default; `rc`, `release`) |
+| `TURBOPANEL_UPDATE_CHANNEL` | The channel this instance resolves daemon, control-plane, and UI updates on (`trunk` default; `canary`, `rc`, `release`) |
+| `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | How long a successful upgrade step is kept (default 14). Failed steps stay 90 days; runs stay 365 days, newest 50 kept. See [Instance configuration](/docs/deployment/instance-configuration) |
 | `TURBOPANEL_AUTH_PROVIDERS__*` | GitHub / Google OAuth client id + secret (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Env wins over the `SYSTEM_AUTH_PROVIDERS` setting row. On TurboPanel High Availability these are Wrangler secrets. |
 
 Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout. Provider setup (Admin → Auth providers, env-wins, and linking rules): [Accounts and access](/docs/getting-started/accounts-and-access).
@@ -245,7 +246,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 Per-hostname sources need a co-located daemon that can render them (`instance-cert-sources-per-hostname`, daemon **0.1.1** or newer). Older daemons keep the rows visible and leave the sources disabled until that daemon is updated.
 
-**Admin → Updates** is the two-unit upgrade for this host. The control plane and the co-located daemon each show an installed version and a channel target, and each has its own Upgrade. They do not share a manifest pin. Detail: [Upgrade and rollback](/docs/deployment/upgrade).
+**Admin → Updates** is the managed platform upgrade. On self-hosted it runs this host's daemon, then the control plane, then the other servers, and the fleet waits until the first two are on target. On TurboPanel High Availability the control plane line is **Managed by TurboPanel** and only daemons roll out. Detail: [Upgrade and rollback](/docs/deployment/upgrade).
 
 ### API entrypoints
 
