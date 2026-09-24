@@ -1,0 +1,79 @@
+---
+title: "Upgrades"
+description: "Data dictionary — upgrades tables: upgrade, upgradestep"
+---
+
+{/*
+  GENERATED FILE — do not edit by hand.
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0007_snapshot.json (0007_add_upgrade_tables).
+  Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
+*/}
+
+# Upgrades
+
+Instance-wide upgrade runs and the per-server daemon and instance steps that belong to them.
+
+Tables on this page: [`upgrade`](#upgrade) · [`upgradestep`](#upgradestep). Generated from migration `0007_add_upgrade_tables`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+
+## `upgrade` [#upgrade]
+
+One instance-wide upgrade run, written by the upgrade orchestrator, with at most one `pending` or `running` row.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `target` | `jsonb` | yes |  | Pins for `daemon`, `instance` and `ui`: version, commit, build id, built-at time and pinned manifest URL; NULL until resolved. |
+| `preflight` | `jsonb` | yes |  | Checks recorded before the first dispatch: blockers, version floors and which units this run will touch. |
+| `source` | `text` | no |  | Who started the run: `manual` from the panel, `auto` from the scheduler, or `server` for a single-host request. |
+| `channel` | `text` | no |  | Update channel the run follows (`trunk`, `canary`, `rc` or `release`), copied from the instance when the run is created. |
+| `status` | `text` | no | `'pending'` | Lifecycle `pending`, `running`, `succeeded`, `partially_failed`, `failed` or `cancelled`; the orchestrator advances it. |
+| `phase` | `text` | yes |  | Current wave `colocated_daemon`, `control_plane` or `fleet`; NULL until the orchestrator enters the first wave. |
+| `started_by` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User who started a manual run; NULL for an automatic run and after that account is deleted. |
+| `batch_policy` | `jsonb` | yes |  | Snapshot of upgrade settings (auto-update, batch size and maintenance window) taken when the run starts. |
+| `counts` | `jsonb` | yes |  | Terminal step totals written when the run finishes, so the summary remains after old steps are pruned. |
+| `error` | `text` | yes |  | Run-level failure text when the status is `failed` or `partially_failed`; NULL on success. |
+| `started_at` | `timestamp(3) with time zone` | yes |  | When the orchestrator moved the run from `pending` to `running`. |
+| `finished_at` | `timestamp(3) with time zone` | yes |  | When the run reached a terminal status. |
+
+**Constraints and indexes**
+
+- Unique index `uniq_upgrade_active`: (`(true)`) where `"upgrade"."status" IN ('pending', 'running')`
+- Check `upgrade_source_check`: `source IN ('manual', 'auto', 'server')`
+- Check `upgrade_status_check`: `status IN ('pending', 'running', 'succeeded', 'partially_failed', 'failed', 'cancelled')`
+- Check `upgrade_phase_check`: `phase IS NULL OR phase IN ('colocated_daemon', 'control_plane', 'fleet')`
+
+## `upgradestep` [#upgradestep]
+
+One `daemon` or `instance` install on one server inside an upgrade run, advanced by the orchestrator until a terminal outcome.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `upgrade_id` | `uuid` | no |  | FK → [`upgrade`](/docs/database/upgrades#upgrade).`id` (on delete cascade). |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `unit` | `text` | no |  | `daemon` or `instance`: the package this step installs on its server. |
+| `batch_index` | `integer` | no | `0` | Zero-based wave index within the run; steps that share an index are dispatched together. |
+| `status` | `text` | no | `'pending'` | `pending`/`waiting`/`dispatched`/`preparing`/`downloading`/`installing`/`restarting`/`verifying`/`done`/`failed`/`rolled_back`/`needs_attention`/`skipped`. |
+| `request_id` | `text` | yes |  | Cell correlation id for the in-flight install; NULL until the step is dispatched. |
+| `attempts` | `integer` | no | `0` | Dispatch count for this step, starting at 0 and incremented before each retry. |
+| `next_attempt_at` | `timestamp(3) with time zone` | yes |  | Earliest time a non-terminal step may be retried; NULL when no retry is scheduled. |
+| `from_version` | `text` | yes |  | Version installed before this step ran; NULL when the host had none. |
+| `to_version` | `text` | yes |  | Version this step installs, copied from the run target for `unit`. |
+| `from_commit` | `text` | yes |  | Commit installed before this step ran; NULL when it was unknown. |
+| `to_commit` | `text` | yes |  | Commit this step installs, copied from the run target for `unit`. |
+| `last_stage_at` | `timestamp(3) with time zone` | yes |  | When `status` last changed, so a step stuck in one stage can be detected. |
+| `error_code` | `text` | yes |  | Machine-readable code when the step fails, rolls back or needs attention. |
+| `error_message` | `text` | yes |  | Human-readable failure text set alongside `error_code`. |
+| `detail` | `jsonb` | yes |  | Small stage facts such as bytes fetched or an exit code; the orchestrator writes it, never a transcript. |
+
+**Constraints and indexes**
+
+- Index `idx_upgradestep_upgrade_status`: (`upgrade_id`, `status`)
+- Index `idx_upgradestep_server_created`: (`server_id`, `created_at`)
+- Index `idx_upgradestep_active_next_attempt`: (`status`, `next_attempt_at`) where `"upgradestep"."status" IN ('pending', 'waiting', 'dispatched', 'preparing', 'downloading', 'installing', 'restarting', 'verifying')`
+- Check `upgradestep_unit_check`: `unit IN ('daemon', 'instance')`
+- Check `upgradestep_status_check`: `status IN ('pending', 'waiting', 'dispatched', 'preparing', 'downloading', 'installing', 'restarting', 'verifying', 'done', 'failed', 'rolled_back', 'needs_attention', 'skipped')`

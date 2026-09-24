@@ -5,7 +5,7 @@ description: "Data dictionary for the TurboPanel control-plane PostgreSQL schema
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0006_snapshot.json (0006_instance_hostnames).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0007_snapshot.json (0007_add_upgrade_tables).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -15,7 +15,7 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 
 | Generated from | Tables | Columns |
 | --- | --- | --- |
-| migration `0006_instance_hostnames` | 73 | 764 |
+| migration `0007_add_upgrade_tables` | 75 | 798 |
 
 ## Tables by area
 
@@ -30,6 +30,7 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 | [Managed databases](/docs/database/managed) | [`backup`](/docs/database/managed#backup), [`managed`](/docs/database/managed#managed), [`recovery`](/docs/database/managed#recovery), [`replica`](/docs/database/managed#replica) |
 | [Storage and secrets](/docs/database/storage) | [`copy`](/docs/database/storage#copy), [`mount`](/docs/database/storage#mount), [`secret`](/docs/database/storage#secret), [`storage`](/docs/database/storage#storage) |
 | [Servers, runtime and metrics](/docs/database/runtime) | [`capability`](/docs/database/runtime#capability), [`command`](/docs/database/runtime#command), [`deployment`](/docs/database/runtime#deployment), [`dispatch`](/docs/database/runtime#dispatch), [`generation`](/docs/database/runtime#generation), [`key`](/docs/database/runtime#key), [`label`](/docs/database/runtime#label), [`monitor`](/docs/database/runtime#monitor), [`server`](/docs/database/runtime#server), [`slot`](/docs/database/runtime#slot), [`task`](/docs/database/runtime#task) |
+| [Upgrades](/docs/database/upgrades) | [`upgrade`](/docs/database/upgrades#upgrade), [`upgradestep`](/docs/database/upgrades#upgradestep) |
 | [Git and SSH](/docs/database/git) | [`connection`](/docs/database/git#connection), [`delivery`](/docs/database/git#delivery), [`forge`](/docs/database/git#forge), [`repository`](/docs/database/git#repository), [`ssh`](/docs/database/git#ssh) |
 | [Notifications](/docs/database/notifications) | [`attempt`](/docs/database/notifications#attempt), [`channel`](/docs/database/notifications#channel), [`notification`](/docs/database/notifications#notification), [`rule`](/docs/database/notifications#rule) |
 
