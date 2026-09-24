@@ -139,7 +139,7 @@ describe('resolveSessionCookieNameFromBaseUrl', () => {
   })
 
   it('selects the plain cookie for http origins', () => {
-    expect(resolveSessionCookieNameFromBaseUrl('http://localhost:8880')).toBe(
+    expect(resolveSessionCookieNameFromBaseUrl('http://localhost')).toBe(
       HTTP_SESSION_COOKIE_NAME,
     )
   })

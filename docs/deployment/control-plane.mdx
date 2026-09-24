@@ -42,8 +42,7 @@ On the control plane host, a **co-located daemon** installs and updates the inst
 
 ```mermaid title="Self-hosted control plane traffic flow"
 graph TD
-    Browser --> Caddy["Caddy TLS (default :8443)"]
-    DevBrowser["Dev browser :8880 HTTP"] --> Caddy
+    Browser --> Caddy["Caddy TLS (:8443)"]
     Caddy --> Instance["Deno instance Unix socket"]
     Caddy --> UI["Expo web or static export"]
     Daemon["turbopaneld"] --> Instance
@@ -65,18 +64,27 @@ graph TD
 
 ## Control-plane listeners
 
-The Caddy site config is rendered by the daemon's `instance-launch` role into `/etc/turbopanel/caddy/Caddyfile` on every converge. It is never hand-edited. `turbopanel_tls_mode` is a display-only derivation of the hostname list (an uploaded name, otherwise a Let's Encrypt name, otherwise the Platform CA). An empty hostname list is still synthesized from the older single-name aliases so an existing converge keeps working.
+Self-hosted Caddy listens on **:8443**. Every hostname is served there, and the certificate is chosen by the name. The Platform CA is still minted, and it stays the catch-all leaf.
 
-| Listener | Always | What it serves |
-| --- | --- | --- |
-| **:8443** | yes | Platform CA leaf. Recovery address for the wizard, browsers, and daemons. Covers every `platform-ca` hostname as a SAN, and stays up when none are configured. |
-| **:8880** | yes | HTTP-01 solver for control-plane Let's Encrypt. Any other path redirects to `:8443`. |
-| **:443** | for each `uploaded` or `lets-encrypt` hostname | That name's own site. Let's Encrypt uses Caddy automatic HTTPS. An uploaded pair is `tls` with that certificate's files. |
-| **:80** | whoever owns the public edge | Let's Encrypt dials this port. It is forwarded to the solver on `:8880`. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls). |
+The Caddyfile is rendered by the daemon's `instance-launch` role into `/etc/turbopanel/caddy/Caddyfile` on every converge. Change names in Admin → **Access** → **Hostnames**, then apply. The rendered file is not hand-edited.
 
-`TURBOPANEL_TLS_PUBLIC=1` (set when any hostname is Let's Encrypt, or when `turbopanel_tls_public` is true) makes the Deno CA route 404 so daemons use the system trust store, and install commands omit `--insecure-tls` even on a non-443 port. The Platform CA is still minted, and `:8443` still presents it.
+| Source | Leaf on `:8443` | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
+| --- | --- | --- | --- |
+| **Platform CA** (default) | Platform CA leaf, also the catch-all | 200 for that name, and for an unlisted name on this listener | yes, until the Platform CA is trusted |
+| **Uploaded** | the attached pair | 404 for that name | omitted when the certificate chains to a public root |
+| **Let's Encrypt** | leaf copied after HTTP-01 | 404 for that name | no |
 
-Co-located development loads a different Caddyfile. There `:8880` is a plaintext mirror of `:8443`, gated by `TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`. That file has no per-hostname sites, so a development host refuses a Let's Encrypt hostname.
+| Port | When |
+| ---- | ---- |
+| **8443** | Always. Control plane HTTPS. |
+| **80** | Only during Let's Encrypt issuance or renewal. |
+| **443** | Hosting only. |
+
+Port 80 is opened on hosting Caddy for that window, then closed. When another process holds it, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+
+`TURBOPANEL_TLS_PUBLIC=1` is set when any hostname is Let's Encrypt, or when the operator marks TLS public. A name that presents a Let's Encrypt or uploaded leaf gets a 404 from `GET /api/daemon/v1/instance/ca`. The daemon then uses the system trust store, or the uploaded issuer for a private pair, and the install command omits `--insecure-tls` for a publicly trusted leaf. An unlisted name on `:8443` still receives the Platform CA bundle.
+
+`turbopanel_tls_mode` is a label derived from the hostname list (`self_signed`, `upload`, or `lets_encrypt`). It does not choose a different port.
 
 ## Installation paths
 
@@ -114,7 +122,7 @@ Services on a contributor dev host:
 | ---- | ---- | ---- |
 | `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopaneld` in dev) |
 | `turbopanel-instance.service` | current dev user | Deno API on Unix socket |
-| `turbopanel-caddy.service` | current dev user | TLS + reverse proxy `:8443` by default; dev-only plaintext mirror `:8880` when enabled |
+| `turbopanel-caddy.service` | current dev user | TLS + reverse proxy on `:8443` |
 | `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |
 
 See [Local development](/docs/getting-started/development). Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopanel-ui -u turbopaneld -f`
@@ -137,7 +145,7 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing panel, pass `TURBOPANEL_LICENSE` from that panel's server install command.
   </Step>
   <Step>
-    Complete the install wizard at `https://<host>:8443` (host PAM + superadmin). That address stays bound. The certificate is signed by the Platform CA at `/var/lib/turbopanel/tls/ca.crt`. A hostname you later publish as Let's Encrypt or an uploaded pair is also served on `https://<hostname>/` once that certificate is in place.
+    Complete the install wizard at `https://<host>:8443` (host PAM + superadmin). A Platform CA name is signed by the certificate at `/var/lib/turbopanel/tls/ca.crt`. A Let's Encrypt or uploaded name presents that name's own leaf on the same port.
   </Step>
   <Step>
     Enroll managed servers — including this host, once the wizard has issued a license — with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
@@ -214,12 +222,8 @@ The complete list of what a self-hosted instance reads at boot — required, def
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI export root. Production (FHS) default `/opt/turbopanel/share/ui` (where the daemon `ui-build` role publishes the export); co-located dev overrides it to a checkout-relative path such as `../ui/dist` |
-| `CADDY_PORT` | Platform CA recovery listener (default **8443**). A Let's Encrypt or uploaded hostname is an additional site on **443**. |
-| `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s and install commands omit `--insecure-tls`. Set when any hostname is Let's Encrypt. |
-| `CADDY_HTTP_PORT` | Solver / redirect listener on a managed host (default **8880**). On co-located dev this same port is the plaintext mirror. |
-| `TURBOPANEL_DEV_HTTP_CONTROL_PLANE` | Must be `"1"` before the instance accepts the dev plaintext mirror on `CADDY_HTTP_PORT`; injected automatically on co-located dev hosts only |
-| `TURBOPANEL_INSTANCE_ACME__CONTACT_EMAIL`, `…__TOS_ACCEPTED`, `…__DIRECTORY_URL`, `…__USE_STAGING` | Control-plane Let's Encrypt settings. Env wins over **Admin → Access → Certificates**. Independent of every organization's Let's Encrypt opt-in. |
-| `TURBOPANEL_TRUSTED_PROXY_CIDRS` | Peer addresses whose forwarding headers the instance believes. **Replaces** the loopback default (`127.0.0.0/8`, `::1/128`). Include loopback when Caddy is still on this host. |
+| `CADDY_PORT` | HTTPS listen port (default **8443**) |
+| `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s for a hostname that presents a Let's Encrypt or uploaded leaf |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Forces sign-up open (`1`) or closed (`0`), overriding the admin setting — both runtimes |
 | `TURBOPANEL_REDIS_SOCKET` / `TURBOPANEL_AMQP_URL` | Redis socket (required, opened lazily) and the RabbitMQ URL for the email queue (unset → probe, then a silent no-op queue) |
 | `TURBOPANEL_UPDATE_CHANNEL` | The channel this instance resolves daemon updates on (`trunk` default; `rc`, `release`) |
@@ -257,19 +261,7 @@ Per-hostname sources need a co-located daemon that can render them (`instance-ce
 | `/api/client/v1/openapi.json` · `/api/admin/v1/openapi.json` | OpenAPI 3.1 specs (Scalar at `…/reference`) |
 | `/` | Web UI (via Caddy) |
 
-**HTTPS entrypoint (self-hosted):** **`https://<host>:8443`** is always the Platform CA recovery address. A Let's Encrypt or uploaded hostname is also served at **`https://<hostname>/`** on `:443`.
-
-<Callout type="warn" title="Dev-only plaintext HTTP mirror">
-  Co-located development exposes a plaintext mirror at **`http://<host>:8880`**
-  (`CADDY_HTTP_PORT`, default **8880**). The instance accepts it only when
-  **`TURBOPANEL_DEV_HTTP_CONTROL_PLANE=1`** (set automatically by Ansible when
-  `turbopanel_dev_user` is configured). Requests are rejected with **403** when
-  the flag is off. A managed install binds the same port for a different job:
-  the Let's Encrypt solver, with every other path redirecting to `:8443`. It is
-  not a second copy of the panel. Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`**
-  and **`=workers`** use the same development Caddyfile, so the dev mirror
-  covers every route on `:8443` for either runtime.
-</Callout>
+**HTTPS entrypoint (self-hosted):** **`https://<host>:8443`**. Every hostname is served there. The certificate is chosen by the name. Trust the Platform CA for a name that presents that leaf.
 
 ## Communication patterns
 

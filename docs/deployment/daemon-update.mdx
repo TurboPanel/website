@@ -63,9 +63,7 @@ The installer:
 
 ### Self-hosted control plane
 
-Add `TURBOPANEL_HOST` when the instance is not production Cloudflare. Use `:8443` — that Platform CA address stays bound. A Let's Encrypt or uploaded hostname is also reachable on `:443`. Public TLS omits `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
-
-This command refreshes the **daemon**. The control plane is a separate unit: **Admin → Updates → Control plane**, or `run.sh --instance` on the control-plane host. The daemon keeps reconnecting to a control plane below its floor (`0.1.0`) and will not install a control-plane package older than that floor. See [Version compatibility](/docs/deployment/compatibility).
+Add `TURBOPANEL_HOST` for a self-hosted control plane. Use `https://<instance-host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
 
 ```bash
 curl -fsSL turbopanel.sh | \
