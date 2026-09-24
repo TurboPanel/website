@@ -74,7 +74,7 @@ Daemons do **not** upload arbitrary filesystem contents unless a specific comman
 
 ## Managed vs self-hosted
 
-The daemon trust model is **identical** — only the control plane URL and TLS trust root differ: hosted edge TLS, or self-hosted Platform CA **by default** with an uploaded or Let's Encrypt certificate using the system trust store instead. See [Control plane TLS modes](/docs/deployment/control-plane#control-plane-tls-modes).
+The daemon trust model is **identical** — only the control plane URL and TLS trust root differ: hosted edge TLS, or self-hosted Platform CA on `:8443` with an uploaded or Let's Encrypt hostname using the system trust store instead. See [Control plane listeners](/docs/deployment/control-plane#control-plane-listeners).
 
 ## Platform CA rotation (self-hosted)
 

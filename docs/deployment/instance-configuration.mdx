@@ -46,14 +46,20 @@ Three behaviours matter more than any single value:
 
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
-| `TURBOPANEL_PUBLIC_URLS` | derived | Comma-separated origins this instance answers on; seeds certificate SANs and the install command daemons are shown. Managed installs write it from the converge's `turbopanel_public_urls` (Admin → Public URLs); unset, the instance derives an origin from the host's interfaces. |
+| `TURBOPANEL_PUBLIC_URLS` | derived | Comma-separated projection of the **Platform CA** hostnames. Admin → **Access** → **Hostnames** is the editor; this setting stays in sync so certificate SANs, webhook reachability, and the install command keep reading it. Unset, the instance derives an origin from the host's interfaces. Every stored name is served at `https://<host>:8443`. |
 | `TURBOPANEL_BASE_URL` | derived from the request | The origin used in outbound links (verification and invitation emails, offline-sweep notices). Unset, it is resolved per request; behind a Unix socket the instance guards against the literal `null` origin. |
-| `TURBOPANEL_TLS_PUBLIC` | unset | `1` / `true` when the leaf certificate is publicly trusted (Let's Encrypt or an uploaded public cert): the daemon CA route `GET /api/daemon/v1/instance/ca` then 404s and install commands omit `--insecure-tls`. |
-| `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
-| `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the self-signed server leaf is written. |
-| `CADDY_PORT` | `8443` | The HTTPS listen port Caddy binds (`lets_encrypt` mode binds 443). Read by the instance to build install origins. |
-| `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | The leaf Caddy serves; the Caddy unit sets them from `TURBOPANEL_TLS_CERTS_DIR`. |
+| `TURBOPANEL_TLS_PUBLIC` | unset | `1` / `true` when any hostname is Let's Encrypt, or when the operator marks TLS public. `GET /api/daemon/v1/instance/ca` then 404s for a name that presents a Let's Encrypt or uploaded leaf. An unlisted name on `:8443` still receives the Platform CA bundle. Install commands omit `--insecure-tls` for a publicly trusted leaf. |
+| `TURBOPANEL_INSTANCE_ACME__CONTACT_EMAIL` | unset | Contact email for this control plane's Let's Encrypt account. Env wins over Admin → **Access** → **Certificates**. Independent of every organization's Let's Encrypt opt-in. |
+| `TURBOPANEL_INSTANCE_ACME__TOS_ACCEPTED` | `false` | Terms acceptance for that account. Same env-wins rule. |
+| `TURBOPANEL_INSTANCE_ACME__DIRECTORY_URL` | Let's Encrypt production directory | ACME directory URL. Same env-wins rule. |
+| `TURBOPANEL_INSTANCE_ACME__USE_STAGING` | `false` | `true` selects the Let's Encrypt staging directory. Same env-wins rule. |
+| `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The Platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
+| `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the Platform CA server leaf is written. Let's Encrypt and uploaded leaves for individual hostnames are files beside it. |
+| `CADDY_PORT` | `8443` | The HTTPS port the instance writes into install origins. Every hostname is served on that port. The dev Caddy unit reads this value. A managed Caddyfile binds `:8443`. |
+| `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | Leaf paths the **development** Caddyfile reads. A managed Caddyfile bakes `platform-ca.*` plus per-hostname files at render time. The Caddy unit sets these from `TURBOPANEL_TLS_CERTS_DIR`. |
 | `TURBOPANEL_REVISION` | stamped at build | The exact source commit `/api/health` reports for AGPL Corresponding Source. A release build carries its commit already; source-mode installs set it from `git rev-parse HEAD`. |
+
+The four `TURBOPANEL_INSTANCE_ACME__*` keys are this control plane's settings. Environment wins over **Admin → Access → Certificates**, the same way other Admin settings work, and an env-sourced key is read-only there. They have no effect on an organization's **Allow Let's Encrypt certificates**, and that organization toggle has no effect on them. Hostname rows (source, uploaded certificate, last issuance error) live in the database, edited from **Admin → Access → Hostnames**, not in these variables.
 
 ## Sign-up and providers
 
@@ -81,7 +87,7 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 
 ## Development only
 
-Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written solely by the managed `turbopanel-instance` unit for co-located Deno source-mode development; `TURBOPANEL_UI_MODE` only selects Expo vs. static serving), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_DEV_HTTP_CONTROL_PLANE`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO` / `TURBOPANEL_UI_REPO` (optional checkout overrides; defaults derive from `TURBOPANEL_DEV_ROOT`), `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_HTTP_PORT`. See [Local development](/docs/getting-started/development).
+Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written solely by the managed `turbopanel-instance` unit for co-located Deno source-mode development; `TURBOPANEL_UI_MODE` only selects Expo vs. static serving), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO` / `TURBOPANEL_UI_REPO` (optional checkout overrides; defaults derive from `TURBOPANEL_DEV_ROOT`), `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_PORT`. See [Local development](/docs/getting-started/development).
 
 ## Workers only
 

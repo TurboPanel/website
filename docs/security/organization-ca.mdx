@@ -92,7 +92,13 @@ A bounded, cursor-driven sweep renews due leaves and fans the same apply / ingre
 
 ## Non-goal
 
-**Hosting is separate:** tenant **hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). They are never issued by the Organization CA. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Three certificate surfaces stay separate. Changing one leaves the others unchanged.
+
+**Organization CA** signs managed-database client leaves and the ingress certificate for that organization. It does not sign the control plane's Platform CA leaf, an uploaded panel certificate, or a Let's Encrypt certificate.
+
+**Instance Let's Encrypt** is **Admin → Access → Certificates**. It obtains certificates for this control plane's own hostnames. It does not read or write an organization's Let's Encrypt opt-in, and it does not touch that organization's certificate library.
+
+**Tenant hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). That row is gated by the organization's **Allow Let's Encrypt certificates**. It does not obtain a certificate for the panel, and the control plane's Let's Encrypt settings do not obtain a tenant certificate. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Related
 

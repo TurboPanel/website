@@ -40,7 +40,7 @@ graph TD
 
 | Feature | TurboPanel High Availability | Self-hosted instance |
 | ------- | ---------------------------- | -------------------- |
-| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` by default (`lets_encrypt` uses `:443`) |
+| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` for every hostname |
 | Co-located daemon | Contributor dev only (socket mode) | Installed with the control plane; dials the instance socket |
 | Remote daemon | Required per extra server | Required per extra server |
 | Communication | WSS through instance URL | WSS through Caddy or direct socket |
@@ -48,15 +48,16 @@ graph TD
 
 Both control-plane models are in **private alpha** and not yet publicly available. The installer and daemon behavior below apply when you have access.
 
-Self-hosted TLS modes (`turbopanel_tls_mode`) and the ports they bind:
+Every self-hosted hostname is `https://<host>:8443`. The certificate follows the name. Port **80** accepts HTTP-01 only while a Let's Encrypt certificate is being issued or renewed. Port **443** is hosting.
 
-| Mode | Listen | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
-| --- | --- | --- | --- |
-| `self_signed` (default) | `:8443` | 200 | yes |
-| `upload` | `:8443` (or `caddy_port`) | 200 unless `turbopanel_tls_public` | follows `turbopanel_tls_public` |
-| `lets_encrypt` | `:443` (+ `:80` challenge) | 404 | no |
+| Source | `GET /api/daemon/v1/instance/ca` | `--insecure-tls` |
+| --- | --- | --- |
+| **Platform CA** | 200 | yes, until that CA is trusted |
+| **Uploaded**, publicly trusted | 404 | no |
+| **Uploaded**, private | uploaded issuer (`GET /api/daemon/v1/instance/uploaded-trust`) | bootstrap may use `-k`; runtime still verifies the chain and the hostname |
+| **Let's Encrypt** | 404 | no |
 
-`lets_encrypt` needs `:80`/`:443` free on the control-plane host. Full table: [Control plane](/docs/deployment/control-plane#control-plane-tls-modes).
+Full table: [Control plane](/docs/deployment/control-plane#control-plane-tls-modes). The issuance window, including `port 80 is held by <process>`, is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Installation
 
@@ -82,14 +83,15 @@ Self-hosted TLS modes (`turbopanel_tls_mode`) and the ports they bind:
     host, not the contributor Vagrant workflow.
   </Step>
   <Step>
-    For self-hosted HTTPS, the installer fetches the platform CA from
-    `GET /api/daemon/v1/instance/ca` by default and configures `TURBOPANEL_INSTANCE_CA`.
-    A 404 (Let's Encrypt / `TURBOPANEL_TLS_PUBLIC`) uses the system trust store
-    instead. Re-run the same command any time to upgrade or reconcile a node.
+    For a Platform CA hostname, the installer fetches the bundle from
+    `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
+    A 404 on a Let's Encrypt name, or on an uploaded certificate that chains to a public root, uses the system trust store.
+    A private upload uses the issuer from `GET /api/daemon/v1/instance/uploaded-trust`.
+    Re-run the same command any time to upgrade or reconcile a node.
   </Step>
 </Steps>
 
-Self-hosted examples below use `:8443` by default. Omit the port (or use `:443`) when `turbopanel_tls_mode=lets_encrypt`. Public TLS omits `--insecure-tls`.
+Self-hosted examples below use `https://<host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls`.
 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
@@ -112,12 +114,13 @@ While provisioning runs, the terminal shows a **rolling status view** (spinner o
 
 #### Contributor dev overlay only
 
-The instance host `/run.sh` path is **development-only** — served by the dev overlay Caddyfile (plaintext `:8880`), not the production instance Caddyfile:
+The instance host `/run.sh` path is **development-only** — served by the dev overlay Caddyfile at `https://<dev-host>:8443/run.sh`. LAN names use `curl -k` and `TURBOPANEL_INSECURE_TLS=1` because the leaf is the Platform CA:
 
 ```bash
-curl -fsSL http://<dev-host>:8880/run.sh | \
+curl -fsSLk https://<dev-host>:8443/run.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=http://<dev-host>:8880 \
+  TURBOPANEL_HOST=https://<dev-host>:8443 \
+  TURBOPANEL_INSECURE_TLS=1 \
   sh
 ```
 
@@ -215,7 +218,7 @@ a managed install connects without it.
 | Issue | Solution |
 | ----- | -------- |
 | Connection failures | Verify `--host` / `TURBOPANEL_INSTANCE_URL`, a firewall *outside* the host (security group, provider firewall — the installer removes `ufw`/`firewalld` on the host itself), TLS CA trust |
-| TLS errors | Re-fetch CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca`. A 404 means public TLS — use the system trust store (no `instance-ca.pem`, no `--insecure-tls`). |
+| TLS errors | Re-fetch the Platform CA from `/api/daemon/v1/instance/ca` or pass `--instance-ca`. A 404 on a Let's Encrypt or publicly trusted upload means the system trust store (no `instance-ca.pem`, no `--insecure-tls`). A private upload uses `/api/daemon/v1/instance/uploaded-trust`. |
 | Unsupported architecture | TurboPanel requires 64-bit `aarch64` or `x86_64`; 32-bit Raspberry Pi OS is not supported |
 | Docker permission errors | Ensure `tp` user is in `docker` group (installer adds this when Docker is installed) |
 

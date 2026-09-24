@@ -1,11 +1,11 @@
 ---
 title: "Access, audit and configuration"
-description: "Data dictionary — access, audit and configuration tables: audit, grant, lease, setting"
+description: "Data dictionary — access, audit and configuration tables: audit, certificate, grant, lease, origin, setting"
 ---
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0006_snapshot.json (0006_instance_hostnames).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — access, audit and configuration tables: audit,
 
 Authorization grants, the audit ledger, instance-wide settings and the global lease table the schedulers coordinate through.
 
-Tables on this page: [`audit`](#audit) · [`grant`](#grant) · [`lease`](#lease) · [`setting`](#setting). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`audit`](#audit) · [`certificate`](#certificate) · [`grant`](#grant) · [`lease`](#lease) · [`origin`](#origin) · [`setting`](#setting). Generated from migration `0006_instance_hostnames`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `audit` [#audit]
 
@@ -35,6 +35,20 @@ Append-only trail of security-relevant operator actions (rows never updated or d
 
 - Index `idx_audit_organization_created`: (`organization_id`, `created_at`)
 - Index `idx_audit_target`: (`target_type`, `target_id`)
+
+## `certificate` [#certificate]
+
+Uploaded control-plane certificate pair; several origin rows may reference one pair when its names cover them.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `label` | `text` | no |  | Operator-chosen name for the uploaded pair, shown in the admin certificate list. |
+| `cert_pem` | `text` | no |  | Public certificate PEM, chain allowed; the leaf is parsed for names and expiry when the pair is stored. |
+| `key_pem` | `text` | no |  | Private key PEM sealed as a `tpsecret` envelope; the admin API never returns it. |
+| `dns_names` | `jsonb` | no |  | JSON array of DNS names and IP addresses parsed from the leaf, used to test which hostnames the pair covers. |
+| `not_after` | `timestamp(3) with time zone` | no |  | Leaf expiry copied from the parsed certificate when the pair is stored. |
 
 ## `grant` [#grant]
 
@@ -76,6 +90,29 @@ Cross-isolate compare-and-swap lease: one row per `name` (plus organization for 
 **Constraints and indexes**
 
 - Unique `uniq_lease_name_organization`: (`name`, `organization_id`)
+
+## `origin` [#origin]
+
+One control-plane public name operators publish, with its certificate source and any Let's Encrypt attempt state.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `host` | `text` | no |  | Normalized public URL entry (origin, host, or host:port) in the form public URL parsing already stores. |
+| `source` | `text` | no |  | Certificate source for this name: `platform-ca`, `uploaded`, or `lets-encrypt`. |
+| `uploaded_cert_id` | `uuid` | yes |  | FK → [`certificate`](/docs/database/platform#certificate).`id` (on delete set null). Uploaded pair (`certificate.id`) this name serves; required when `source` is `uploaded`, otherwise NULL. |
+| `acme_last_attempt_at` | `timestamp(3) with time zone` | yes |  | When this instance last tried Let's Encrypt for this name; NULL until an attempt runs. |
+| `acme_last_error` | `text` | yes |  | Last Let's Encrypt error for this name; NULL when the last attempt succeeded or none has run. |
+| `not_after` | `timestamp(3) with time zone` | yes |  | Leaf expiry for this name when known; NULL for `platform-ca` and for Let's Encrypt before a leaf exists. |
+
+**Constraints and indexes**
+
+- Unique `origin_host_unique`: (`host`)
+- Index `idx_origin_uploaded_cert_id`: (`uploaded_cert_id`)
+- Check `origin_source_check`: `source IN ('platform-ca', 'uploaded', 'lets-encrypt')`
+- Check `origin_uploaded_cert_check`: `(source <> 'uploaded') OR (uploaded_cert_id IS NOT NULL)`
 
 ## `setting` [#setting]
 

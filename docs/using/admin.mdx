@@ -1,6 +1,6 @@
 ---
 title: Administering an instance
-description: The instance roles, and the Admin area — public URLs, outbound email, sign-in providers, instance-wide Git applications, public sign-up, the tier catalogue, re-encrypting secrets, live-metrics session length — and every refusal
+description: The instance roles, and the Admin area — Access, Updates, outbound email, sign-in providers, instance-wide Git applications, public sign-up, the tier catalogue, re-encrypting secrets, live-metrics session length — and every refusal
 ---
 
 # Administering an instance
@@ -30,16 +30,29 @@ Most Admin settings can be set in two places: the panel, or an environment varia
 - An `admin` or `superadmin` account. Others are redirected to their dashboard.
 - **Return to instance** in the header takes you back to your preferred organization.
 
-## Networking — public URLs
+## Access
 
-**Admin → Networking → Public URLs.** The addresses the control plane is reachable at. Three things read this list: the TLS certificate's names, Git webhook callbacks, and the install command an organization's **Add server** shows.
+**Admin → Access.** `/admin` opens here. `/admin/networking` redirects here. This is how people and machines reach this control plane. Organization TLS stays on the organization.
+
+### Hostnames
+
+**Admin → Access → Hostnames.** Every address this control plane answers on, each with a certificate source:
+
+| Source | What the name presents |
+| --- | --- |
+| **Platform CA** | The `:8443` leaf. `https://<host>:8443` stays bound even when no name uses this source. |
+| **Uploaded certificate** | That hostname on `:443`, with a pair from **Certificates**. |
+| **Let's Encrypt** | That hostname on `:443`, after Caddy obtains the certificate. Needs port 80 to reach the solver on `:8880`. |
 
 <Steps>
   <Step>
-    **Add** an entry: **Scheme**, **Hostname**, optional **Port**. Paste a whole address and its scheme and port are taken and the rest dropped (`https://panel.lan:8443/x` → `https://panel.lan:8443`); a port that is the scheme's default is dropped.
+    **Add** a hostname. A scheme-less entry such as `panel.lan` (what `TURBOPANEL_PUBLIC_URLS` looks like) displays as https and is stored exactly as typed — it expands to port **8443** in an install command.
   </Step>
   <Step>
-    **Save** stores the list. **Save & Apply** (self-hosted only) also regenerates the Platform CA leaf for the new names and reloads the front proxy.
+    Pick the source. A new name starts on the Platform CA. A wildcard is an uploaded certificate. Let's Encrypt is refused for a loopback, private, or wildcard name.
+  </Step>
+  <Step>
+    **Save** stores the list. **Save & Apply** (self-hosted only) regenerates the Platform CA leaf for the Platform CA names and reloads the front proxy. The apply itself sends an empty body — the save already persisted the rows.
   </Step>
 </Steps>
 
@@ -51,7 +64,20 @@ Most Admin settings can be set in two places: the panel, or an environment varia
   this runtime*).
 </Callout>
 
-A scheme-less entry such as `panel.lan` (what `TURBOPANEL_PUBLIC_URLS` looks like) displays as https and is stored exactly as typed — it expands to port **8443** in an install command.
+Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. The flat `TURBOPANEL_PUBLIC_URLS` list is the Platform CA names, kept in sync for certificate SANs, Git webhook callbacks, and the install command.
+
+### Certificates, trusted proxies, tunnel, Platform CA
+
+| Page | What it sets |
+| --- | --- |
+| **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. These settings are for this control plane. An organization's **Allow Let's Encrypt certificates** is a different switch and applies only to that organization's hosting certificates. |
+| **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when Caddy is still on this host. |
+| **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The stored token is never shown again. |
+| **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile for connected daemons. Self-hosted only. This is the Platform CA. |
+
+## Updates
+
+**Admin → Updates.** Two rows, **Control plane** and **Daemon**. Each shows the installed version and the channel target, and each has its own **Upgrade**. Updating one leaves the other on the build it already has. `canary`, `rc`, and `release` publish a control-plane package. `trunk` does not, so that row's Upgrade stays disabled. The control-plane install restarts the panel; the page polls until the installed version matches. See [Upgrade and rollback](/docs/deployment/upgrade).
 
 ## Email
 
@@ -118,10 +144,10 @@ The interactive reference is at `/api/admin/v1/reference`.
 | Item | Value |
 | --- | --- |
 | Roles | `user` · `admin` · `superadmin` |
-| Admin-only areas | Networking, Email, Sign-in providers, Git providers, Sign-up, Server metrics |
+| Admin-only areas | Access, Updates, Email, Sign-in providers, Git providers, Sign-up, Server metrics |
 | Superadmin-only | Tiers, Secrets |
 | Precedence | environment variable > panel setting |
-| Public URL entry | scheme + host + optional port; scheme-less entries expand to port 8443 in install commands |
+| Public URL entry | scheme + host + optional port; scheme-less entries expand to port 8443 in install commands. Each hostname has a source: Platform CA, uploaded, or Let's Encrypt. |
 | Live metrics session | 0 (off) or 5–240 minutes |
 | Sign-up override | `TURBOPANEL_IS_SIGNUP_ENABLED` locks the toggle |
 
@@ -131,6 +157,9 @@ The interactive reference is at `/api/admin/v1/reference`.
 | --- | --- | --- |
 | `Forbidden` | 403 | The account is not an admin or superadmin (or, on Tiers and Secrets, not a superadmin). |
 | `One or more public URL entries are invalid` | 400 | An entry is not a valid scheme + host + port. |
+| `One or more hostnames are invalid` | 422 | A hostname, its source, or its uploaded certificate failed validation. The body names the rows. |
+| `Let's Encrypt cannot issue a certificate for a loopback or private hostname` | 422 | That name stays on the Platform CA or an uploaded pair. |
+| `Let's Encrypt cannot issue a certificate for a wildcard hostname` | 422 | A wildcard is an uploaded certificate. The stock Caddy build speaks HTTP-01 only. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
 | `cert apply is not applicable on this runtime` | 422 | Apply is self-hosted only. |
 | `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the toggle. |

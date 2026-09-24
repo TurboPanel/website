@@ -7,20 +7,29 @@ description: Which control plane, daemon and UI versions are tested together, an
 
 Each repository carries its own semantic version and cuts its own GitHub Release; a
 control-plane release names the daemon and UI versions it was tested against. Both wires
-carry versions and enforce a floor, so a mismatch is refused with a message rather than
-discovered as a broken deploy.
+carry versions and hold the peer against a floor. A peer below the floor stays connected
+and is flagged. Commands to an old daemon fail with `daemon_unsupported`. An old control
+plane is logged and the daemon keeps reconnecting. A missing version is unknown and is
+allowed. The two units still move independently.
 
 ## Channels
 
-| Channel | What it points at | Where |
-| --- | --- | --- |
-| `release` | The latest promoted release | `releases/latest/download/manifest.json` on each repository |
-| `rc` | The current release candidate — a rolling pre-release tag | `releases/download/rc/manifest.json` |
-| `trunk` | Every merge to `trunk` — contributors only, never production | `dl.trbp.nl/channels/trunk/manifest.json` |
+`canary`, `rc`, and `release` are GitHub Releases on each package's own repository
+(redirects, no API calls). Daemon `trunk` is the per-merge CDN drop at
+`dl.trbp.nl/channels/trunk/manifest.json`. The control plane and the UI publish only
+on `canary`, `rc`, and `release` — they have no CDN drop — so a control plane whose
+channel is `trunk` has no control-plane package target. **Admin → Updates** leaves
+that row's Upgrade disabled and still resolves the daemon from the CDN. See
+[Canary environment](/docs/development/canary).
 
-The daemon's built-in channel table and the control plane's are the same table; `rc` and
-`release` come from GitHub Releases directly (redirects, no API calls). Promotion is a pointer
-move — the bytes that soaked on `rc` are the bytes `release` serves.
+| Channel | What it points at | Daemon | Control plane and UI |
+| --- | --- | --- | --- |
+| `canary` | The newest green build of `trunk` | `releases/download/canary/manifest.json` on [turbopaneld](https://github.com/TurboPanel/turbopaneld/releases) | The same path on [turbopanel](https://github.com/TurboPanel/turbopanel/releases) and [ui](https://github.com/TurboPanel/ui/releases) |
+| `rc` | The current release candidate — a rolling pre-release tag | `releases/download/rc/manifest.json` | The same path on each repository |
+| `release` | The latest promoted release | `releases/latest/download/manifest.json` | The same path on each repository |
+| `trunk` | Every merge to `trunk` — contributors only | `dl.trbp.nl/channels/trunk/manifest.json` | No package |
+
+Promotion is a pointer move — the bytes that soaked on `rc` are the bytes `release` serves.
 
 ## Tested pairings
 
@@ -32,12 +41,25 @@ move — the bytes that soaked on `rc` are the bytes `release` serves.
 
 | Side | Floor | What happens below it |
 | --- | --- | --- |
-| Control plane → daemon | `0.1.0` | The daemon reports its version on `hello`. A supported daemon runs commands; an unsupported one keeps its connection but every command fails with `daemon_unsupported` until it updates. A daemon that reports no version (pre-0.1.0 builds) passes as unknown. |
+| Control plane → daemon | `0.1.0` | The daemon reports its version on `hello`. A supported daemon runs commands; an unsupported one keeps its connection but every command fails with `daemon_unsupported` until it updates. A daemon that reports no version passes as unknown. |
+| Daemon → control plane | `0.1.0` | Every daemon REST response, including a non-OK response and the 401 before a session refresh, carries `x-turbopanel-version`. A socket-only session carries `{ type: "version", instanceVersion }` on attach. A response or frame that omits the version clears the last observation back to unknown, and unknown passes. An unsupported control plane is logged (`instance-version:`) and the daemon keeps reconnecting. The daemon also refuses to install a control-plane package below this floor. A missing or non-semver target is unknown and is allowed. The control plane accepts `instance-update` from any connected daemon. |
 | App → instance | `0.1.0` | The instance stamps `x-turbopanel-version` on every response and the app sends `x-turbopanel-client-version`. The native app refuses to connect to an older instance and says which version it needs; an instance that sends no header is accepted. The bundled web UI always matches its instance. |
 
-**Rule of thumb:** upgrade the control plane first, then roll daemons fleet-wide. Mixing
-channels (a `trunk` control plane with `release` daemons, or the reverse) is unsupported
-outside active development.
+Current packages are **0.1.1**. Both floors are **0.1.0**, so a `0.1.x` peer is in
+window and a `0.0.x` peer is not. The window may trail the current release by
+several minor versions. Raise both floors in the same change, and record why.
+There is no required upgrade order between the control plane and the daemon.
+
+A panel feature that depends on a daemon-rendered artifact has its own minimum,
+separate from the floor. Unknown is unsupported for a feature. The first entry
+is `instance-cert-sources-per-hostname` at daemon **0.1.1**: per-hostname
+certificate sources on the control-plane Caddyfile. Older daemons stay
+connected and receive the flat public-URL list only. The console reads
+`resolveDaemonCapabilities` and does not compare versions itself.
+
+Mixing channels (a `canary` control plane with `release` daemons, or the reverse)
+is unsupported outside active development. A `trunk` channel updates the daemon
+from the CDN and has no control-plane package to mix.
 
 ## Check versions
 

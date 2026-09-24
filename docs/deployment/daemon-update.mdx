@@ -21,8 +21,10 @@ Use a manual `run.sh` refresh when:
   provisioned with the [dev](https://github.com/TurboPanel/dev)
   console, update it from the console (**Sync Dev Build** / **Upgrade System**)
   instead — that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
-  Those two actions exist only on that console; a managed self-hosted control plane
-  upgrades by re-running the installer (see [Upgrade and rollback](/docs/deployment/upgrade)).
+  Those two actions exist only on that console. A managed self-hosted host
+  upgrades each unit from **Admin → Updates** (see
+  [Upgrade and rollback](/docs/deployment/upgrade)). This page is the path when
+  that button cannot reach the daemon.
 </Callout>
 
 <Callout type="info" title="UI vs cell panel">
@@ -61,7 +63,7 @@ The installer:
 
 ### Self-hosted control plane
 
-Add `TURBOPANEL_HOST` when the instance is not production Cloudflare. Use `:8443` by default; omit the port (or use `:443`) when `turbopanel_tls_mode=lets_encrypt`. Public TLS omits `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
+Add `TURBOPANEL_HOST` for a self-hosted control plane. Use `https://<instance-host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
 
 ```bash
 curl -fsSL turbopanel.sh | \
