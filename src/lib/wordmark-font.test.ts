@@ -9,31 +9,24 @@ vi.mock('next/font/google', () => ({
     style: string[]
     variable: string
   }) => ({
-    className: 'mock-wordmark-font',
+    className: 'mock-plus-jakarta',
     style: { fontFamily: 'Plus Jakarta Sans' },
     variable: options.variable,
   })),
 }))
 
 describe('wordmarkFont', () => {
-  it('loads Plus Jakarta ExtraBold Italic as --font-wordmark', () => {
+  it('reuses the single Plus Jakarta loader used for display', () => {
     const loaded = vi.mocked(Plus_Jakarta_Sans)
-    if (loaded.mock.calls.length !== 1) {
-      throw new TypeError('expected Plus_Jakarta_Sans to be called once')
-    }
-    const [options] = loaded.mock.calls[0]
-    if (!options) {
-      throw new TypeError('expected Plus_Jakarta_Sans options')
-    }
-
+    expect(loaded.mock.calls.length).toBe(1)
+    const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
       subsets: ['latin'],
-      weight: ['800'],
-      style: ['italic'],
-      variable: '--font-wordmark',
+      weight: ['500', '600', '700', '800'],
+      style: ['normal', 'italic'],
+      variable: '--font-display',
     })
-    expect(wordmarkFont.variable).toBe('--font-wordmark')
-    expect(wordmarkFont.className).toBe('mock-wordmark-font')
-    expect(wordmarkFont.style).toEqual({ fontFamily: 'Plus Jakarta Sans' })
+    expect(wordmarkFont.variable).toBe('--font-display')
+    expect(wordmarkFont.className).toBe('mock-plus-jakarta')
   })
 })
