@@ -18,7 +18,7 @@ Three behaviours matter more than any single value:
 | Variable | Read by | Behaviour |
 | -------- | ------- | --------- |
 | `TURBOPANEL_DATABASE_URL` | boot, `migrate` verb | Postgres URL. Socket form on managed installs: `postgresql://<user>:<pass>@/<db>?host=/var/run/turbopanel/postgres`. **Throws** `TURBOPANEL_DATABASE_URL is required` when unset. The compiled binary can only reach Postgres over that Unix socket path (its `--allow-net` is pinned); TCP Postgres is a source-mode development option. |
-| `TURBOPANEL_SECRET` or `TURBOPANEL_SECRETS` | boot | The root secret keyring (session signing, OTP and TOTP verifiers, data-encryption key derivation). `TURBOPANEL_SECRETS` is the versioned form `1:<secret>,2:<secret>` written by `instance-launch` to `/etc/turbopanel/instance/.instance_secrets`; `TURBOPANEL_SECRET` is a single value. **Throws** when neither is set. Losing this keyring loses every encrypted row — see [Security](/docs/deployment/security). |
+| `TURBOPANEL_SECRET` or `TURBOPANEL_SECRETS` | boot | The root secret keyring (session signing, OTP and TOTP verifiers, data-encryption key derivation). `TURBOPANEL_SECRETS` is the versioned form `2:<new secret>,1:<old secret>` written by `instance-launch` to `/etc/turbopanel/instance/.instance_secrets`. The **first** entry is the current key: it signs and encrypts, and the later entries only verify and decrypt. List the highest version first. An out-of-order list is used as written, with a warning in the log, so putting the old key first keeps signing with it. `TURBOPANEL_SECRET` is a single value. **Throws** when neither is set. Losing this keyring loses every encrypted row — see [Security](/docs/deployment/security). |
 
 ## Runtime services
 
@@ -39,7 +39,7 @@ Three behaviours matter more than any single value:
 | `TURBOPANEL_LOG_DIR` | `/var/log/turbopanel` | File logs. |
 | `TURBOPANEL_METRICS_DIR` | `<state>/metrics` | The embedded DuckDB metrics store. |
 | `TURBOPANEL_EXECUTION_LOG_DIR` | `<state>/execution-logs` | Command and deploy logs when `TURBOPANEL_EXECUTION_LOG_DRIVER` is `file` (the default). |
-| `TURBOPANEL_DUCKDB_LIB_DIR` | `/opt/turbopanel/vendor/duckdb/lib` | Where the compiled unit's `LD_LIBRARY_PATH` finds `libduckdb.so`. |
+| `LD_LIBRARY_PATH` (unit) | `/opt/turbopanel/lib` | Where the compiled instance finds `libduckdb.so`. The `turbopanel-instance` unit sets it; there is no `TURBOPANEL_*` variable for this path. |
 | `TURBOPANEL_UI_ROOT` | `/opt/turbopanel/share/ui` | The static web export Caddy serves (`TURBOPANEL_UI_MODE=static`); co-located development points it at a checkout. |
 
 ## Public identity and TLS
@@ -55,7 +55,7 @@ Three behaviours matter more than any single value:
 | `TURBOPANEL_INSTANCE_ACME__USE_STAGING` | `false` | `true` selects the Let's Encrypt staging directory. Same env-wins rule. |
 | `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The Platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
 | `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the Platform CA server leaf is written. Let's Encrypt and uploaded leaves for individual hostnames are files beside it. |
-| `CADDY_PORT` | `8443` | The HTTPS port the instance writes into install origins. Every hostname is served on that port. The dev Caddy unit reads this value. A managed Caddyfile binds `:8443`. |
+| `CADDY_PORT` | `8443` | **Development only.** The port the development Caddy unit (and the docs site's dev unit) listens on and links to. The instance does not read it: install origins always use `:8443`, and a managed Caddyfile binds `:8443` whatever this is set to. |
 | `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | Leaf paths the **development** Caddyfile reads. A managed Caddyfile bakes `platform-ca.*` plus per-hostname files at render time. The Caddy unit sets these from `TURBOPANEL_TLS_CERTS_DIR`. |
 | `TURBOPANEL_REVISION` | stamped at build | The exact source commit `/api/health` reports for AGPL Corresponding Source. A release build carries its commit already; source-mode installs set it from `git rev-parse HEAD`. |
 

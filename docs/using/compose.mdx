@@ -139,9 +139,28 @@ Every Compose key carries one of five verdicts. Nothing is dropped in silence: a
 | **interpreted** | The platform reads it and acts on it; it may or may not reach the runtime file. | `deploy.replicas`, `deploy.mode`, `deploy.placement.*`, `deploy.restart_policy`, `deploy.resources.limits`, `networks.<name>.driver: overlay`. |
 | **runtime-generated** | The platform writes it at deploy; an authored value is not the source of truth. | The placement the compiler records in the prepared compose. |
 | **unsupported** | No behaviour behind it. Saving is advised against; deploying is refused with the reason quoted. | `deploy.update_config`, `deploy.rollback_config`, `deploy.endpoint_mode`, `deploy.resources.reservations`; on an overlay network: `ipam`, `driver_opts`, `attachable`, `enable_ipv6`, `internal`. |
-| **gated** | Implemented, but grants root-equivalent access to the shared host, so an organization owner must opt in first. | `privileged`, `cap_add`, `devices`, `network_mode`, `pid`, `ipc`, `userns_mode`, `security_opt`, `cgroup_parent`, `sysctls`. |
+| **gated** | Implemented, but grants root-equivalent access to the shared host, so an organization owner must opt in first. | `privileged`, `cap_add`, `devices`, `device_cgroup_rules`, `network_mode`, `pid`, `ipc`, `uts`, `cgroup`, `cgroup_parent`, `userns_mode`, `security_opt`, `sysctls`, `runtime`, `use_api_socket`, `volumes_from`. |
 
-The gate is per organization and off by default. An owner turns it on through `PUT /organizations/:id/compose-privileged-fields`; every flip is written to the organization's audit trail. `cap_drop`, `volumes`, `ports` and `user` are deliberately not gated.
+### Host-level features
+
+A gated key is one of two kinds of **host-level feature**. The other is a path that reaches outside the service's own directory on the server:
+
+- a bind whose source is absolute (`/`, `/etc`, `/var/run/docker.sock`), starts with `~`, climbs out with `..`, is interpolated (`${…}`), or mounts the service directory itself (`.`)
+- a long-form mount of type `bind`, `npipe`, or a type the platform does not recognise
+- a top-level volume whose `driver_opts` bind a host path or device
+- `configs` or `secrets` with a `file:` outside the service directory, and `env_file` or `label_file` outside it
+- a `build` context, Dockerfile or additional context outside the service directory, `build.ssh`, a `host` build network, a privileged build, or build entitlements
+- `extends.file` and `include`, wherever they point
+
+A relative bind that stays inside the service directory (`./data:/data`, `./config:/etc/app:ro`), a named volume, an NFS volume, and a remote build context (a Git URL) are ordinary features and need nothing.
+
+Host-level features are off by default, per organization. An organization owner turns them on under **Manage Organization → Compose** (`PUT /organizations/:id/compose-privileged-fields`); every flip is written to the organization's audit trail. With them on, only an organization **manager or owner** can deploy a document that uses them.
+
+A Git-triggered deploy has no person behind it. It may deploy host-level content only after a manager or owner has deployed that same content once from the console. That deploy records an approval tied to exactly what reaches the host, so any change to those parts of the document needs a new console deploy before automated deploys resume.
+
+The server checks again at deploy. It resolves every bind and file path to its real location on the host and refuses one that escapes the service directory through a symbolic link, even with host-level features on. It also refuses a path nested inside another writable bind, which a container could change between the check and the deploy. The deploy then fails with `compose deploy refused — host paths outside this deployment:` followed by each path and where it resolves.
+
+`cap_drop`, `ports` and `user` are deliberately not gated.
 
 ## The linter
 
@@ -208,7 +227,9 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | --- | --- | --- |
 | `compose_merged_invalid` | 422 | The project and overlay each saved cleanly but their merge is not a valid Compose document. |
 | `compose_field_unsupported` | 422 | An unsupported key is present; the reason is quoted. Drop the key. |
-| `compose_field_requires_org_opt_in` | 403 | A gated key is present and the organization has not opted in. Names the fields. |
+| `compose_field_requires_org_opt_in` | 403 | A host-level feature is present and the organization has not turned them on. Names the fields and paths. |
+| `compose_host_access_requires_manager` | 403 | Host-level features are on, but the person deploying is not an organization manager or owner. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content that no manager or owner has deployed in this form. Deploy it once from the console to approve it. |
 | `principal_alias_unknown` | 422 | A service names an alias the root does not declare (only reachable with a stale document). |
 | `principal_required_for_service_kind` | 422 | A site or Node app has neither an alias nor a system user assigned on Bindings. |
 | `site_principal_ambiguous`, `source_principal_ambiguous` | 422 | No alias, and more than one system user could own the service. Declare the alias. |

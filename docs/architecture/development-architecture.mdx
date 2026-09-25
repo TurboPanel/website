@@ -85,7 +85,7 @@ Caddy terminates TLS on **8443** and proxies `/api/*` and `/ws/*` to the instanc
 
 Schema changes are versioned in `turbopanel/migrations/`. **Versioned `pnpm migrate` is the only fresh-database bootstrap path** — co-located dev converge runs `scripts/bootstrap-dev-db.sh` (`pnpm migrate`), and Workers deploy runs the same command. Applied versions are tracked in `public.migration`. An unmigrated database is an operational failure (missing relations propagate); it must not be treated as install mode / `needsInstall`.
 
-1. **Generate + apply migrations:** edit `turbopanel/src/lib/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
+1. **Generate + apply migrations:** edit `turbopanel/src/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
 2. **Push (code → DB, Deno dev iteration only):** after a migrated baseline exists, `./scripts/sync.sh` from the guest `dev` checkout can apply schema edits via drizzle-kit push for quick local iteration — not a fresh-DB bootstrap.
 3. **Pull (DB → code):** change tables in Drizzle Studio, then `./scripts/introspect.sh` from the guest `dev` checkout.
 
@@ -125,11 +125,11 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 - **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app.ts`).
 - **Expo / React Native** — Cross-platform UI (`ui/`).
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
-- **Drizzle + Postgres** — Schema in `turbopanel/src/lib/db/schema.ts`; Hyperdrive in Workers production.
+- **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
-- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/lib/commands/` / `turbopaneld/src/instance/commands/`.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/instance/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).

@@ -136,11 +136,17 @@ tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
 
+HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' /etc/turbopanel/daemon.env)
+CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' /etc/turbopanel/daemon.env)
+
 curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
-  TURBOPANEL_UPDATE_CHANNEL=trunk \
+  TURBOPANEL_HOST="$HOST" \
+  TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
   sh
 ```
+
+Pass the node's own control plane and channel back, as above. The installer does not read them from `daemon.env` on a remote node: without `TURBOPANEL_HOST` it uses the hosted control plane named in the release manifest, and without `TURBOPANEL_UPDATE_CHANNEL` it uses `trunk`.
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mismatches, missing license files, and self-hosted hosts.
 
@@ -178,7 +184,7 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 | Logs | `/var/log/turbopanel` |
 | Runtime (sockets, `daemon.lock`) | `/run/turbopanel` |
 
-- User `tp:tp` (UID/GID 9999) with passwordless sudo
+- User `tp:tp` (UID/GID 9999). Its sudo rule is limited to named commands: the orchestration helper plus fixed lists of file, service, account, network, and Docker utilities, without a password. Several of those (`docker`, `systemctl`, `cp`, `tee`, `find`) take any arguments, so treat the `tp` account as equivalent to root on that host.
 - `turbopaneld.service` (systemd, single process via `flock`). The unit runs the native binary when `turbopaneld --version` succeeds. On hosts where that probe fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size — install downloads `turbopaneld.js`, installs vendored Deno, and uses `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
 
 <Callout type="info" title="Contributor dev is different">

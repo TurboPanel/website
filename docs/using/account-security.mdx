@@ -33,7 +33,7 @@ Sessions last **7 days** and are cookie-bound to the control plane's origin; the
     Email and password → **Sign In**. On an instance with providers configured, **Sign in with GitHub** / **Sign in with Google** sit beside it, and **Sign in with a passkey** below.
   </Step>
   <Step>
-    If two-factor is on, the **authentication code** step follows: six digits from your app, or **Use a backup code** to type one of the ten. The challenge lives **5 minutes** and dies after **five wrong codes** — go **Back to sign in** and start again rather than retrying a dead one.
+    If two-factor is on, the **authentication code** step follows: six digits from your app, or **Use a backup code** to type one of the ten. The challenge lives **5 minutes**. **Five wrong codes** within 15 minutes lock two-factor sign-in for that account until the 15 minutes are up; signing in again does not reset the count. Each code works once: a code that already signed you in is refused, even under a new challenge, so wait for the next one from your app.
   </Step>
   <Step>
     A new account made by sign-up must **verify its email** first (the link in the mail is good for 24 hours); until then sign-in is refused with *Verify your email before signing in*. An instance without outbound email skips verification entirely.
@@ -84,7 +84,7 @@ To sign in with it: **Sign in with a passkey** on the sign-in screen — no emai
 
 ## Link GitHub or Google
 
-**Security → Linked accounts.** Only providers the instance has configured appear. Linking is web-only (**Link from a browser** on native).
+**Security → Linked accounts.** Only providers the instance has configured appear. Linking is web-only (**Link from a browser** on native). Finish the provider round trip in the same browser that started it: the return trip is refused on any other.
 
 <Steps>
   <Step>
@@ -98,7 +98,7 @@ To sign in with it: **Sign in with a passkey** on the sign-in screen — no emai
 TurboPanel stores the provider identity only — no provider tokens. A provider identity already linked to a different user is refused (*That provider account is already linked to another user*). **Unlink** re-authenticates and is refused when it would leave no way in.
 
 <Callout type="warn" title="No linking by email address">
-  Signing in with a provider whose identity is linked to no account never joins an existing account just because the email matches. It creates a new account when sign-up is open, or fails with *New accounts cannot be created this way* when it is closed. Link from the signed-in Security screen instead.
+  Signing in with a provider whose identity is linked to no account never joins an existing account just because the email matches. It creates a new account when sign-up is open, or fails with *New accounts cannot be created this way* when it is closed. A new account also needs an email the provider has verified; otherwise sign-up is refused (`oauth_email_unverified`). Link from the signed-in Security screen instead.
 </Callout>
 
 ## Passwords
@@ -110,8 +110,9 @@ The same rule is enforced on every path that sets a password (install, sign-up, 
 | Item | Value |
 | --- | --- |
 | Session lifetime | 7 days (cookie, `HttpOnly`, `SameSite=Lax`) |
-| Re-authentication | password accounts: the current password, always; password-less accounts and provider linking: a session younger than 15 minutes |
-| Two-factor challenge | 5 minutes; five wrong codes end it |
+| Re-authentication | password accounts: the current password, always; password-less accounts and provider linking: a session younger than 15 minutes. Password checks are limited to 5 a minute per account |
+| Two-factor challenge | 5 minutes, single use |
+| Two-factor lockout | five wrong codes within 15 minutes lock two-factor sign-in until the 15 minutes end; each code works once |
 | Authenticator | RFC 6238 TOTP, six digits |
 | Backup codes | 10, one-time, shown once; regenerate replaces all |
 | Passkeys | WebAuthn, user verification required, discoverable, ES256 / RS256; web only |
@@ -128,15 +129,17 @@ Account routes answer with a short `error` string; the console shows the sentenc
 | `Invalid credentials` | 401 | Wrong email or password — the same answer whether or not the account exists. |
 | `Verify your email before signing in…` | 403 | The sign-up link has not been opened yet. |
 | `Reauthentication required` | 403 | Type your current password (a password-less account: sign in again — the 15-minute window has passed). |
+| `Too many requests` | 429 | Too many password checks for this account in a minute; wait and try again. |
 | `two_factor_enabled` | 409 | Two-factor is already on; disable it before enrolling again. |
-| `Not enrolled`, `Invalid code` | 400 | Verify was called without a pending enrollment, or the code did not match. |
-| `Invalid or expired challenge` | 400 | The 5-minute sign-in challenge is over; sign in again. |
-| `Too many attempts` | 429 | Five wrong codes; sign in again. |
+| `Not enrolled`, `Invalid code` | 400 | Verify was called without a pending enrollment, or the code did not match. A code that was already used also answers `Invalid code`. |
+| `Invalid or expired challenge` | 400 | The 5-minute sign-in challenge is over, or it was already used to sign in; sign in again. |
+| `Too many attempts` | 429 | Five wrong codes within 15 minutes; two-factor sign-in stays locked until the 15 minutes end. Signing in again does not reset it. |
 | `passkey_exists` | 409 | That authenticator is already registered on the account. |
 | `Invalid credential` | 400 | The browser's WebAuthn response did not verify (wrong origin, counter went backwards, no user verification). |
 | `Not found` | 404 | The passkey is not on this account. |
 | `last_sign_in_method` | 409 | Unlinking would leave no password, passkey or other provider. |
-| `oauth_state_invalid` | redirect | *Sign-in expired. Try again.* — the 10-minute provider round trip took too long or was tampered with. |
+| `oauth_state_invalid` | redirect | *Sign-in expired. Try again.* — the 10-minute provider round trip took too long, was tampered with, or came back in a different browser from the one that started it. A sign-in in progress while the control plane was upgraded also fails this way once. |
+| `oauth_email_unverified` | redirect | The provider has not verified this email address, so it cannot be used to create an account. Verify it with the provider, or sign up with a password. |
 | `oauth_exchange_failed` | redirect | *Could not complete sign-in.* — the provider refused the code exchange. |
 | `oauth_signup_disabled` | redirect | *New accounts cannot be created this way.* — no linked account and sign-up is closed. |
 | `account_conflict` | redirect | The provider identity belongs to another user. |
