@@ -101,13 +101,15 @@ The script also cleans up installs from earlier releases, and installs that were
 
 When `daemon.env` is missing, discovery still starts from the default folders (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/opt/turbopanel/vendor`, `/run/turbopanel`, `/backup`, `/srv/users`). The daemon unit adds a run-directory override from `Environment=TURBOPANEL_RUN_DIR`, and `/etc/tmpfiles.d/turbopanel.conf` adds runtime socket paths that match a known folder. A custom `TURBOPANEL_BACKUP_DIR` or `TURBOPANEL_PRINCIPAL_HOME_ROOT` (for example `/mnt/backups`) is read from `daemon.env`, or from a unit `Environment=` line that sets that variable. With both gone, that path stays out of the report, the purge, and the final remaining-items scan.
 
-Before you purge, confirm every custom backup directory and principal home root in the pre-removal report: the `Principals: … under …` line, **Data folder sizes**, **Folders to remove**, and **Data folders kept by option 1**. When a path is missing, restore `daemon.env` (or the unit `Environment=` line) and run the script again.
+The script only deletes inside TurboPanel's own folders: `/opt/turbopanel`, `/etc/turbopanel`, `/etc/ssh/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`, `/backup`, `/srv/users`, its Ansible scratch folders, and the Docker folders `/var/lib/docker`, `/var/lib/containerd` and `/etc/docker`. It resolves symlinks in a folder's parent path before it checks. A custom backup directory, principal home root or Docker data root outside those folders is never deleted. It is listed under **Configured outside TurboPanel's folders (kept)** in the report and the summary. A principal home root outside them is also never used to pick accounts to delete. Remove those folders yourself once you have what you need from them.
+
+Before you purge, confirm every custom backup directory and principal home root in the pre-removal report: the `Principals: … under …` line, **Data folder sizes**, **Folders to remove**, **Data folders kept by option 1**, and **Configured outside TurboPanel's folders (kept)**. When a path is missing, restore `daemon.env` (or the unit `Environment=` line) and run the script again.
 
 If a tool the script wants is missing, that step shows as `SKIPPED: <tool> not installed`. A skip is not a failure.
 
 After removal the script scans again. Anything still present is listed under `Could not remove …` and the script exits non-zero. Running it again is safe.
 
-If a purge is interrupted, the next run prints `A previous purge did not finish. Resuming purge.` It still asks for the confirmation code. Resume state is a root-only marker and manifest under `/var/lib/turbopanel-uninstall`, outside the trees purge deletes. Both files are removed only after a purge finishes with no recorded failures.
+If a purge is interrupted, the next run prints `A previous purge did not finish. Resuming purge.` It still asks for the confirmation code. Resume state is a root-only marker and manifest under `/var/lib/turbopanel-uninstall`, outside the trees purge deletes. Both files are removed once a purge finishes and every recorded failure is harmless: a failed `apt-get update`, or a Docker data root that could not be found. Any other failure keeps them, and the next run resumes.
 
 ## Choose an option
 
@@ -126,7 +128,7 @@ q) Quit
 | `TP-*` firewall chains, WireGuard `tp0` | Removed | Removed |
 | Host config drop-ins (sysctl, udev, tmpfiles, sudoers, sshd, `/usr/local/bin/php`) | Removed | Removed |
 | `/opt/turbopanel`, runtime and run folders, Ansible scratch folders | Removed | Removed |
-| `/opt/turbopanel/` lines in shell startup files (a `.turbopanel-uninstall.bak` copy is saved first) | Removed | Removed |
+| `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-uninstall.bak` copy is saved first; principal homes are skipped) | Removed | Removed |
 | Service accounts and groups (IDs 9900–9999) | Removed | Removed |
 | Config, state, log and backup folders; `/etc/ssh/turbopanel` | Kept | Removed |
 | Principal accounts, `<user>-grp` groups, homes | Kept | Removed |
@@ -140,18 +142,20 @@ q) Quit
 
 <Callout type="warn" title="Docker purge is the whole host">
   Purging Docker Engine removes every container, volume, and image on this host, including ones
-  TurboPanel did not create. A non-default Docker data root is shown on the confirmation screen and
-  removed too.
+  TurboPanel did not create. A non-default Docker data root is shown on the confirmation screen. It is
+  removed only when it is inside TurboPanel's own folders; otherwise it is listed as kept.
 </Callout>
 
 **Apt packages.** Option 2 purges installed candidates, then runs `apt-get autoremove --purge`.
 
 | | Packages |
 | --- | --- |
-| Removed when installed | The base set (`acl`, `ca-certificates`, `curl`, `git`, `gnupg`, `iptables`, `openssl`, `pamtester`, `python3-debian`, `tar`, `unzip`, `wireguard-tools`, `xz-utils`, `zstd`, `apt-transport-https`), the Apache build dependencies (`build-essential`, `libexpat1-dev`, `libpcre2-dev`, `libssl-dev`, `zlib1g-dev`), installed `php*` packages, `debsuryorg-archive-keyring`, and the Docker packages (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`, `docker-ce-rootless-extras`, `docker.io`, `docker-compose`, `containerd`, `runc`). Also the `download.docker.com` source and its keyring, and `sury-php.sources` / `sury-php.list`. |
-| Always kept | Essential packages and packages with priority `required` (for example `tar`). `ca-certificates` and `openssl` while any remaining apt source uses `https://`. `sudo` and `systemd-timesyncd`, which are marked manual so autoremove cannot remove them. Any candidate whose removal would take other packages with it — each of those is listed under **Packages kept** with the reason. |
+| Removed when installed | The base set (`acl`, `pamtester`, `python3-debian`, `unzip`, `wireguard-tools`, `xz-utils`, `zstd`, `apt-transport-https`), the Apache build dependencies (`build-essential`, `libexpat1-dev`, `libpcre2-dev`, `libssl-dev`, `zlib1g-dev`), installed `php*` packages, `debsuryorg-archive-keyring`, and the Docker packages (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`, `docker-ce-rootless-extras`, `docker.io`, `docker-compose`, `containerd`, `runc`). Also the `download.docker.com` source and its keyring, and `sury-php.sources` / `sury-php.list`. |
+| Always kept | Essential packages and packages with priority `required` (for example `tar`). `sudo`, `systemd-timesyncd`, `curl`, `ca-certificates` and `openssl`, so the reinstall commands at the end still work. `git`, `gnupg` and `iptables`, which are common before TurboPanel and not recorded as installed by it. All of these are marked manual so autoremove cannot remove them. Any candidate whose removal would take other packages with it — each of those is listed under **Packages kept** with the reason. |
 
-**Not restored.** `ufw` and `firewalld` were removed when TurboPanel was installed and are not put back. `/etc/systemd/timesyncd.conf` is left as TurboPanel wrote it. Library versions installed from the PHP repository stay installed. The script's warning for that last case is `sury-provided library versions stay installed.`
+**No firewall afterwards.** Both options remove TurboPanel's own firewall rules, and `ufw` and `firewalld` were removed when TurboPanel was installed. The confirmation screen and the summary both say so: `No inbound firewall will remain: ufw and firewalld were removed when TurboPanel was installed, and this removes TurboPanel's own rules. Set up a firewall before this host takes traffic.`
+
+**Not restored.** `ufw` and `firewalld` are not put back. `/etc/systemd/timesyncd.conf` is left as TurboPanel wrote it. Library versions installed from the PHP repository stay installed. The script's warning for that last case is `sury-provided library versions stay installed.`
 
 <Callout type="info" title="Reboot after a purge">
   Reboot this host to clear leftover kernel state (bridges and NAT rules).
@@ -170,7 +174,7 @@ q) Quit
     Read the keep/remove summary and the warnings. Option 2 repeats the control-plane warning when the host is a control plane, and the Docker warning above.
   </Step>
   <Step>
-    Type the confirmation code. Option 1 expects `remove-<CODE>`. Option 2 expects `purge <hostname> <CODE>`. `<CODE>` is 8 uppercase hex characters, generated new on every run. The prompts are `Type remove-<CODE> to remove TurboPanel.` and `Type purge <hostname> <CODE> to purge.` Anything else prints `Aborted — nothing changed`.
+    Type the confirmation. Option 1 expects `remove-<CODE>`; its prompt is `Type remove-<CODE> to remove TurboPanel.` Option 2 expects the whole line `purge <hostname> <CODE>`, not the code alone. It prints `To confirm, type the line below exactly — the code alone is not enough:` and then the line to type on its own. `<CODE>` is 8 uppercase hex characters, generated new on every run. Anything else prints `Aborted — nothing changed`.
   </Step>
 </Steps>
 

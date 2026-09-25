@@ -36,26 +36,34 @@ Use a manual `run.sh` refresh when:
 On the managed server, as **root**:
 
 ```bash
+ENV_FILE=/etc/turbopanel/daemon.env
 LICENSE_B64=$(python3 -c "
 import base64
 id = open('/var/lib/turbopanel/license.id').read().strip()
 tok = open('/var/lib/turbopanel/license.token').read().strip()
 print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 ")
+HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' "$ENV_FILE")
+CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' "$ENV_FILE")
 
 curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
-  TURBOPANEL_UPDATE_CHANNEL=trunk \
+  TURBOPANEL_HOST="$HOST" \
+  TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
   sh
 ```
+
+The command reads the node's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote node. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `trunk`. A self-hosted node refreshed without them would be moved to the hosted control plane and the `trunk` channel.
 
 The installer:
 
 1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
-2. Reads your **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel` or `/etc/turbopanel/daemon.env` (default `trunk`)
-3. Reads your **control plane URL** and **CA** from `daemon.env` when self-hosted (`TURBOPANEL_INSTANCE_URL`, `TURBOPANEL_INSTANCE_CA`, else `/etc/turbopanel/instance-ca.pem`)
+2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `trunk`
+3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's hosted control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
 4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
+
+A manifest pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) is cleared by a refresh that does not name one. To keep it, add `TURBOPANEL_MANIFEST_URL=<the same URL>` to the command.
 
 A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by **Update TurboPanel**.
 

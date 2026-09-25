@@ -63,9 +63,14 @@ daemon below its floor still holds its socket so the update can reach it. See
   ```bash
   curl -fsSL turbopanel.sh \
     | TURBOPANEL_DAEMON_ONLY=1 \
-      TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/v0.1.1/manifest.json \
+      TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/<tag>/manifest.json \
       sh
   ```
+
+  Replace `<tag>` with the daemon release you are upgrading to, as listed on the daemon's
+  [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (for example
+  `v0.1.1`). It must be a release that advertises `managed-upgrade-v1`; `v0.1.0` does not.
+  The pre-flight sheet fills in the right tag for you.
 </Callout>
 
 ## From the console
@@ -165,16 +170,24 @@ sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate update-instan
 
 The same pins work from the installer. Each package keeps its own pin; a later channel install that does not name a pin clears it.
 
+Pin the control plane on its own host. `TURBOPANEL_INSTANCE=1` marks the run as a control-plane install; without it, a run that names a pin is read as a daemon enrolment and stops asking for `TURBOPANEL_LICENSE`:
+
 ```bash
 curl -fsSL turbopanel.sh \
-  | TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
+  | TURBOPANEL_INSTANCE=1 \
+    TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
 ```
+
+Pin a remote node's daemon. On a node enrolled with a self-hosted control plane, also pass `TURBOPANEL_HOST` with that control plane's URL, as in [Refresh a stuck daemon](/docs/deployment/daemon-update); without it the node is enrolled with the hosted control plane:
 
 ```bash
 curl -fsSL turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
+    TURBOPANEL_HOST=<control plane URL> \
     TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/v0.1.0/manifest.json sh
 ```
+
+Pins accept release manifests only. Each package's pin must be a `manifest.json` or `manifest-<version>.json` under its own repository's GitHub Releases (`https://github.com/TurboPanel/<repo>/releases/download/<tag>/…` or `…/releases/latest/download/…`); the daemon also accepts its CDN channel drop (`https://dl.trbp.nl/channels/<channel>/manifest.json`). The installer and the root helper refuse anything else, including a URL with `..`, a percent-encoded character, a port or a query string. A `TURBOPANEL_*_MANIFEST_URL` pin in `daemon.env` that does not match is ignored, as if unset.
 
 The instance checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
 
