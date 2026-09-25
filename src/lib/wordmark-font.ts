@@ -1,12 +1,4 @@
-import { Plus_Jakarta_Sans } from 'next/font/google'
+import { plusJakartaSans } from '@/lib/plus-jakarta-sans-font'
 
-/**
- * Lockup-only face (ExtraBold Italic). Native slant + light CSS skew to match
- * the T mark (~22°); less synthetic oblique than Outfit Black + full skew.
- */
-export const wordmarkFont = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['800'],
-  style: ['italic'],
-  variable: '--font-wordmark',
-})
+/** Wordmark uses the shared Plus Jakarta loader (800 italic via CSS). */
+export const wordmarkFont = plusJakartaSans
