@@ -273,6 +273,8 @@ Recommended:
 
 Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
+Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Choose an option](/docs/deployment/uninstall#choose-an-option).
+
 ## Daemon Security
 
 ### Authentication
