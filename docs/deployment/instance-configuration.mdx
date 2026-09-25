@@ -70,7 +70,7 @@ The four `TURBOPANEL_INSTANCE_ACME__*` keys are this control plane's settings. E
 
 ## Email
 
-Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, or `mailpit` for development), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. The email consumer runs inside the instance process, reads the same variables and reaches whatever host `SMTP_HOST` names.
+Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, or `mailpit` for development), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILPIT_API_URL`, `MAILPIT_WEB_PORT`, `MAILPIT_SMTP_PORT`, `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. On self-hosted Deno the email consumer runs inside the instance process and reads the same variables; on Workers the `mailpit` and `mailgun` providers send directly from the request path.
 
 ## Metrics and logs
 
