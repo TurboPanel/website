@@ -229,6 +229,10 @@ website/
 └── AGENTS.md
 ```
 
+## Releases and promotion
+
+`.github/workflows/release.yml` cuts a notes-only GitHub Release on a `v[0-9]*` tag push (or a dry-run dispatch). **Promotion (`.github/workflows/promote.yml`):** one click moves a tested build up a channel — `to=rc` turns a canary build (`source` = the commit-ish to tag, usually `trunk`; this repo is notes-only — no assets, the number is `package.json`'s) into `v<base>-rc.1` and fast-forwards `staging`; `to=release` turns `v<base>-rc.1` into `v<base>` (`releases/latest`; the rolling `rc` pointer is re-pointed at it) and fast-forwards `live`. The tag is created at the source commit (an existing tag elsewhere = burned version, fails). The three jobs are `TurboPanel/dev`'s `gh-promote.yml` → `gh-release.yml` → `gh-promote-finalize.yml` pinned to ONE dev sha, passed again as `dev-ref`. Approval = the `release` environment (prepare, then finalize). `to=release` needs the TurboPanel Release App secrets (`RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY`: bare tags and the `live` push are ruleset-bypass only) and refuses to start without them; `to=rc` runs on `GITHUB_TOKEN` and only its `staging` push fails — with the exact manual `git push` — until the App exists. An rc is refused while `.changeset/*.md` are pending at the source commit (no `.changeset/` → skipped with a notice). `release.yml` ignores tag pushes by `[bot]` actors so an App-created tag does not race the promotion with a from-source rebuild. Order across repos: turbopaneld → turbopanel → ui → website → dev. Full contract: `../dev/AGENTS.md` → Release promotion.
+
 ## Key conventions
 
 ### SonarQube (CI-based analysis)
