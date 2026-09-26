@@ -88,6 +88,8 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm notices:check` | Fail when notices are stale vs the lockfile, or a production dependency has an unreviewed license class |
 | `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (`src/lib/docs-ssr.ts`) |
 
+**Secret scan:** the pre-commit hook and CI (`--all`) run it. `scripts/scan-secrets.sh` is byte-identical in turbopanel, turbopaneld, ui, website and dev — change all five together. It refuses a committed secret-bearing file (`license.token`, `server-key.json`, `.pgpass`, `.rabbitmq_pass`, …), flags credential URLs (`amqp(s)`/`postgres(ql)` with `user:pass@`) and `TURBOPANEL_SECRET(S)` bindings, and flags any line that names a secret-bearing file unless that exact `path:line:content` is in `.secretscan-allowlist`. dev's `src/lib/scan-secrets.test.ts` tests the rules and, with the siblings checked out in dev CI, fails if any copy drifts.
+
 Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned). Production is vanilla Next on `alpha.turbopanel.net` (`scripts/vps/`), not Cloudflare Workers. `pnpm-workspace.yaml` `allowBuilds` must keep Next native postinstalls (`esbuild`, `sharp`, …) approved; pnpm 12 `strictDepBuilds` otherwise fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`.
 
 **Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
