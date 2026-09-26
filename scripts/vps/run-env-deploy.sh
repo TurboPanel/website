@@ -16,6 +16,12 @@ DEPLOY=/home/website/bin/deploy.sh
 CADDYFILE="${HOME}/Caddyfile"
 
 echo "deploy ${ENV_NAME} ${SHA}"
+# Build only what CI verified: wait for the commit's required checks. A
+# failure or a 30-minute timeout leaves the running color untouched.
+if ! node "${HOME}/bin/ci-gate.mjs" "${SHA}"; then
+  echo "ci gate refused ${SHA}; not deploying" >&2
+  exit 1
+fi
 if ! sudo -n -H -u website "${DEPLOY}" "${ENV_NAME}" "${SHA}"; then
   echo "deploy failed; leaving Caddy on the previous color" >&2
   exit 1

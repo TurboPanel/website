@@ -157,19 +157,9 @@ build_idle() {
   git -C "${clone}" reset --hard "${sha}"
   git -C "${clone}" clean -fdx
 
-  # CI already typechecks. Skip Next's in-process tsc on this 1 GiB host.
-  cfg="${clone}/next.config.js"
-  if [ -f "${cfg}" ] && ! grep -q ignoreBuildErrors "${cfg}"; then
-    tmp="${cfg}.skipts"
-    awk '
-      /output: .standalone./ && !done {
-        print "    typescript: { ignoreBuildErrors: true },"
-        done = 1
-      }
-      { print }
-    ' "${cfg}" >"${tmp}"
-    mv "${tmp}" "${cfg}"
-  fi
+  # CI already typechecked this commit (run-env-deploy.sh's ci-gate waits
+  # for it); next.config.js skips Next's in-process tsc when
+  # TURBOPANEL_SKIP_TS_CHECK=1 (exported above) on this 1 GiB host.
 
   (
     cd "${clone}"
