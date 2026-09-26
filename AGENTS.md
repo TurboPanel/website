@@ -103,7 +103,7 @@ vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd 
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm verify:ci'
 ```
 
-**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm build`, `check:docs-ssr`, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`. Triggers on `trunk`, `staging`, and `live`.
+**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm build`, `check:docs-ssr`, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`. Triggers on `trunk`, `staging`, and `live`. A final `ci-ok` job `needs:` `verify` and `metrics-legacy` and fails unless both succeeded; it is the one check the rulesets will require, so a new PR-time job must be added to its `needs:`.
 
 **Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
