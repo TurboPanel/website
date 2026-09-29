@@ -230,12 +230,12 @@ a managed install connects without it.
 
 See [Deployment troubleshooting](/docs/deployment/troubleshooting) for more.
 
-## Uninstalling
+## Purging this host
 
-Remove this host with the [uninstall script](/docs/deployment/uninstall).
+Purge TurboPanel from this host with the [purge script](/docs/deployment/purge).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopaneld/trunk/scripts/uninstall.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopaneld/trunk/scripts/purge.sh | sudo sh
 ```
 
 Unlike the installer, this script must be run with `sudo` (or from a root shell) and needs a terminal. Over SSH, use `ssh -t`.
@@ -245,5 +245,5 @@ Unlike the installer, this script must be run with `sudo` (or from a root shell)
 - [Deployment hub](/docs/deployment) — Operator overview
 - [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
 - [Security](/docs/deployment/security) — TLS and socket hardening
-- [Uninstall](/docs/deployment/uninstall) — Remove TurboPanel from a host
+- [Purge](/docs/deployment/purge) — Purge TurboPanel from a host
 - [Daemon README](https://github.com/TurboPanel/turbopaneld/blob/trunk/README.md) — Maintainer reference

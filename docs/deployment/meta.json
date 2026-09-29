@@ -9,7 +9,7 @@
     "daemon-update",
     "compatibility",
     "upgrade",
-    "uninstall",
+    "purge",
     "metrics",
     "network-addressing",
     "hostnames-and-tls",
