@@ -664,11 +664,11 @@ body {
   font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
 }
 
-/** Logotype “urboPanel” — Outfit Black, skewed to the T (see Logo.tsx). */
+/** Logotype “urboPanel” — Plus Jakarta ExtraBold Italic + skew (see Logo.tsx). */
 .tp-wordmark {
-  font-family: var(--font-wordmark), var(--font-display), var(--font-geist-sans), sans-serif;
-  font-weight: 900;
-  font-style: normal;
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-weight: 800;
+  font-style: italic;
   letter-spacing: -0.02em;
 }
 

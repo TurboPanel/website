@@ -5,7 +5,7 @@ description: "Data dictionary — organizations tables: changeover, invitation, 
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/lib/db/schema-descriptions.ts + migrations/meta/0004_snapshot.json (0004_schema_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0008_snapshot.json (0008_invitation_token_hash).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — organizations tables: changeover, invitation, 
 
 The tenant boundary. Organizations own every other resource; teams and teammates carry membership; the TLS tables hold the Organization CA and its rotations.
 
-Tables on this page: [`changeover`](#changeover) · [`invitation`](#invitation) · [`leaf`](#leaf) · [`organization`](#organization) · [`team`](#team) · [`teammate`](#teammate) · [`tls`](#tls). Generated from migration `0004_schema_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`changeover`](#changeover) · [`invitation`](#invitation) · [`leaf`](#leaf) · [`organization`](#organization) · [`team`](#team) · [`teammate`](#teammate) · [`tls`](#tls). Generated from migration `0008_invitation_token_hash`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `changeover` [#changeover]
 
@@ -55,9 +55,11 @@ Team-scoped invite emailed to an address; one pending per (team, email) with a 7
 | `email` | `varchar(255)` | no |  | Invited address; accept succeeds only for a signed-in account whose email equals it case-insensitively. |
 | `status` | `text` | no |  | `pending` at creation, then `accepted` by the accept route or `revoked` by the revoke route; expiry is not a status. |
 | `grants` | `jsonb` | yes |  | Array of `entityType` / `entityId` / `permissionKey` specs an owner attached, or null for the default `organization:manage`; written as `grant` rows on accept. |
+| `token_hash` | `text` | yes |  | SHA-256 verifier of the secret emailed only in the accept link, used to look the invitation up; rotated on re-send, null on older invitations. |
 
 **Constraints and indexes**
 
+- Unique index `uniq_invitation_token_hash`: (`token_hash`)
 - Index `idx_invitation_email`: (`email`)
 - Index `idx_invitation_user_id`: (`user_id`)
 - Index `idx_invitation_team_id`: (`team_id`)

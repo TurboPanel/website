@@ -1,0 +1,247 @@
+---
+title: Purge and data export
+description: Purge TurboPanel from a control-plane server or a managed server with the purge script, and export data first
+---
+
+# Purge and data export
+
+The purge script removes TurboPanel from a self-hosted control-plane server, a server enrolled with TurboPanel High Availability, and a server enrolled with another control plane. It is a purge: there is no option to keep your data, so export what you need first. It removes only what TurboPanel put on the host — no distribution package other than Docker and TurboPanel's own PHP packages, so it is safe to run on a desktop or shared machine.
+
+<Callout type="info" title="Private alpha — not yet publicly available">
+  Self-hosted TurboPanel is in private alpha, alongside TurboPanel High Availability. Neither is
+  publicly available yet — this page documents where we are headed as we work toward a beta release.
+  Expect breaking changes before then. See the [roadmap](https://turbopanel.io/roadmap) for progress.
+</Callout>
+
+## Before you purge
+
+Export what you need. The purge deletes every path in this table.
+
+| Data | Location | Export |
+| --- | --- | --- |
+| Postgres (orgs, projects, secrets metadata) | Docker volume or socket DB | `pg_dump` |
+| TLS certificates (platform CA + leaf) | `/etc/turbopanel/instance/certs/` or role-managed paths | Copy PEM files |
+| Daemon license | `/var/lib/turbopanel/license.*` | Save before wipe if re-enrolling |
+| Application logs | `/var/log/turbopanel/` | Archive for compliance |
+| Secret keyring | `/etc/turbopanel/instance/.instance_secrets` | Copy the file off the host |
+| Nightly control-plane dumps | `/var/lib/turbopanel/backup/postgres` | Copy the dumps off the host |
+| Managed-engine backups | `/backup`, or `TURBOPANEL_BACKUP_DIR` | Copy the tree off the host |
+| Principal homes | `/srv/users/<username>` | Copy the home directories |
+
+Secrets at rest use the control plane keyring — without a database backup, encrypted blobs cannot be recovered. Back up the keyring ([Backup and escrow](/docs/deployment/security#backup-and-escrow)) and the database ([Backup and disaster recovery](/docs/deployment/security#backup-and-disaster-recovery)) before you purge.
+
+<Callout type="warn" title="Purging a control plane">
+  The database and the secret keyring live under `/etc/turbopanel` and in Docker volumes.
+  Purging hosted data is unrecoverable and leaves other enrolled servers without this control plane.
+</Callout>
+
+## Run the purge script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopaneld/trunk/scripts/purge.sh | sudo sh
+```
+
+**Root.** The script must already be root. It does not re-execute itself under sudo, which is the opposite of `turbopanel.sh`. Without root it prints `root is required`, exits 1, and changes nothing. From a root shell, leave out `sudo`.
+
+**Terminal.** Prompts are read from the controlling terminal even when curl feeds the script on stdin. Over SSH, allocate a terminal with `ssh -t`. Without one the script prints `A controlling terminal is required. Nothing was changed.`
+
+**`trunk`.** The command always fetches the current `trunk` copy of the script.
+
+Read the script before you run it, or preview the commands:
+
+```bash
+# Read it first, then run the downloaded copy.
+curl -fsSLO https://raw.githubusercontent.com/TurboPanel/turbopaneld/trunk/scripts/purge.sh
+sudo sh purge.sh
+
+# Dry run on a downloaded copy.
+sudo sh purge.sh --dry-run
+
+# Dry run through the pipe.
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/turbopaneld/trunk/scripts/purge.sh | sudo sh -s -- --dry-run
+```
+
+**Log.** The script writes a root-only log at `/var/tmp/turbopanel-purge-<timestamp>.<random>`. That file sits outside the trees a purge deletes, so it survives.
+
+## What the script detects
+
+Detection only changes the label and the warnings printed before you confirm. The purge runs the same steps on every host.
+
+| What the script finds | Label shown | Extra warning |
+| --- | --- | --- |
+| Instance binary or `turbopanel-instance.service`, and no `TURBOPANEL_INSTANCE_URL` | self-hosted control plane | database and keyring warning |
+| Daemon with URL host `turbopanel.app` or `*.turbopanel.dev` | TurboPanel High Availability | delete the server in the console |
+| Daemon enrolled with some other control plane | self-hosted control plane at `<url>` | delete the server in the console |
+| Partial install with control-plane traces | control-plane leftovers | database and keyring warning |
+| Partial install with no control-plane traces | leftovers, type unknown | — |
+| Daemon with no control-plane URL | TurboPanel daemon (control plane URL not set) | — |
+
+The database and keyring warning is the text in [Purging a control plane](#before-you-purge). The console warning is: `After the purge, delete this server in the console so the control plane drops the enrolment.`
+
+If the scan finds nothing, the script prints `TurboPanel is not installed on this host` and exits 0.
+
+Before the confirmation prompt, the report shows:
+
+- **Host** and the **install label** from the table above
+- **Control plane URL**, when `TURBOPANEL_INSTANCE_URL` is set
+- How many **principals** were found, and the home root they live under
+- **Docker** status: installed and responding, installed but not responding, or not installed. A non-default data root is printed here when the script can read it
+- The scan, grouped under **Units**, **Containers**, **Networks**, **Docker volumes**, **Firewall chains**, **WireGuard**, **Host files**, **Shell startup files**, **Folders to remove**, **Data folders (config, state, logs, backups)**, **Accounts to remove**, **Groups to remove**, **Principal homes**, and **Left alone**
+- **Data folder sizes**
+
+## Older and partial installs
+
+The script also cleans up installs from earlier releases, and installs that were partly removed by hand or stopped partway through. Names from older releases are marked `(older release)`:
+
+- Accounts `turbopanel`, `turbopaneli`, and `turbopanelc`
+- Units `turbopanel-mailer` and `turbopanel-php-fpm`
+- The pre-Compose containers `turbopanel-database` and `turbopanel-queue`
+- Retired paths under `/opt/turbopanel/`: `runtimes`, `platform`, `share/ansible`, `lib/instance`, `vendor/duckdb`, `share/caddy`, `bin/turbopanel-instance`, and `bin/turbopanel-mailer`
+- The old Deno line in shell startup files (`. "/opt/turbopanel/runtimes/deno/.install/env"`)
+
+When `daemon.env` is missing, discovery still starts from the default folders (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/opt/turbopanel/vendor`, `/run/turbopanel`, `/backup`, `/srv/users`). The daemon unit adds a run-directory override from `Environment=TURBOPANEL_RUN_DIR`, and `/etc/tmpfiles.d/turbopanel.conf` adds runtime socket paths that match a known folder. A custom `TURBOPANEL_BACKUP_DIR` or `TURBOPANEL_PRINCIPAL_HOME_ROOT` (for example `/mnt/backups`) is read from `daemon.env`, or from a unit `Environment=` line that sets that variable. With both gone, that path stays out of the report, the purge, and the final remaining-items scan.
+
+The script only deletes inside TurboPanel's own folders: `/opt/turbopanel`, `/etc/turbopanel`, `/etc/ssh/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`, `/backup`, `/srv/users`, its Ansible scratch folders, and the Docker folders `/var/lib/docker`, `/var/lib/containerd` and `/etc/docker`. It resolves symlinks in a folder's parent path before it checks. A custom backup directory, principal home root or Docker data root outside those folders is never deleted. It is listed under **Configured outside TurboPanel's folders (kept)** in the report and the summary. A principal home root outside them is also never used to pick accounts to delete. Remove those folders yourself once you have what you need from them.
+
+Before you purge, confirm every custom backup directory and principal home root in the pre-removal report: the `Principals: … under …` line, **Data folder sizes**, **Folders to remove**, **Data folders (config, state, logs, backups)**, and **Configured outside TurboPanel's folders (kept)**. When a path is missing, restore `daemon.env` (or the unit `Environment=` line) and run the script again.
+
+If a tool the script wants is missing, that step shows as `SKIPPED: <tool> not installed`. A skip is not a failure.
+
+After removal the script scans again. Anything still present is listed under `Could not remove …` and the script exits non-zero. Running it again is safe.
+
+If a purge is interrupted, the next run prints `A previous purge did not finish. Resuming purge.` It still asks for the confirmation code. Resume state is a root-only marker and manifest under `/var/lib/turbopanel-purge`, outside the trees purge deletes. Both files are removed once a purge finishes and every recorded failure is harmless: a failed `apt-get update`, or a Docker data root that could not be found. Any other failure keeps them, and the next run resumes.
+
+## What the purge removes
+
+There is one path and nothing to choose. `q` is not offered; the only way out is to not type the confirmation line.
+
+| Item | Purge |
+| --- | --- |
+| systemd units (`turbopaneld`, `turbopanel-*`, `wg-quick@tp0`) | Removed |
+| TurboPanel containers and networks | Removed |
+| `TP-*` firewall chains, WireGuard `tp0` | Removed |
+| Host config drop-ins (sysctl, udev, tmpfiles, sudoers, sshd, `/usr/local/bin/php`) | Removed |
+| `/opt/turbopanel`, runtime and run folders, Ansible scratch folders | Removed |
+| `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-purge.bak` copy is saved first; principal homes are removed whole) | Removed |
+| Service accounts and groups (IDs 9900–9999) | Removed |
+| Config, state, log and backup folders; `/etc/ssh/turbopanel` | Removed |
+| Principal accounts, `<user>-grp` groups, homes | Removed |
+| Docker Engine: containers, volumes, images, packages, its apt repo and key | Removed |
+| PHP packages and the sury key that TurboPanel installed | Removed (see below) |
+| Any other apt package | Never touched |
+
+Other `tp*` and `turbopanel*` accounts outside the 9900–9999 band show under **Left alone** and are never deleted.
+
+**Principals.** Accounts are found by home folder under each discovered principal home root (default `/srv/users/<username>`), whatever the UID. Earlier releases used IDs from 1000 or 10001. Current ones start at 15001.
+
+<Callout type="warn" title="Docker purge is the whole host">
+  Purging Docker Engine removes every container, volume, and image on this host, including ones
+  TurboPanel did not create. A non-default Docker data root is shown on the confirmation screen. It is
+  removed only when it is inside TurboPanel's own folders; otherwise it is listed as kept.
+</Callout>
+
+**Apt packages.** The purge never removes a package just because TurboPanel's installer relied on it, and it never runs `apt-get autoremove`. Hosts running this can be desktops with other software on them.
+
+| | Packages |
+| --- | --- |
+| Purged when installed | The Docker packages (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`, `docker-ce-rootless-extras`, `docker.io`, `docker-compose`, `containerd`, `runc`), the `download.docker.com` source and its keyring. And, only when TurboPanel's own PHP source (`sury-php.sources` / `sury-php.list`) or its `turbopanel-php-fpm` unit is on the host: the `phpN.N-*` packages and `debsuryorg-archive-keyring`, and then that source file. |
+| Never removed | Everything else, including what the installer installs to do its work: `curl`, `git`, `acl`, `gnupg`, `iptables`, `openssl`, `ca-certificates`, `tar`, `unzip`, `wireguard-tools`, `pamtester`, `python3-debian`, `xz-utils`, `zstd`, `apt-transport-https`, `sudo`, `systemd-timesyncd`, `build-essential` and the Apache build libraries. |
+
+Every package that is purged is first simulated with `apt-get -s purge`. A package whose removal would also remove anything else (for example `runc` on a host that also runs `podman`) is kept and listed under **Packages kept** with the reason.
+
+**No firewall afterwards.** The purge removes TurboPanel's own firewall rules, and `ufw` and `firewalld` were removed when TurboPanel was installed. The confirmation screen and the summary both say so: `No inbound firewall will remain: ufw and firewalld were removed when TurboPanel was installed, and this removes TurboPanel's own rules. Set up a firewall before this host takes traffic.`
+
+**Not restored.** `ufw` and `firewalld` are not put back. `/etc/systemd/timesyncd.conf` is left as TurboPanel wrote it. Library versions installed from the PHP repository stay installed.
+
+<Callout type="info" title="Reboot after a purge">
+  Reboot this host to clear leftover kernel state (bridges and NAT rules).
+</Callout>
+
+## Confirm
+
+<Steps>
+  <Step>
+    Review the report: host, install label, and everything that will be removed.
+  </Step>
+  <Step>
+    Read the scope and the warnings. The scope says what is removed and that no other package is. It repeats the control-plane warning when the host is a control plane, and the Docker warning above.
+  </Step>
+  <Step>
+    Type the whole confirmation line `purge <hostname> <CODE>`, not the code alone. The script prints `To confirm, type the line below exactly — the code alone is not enough:` and then the line to type on its own. `<CODE>` is 8 uppercase hex characters, generated new on every run. Anything else prints `Aborted — nothing changed`.
+  </Step>
+</Steps>
+
+`--dry-run` shows the same prompts and logs `[dry-run] would run: …` for each command. It writes no resume marker or manifest, and it ends with `Dry run finished — nothing was changed`. It still needs root and a controlling terminal.
+
+## After purging a daemon
+
+1. Stop environments from the console before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
+2. After the script finishes, open the server in the console and use **Delete server**. On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
+3. Reinstall with the commands the script prints at the end:
+
+Install a daemon again ([Daemon setup](/docs/deployment/daemon-setup)):
+
+```bash
+curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<license> sh
+```
+
+Install a self-hosted control plane again ([Control plane](/docs/deployment/control-plane)):
+
+```bash
+curl -fsSL turbopanel.sh | sh
+```
+
+## Contributor dev environment
+
+The script refuses a development environment before it changes anything. It exits when any of these are present:
+
+- `TURBOPANEL_MODE=development`, `TURBOPANEL_DEV_ROOT`, or `TURBOPANEL_DEV_USER` in `daemon.env`
+- `/etc/sudoers.d/turbopanel-dev-nopasswd`
+- `/etc/turbopanel/dev-forward-hosts`
+- A `turbopaneld.service` whose `ExecStart` runs `main.ts`
+
+The message is `This host is a TurboPanel development environment (…). Nothing was changed.` followed by `Use ~/dev/console → Developer → Reset development environment / Purge completely.`
+
+From `~/dev/console`, open **Developer**:
+
+**Reset development environment** (`src/lib/reset-dev-environment.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
+
+1. Stops platform systemd units and Docker containers
+2. Removes dev Docker volumes
+3. Hard-resets platform git checkouts to `origin/trunk`
+4. Re-runs dev converge
+
+Reset does not delete `~/dev` itself.
+
+**Purge completely** (`purgeDaemon()` in `src/lib/daemon-actions.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
+
+1. Stops, disables, and deletes `turbopaneld.service`, then reloads systemd
+2. Deletes the daemon checkout at `~/turbopaneld` (`TURBOPANEL_DEV_ROOT/turbopaneld`, or `TURBOPANEL_DAEMON_REPO` when that override is set)
+3. Deletes vendored runtimes under `/opt/turbopanel/vendor`
+4. Deletes `/opt/turbopanel/.cache`, `/opt/turbopanel/.ansible`, and `/opt/turbopanel/.local`
+
+<Callout type="warn" title="Purge deletes the host-synced daemon checkout">
+  Vagrant mounts `~/turbopaneld` both ways from the contributor's host checkout. **Purge completely**
+  runs `rm -rf` on that path, so work in the host `turbopaneld` tree is deleted with the guest copy.
+</Callout>
+
+<Callout type="warn" title="FHS state and secrets stay on the guest">
+  `/etc/turbopanel` (including `daemon.env` and the instance secret keyring), `/var/lib/turbopanel`,
+  `/var/log/turbopanel`, and `/run/turbopanel` stay in place. Credentials and application state
+  remain until those trees are removed by hand.
+</Callout>
+
+## TurboPanel High Availability
+
+Cancel your account through commercial support. Export org data via API or requested export before closure.
+
+Servers enrolled with TurboPanel High Availability are purged with the same script. After it finishes, delete the server in the console.
+
+## Related
+
+- [Self-hosted overview](/docs/deployment/self-hosted)
+- [Daemon setup](/docs/deployment/daemon-setup)
+- [Control plane](/docs/deployment/control-plane)
+- [Security → Backup and escrow](/docs/deployment/security#backup-and-escrow)
+- [Daemon trust model](/docs/security/daemon-trust-model)
+- [Security reporting](/docs/security/reporting)

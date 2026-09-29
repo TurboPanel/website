@@ -19,7 +19,7 @@ type DocsPageProps = Readonly<{
   params: Promise<{ slug?: string[] }>
 }>
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return source.generateParams()
 }
 

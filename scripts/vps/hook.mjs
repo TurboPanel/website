@@ -4,12 +4,17 @@
  * raw body, maps trunk/staging/live onto a website deploy, responds 202, then
  * flocks per env so GitHub does not wait on pnpm build.
  */
-import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import {
+  createReplayGuard,
+  deployTargetFromPush,
+  parseWebhookSecret,
+  verifySignature,
+} from './hook-lib.mjs'
 
 const LISTEN_HOST = '127.0.0.1'
 const LISTEN_PORT = 8790
@@ -17,67 +22,6 @@ const MAX_BODY_BYTES = 1_000_000
 const HOOK_ENV_PATH = join(homedir(), '.config/alpha/hook.env')
 const RUN_DEPLOY = join(homedir(), 'bin/run-env-deploy.sh')
 const LOCK_DIR = join(homedir(), 'locks')
-
-const REF_TO_ENV = {
-  'refs/heads/trunk': 'testing',
-  'refs/heads/staging': 'staging',
-  'refs/heads/live': 'live',
-}
-
-/**
- * @param {string} path
- * @returns {string}
- */
-function readWebhookSecret(path) {
-  const text = readFileSync(path, 'utf8')
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const eq = trimmed.indexOf('=')
-    if (eq === -1) continue
-    const key = trimmed.slice(0, eq).trim()
-    if (key !== 'GITHUB_WEBHOOK_SECRET') continue
-    const value = trimmed.slice(eq + 1).trim()
-    if (!value) {
-      throw new Error('GITHUB_WEBHOOK_SECRET is empty')
-    }
-    return value
-  }
-  throw new Error('GITHUB_WEBHOOK_SECRET missing from hook.env')
-}
-
-/**
- * @param {string} hex
- * @returns {Buffer | null}
- */
-function hexBuffer(hex) {
-  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) {
-    return null
-  }
-  return Buffer.from(hex, 'hex')
-}
-
-/**
- * @param {Buffer} rawBody
- * @param {string | undefined} header
- * @param {string} secret
- * @returns {boolean}
- */
-function verifySignature(rawBody, header, secret) {
-  const prefix = 'sha256='
-  if (!header?.startsWith(prefix)) {
-    return false
-  }
-  const expected = hexBuffer(header.slice(prefix.length))
-  if (!expected) {
-    return false
-  }
-  const digest = createHmac('sha256', secret).update(rawBody).digest()
-  if (digest.length !== expected.length) {
-    return false
-  }
-  return timingSafeEqual(digest, expected)
-}
 
 /**
  * @param {import('node:http').IncomingMessage} req
@@ -126,30 +70,8 @@ function startLockedDeploy(envName, sha) {
   child.unref()
 }
 
-/**
- * @param {unknown} payload
- * @returns {{ envName: string, sha: string } | null}
- */
-function deployTargetFromPush(payload) {
-  if (typeof payload !== 'object' || payload === null) {
-    return null
-  }
-  const record = /** @type {Record<string, unknown>} */ (payload)
-  if (typeof record.ref !== 'string') {
-    return null
-  }
-  const envName = REF_TO_ENV[record.ref]
-  if (!envName) {
-    return null
-  }
-  const after = typeof record.after === 'string' ? record.after : ''
-  if (!/^[0-9a-f]{40}$/.test(after) || /^0+$/.test(after)) {
-    return null
-  }
-  return { envName, sha: after }
-}
-
-const secret = readWebhookSecret(HOOK_ENV_PATH)
+const secret = parseWebhookSecret(readFileSync(HOOK_ENV_PATH, 'utf8'))
+const replayGuard = createReplayGuard()
 
 const server = createServer((req, res) => {
   void handleRequest(req, res)
@@ -177,6 +99,13 @@ async function handleRequest(req, res) {
   const header = Array.isArray(signature) ? signature[0] : signature
   if (!verifySignature(rawBody, header, secret)) {
     send(res, 401, 'invalid signature\n')
+    return
+  }
+
+  const deliveryHeader = req.headers['x-github-delivery']
+  const delivery = Array.isArray(deliveryHeader) ? deliveryHeader[0] : deliveryHeader
+  if (!replayGuard.firstSeen(delivery)) {
+    send(res, 409, 'duplicate delivery\n')
     return
   }
 

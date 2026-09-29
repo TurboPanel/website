@@ -147,7 +147,9 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `compose_empty` | 400 | The merged document has no services. |
 | `compose_merged_invalid` | 422 | Project and overlay each saved cleanly but their merge is not valid Compose. Open **Preview ▾ → Merged compose**. |
 | `compose_field_unsupported` | 422 | An unsupported key is present; the message quotes why. Remove it. |
-| `compose_field_requires_org_opt_in` | 403 | A gated key (`privileged`, `cap_add`, …) and the organization has not opted in. An owner enables it with `PUT /organizations/:id/compose-privileged-fields`. |
+| `compose_field_requires_org_opt_in` | 403 | A host-level feature — a gated key (`privileged`, `cap_add`, `use_api_socket`, …) or a path outside the service's directory — and the organization has not turned them on. An owner enables them with `PUT /organizations/:id/compose-privileged-fields`. See [Host-level features](/docs/using/compose#host-level-features). |
+| `compose_host_access_requires_manager` | 403 | Host-level features are on, but only an organization manager or owner can deploy them. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content no manager or owner has deployed in this form. Deploy it once from the console. |
 | `invalid_deploy_hosting`, `invalid_deploy_storage` | 400 | A hosting or storage row attached to the environment is malformed; the message names it. |
 | `principal_alias_unknown`, `principal_required_for_service_kind`, `site_principal_ambiguous`, `source_principal_ambiguous`, `site_cron_unowned`, `site_managed_directory_unowned` | 422 | Ownership of a site or Node app is missing or ambiguous — declare `x-turbopanel.principal`, or assign a system user on **Bindings**. |
 | `source_ref_unresolved` | 422 | A source service's branch does not exist or the provider refused the lookup. |

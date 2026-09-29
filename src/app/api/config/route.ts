@@ -31,7 +31,7 @@ export type ApiConfig = {
 const CONFIG_CACHE_CONTROL =
   'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800'
 
-export async function GET(request: Request): Promise<Response> {
+export function GET(request: Request): Response {
   const host = request.headers.get('host') || 'turbopanel.app'
   const [hostname, port = ''] = host.split(':')
 
