@@ -1,0 +1,109 @@
+---
+title: How to ship
+description: Cut a release candidate and a release for TurboPanel by merging two pull requests, and how a new minor version moves the repositories together
+---
+
+# How to ship
+
+Shipping TurboPanel is two merges. Each repository does it on its own: a merge on `trunk`
+becomes a canary, merging one pull request cuts a **release candidate**, and merging a second
+one cuts the **release**. Nothing is rebuilt along the way — the release candidate and the
+release are the canary's exact bytes, re-named and re-signed.
+
+This page is for maintainers. The channels themselves are described under
+[Canary environment](/docs/development/canary).
+
+## The whole path
+
+| Step | Who | Result |
+| --- | --- | --- |
+| Squash-merge a change into `trunk` | Anyone with a green `ci-ok` | A **canary** `x.y.z-canary.N` is built and published |
+| Merge **"Release candidate x.y.z-rc.N"** (`trunk` → `staging`) | A maintainer | `vx.y.z-rc.N` is cut from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
+| Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer | `vx.y.z` becomes the latest release; `live` moves; **"Start x.y.z+1"** opens |
+| Squash-merge **"Start x.y.z+1"** | A maintainer | `trunk` moves to the next number, so the next canary carries it |
+
+The pull requests are opened and refreshed by a bot (the TurboPanel Release App), so their checks
+run. You never run a workflow by hand for a normal release.
+
+## 1. Cut a release candidate
+
+1. Open the pull request titled **Release candidate x.y.z-rc.N**. The number after `rc.` is
+   the next one for that version: one more than the highest candidate that already exists.
+2. Wait for `ci-ok`, then merge it with a **merge commit**. `staging` takes merge commits only.
+3. A workflow takes the canary that was built from the merged commit and publishes it as
+   `vx.y.z-rc.N` — no approval click. The **Release x.y.z** pull request opens (or refreshes).
+
+If something is wrong with a candidate, fix it on `trunk`. The next candidate pull request appears
+after the next green build, and merging it cuts `rc.N+1`. The version number is never burned: a
+candidate is replaced, not abandoned.
+
+## 2. Ship the release
+
+1. Open **Release x.y.z**. The list is everything since the last release.
+2. Wait for `ci-ok`, then merge it with a **merge commit**. `live` takes merge commits only.
+3. A workflow takes the **newest** candidate of that version and publishes it as `vx.y.z`, marks
+   it the latest release and moves `live`. It pauses for your approval on the **`release`
+   environment**; approve it on the run page.
+4. A **Start x.y.z+1** pull request opens. Squash-merge it.
+
+The installer and the update system follow GitHub's *latest* release, so the release is what a
+plain install gets from that moment.
+
+## 3. Start the next number
+
+The **Start** pull request changes only the version files (`deno.json` / `package.json`,
+`app.json` for the web app, `sonar-project.properties`). It bumps a **patch** by default. Add the
+**`minor`** label to any pull request that is merged before the release to make the next number a
+**minor** instead. It never goes below the highest minor any of the repositories is already on.
+
+## Repositories ship independently
+
+The daemon (`turbopaneld`), the control plane (`turbopanel`), the web app (`ui`) and the
+website each have their own version and their own two merges. A daemon-only or a web-app-only
+release is normal: **no release waits on a matching release in another repository.** The website
+ships no binary, so its candidates and releases are notes-only tags on a commit.
+
+## A new minor moves three repositories together
+
+The one exception is a **new minor** (`x.y.0`), because the daemon, control plane and web app are
+released as a set. The order is fixed:
+
+1. `turbopanel` and `ui` each cut a release candidate of `x.y.0`.
+2. Then the daemon releases `x.y.0`.
+3. Then `turbopanel` and `ui` release `x.y.0`.
+
+A check named **minor-gate** on each **Release** pull request enforces it. The daemon's stays red
+until both other repositories have an `x.y.0` candidate. The control plane's and the web app's stay
+red until the daemon has released `x.y.0`. Patch releases are never checked, and neither are the
+website or `dev`. When the other side becomes ready the waiting pull request's failed check is
+re-run for you; if it is not, re-run the failed check by hand.
+
+To **start** a minor, label a pull request `minor`. When the release ships, the Start pull request
+for that repository moves to `x.y.0`, and the same "Start x.y.0" pull request opens in the other
+two of the three. The **Start a minor** form in the `dev` repository (Actions → *Start a minor*,
+one input: `0.2.0`) does the same by hand.
+
+## When something goes wrong
+
+| What you see | What to do |
+| --- | --- |
+| The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build |
+| The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Cut rc** workflow (*Run workflow*, the commit to tag) |
+| The release run is waiting | Approve the `release` environment on the run page |
+| The automatic path cannot run at all | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path |
+| A candidate was cut from the wrong commit | Merge the fix and cut the next candidate; a published candidate is not edited |
+| A minor's Release pull request is red on **minor-gate** | The message names the repository that is not ready yet. Get that repository's candidate (or the daemon's release) done first |
+
+## Who needs what
+
+- Merging to `trunk`, and to `staging` and `live`, is **pull request only** — squash on `trunk`,
+  merge commits only on `staging` and `live`. The one required check is `ci-ok`.
+- Tags and the `staging` / `live` moves are made by the TurboPanel Release App, not by a person.
+- Approving the `release` environment is a maintainer action. The first candidate merge needs no
+  approval.
+
+## Related
+
+- [Canary environment](/docs/development/canary) — channels, canary builds and version numbers
+- [Upgrade and rollback](/docs/deployment/upgrade) — how a host follows a channel
+- [Compatibility](/docs/deployment/compatibility) — which control plane and daemon builds work together
