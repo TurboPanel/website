@@ -18,7 +18,7 @@ vi.mock('next/font/google', () => ({
 describe('wordmarkFont', () => {
   it('reuses the single Plus Jakarta loader used for display', () => {
     const loaded = vi.mocked(Plus_Jakarta_Sans)
-    expect(loaded.mock.calls.length).toBe(1)
+    expect(loaded.mock.calls).toHaveLength(1)
     const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
       subsets: ['latin'],
