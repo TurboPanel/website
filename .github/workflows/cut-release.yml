@@ -88,18 +88,18 @@ jobs:
   prepare:
     needs: resolve
     if: needs.resolve.outputs.proceed == 'true'
-    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@d5d3d0b14af8d0788c9341fccd0c3e729e2614c7 # dev#27
+    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@104651a09386eb24d3bd78432f921bbfb76c66f4 # dev#30
     with:
       repo-kind: notes-only
       to: release
       source: ${{ needs.resolve.outputs.rc-tag }}
-      dev-ref: d5d3d0b14af8d0788c9341fccd0c3e729e2614c7
+      dev-ref: 104651a09386eb24d3bd78432f921bbfb76c66f4
       # Default: the `release` environment approval stays for the release hop.
     secrets: inherit
 
   publish:
     needs: prepare
-    uses: TurboPanel/dev/.github/workflows/gh-release.yml@d5d3d0b14af8d0788c9341fccd0c3e729e2614c7 # dev#27
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@104651a09386eb24d3bd78432f921bbfb76c66f4 # dev#30
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: release
@@ -111,7 +111,7 @@ jobs:
 
   finalize:
     needs: [prepare, publish]
-    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@d5d3d0b14af8d0788c9341fccd0c3e729e2614c7 # dev#27
+    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@104651a09386eb24d3bd78432f921bbfb76c66f4 # dev#30
     with:
       to: release
       version: ${{ needs.prepare.outputs.version }}
@@ -122,11 +122,11 @@ jobs:
 
   next-version:
     needs: [prepare, finalize]
-    uses: TurboPanel/dev/.github/workflows/gh-next-version.yml@d5d3d0b14af8d0788c9341fccd0c3e729e2614c7 # dev#27
+    uses: TurboPanel/dev/.github/workflows/gh-next-version.yml@104651a09386eb24d3bd78432f921bbfb76c66f4 # dev#30
     with:
       released-version: ${{ needs.prepare.outputs.version }}
       version-files: |
         package.json
         sonar-project.properties
-      dev-ref: d5d3d0b14af8d0788c9341fccd0c3e729e2614c7
+      dev-ref: 104651a09386eb24d3bd78432f921bbfb76c66f4
     secrets: inherit
