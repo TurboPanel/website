@@ -84,5 +84,8 @@ describe('waitForCiGate', () => {
     const log = vi.fn()
     expect(await waitForCiGate({ sha: SHA, fetchJson, sleep: c.sleep, now: c.now, deadlineMs: 3_000, intervalMs: 1_000, log })).toBe('fail')
     expect(log).toHaveBeenLastCalledWith(expect.stringContaining('timed out'))
+    // Polls at t=0,1000,2000,3000 and sleeps between them, never past the deadline.
+    expect(fetchJson).toHaveBeenCalledTimes(4)
+    expect(c.sleep).toHaveBeenCalledTimes(3)
   })
 })

@@ -25,7 +25,7 @@ export function ciGateDecision(checkRuns, required = REQUIRED_CHECKS) {
     for (const candidate of checkRuns) {
       if (candidate.name === name && (!run || candidate.id > run.id)) run = candidate
     }
-    if (!run || run.status !== 'completed') {
+    if (run?.status !== 'completed') {
       waiting.push(name)
       continue
     }
@@ -65,15 +65,21 @@ export function checkRunsUrl(sha) {
 export async function waitForCiGate(opts) {
   const url = checkRunsUrl(opts.sha)
   const stopAt = opts.now() + opts.deadlineMs
-  for (;;) {
+  const short = opts.sha.slice(0, 12)
+
+  /** @returns {Promise<GateDecision>} */
+  async function poll() {
     const body = await opts.fetchJson(url)
     const { decision, detail } = ciGateDecision(body.check_runs ?? [])
-    opts.log?.(`ci-gate ${opts.sha.slice(0, 12)}: ${decision} (${detail})`)
+    opts.log?.(`ci-gate ${short}: ${decision} (${detail})`)
     if (decision !== 'pending') return decision
     if (opts.now() + opts.intervalMs > stopAt) {
-      opts.log?.(`ci-gate ${opts.sha.slice(0, 12)}: timed out`)
+      opts.log?.(`ci-gate ${short}: timed out`)
       return 'fail'
     }
     await opts.sleep(opts.intervalMs)
+    return poll()
   }
+
+  return poll()
 }
