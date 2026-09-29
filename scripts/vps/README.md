@@ -66,10 +66,16 @@ Clones `sites/<env>/{blue,green}` from `git@github.com:TurboPanel/website.git` a
 - Events: **Just the push event**
 - Protect `live` so only CI-green merges land there
 
+The hook (`hook.mjs`, logic in `hook-lib.mjs`) verifies `X-Hub-Signature-256` in constant time and refuses a replayed `X-GitHub-Delivery` id (409) for the life of the process.
+
+## CI gate
+
+`run-env-deploy.sh` runs `ci-gate.mjs <sha>` (logic in `ci-gate-lib.mjs`) before any build. It polls the commit's GitHub check runs every minute and deploys only once the required checks (`verify`, `metrics-legacy`) concluded `success` on their newest run. A failure, or checks still pending after 30 minutes, leaves the running color untouched. The repo is public, so no token is needed; an optional `GITHUB_TOKEN` in alpha's environment raises the API rate limit. `install-alpha.sh` installs both `.mjs` pairs into `~/bin`.
+
 ## Blue-green
 
 `deploy.sh <env> <sha>` builds the idle color, probes `/health`, writes the Caddy `upstream` snippet, and leaves the old color running. Alpha then `caddy reload` and `deploy.sh --promote <env>` stops the previous color. A failed health check never rewrites the snippet and never reloads Caddy.
 
 `NEXT_PUBLIC_SITE_URL` is set at **build** time inside `deploy.sh`. Do not put it on the systemd unit.
 
-The box is **1 GiB RAM**. `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` (CI already ran `pnpm typecheck`) and `NODE_OPTIONS=--max-old-space-size=1024`. Do not run two env builds at once.
+The box is **1 GiB RAM**. `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` (the CI gate already required a green `verify`, which typechecks) and `NODE_OPTIONS=--max-old-space-size=1024`. Do not run two env builds at once.

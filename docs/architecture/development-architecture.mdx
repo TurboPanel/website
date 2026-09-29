@@ -70,15 +70,12 @@ graph TD
     ansible --> ui[turbopanel-ui.service]
     ansible --> postgres[Postgres 18 Docker]
     caddy --> browser[Host browser :8443 HTTPS]
-    caddy --> devbrowser[Host browser :8880 HTTP]
     instance --> socket[/run/turbopanel/instance.sock]
     caddy --> socket
     ui --> caddy
 ```
 
-Caddy terminates TLS on **8443** and proxies `/api/*` and `/ws/*` to the instance Unix socket; everything else goes to Expo (dev) or static export (production build mode).
-
-On co-located guests, Caddy also listens on **8880** as a **plaintext mirror** of every route on `:8443`. Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** sit behind the same Caddy proxy.
+Caddy terminates TLS on **8443** and proxies `/api/*` and `/ws/*` to the instance Unix socket; everything else goes to Expo (dev) or static export (production build mode). Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** sit behind the same Caddy proxy. Every hostname is `https://<host>:8443`. Trust the Platform CA for a name that presents that leaf.
 
 ### Instance runtime switch
 
@@ -88,7 +85,7 @@ On co-located guests, Caddy also listens on **8880** as a **plaintext mirror** o
 
 Schema changes are versioned in `turbopanel/migrations/`. **Versioned `pnpm migrate` is the only fresh-database bootstrap path** — co-located dev converge runs `scripts/bootstrap-dev-db.sh` (`pnpm migrate`), and Workers deploy runs the same command. Applied versions are tracked in `public.migration`. An unmigrated database is an operational failure (missing relations propagate); it must not be treated as install mode / `needsInstall`.
 
-1. **Generate + apply migrations:** edit `turbopanel/src/lib/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
+1. **Generate + apply migrations:** edit `turbopanel/src/db/schema.ts`, run `pnpm drizzle-kit generate --name <summary>`, review SQL under `migrations/`, then `TURBOPANEL_DATABASE_URL=… pnpm migrate` (or `./scripts/bootstrap-dev-db.sh`).
 2. **Push (code → DB, Deno dev iteration only):** after a migrated baseline exists, `./scripts/sync.sh` from the guest `dev` checkout can apply schema edits via drizzle-kit push for quick local iteration — not a fresh-DB bootstrap.
 3. **Pull (DB → code):** change tables in Drizzle Studio, then `./scripts/introspect.sh` from the guest `dev` checkout.
 
@@ -108,10 +105,9 @@ Every table and column, with its type, constraints and a one-sentence descriptio
 
 | Service | Default port | Host forward | Notes |
 | ------- | ------------ | ------------ | ----- |
-| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant site ingress (not the control plane) |
-| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Tenant site ingress (not the control plane) |
-| Caddy HTTPS | 8443 | `0.0.0.0` | Primary browser entrypoint (TLS) |
-| Caddy HTTP (dev) | 8880 | `0.0.0.0` | Plaintext mirror of `:8443` |
+| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant sites, and the control-plane Let's Encrypt window |
+| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (tenant sites) |
+| Caddy HTTPS | 8443 | `0.0.0.0` | Always. Control plane (Platform CA catch-all) |
 | Website | 19820 | `0.0.0.0` | Next.js (optional) |
 | Wrangler (Workers mode) | 18787 | — | Internal only |
 | Expo web | 8081 | `0.0.0.0` | Metro; Caddy also proxies this in the guest |
@@ -122,18 +118,18 @@ Every table and column, with its type, constraints and a one-sentence descriptio
 | Redis Insight | 5540 | `127.0.0.1` | Unauthenticated |
 | DuckDB UI | 4213 | `127.0.0.1` | On-demand, development build only |
 
-Browser traffic from the host should use **Caddy on `:8443`** (HTTPS) or **`http://localhost:8880`**. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
+Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while tenant sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
 
 ## Technology choices
 
 - **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app.ts`).
 - **Expo / React Native** — Cross-platform UI (`ui/`).
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
-- **Drizzle + Postgres** — Schema in `turbopanel/src/lib/db/schema.ts`; Hyperdrive in Workers production.
+- **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
-- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/lib/commands/` / `turbopaneld/src/instance/commands/`.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/instance/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).

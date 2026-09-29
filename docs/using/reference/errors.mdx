@@ -46,7 +46,9 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `invalid_deploy_hosting`, `invalid_deploy_storage` | 400 | A hosting or storage row attached to the environment is malformed. |
 | `compose_merged_invalid` | 422 | Project and overlay each saved cleanly but their merge is not valid Compose. |
 | `compose_field_unsupported` | 422 | The document sets a key the platform has no behaviour for; the reason is quoted. |
-| `compose_field_requires_org_opt_in` | 403 | The document sets a gated field (`privileged`, `cap_add`, …) and the organization has not opted in under **Manage Organization → Compose**. |
+| `compose_field_requires_org_opt_in` | 403 | The document uses a host-level feature — a gated field (`privileged`, `cap_add`, `use_api_socket`, …) or a path outside the service's directory (an absolute bind, the Docker socket, `extends.file`, …) — and the organization has not turned them on under **Manage Organization → Compose**. |
+| `compose_host_access_requires_manager` | 403 | Host-level Compose features are on, but the person deploying is not an organization manager or owner. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level Compose content that no manager or owner has deployed in this exact form. Deploy it once from the console to approve it. |
 | `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default — or the planner found no eligible server. |
 | `health_check_missing` | 409 | Services with no `healthcheck`: `required: true` refuses; `required: false` is the *warn* prompt, acknowledged with `acknowledgeHealthCheckWarnings: true`. |
 | `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |

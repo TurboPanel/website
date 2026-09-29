@@ -5,14 +5,14 @@ description: Fix common Postgres and schema sync issues in local development
 
 # Database troubleshooting
 
-TurboPanel uses **versioned SQL migrations** in `turbopanel/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into the dev environment, see [Development architecture](/docs/architecture/development-architecture) and `turbopanel/src/lib/db/AGENTS.md` in the repository.
+TurboPanel uses **versioned SQL migrations** in `turbopanel/migrations/` (applied via `pnpm migrate`; tracked in `public.migration`). Deno dev can still use **drizzle-kit push** (`dev/scripts/sync.sh`) for quick schema iteration without committing migration files. For how schema sync fits into the dev environment, see [Development architecture](/docs/architecture/development-architecture) and `turbopanel/src/db/AGENTS.md` in the repository.
 
 ## Schema out of sync
 
 | Issue | What to do |
 | ----- | ---------- |
 | API errors about missing columns/tables | From `dev/`: `./scripts/sync.sh` (or `./scripts/sync.sh --force` after editing `schema.ts`) |
-| You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `turbopanel/src/lib/db/schema.ts` |
+| You changed the DB in Studio | Run `dev/scripts/introspect.sh` to pull live schema into `turbopanel/src/db/schema.ts` |
 | Fresh Postgres volume | Converge applies versioned migrations (`pnpm migrate` via `scripts/bootstrap-dev-db.sh`) — the only fresh-database bootstrap path. Re-run Developer → **Converge / re-converge** if relations are missing |
 
 ## Connection failures

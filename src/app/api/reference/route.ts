@@ -44,7 +44,7 @@ ${options.customCss}
 </html>`
 }
 
-export async function GET(request: Request) {
+export function GET(request: Request) {
   const host = request.headers.get('host') || 'turbopanel.app'
   const [hostname, port = ''] = host.split(':')
 

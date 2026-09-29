@@ -1,6 +1,6 @@
 ---
 title: Upgrade and rollback
-description: Upgrade the self-hosted control plane and the daemon fleet; pin a host to one release to roll back
+description: Managed platform upgrades — this host's daemon, then the control plane, then the rest of the fleet — with backups, batches, and rollback
 ---
 
 # Upgrade and rollback
@@ -9,91 +9,197 @@ Every release is a GitHub Release with its packages as assets. The installer and
 both follow a **channel** — `release` (the latest promoted release), `rc` (the current
 release candidate) or `canary` (the newest green build of `trunk`, for a
 [canary environment](/docs/development/canary)) — and resolve that channel's `manifest.json`
-straight from GitHub. There is no self-update inside the control plane: upgrading it means
-running the installer again.
+straight from GitHub. The control plane and the daemon are separate packages. A managed
+upgrade installs them in a fixed order. Re-running the installer still moves both on this host.
 
-## Control plane (self-hosted)
+A run pins the manifest URL and the target commit it resolved when it started. A channel
+that moves while the rollout is in progress does not change the bytes a later batch
+installs.
 
-1. **Back up Postgres** (`pg_dump` or a volume snapshot) and `/etc/turbopanel`.
-2. Re-run the installer on the control-plane host:
+## Order
 
-   ```bash
-   curl -fsSL turbopanel.sh | sh
-   ```
+On a self-hosted host the order is fixed:
 
-   It downloads the channel's current instance and UI packages, verifies each against the
-   release manifest, re-converges the host, applies pending database migrations with the
-   instance binary's own `migrate` verb, and restarts the units. Add
-   `TURBOPANEL_UPDATE_CHANNEL=rc` to move to the release candidate instead.
-3. Verify `GET /api/health` — it reports the version and the exact release commit — and sign in.
+1. **This host's daemon** — the co-located daemon, the one enrolled on the control plane's own machine.
+2. **Control plane** — the instance package and the static UI on that same host.
+3. **Other servers** — every other daemon, in batches.
 
-The instance checks the database's migration history against the migrations it ships at every
-boot and refuses to serve a mismatch: a database migrated by a **newer** release than the
-binary (for example after a rollback of the binary alone) stops the instance with
-`database was migrated by files this build does not ship`. Roll the database back with the
-binary, or move the binary forward — never serve one release's schema with another's code.
+The fleet phase does not start until both earlier steps are on the target build. A failed
+control-plane step fails the run and leaves that gate shut. A `trunk` channel has no
+control-plane package, so that step is skipped and the gate needs only the co-located
+daemon on target.
 
-### Rollback
-
-Restore the Postgres backup and re-run the installer on a channel that points at the previous
-release. Pinning the control plane itself to one exact release is not yet an installer flag.
-
-## Control plane (TurboPanel High Availability)
-
-TurboPanel operates the Workers deploys. Customers receive upgrades as they roll out — no
-operator action unless the release notes say otherwise.
-
-## Daemon fleet
-
-### In-console update
-
-Use **Update** on the server detail page when the daemon is online. The control plane resolves
-the target from the instance's own channel; the page names the target by version and commit.
-
-### Manual refresh
-
-Re-run the installer on the host — see [Daemon update](/docs/deployment/daemon-update):
-
-```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<license> sh
+```mermaid
+graph TD
+    A[Pre-flight and backup] --> B[This host's daemon]
+    B --> C[Control plane]
+    C --> D{Both on target?}
+    D -->|yes| E[Other servers, in batches]
+    D -->|no| F[Fleet stays waiting]
 ```
 
-The installer keeps exactly one previous generation beside the new one:
-`/opt/turbopanel/bin/turbopaneld.prev` and `/opt/turbopanel/share/orchestration.prev`.
+TurboPanel High Availability deploys the control plane itself. **Admin → Updates** shows
+that version as **Managed by TurboPanel** and rolls out daemons only. Per-server **Update**
+on the organization console stays off (`updates_managed`).
 
-### Rollback: pin the previous release
+Mixed versions stay connected the whole time. The version floors do not change, and a
+daemon below its floor still holds its socket so the update can reach it. See
+[Version compatibility](/docs/deployment/compatibility).
 
-Point the host at one exact manifest instead of whatever the channel resolves to now:
+<Callout type="info" title="First upgrade onto this release">
+  Backup and automatic rollback need a co-located daemon that advertises
+  `managed-upgrade-v1`. A daemon from before this release does not. Pre-flight names
+  that and gives the recovery command. Take an operator backup of the control-plane
+  database first — this transition cannot use the managed backup yet — then update
+  **only the daemon**, pinned to one verified manifest. On a host that already runs
+  this control plane, that command refreshes the co-located daemon in socket mode
+  (`daemon-colocated-refresh.yml`). It does not run the remote-node installer
+  (`daemon-install.yml`), so `daemon.env` keeps dialing the local instance socket,
+  shared state and config ownership stay as they are, and the daemon unit still
+  starts after the instance. The instance, UI, and database are not replaced.
+  When the new daemon attaches and advertises `managed-upgrade-v1`, start the
+  upgrade from **Admin → Updates**.
+
+  ```bash
+  curl -fsSL turbopanel.sh \
+    | TURBOPANEL_DAEMON_ONLY=1 \
+      TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/<tag>/manifest.json \
+      sh
+  ```
+
+  Replace `<tag>` with the daemon release you are upgrading to, as listed on the daemon's
+  [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (for example
+  `v0.1.1`). It must be a release that advertises `managed-upgrade-v1`; `v0.1.0` does not.
+  The pre-flight sheet fills in the right tag for you.
+</Callout>
+
+## From the console
+
+**Admin → Updates** (`/admin/updates`). An `admin` or `superadmin` account.
+
+<Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
+  <Tab value="Self-hosted">
+    The status card reads **TurboPanel is up to date**, **Update available**, **Updating…**, or **Needs attention**.
+
+    **Update TurboPanel** opens **Ready to update TurboPanel?**. The sheet lists the pre-flight checks, notes that the control-plane database is backed up before the install, and shows the **Recovery command** with **Copy command**. **Start update** begins the run. **Cancel** closes the sheet.
+
+    Progress follows **Co-located daemon**, then **Control plane**, then the fleet table. Each step moves through Preparing → Downloading → Installing → Restarting → Verifying → Done. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a fleet row dispatches that step again.
+
+    **Automatic updates** is off until you turn on **Auto-update fleet**. Automatic runs start only when the target differs from what is installed, no run is already active, and — if you enable **Maintenance window** — only inside that UTC window. The default batch is **100%** (Percent). Switch to **Count** to cap how many servers move together, then **Apply**.
+
+    A failed step is terminal for its batch: the next batch still starts. It does not hold the wave.
+  </Tab>
+  <Tab value="TurboPanel High Availability">
+    The control plane line is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update fleet** toggle — daemon rollouts run on their own, inside the maintenance window when one is set.
+
+    **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** still applies (Percent or Count, **Apply**). **Retry** is on a row that needs it.
+  </Tab>
+</Tabs>
+
+Only one run is active. A second start is refused while a run is `pending` or `running`.
+
+## Batches and the maintenance window
+
+| Setting | Range | Default |
+| --- | --- | --- |
+| Batch **Percent** | 1–100 | 100 |
+| Batch **Count** | 1–10000 | — |
+| Maintenance window | off, or a UTC start (minutes after midnight, 0–1439), a length (1–1440 minutes), and optional weekdays (Sunday = 0) | off; when on, empty weekdays means every day |
+
+Percent rounds up so a non-empty fleet always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`). On TurboPanel High Availability a large batch drains across maintenance ticks so one tick does not enqueue the whole fleet at once.
+
+An offline server's step waits (`waiting`) and is dispatched when that daemon reconnects. A step with no progress for 15 minutes is retried, up to 3 dispatches, then `needs_attention`. A step that rolled back is retried once, then `needs_attention`.
+
+## Pre-flight, backup, and `.prev`
+
+Before anything is swapped, the host checks:
+
+| Code | Meaning |
+| --- | --- |
+| `preflight_disk` | Not enough free space, or the free-space check itself failed. A daemon install needs 512 MiB on `/opt/turbopanel`, 128 MiB on the state directory, and 256 MiB on the temp directory. A control-plane install needs 1 GiB on the install root and 1 GiB on the backup directory. |
+| `preflight_manifest` | The pinned manifest could not be fetched, verified, or matched to `targetCommit`. |
+| `preflight_trust` | Automatic-update TLS could not be established (public trust or the Platform CA). The daemon does not skip verification. |
+| `preflight_backup` | `turbopanel-database` is not running, so the control-plane dump cannot be taken. |
+| `preflight_in_progress` | Another install is already running on that host. |
+
+The control-plane step also requires the co-located daemon to advertise `managed-upgrade-v1`. Without it, pre-flight stops and names the installer command above.
+
+The automatic backup is written before the control-plane package swap, at:
+
+```text
+<backup dir>/control-plane/<upgrade id>/
+```
+
+The backup directory defaults to `/backup` (`TURBOPANEL_BACKUP_DIR` moves it). Each attempt keeps a `pg_dump -Fc` of the control-plane database, a tarball of `/etc/turbopanel`, and `meta.json` (including the migration-history fingerprint). The newest three attempts are kept.
+
+One previous generation stays beside the new files, by rename:
+
+| Package | Previous generation |
+| --- | --- |
+| Daemon | `/opt/turbopanel/bin/turbopaneld.prev`, `turbopaneld.js.prev` on hosts that run the JS runtime, `/opt/turbopanel/share/orchestration.prev` |
+| Control plane | `/opt/turbopanel/bin/turbopanel.prev`, `/opt/turbopanel/lib/libduckdb.so.prev`, `/opt/turbopanel/share/ui.prev` |
+
+## Automatic rollback
+
+After the control plane restarts, the daemon polls `GET /api/health` on the instance socket until `version` and `revision.commit` match the pinned manifest. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
+
+A daemon self-update arms an update guard for about 10 minutes. If the new build crash-loops, the guard restores the daemon `.prev` files and restarts `turbopaneld`. Detail: [Refresh a stuck daemon](/docs/deployment/daemon-update).
+
+### Recovery command
+
+Run as root on the control-plane host. The pre-flight sheet copies the same command, with the upgrade id filled in:
+
+```bash
+sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i localhost, -c local \
+  -e turbopanel_upgrade_id=<upgrade id> \
+  instance-rollback.yml
+```
+
+That restores the `.prev` builds and, when the migration fingerprint changed, the database dump under `/backup/control-plane/<upgrade id>/`. The helper is the installed absolute path, so it runs when the panel is stopped and `tp-orchestrate` is not on `PATH`. To reinstall one pinned control-plane manifest instead:
+
+```bash
+sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate update-instance \
+  --channel release \
+  --manifest-url https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json \
+  --no-start
+```
+
+`--manifest-url` on that verb is the control-plane pin (`TURBOPANEL_INSTANCE_MANIFEST_URL`). It does not change the daemon pin (`TURBOPANEL_MANIFEST_URL`).
+
+## Pin a package by hand
+
+The same pins work from the installer. Each package keeps its own pin; a later channel install that does not name a pin clears it.
+
+Pin the control plane on its own host. `TURBOPANEL_INSTANCE=1` marks the run as a control-plane install; without it, a run that names a pin is read as a daemon enrolment and stops asking for `TURBOPANEL_LICENSE`:
+
+```bash
+curl -fsSL turbopanel.sh \
+  | TURBOPANEL_INSTANCE=1 \
+    TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
+```
+
+Pin a remote node's daemon. On a node enrolled with a self-hosted control plane, also pass `TURBOPANEL_HOST` with that control plane's URL, as in [Refresh a stuck daemon](/docs/deployment/daemon-update); without it the node is enrolled with the hosted control plane:
 
 ```bash
 curl -fsSL turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
+    TURBOPANEL_HOST=<control plane URL> \
     TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/v0.1.0/manifest.json sh
 ```
 
-The pin (`--manifest-url` / `TURBOPANEL_MANIFEST_URL`, https only) is written to `daemon.env`,
-so a later console-driven update honours it too. A plain channel install clears it. The
-`.prev` copies are the offline emergency: swap them back by hand when the host cannot reach
-GitHub at all.
+Pins accept release manifests only. Each package's pin must be a `manifest.json` or `manifest-<version>.json` under its own repository's GitHub Releases (`https://github.com/TurboPanel/<repo>/releases/download/<tag>/…` or `…/releases/latest/download/…`); the daemon also accepts its CDN channel drop (`https://dl.trbp.nl/channels/<channel>/manifest.json`). The installer and the root helper refuse anything else, including a URL with `..`, a percent-encoded character, a port or a query string. A `TURBOPANEL_*_MANIFEST_URL` pin in `daemon.env` that does not match is ignored, as if unset.
 
-Revoke a compromised daemon key from the server page if enrollment material changed.
+The instance checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
 
-## Order of operations
+The daemon refuses a control-plane target below `MIN_SUPPORTED_INSTANCE_VERSION` (today **0.1.0**). A target it cannot parse is allowed. Daemon self-update does not consult that floor.
 
-```mermaid
-graph TD
-    A[Backup CP database + config] --> B[Upgrade control plane]
-    B --> C[Verify health + auth]
-    C --> D[Upgrade daemons fleet-wide]
-    D --> E[Smoke test deploy + WS presence]
-```
+## History
 
-Upgrade the control plane first. It refuses commands to a daemon older than its supported
-floor (`daemon_unsupported`) but keeps the connection up, so the update itself still reaches
-the daemon — see [Version compatibility](/docs/deployment/compatibility).
+Finished runs stay for 365 days, and at least the newest 50. Successful steps (`done`, `skipped`) are pruned after `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` (default 14). Failed steps (`failed`, `rolled_back`, `needs_attention`) stay 90 days. The run row keeps its summary after the steps are gone. See [Instance configuration](/docs/deployment/instance-configuration).
 
 ## Related
 
 - [Compatibility matrix](/docs/deployment/compatibility)
+- [Refresh a stuck daemon](/docs/deployment/daemon-update)
 - [Troubleshooting](/docs/deployment/troubleshooting)
-- [Uninstall](/docs/deployment/uninstall)
+- [Administering an instance](/docs/using/admin)

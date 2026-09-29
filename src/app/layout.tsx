@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
+import { plusJakartaSans } from '@/lib/plus-jakarta-sans-font'
 import './globals.css'
 import { ClientRootProvider } from '@/components/ClientRootProvider'
 import { Providers } from '@/components/Providers'
 import { StickySiteChrome } from '@/components/StickySiteChrome'
-import { wordmarkFont } from '@/lib/wordmark-font'
-
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -14,13 +13,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
-})
-
-const display = Plus_Jakarta_Sans({
-  variable: '--font-display',
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  style: ['normal', 'italic'],
 })
 
 export const metadata: Metadata = {
@@ -44,7 +36,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${wordmarkFont.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased`}
       >
         <Providers>
           <StickySiteChrome />

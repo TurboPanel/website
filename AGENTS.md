@@ -88,6 +88,8 @@ Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io
 | `pnpm notices:check` | Fail when notices are stale vs the lockfile, or a production dependency has an unreviewed license class |
 | `pnpm check:docs-ssr` | After build: assert docs HTML includes page body (`src/lib/docs-ssr.ts`) |
 
+**Secret scan:** the pre-commit hook and CI (`--all`) run it. `scripts/scan-secrets.sh` is byte-identical in turbopanel, turbopaneld, ui, website and dev — change all five together. It refuses a committed secret-bearing file (`license.token`, `server-key.json`, `.pgpass`, `.rabbitmq_pass`, …), flags credential URLs (`amqp(s)`/`postgres(ql)` with `user:pass@`) and `TURBOPANEL_SECRET(S)` bindings, and flags any line that names a secret-bearing file unless that exact `path:line:content` is in `.secretscan-allowlist`. dev's `src/lib/scan-secrets.test.ts` tests the rules and, with the siblings checked out in dev CI, fails if any copy drifts.
+
 Co-located dev runs the docs site via **`turbopanel-website.service`** (systemd) as the **dev user**. Stdout/stderr append to **`/var/log/turbopanel/website/website.log`** and **`website.err.log`** (dev-user-owned). Production is vanilla Next on `alpha.turbopanel.net` (`scripts/vps/`), not Cloudflare Workers. `pnpm-workspace.yaml` `allowBuilds` must keep Next native postinstalls (`esbuild`, `sharp`, …) approved; pnpm 12 `strictDepBuilds` otherwise fails `pnpm install` with `ERR_PNPM_IGNORED_BUILDS`.
 
 **Where to run tests:** host VirtFS checkouts lack a usable Node/pnpm tree.
@@ -101,7 +103,7 @@ vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd 
 vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd ~/website && pnpm verify:ci'
 ```
 
-**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm build`, `check:docs-ssr`, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`. Triggers on `trunk`, `staging`, and `live`.
+**CI:** `.github/workflows/verify.yml` runs lint, `check:vocabulary`, `notices:check`, typecheck, `pnpm build`, `check:docs-ssr`, `pnpm test:coverage`, then a SonarCloud scan with `sonar.qualitygate.wait=true` (`SONAR_TOKEN` required). Automatic Analysis must stay **off** for `turbopanel_website`. Triggers on `trunk`, `staging`, and `live`. A final `ci-ok` job `needs:` `verify` and `metrics-legacy` and fails unless both succeeded; it is the one check the rulesets will require, so a new PR-time job must be added to its `needs:`.
 
 **Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
@@ -227,6 +229,12 @@ website/
 └── AGENTS.md
 ```
 
+## Releases and promotion
+
+`.github/workflows/release.yml` cuts a notes-only GitHub Release on a `v[0-9]*` tag push (or a dry-run dispatch). **Automatic promotion (two PRs, the normal path):** website is notes-only, so an rc is a tag on a trunk commit, not a rebuilt artifact. `promote-prs.yml` keeps a trunk → staging PR "Release Candidate x.y.z-rc.N" open after every green `Verify` on trunk (opened with the Release App token so `ci-ok` runs). Merging it (merge commit) fires `cut-rc.yml` on the push to `staging`: it takes the merged PR's head commit and `package.json`'s version and cuts `vx.y.z-rc.N` as a notes-only release (no approval gate), then opens/refreshes the staging → live PR "Release x.y.z". Merging that fires `cut-release.yml`: newest rc.N → `vx.y.z` (`releases/latest`) behind the `release` environment approval (allowed branches: `trunk` and `live`), then a "Start <next>" PR bumps `package.json` / `sonar-project.properties` (patch by default, `minor` label = minor, never below the highest minor across the repos). **Repos release independently — website is never gated on another repo's release.** PRs into staging/live skip Sonar. `release.yml` ignores tag pushes by `[bot]` actors so an App-created tag does not race the promotion with a from-source rebuild.
+
+**Promotion, break-glass (`.github/workflows/promote.yml`):** the same three jobs as a manual form, for when the automatic path cannot run: `to=rc` tags a commit-ish (`source`, usually `trunk`; notes-only — no assets, the number is `package.json`'s) as the next `v<base>-rc.<N>` and fast-forwards `staging`; `to=release` turns the newest `v<base>-rc.<N>` into `v<base>` (`releases/latest`; the rolling `rc` pointer is re-pointed at it) and fast-forwards `live`. The tag is created at the source commit (an existing tag elsewhere = burned version, fails). The three jobs are `TurboPanel/dev`'s `gh-promote.yml` → `gh-release.yml` → `gh-promote-finalize.yml` pinned to ONE dev sha, passed again as `dev-ref`. Approval = the `release` environment (prepare, then finalize). `to=release` needs the TurboPanel Release App secrets (`RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY`) and refuses to start without them. Full contract: `../dev/AGENTS.md` → Release promotion.
+
 ## Key conventions
 
 ### SonarQube (CI-based analysis)
@@ -300,7 +308,7 @@ Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in 
 
 **Branch map:** `trunk` → `testing.turbopanel.io`; `staging` → `staging.turbopanel.io`; `live` → `turbopanel.io` (`www` 301 to apex). GitHub push webhook: `https://alpha.turbopanel.net/hooks/github`.
 
-`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle. The VPS is **1 GiB RAM**; `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` and a 1024 MiB Node heap so `next build` does not OOM during tsc (GitHub `verify` already typechecks).
+`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle. The VPS is **1 GiB RAM**; `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` and a 1024 MiB Node heap so `next build` does not OOM during tsc (GitHub `verify` already typechecks, and `run-env-deploy.sh` waits for it: `scripts/vps/ci-gate.mjs` deploys a pushed SHA only after its required checks pass). The webhook logic (`hook-lib.mjs`: HMAC, push mapping, delivery-id replay guard) and the gate logic (`ci-gate-lib.mjs`) are unit-tested and counted in coverage; only the two entry scripts are excluded. CI runs `sh scripts/scan-secrets.sh --all` (every tracked file).
 
 Co-located Vagrant still runs `next dev` on `:19820` (`turbopanel-website.service`). Do not point contributor Vagrant at the VPS.
 
