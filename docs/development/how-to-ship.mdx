@@ -18,7 +18,7 @@ This page is for maintainers. The channels themselves are described under
 | Step | Who | Result |
 | --- | --- | --- |
 | Squash-merge a change into `trunk` | Anyone with a green `ci-ok` | A **canary** `x.y.z-canary.N` is built and published |
-| Merge **"Release candidate x.y.z-rc.N"** (`trunk` → `staging`) | A maintainer | `vx.y.z-rc.N` is cut from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
+| Merge **"Release Candidate x.y.z-rc.N"** (`trunk` → `staging`) | A maintainer | `vx.y.z-rc.N` is cut from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
 | Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer | `vx.y.z` becomes the latest release; `live` moves; **"Start x.y.z+1"** opens |
 | Squash-merge **"Start x.y.z+1"** | A maintainer | `trunk` moves to the next number, so the next canary carries it |
 
@@ -27,7 +27,7 @@ run. You never run a workflow by hand for a normal release.
 
 ## 1. Cut a release candidate
 
-1. Open the pull request titled **Release candidate x.y.z-rc.N**. The number after `rc.` is
+1. Open the pull request titled **Release Candidate x.y.z-rc.N**. The number after `rc.` is
    the next one for that version: one more than the highest candidate that already exists.
 2. Wait for `ci-ok`, then merge it with a **merge commit**. `staging` takes merge commits only.
 3. A workflow takes the canary that was built from the merged commit and publishes it as
