@@ -1,4 +1,4 @@
-# Cuts a GitHub Release on a v* tag. website has no build/package step to
+# Publishes a GitHub Release on a v* tag. website has no build/package step to
 # release — production is a VPS `node server.js` deploy driven by GitHub
 # webhooks, unrelated to this — so this is a notes-only release, purely for
 # version tracking and to give the compatibility matrix / release notes a
@@ -26,18 +26,22 @@ on:
         type: string
         default: rc
 
+# Read-only by default; only the publish job (TurboPanel/dev gh-release.yml)
+# writes — it creates the GitHub Release.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   prepare:
     # A tag pushed by a `[bot]` actor is the TurboPanel Release App
     # promoting a tested build (promote.yml → TurboPanel/dev gh-promote.yml);
     # that flow publishes the release itself, so this from-source path must
-    # not race it. A person pushing a tag still gets the classic cut; trunk
+    # not race it. A person pushing a tag still gets the classic from-source release; trunk
     # pushes (canary) are unaffected.
     if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/') || !endsWith(github.actor, '[bot]')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       channel: ${{ steps.resolve.outputs.channel }}
@@ -60,7 +64,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Require the tag to match package.json's version
-        # A tag cut before the bump is a release that lies about itself
+        # A tag pushed before the bump is a release that lies about itself
         # (sonar.projectVersion is pinned to package.json by the repo's own
         # checks). Dry runs (workflow_dispatch) use throwaway versions and
         # skip this.
@@ -76,6 +80,8 @@ jobs:
 
   release:
     needs: prepare
+    permissions:
+      contents: write
     uses: TurboPanel/dev/.github/workflows/gh-release.yml@177d481666cce2e1dcfa76290b141b0149a6a0a9 # dev trunk 2026-09-25
     with:
       version: ${{ needs.prepare.outputs.version }}
