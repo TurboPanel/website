@@ -15,7 +15,7 @@
 # finalize fast-forward) does nothing. workflow_dispatch re-runs a release cut
 # for a given rc tag.
 
-name: Cut release
+name: Cut Release
 
 on:
   push:
@@ -27,10 +27,12 @@ on:
         required: true
         type: string
 
+# Least privilege: read-only by default, each job asks for what it uses. The
+# GITHUB_TOKEN never writes a pull request here (the Release App token does),
+# and the TurboPanel/dev reusable jobs need `contents: write` (tags, releases)
+# except next-version, whose writes all use the App token.
 permissions:
-  contents: write
-  actions: read
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: cut-release
@@ -39,6 +41,9 @@ concurrency:
 jobs:
   resolve:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # package.json, tags
+      pull-requests: read # the PR a pushed commit came from
     outputs:
       proceed: ${{ steps.r.outputs.proceed }}
       rc-tag: ${{ steps.r.outputs.rc-tag }}
@@ -88,6 +93,8 @@ jobs:
 
   prepare:
     needs: resolve
+    permissions:
+      contents: write
     if: needs.resolve.outputs.proceed == 'true'
     uses: TurboPanel/dev/.github/workflows/gh-promote.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
@@ -100,6 +107,8 @@ jobs:
 
   publish:
     needs: prepare
+    permissions:
+      contents: write
     uses: TurboPanel/dev/.github/workflows/gh-release.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
       version: ${{ needs.prepare.outputs.version }}
@@ -112,6 +121,8 @@ jobs:
 
   finalize:
     needs: [prepare, publish]
+    permissions:
+      contents: write
     uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
       to: release
@@ -123,6 +134,8 @@ jobs:
 
   next-version:
     needs: [prepare, finalize]
+    permissions:
+      contents: read
     uses: TurboPanel/dev/.github/workflows/gh-next-version.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
       released-version: ${{ needs.prepare.outputs.version }}
