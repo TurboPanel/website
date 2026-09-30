@@ -1,11 +1,11 @@
 ---
 title: "Managed databases"
-description: "Data dictionary — managed databases tables: backup, backuppolicy, backuprun, managed, recovery, replica"
+description: "Data dictionary — managed databases tables: backup, managed, recovery, replica, retention, snapshot"
 ---
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0009_snapshot.json (0009_backup_policies).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0010_snapshot.json (0010_single_word_table_names).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — managed databases tables: backup, backuppolicy
 
 Managed database instances, their replicas, backups and recovery runs.
 
-Tables on this page: [`backup`](#backup) · [`backuppolicy`](#backuppolicy) · [`backuprun`](#backuprun) · [`managed`](#managed) · [`recovery`](#recovery) · [`replica`](#replica). Generated from migration `0009_backup_policies`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`backup`](#backup) · [`managed`](#managed) · [`recovery`](#recovery) · [`replica`](#replica) · [`retention`](#retention) · [`snapshot`](#snapshot). Generated from migration `0010_single_word_table_names`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `backup` [#backup]
 
@@ -29,72 +29,16 @@ One completed managed-engine backup artifact recorded from the daemon's `managed
 | `checksum` | `text` | no |  | Lowercase SHA-256 hex digest of the artifact computed by the daemon; a restore refuses on mismatch. |
 | `database` | `text` | yes |  | Database name for a single-database backup; null for an instance-scope backup. |
 | `path` | `text` | no |  | Absolute artifact path on the primary server's filesystem as reported by the daemon. |
-| `policy_id` | `uuid` | yes |  | FK → [`backuppolicy`](/docs/database/managed#backuppolicy).`id` (on delete set null). The `backuppolicy` whose scheduled run made this artifact; null for a manual backup or once that policy is deleted. |
+| `retention_id` | `uuid` | yes |  | FK → [`retention`](/docs/database/managed#retention).`id` (on delete set null). The `retention` whose scheduled run made this artifact; null for a manual backup or once that retention is deleted. |
 
 **Constraints and indexes**
 
 - Index `idx_backup_managed_id_created_at`: (`managed_id`, `created_at`)
-- Index `idx_backup_policy_id`: (`policy_id`)
+- Index `idx_backup_retention_id`: (`retention_id`)
 - Unique index `uniq_backup_managed_backup_id`: (`managed_id`, `backup_id`)
 - Check `backup_id_format_check`: `backup_id ~ '^[A-Za-z0-9_-]+$'`
 - Check `backup_checksum_format_check`: `checksum ~ '^[a-f0-9]{64}$'`
 - Check `backup_size_bytes_check`: `size_bytes >= 0`
-
-## `backuppolicy` [#backuppolicy]
-
-A scheduled backup of one managed engine or one local storage copy, pushed to its host as a systemd timer that runs without the control plane.
-
-| Column | Type | Null | Default | Description |
-| --- | --- | --- | --- | --- |
-| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
-| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
-| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
-| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning organization stored directly, because the target is polymorphic; cascade-deletes the policy with the org. |
-| `target_kind` | `text` | no |  | `managed` or `copy`: which of `managed_id` and `copy_id` names the target; exactly one is set (`backuppolicy_target_check`). |
-| `managed_id` | `uuid` | yes |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
-| `copy_id` | `uuid` | yes |  | FK → [`copy`](/docs/database/storage#copy).`id` (on delete cascade). |
-| `name` | `text` | no |  | Operator label for the policy, shown in the console's backup list. |
-| `schedule` | `text` | no |  | The schedule as authored, a cron expression or alias; translated to a systemd `OnCalendar` value when pushed to the host. |
-| `timezone` | `text` | yes |  | IANA zone the schedule is read in; null means the host's local time. |
-| `retention_keep` | `integer` | no |  | How many of this policy's own artifacts the host keeps, 1 to 100; older ones are pruned after each run. |
-| `is_enabled` | `boolean` | no | `true` | False pauses the policy: its timer is removed from the host while the row and its run history stay. |
-| `next_run_at` | `timestamp(3) with time zone` | yes |  | When the host's timer next fires, as last reported by the daemon; null until a report arrives. |
-| `created_by` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User who created the policy; null for an automatic default policy or once that user is deleted. |
-
-**Constraints and indexes**
-
-- Index `idx_backuppolicy_organization_id`: (`organization_id`)
-- Index `idx_backuppolicy_managed_id`: (`managed_id`)
-- Index `idx_backuppolicy_copy_id`: (`copy_id`)
-- Check `backuppolicy_target_kind_check`: `target_kind IN ('managed', 'copy')`
-- Check `backuppolicy_target_check`: `(target_kind = 'managed' AND managed_id IS NOT NULL AND copy_id IS NULL) OR (target_kind = 'copy' AND copy_id IS NOT NULL AND managed_id IS NULL)`
-- Check `backuppolicy_retention_keep_check`: `retention_keep BETWEEN 1 AND 100`
-
-## `backuprun` [#backuprun]
-
-One finished scheduled run of a backup policy, reported by the host that ran it; unique per (policy_id, run_id).
-
-| Column | Type | Null | Default | Description |
-| --- | --- | --- | --- | --- |
-| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
-| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
-| `policy_id` | `uuid` | no |  | FK → [`backuppolicy`](/docs/database/managed#backuppolicy).`id` (on delete cascade). The `backuppolicy` this run belongs to; the run history cascades with the policy. |
-| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
-| `run_id` | `text` | no |  | Daemon-minted id for the run, unique per policy so a report delivered twice is recorded once. |
-| `started_at` | `timestamp(3) with time zone` | no |  | When the host started the run. |
-| `finished_at` | `timestamp(3) with time zone` | no |  | When the host finished the run, whether it succeeded or failed. |
-| `status` | `text` | no |  | `succeeded` or `failed`, as reported by the host. |
-| `error` | `text` | yes |  | Failure text reported by the host; null when the run succeeded. |
-| `backup_ref` | `text` | yes |  | The `bk_` id of the artifact the run produced, matching `backup.backup_id` or `volumebackup.backup_id`; null when it failed. |
-
-**Constraints and indexes**
-
-- Index `idx_backuprun_policy_id_started_at`: (`policy_id`, `started_at`)
-- Index `idx_backuprun_server_id`: (`server_id`)
-- Unique index `uniq_backuprun_policy_run_id`: (`policy_id`, `run_id`)
-- Check `backuprun_run_id_format_check`: `run_id ~ '^[A-Za-z0-9_-]+$'`
-- Check `backuprun_status_check`: `status IN ('succeeded', 'failed')`
-- Check `backuprun_backup_ref_format_check`: `backup_ref IS NULL OR backup_ref ~ '^[A-Za-z0-9_-]+$'`
 
 ## `managed` [#managed]
 
@@ -182,3 +126,59 @@ One server's membership in a managed cluster (primary plus replicas); exactly on
 - Check `replica_ordinal_positive_check`: `"replica"."ordinal" >= 1`
 - Check `replica_transport_check`: `"replica"."replication_transport" IS NULL OR "replica"."replication_transport" IN ('local','fabric','datacenter','public')`
 - Check `replica_status_check`: `status IS NULL OR status IN ('provisioning','applying','ready','stopped','failed','needs_resync')`
+
+## `retention` [#retention]
+
+A scheduled backup of one managed engine or one local storage copy, pushed to its host as a systemd timer that runs without the control plane.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
+| `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning organization stored directly, because the target is polymorphic; cascade-deletes the policy with the org. |
+| `target_kind` | `text` | no |  | `managed` or `copy`: which of `managed_id` and `copy_id` names the target; exactly one is set (`retention_target_check`). |
+| `managed_id` | `uuid` | yes |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
+| `copy_id` | `uuid` | yes |  | FK → [`copy`](/docs/database/storage#copy).`id` (on delete cascade). |
+| `name` | `text` | no |  | Operator label for the policy, shown in the console's backup list. |
+| `schedule` | `text` | no |  | The schedule as authored, a cron expression or alias; translated to a systemd `OnCalendar` value when pushed to the host. |
+| `timezone` | `text` | yes |  | IANA zone the schedule is read in; null means the host's local time. |
+| `retention_keep` | `integer` | no |  | How many of this policy's own artifacts the host keeps, 1 to 100; older ones are pruned after each run. |
+| `is_enabled` | `boolean` | no | `true` | False pauses the policy: its timer is removed from the host while the row and its run history stay. |
+| `next_run_at` | `timestamp(3) with time zone` | yes |  | When the host's timer next fires, as last reported by the daemon; null until a report arrives. |
+| `created_by` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User who created the policy; null for an automatic default policy or once that user is deleted. |
+
+**Constraints and indexes**
+
+- Index `idx_retention_organization_id`: (`organization_id`)
+- Index `idx_retention_managed_id`: (`managed_id`)
+- Index `idx_retention_copy_id`: (`copy_id`)
+- Check `retention_target_kind_check`: `target_kind IN ('managed', 'copy')`
+- Check `retention_target_check`: `(target_kind = 'managed' AND managed_id IS NOT NULL AND copy_id IS NULL) OR (target_kind = 'copy' AND copy_id IS NOT NULL AND managed_id IS NULL)`
+- Check `retention_retention_keep_check`: `retention_keep BETWEEN 1 AND 100`
+
+## `snapshot` [#snapshot]
+
+One finished scheduled run of a `retention`, reported by the host that ran it; unique per (retention_id, run_id).
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `retention_id` | `uuid` | no |  | FK → [`retention`](/docs/database/managed#retention).`id` (on delete cascade). The `retention` this run belongs to; the run history cascades with it. |
+| `server_id` | `uuid` | no |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). |
+| `run_id` | `text` | no |  | Daemon-minted id for the run, unique per policy so a report delivered twice is recorded once. |
+| `started_at` | `timestamp(3) with time zone` | no |  | When the host started the run. |
+| `finished_at` | `timestamp(3) with time zone` | no |  | When the host finished the run, whether it succeeded or failed. |
+| `status` | `text` | no |  | `succeeded` or `failed`, as reported by the host. |
+| `error` | `text` | yes |  | Failure text reported by the host; null when the run succeeded. |
+| `backup_ref` | `text` | yes |  | The `bk_` id of the artifact the run produced, matching `backup.backup_id` or `archive.backup_id`; null when it failed. |
+
+**Constraints and indexes**
+
+- Index `idx_snapshot_retention_id_started_at`: (`retention_id`, `started_at`)
+- Index `idx_snapshot_server_id`: (`server_id`)
+- Unique index `uniq_snapshot_retention_run_id`: (`retention_id`, `run_id`)
+- Check `snapshot_run_id_format_check`: `run_id ~ '^[A-Za-z0-9_-]+$'`
+- Check `snapshot_status_check`: `status IN ('succeeded', 'failed')`
+- Check `snapshot_backup_ref_format_check`: `backup_ref IS NULL OR backup_ref ~ '^[A-Za-z0-9_-]+$'`
