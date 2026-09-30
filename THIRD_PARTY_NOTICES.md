@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:8d874c83c1e88fdfe93a852856c6e76f24b84a93876aa63bdfbb4cf1908aa865
+pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51baaab16
 -->
 
 ## Production dependencies
@@ -1531,7 +1531,7 @@ pnpm-lock.yaml sha256:8d874c83c1e88fdfe93a852856c6e76f24b84a93876aa63bdfbb4cf190
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/devlop#readme
 
-### dompurify@3.4.15
+### dompurify@3.4.16
 
 - License: (MPL-2.0 OR Apache-2.0)
 - Copyright: Dr.-Ing. Mario Heiderich, Cure53
