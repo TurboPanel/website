@@ -8,7 +8,7 @@ description: Stand up a self-hosted TurboPanel that follows the trunk integratio
 A **canary** is a self-hosted TurboPanel that follows `trunk` — the integration branch every
 repository merges into — instead of a release. It runs the newest green build of the control
 plane, the web app and the daemon, and moves forward on every merge. It is how the team, and
-anyone who wants to see a change before it is cut into a release, runs trunk on a real host.
+anyone who wants to see a change before it ships in a release, runs trunk on a real host.
 
 This page is for contributors. Running TurboPanel for real is covered under
 [Self-hosted overview](/docs/deployment/self-hosted) and
@@ -25,7 +25,7 @@ manifest names each asset with its `sha256` and size, and every download is veri
 | Channel | What it is | Where it resolves | Moves when |
 | --- | --- | --- | --- |
 | `canary` | The newest green build of `trunk` | `releases/download/canary/manifest.json` — one rolling pre-release tagged `canary` | Every merge to `trunk` that passes CI |
-| `rc` | The current release candidate | `releases/download/rc/manifest.json` — the pointer at the newest versioned candidate (`0.1.3-rc.1`, `0.1.3-rc.2`, …) | A new `rc.N` is cut |
+| `rc` | The current release candidate | `releases/download/rc/manifest.json` — the pointer at the newest versioned candidate (`0.1.3-rc.1`, `0.1.3-rc.2`, …) | A new `rc.N` is published |
 | `release` | The promoted release | `releases/latest/download/manifest.json` — GitHub's own *latest* pointer | A release candidate is promoted |
 
 TurboPanel High Availability (the hosted, Cloudflare Workers build of the same code) has the
@@ -194,7 +194,7 @@ They sort in that order, so a canary always sorts **below** the release candidat
 and a release candidate below the release (`0.1.3-canary.417` < `0.1.3-rc.1` < `0.1.3`). A release
 candidate is the canary's exact bytes with a new name, version and signature; the number after
 `rc.` stays the same until the version ships, and a bad candidate is replaced by the next one
-(`rc.2`), never by burning the version. How a candidate and a release are cut is on
+(`rc.2`), never by burning the version. How a candidate and a release are published is on
 [How to ship](/docs/development/how-to-ship). The number in `package.json` / `deno.json` is
 bumped to the *next* patch right after each release, by a "Start" pull request.
 
@@ -207,7 +207,7 @@ both advertise `0.1.3` still ask for a reload. Semantic version stays the compat
 
 ## Related
 
-- [How to ship](/docs/development/how-to-ship) — the two merges that cut a release candidate and a release
+- [How to ship](/docs/development/how-to-ship) — the two merges that publish a release candidate and a release
 - [Daemon update](/docs/deployment/daemon-update) — channels and refreshes from the daemon's side
 - [Upgrade and rollback](/docs/deployment/upgrade) — the release-channel procedure this page mirrors
 - [Compatibility](/docs/deployment/compatibility) — which control plane and daemon builds work together

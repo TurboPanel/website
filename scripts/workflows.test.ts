@@ -29,7 +29,7 @@ describe('isTitleCase', () => {
   })
 
   it('refuses a lower-case word or a lower-case first word', () => {
-    expect(isTitleCase('Cut rc')).toBe(false)
+    expect(isTitleCase('Publish rc')).toBe(false)
     expect(isTitleCase('Promote (prepare)')).toBe(false)
     expect(isTitleCase('the Next Version')).toBe(false)
   })

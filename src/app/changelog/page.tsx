@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 const ENTRIES = [
   {
-    // Drafted ahead of the tag; the date is filled in when v0.1.0 is cut.
+    // Drafted ahead of the tag; the date is filled in when v0.1.0 is published.
     date: 'Unreleased',
     channel: '0.1.0 release candidate',
     title: 'TurboPanel 0.1.0',
