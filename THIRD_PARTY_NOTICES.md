@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:2c523d2e87ba4a7bd02e5d1d7c5c65a79a93579140cd51b9d5ecf45059cfa447
+pnpm-lock.yaml sha256:8d874c83c1e88fdfe93a852856c6e76f24b84a93876aa63bdfbb4cf1908aa865
 -->
 
 ## Production dependencies
@@ -304,7 +304,7 @@ pnpm-lock.yaml sha256:2c523d2e87ba4a7bd02e5d1d7c5c65a79a93579140cd51b9d5ecf45059
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.3.3
+### @next/env@16.3.6
 
 - License: MIT
 - Copyright: Next.js Team
@@ -1125,7 +1125,7 @@ pnpm-lock.yaml sha256:2c523d2e87ba4a7bd02e5d1d7c5c65a79a93579140cd51b9d5ecf45059
 - License: Apache-2.0
 - Homepage: https://github.com/web-platform-dx/baseline-browser-mapping#readme
 
-### caniuse-lite@1.0.30001797
+### caniuse-lite@1.0.30001810
 
 - License: CC-BY-4.0
 - Copyright: Ben Briggs
@@ -2414,7 +2414,7 @@ pnpm-lock.yaml sha256:2c523d2e87ba4a7bd02e5d1d7c5c65a79a93579140cd51b9d5ecf45059
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.3.3
+### next@16.3.6
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3327,7 +3327,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.3
+### @next/swc-linux-x64-gnu@16.3.6
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -3721,12 +3721,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/callsites#readme
-
-### caniuse-lite@1.0.30001810
-
-- License: CC-BY-4.0
-- Copyright: Ben Briggs
-- Homepage: https://github.com/browserslist/caniuse-lite#readme
 
 ### chai@5.3.3
 
