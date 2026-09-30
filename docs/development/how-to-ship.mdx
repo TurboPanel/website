@@ -80,7 +80,7 @@ re-run for you; if it is not, re-run the failed check by hand.
 
 To **start** a minor, label a pull request `minor`. When the release ships, the Start pull request
 for that repository moves to `x.y.0`, and the same "Start x.y.0" pull request opens in the other
-two of the three. The **Start a minor** form in the `dev` repository (Actions → *Start a minor*,
+two of the three. The **Start a Minor** form in the `dev` repository (Actions → *Start a Minor*,
 one input: `0.2.0`) does the same by hand.
 
 ## When something goes wrong
@@ -88,7 +88,7 @@ one input: `0.2.0`) does the same by hand.
 | What you see | What to do |
 | --- | --- |
 | The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build |
-| The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Cut rc** workflow (*Run workflow*, the commit to tag) |
+| The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Cut RC** workflow (*Run workflow*, the commit to tag) |
 | The release run is waiting | Approve the `release` environment on the run page |
 | The automatic path cannot run at all | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path |
 | A candidate was cut from the wrong commit | Merge the fix and cut the next candidate; a published candidate is not edited |
