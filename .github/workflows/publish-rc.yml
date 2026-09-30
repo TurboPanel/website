@@ -54,7 +54,7 @@ jobs:
       # started version), never package.json.
       - name: Work out the version from the tags
         id: base
-        uses: TurboPanel/dev/.github/actions/version@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
+        uses: TurboPanel/dev/.github/actions/version@387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
         with:
           mode: base
 
@@ -116,12 +116,12 @@ jobs:
     permissions:
       contents: write
     if: needs.resolve.outputs.proceed == 'true'
-    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
+    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
     with:
       repo-kind: notes-only
       to: rc
       source: ${{ needs.resolve.outputs.commit }}
-      dev-ref: ac03b76f3b1f3416f711c55b010a06daaf875dcd
+      dev-ref: 387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
       # The merge of the promotion PR is the approval.
       approval-environment: ""
     secrets: inherit
@@ -130,7 +130,7 @@ jobs:
     needs: prepare
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-release.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: rc
@@ -144,7 +144,7 @@ jobs:
     needs: [prepare, publish]
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
+    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
     with:
       to: rc
       version: ${{ needs.prepare.outputs.version }}
@@ -170,7 +170,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TurboPanel/dev
-          ref: ac03b76f3b1f3416f711c55b010a06daaf875dcd
+          ref: 387788e9e64344fc5de32f6b93abd178e956d6a1 # dev#42
           path: .promote
           fetch-depth: 1
           persist-credentials: false
