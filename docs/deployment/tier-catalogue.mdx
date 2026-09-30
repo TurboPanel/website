@@ -52,7 +52,7 @@ and never sold through Checkout. For each product:
 | S6 | 128 | 512 GiB | $35.00 |
 | S7 | 256 | 1 TiB | $50.00 |
 
-The prices are the ladder's — `src/lib/tiers/ladder.ts` in the control plane — and the verifier
+The prices are the ladder's — `src/features/tiers/ladder.ts` in the control plane — and the verifier
 holds Stripe to them. Changing a price is a code change first, then a Stripe change, never the
 other way round.
 

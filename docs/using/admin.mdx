@@ -41,8 +41,8 @@ Most Admin settings can be set in two places: the panel, or an environment varia
 | Source | What the name presents |
 | --- | --- |
 | **Platform CA** | The `:8443` leaf. `https://<host>:8443` stays bound even when no name uses this source. |
-| **Uploaded certificate** | That hostname on `:443`, with a pair from **Certificates**. |
-| **Let's Encrypt** | That hostname on `:443`, after Caddy obtains the certificate. Needs port 80 to reach the solver on `:8880`. |
+| **Uploaded certificate** | That hostname on `:8443`, with a pair from **Certificates**. |
+| **Let's Encrypt** | That hostname on `:8443`, once the certificate is issued. Port 80 opens only while Let's Encrypt issues or renews — see [Hostnames and TLS](/docs/deployment/hostnames-and-tls). |
 
 <Steps>
   <Step>
