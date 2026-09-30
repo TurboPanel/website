@@ -54,7 +54,7 @@ jobs:
       # The newest rc above the newest release — what staging holds.
       - name: Work out the rc to release from the tags
         id: rc
-        uses: TurboPanel/dev/.github/actions/version@7e1b90a0f8b33047d6c59438a7df03b20ea5cd24 # dev#43
+        uses: TurboPanel/dev/.github/actions/version@a903ecc40b8b27ce08dd3336497597f66c13d171 # dev#44
         with:
           mode: release-rc
 
@@ -106,12 +106,12 @@ jobs:
     permissions:
       contents: write
     if: needs.resolve.outputs.proceed == 'true'
-    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@7e1b90a0f8b33047d6c59438a7df03b20ea5cd24 # dev#43
+    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@a903ecc40b8b27ce08dd3336497597f66c13d171 # dev#44
     with:
       repo-kind: notes-only
       to: release
       source: ${{ needs.resolve.outputs.rc-tag }}
-      dev-ref: 7e1b90a0f8b33047d6c59438a7df03b20ea5cd24 # dev#43
+      dev-ref: a903ecc40b8b27ce08dd3336497597f66c13d171 # dev#44
       # Default: the `release` environment approval stays for the release hop.
     secrets: inherit
 
@@ -119,7 +119,7 @@ jobs:
     needs: prepare
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-release.yml@7e1b90a0f8b33047d6c59438a7df03b20ea5cd24 # dev#43
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@a903ecc40b8b27ce08dd3336497597f66c13d171 # dev#44
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: release
@@ -133,7 +133,7 @@ jobs:
     needs: [prepare, publish]
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@7e1b90a0f8b33047d6c59438a7df03b20ea5cd24 # dev#43
+    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@a903ecc40b8b27ce08dd3336497597f66c13d171 # dev#44
     with:
       to: release
       version: ${{ needs.prepare.outputs.version }}
