@@ -5,7 +5,7 @@ description: "Data dictionary for the TurboPanel control-plane PostgreSQL schema
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0008_snapshot.json (0008_invitation_token_hash).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0009_snapshot.json (0009_backup_policies).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -15,7 +15,7 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 
 | Generated from | Tables | Columns |
 | --- | --- | --- |
-| migration `0008_invitation_token_hash` | 75 | 799 |
+| migration `0009_backup_policies` | 78 | 832 |
 
 ## Tables by area
 
@@ -27,8 +27,8 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 | [Access, audit and configuration](/docs/database/platform) | [`audit`](/docs/database/platform#audit), [`certificate`](/docs/database/platform#certificate), [`grant`](/docs/database/platform#grant), [`lease`](/docs/database/platform#lease), [`origin`](/docs/database/platform#origin), [`setting`](/docs/database/platform#setting) |
 | [Networking](/docs/database/networking) | [`datacenter`](/docs/database/networking#datacenter), [`fabric`](/docs/database/networking#fabric), [`ip`](/docs/database/networking#ip), [`network`](/docs/database/networking#network), [`relay`](/docs/database/networking#relay), [`subnet`](/docs/database/networking#subnet) |
 | [Resource tree and tagging](/docs/database/resources) | [`binding`](/docs/database/resources#binding), [`container`](/docs/database/resources#container), [`environment`](/docs/database/resources#environment), [`hosting`](/docs/database/resources#hosting), [`hostname`](/docs/database/resources#hostname), [`marker`](/docs/database/resources#marker), [`principal`](/docs/database/resources#principal), [`project`](/docs/database/resources#project), [`service`](/docs/database/resources#service), [`tag`](/docs/database/resources#tag), [`tenancy`](/docs/database/resources#tenancy), [`variable`](/docs/database/resources#variable), [`workspace`](/docs/database/resources#workspace) |
-| [Managed databases](/docs/database/managed) | [`backup`](/docs/database/managed#backup), [`managed`](/docs/database/managed#managed), [`recovery`](/docs/database/managed#recovery), [`replica`](/docs/database/managed#replica) |
-| [Storage and secrets](/docs/database/storage) | [`copy`](/docs/database/storage#copy), [`mount`](/docs/database/storage#mount), [`secret`](/docs/database/storage#secret), [`storage`](/docs/database/storage#storage) |
+| [Managed databases](/docs/database/managed) | [`backup`](/docs/database/managed#backup), [`backuppolicy`](/docs/database/managed#backuppolicy), [`backuprun`](/docs/database/managed#backuprun), [`managed`](/docs/database/managed#managed), [`recovery`](/docs/database/managed#recovery), [`replica`](/docs/database/managed#replica) |
+| [Storage and secrets](/docs/database/storage) | [`copy`](/docs/database/storage#copy), [`mount`](/docs/database/storage#mount), [`secret`](/docs/database/storage#secret), [`storage`](/docs/database/storage#storage), [`volumebackup`](/docs/database/storage#volumebackup) |
 | [Servers, runtime and metrics](/docs/database/runtime) | [`capability`](/docs/database/runtime#capability), [`command`](/docs/database/runtime#command), [`deployment`](/docs/database/runtime#deployment), [`dispatch`](/docs/database/runtime#dispatch), [`generation`](/docs/database/runtime#generation), [`key`](/docs/database/runtime#key), [`label`](/docs/database/runtime#label), [`monitor`](/docs/database/runtime#monitor), [`server`](/docs/database/runtime#server), [`slot`](/docs/database/runtime#slot), [`task`](/docs/database/runtime#task) |
 | [Upgrades](/docs/database/upgrades) | [`upgrade`](/docs/database/upgrades#upgrade), [`upgradestep`](/docs/database/upgrades#upgradestep) |
 | [Git and SSH](/docs/database/git) | [`connection`](/docs/database/git#connection), [`delivery`](/docs/database/git#delivery), [`forge`](/docs/database/git#forge), [`repository`](/docs/database/git#repository), [`ssh`](/docs/database/git#ssh) |

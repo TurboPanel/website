@@ -1,11 +1,11 @@
 ---
 title: "Storage and secrets"
-description: "Data dictionary — storage and secrets tables: copy, mount, secret, storage"
+description: "Data dictionary — storage and secrets tables: copy, mount, secret, storage, volumebackup"
 ---
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0008_snapshot.json (0008_invitation_token_hash).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0009_snapshot.json (0009_backup_policies).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — storage and secrets tables: copy, mount, secre
 
 Storage volumes, their copies and mounts, and the sealed secret envelopes.
 
-Tables on this page: [`copy`](#copy) · [`mount`](#mount) · [`secret`](#secret) · [`storage`](#storage). Generated from migration `0008_invitation_token_hash`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`copy`](#copy) · [`mount`](#mount) · [`secret`](#secret) · [`storage`](#storage) · [`volumebackup`](#volumebackup). Generated from migration `0009_backup_policies`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `copy` [#copy]
 
@@ -137,3 +137,27 @@ Logical identity of persistent data owned by an organization and scoped to at mo
         (project_id IS NOT NULL)::int +
         (environment_id IS NOT NULL)::int +
         (service_id IS NOT NULL)::int) <= 1`
+
+## `volumebackup` [#volumebackup]
+
+One completed storage-copy backup artifact recorded from a daemon report; unique per (copy_id, backup_id), cascades with the copy.
+
+| Column | Type | Null | Default | Description |
+| --- | --- | --- | --- | --- |
+| `id` (PK) | `uuid` | no | `uuidv7()` | Primary key (`uuidv7()`, time-ordered). |
+| `created_at` | `timestamp(3) with time zone` | no | `now()` | Row creation time. |
+| `copy_id` | `uuid` | no |  | FK → [`copy`](/docs/database/storage#copy).`id` (on delete cascade). |
+| `policy_id` | `uuid` | yes |  | FK → [`backuppolicy`](/docs/database/managed#backuppolicy).`id` (on delete set null). The `backuppolicy` whose scheduled run made this artifact; null for a manual backup or once that policy is deleted. |
+| `backup_id` | `text` | no |  | Daemon-minted `bk_` plus hex token that is also the artifact filename on the host; unique per storage copy, not globally. |
+| `size_bytes` | `bigint` | no |  | Artifact size in bytes as reported by the daemon after writing the archive; re-checked before a restore. |
+| `checksum` | `text` | no |  | Lowercase SHA-256 hex digest of the artifact computed by the daemon; a restore refuses on mismatch. |
+| `path` | `text` | no |  | Absolute artifact path on the copy's server as reported by the daemon. |
+
+**Constraints and indexes**
+
+- Index `idx_volumebackup_copy_id_created_at`: (`copy_id`, `created_at`)
+- Index `idx_volumebackup_policy_id`: (`policy_id`)
+- Unique index `uniq_volumebackup_copy_backup_id`: (`copy_id`, `backup_id`)
+- Check `volumebackup_backup_id_format_check`: `backup_id ~ '^[A-Za-z0-9_-]+$'`
+- Check `volumebackup_checksum_format_check`: `checksum ~ '^[a-f0-9]{64}$'`
+- Check `volumebackup_size_bytes_check`: `size_bytes >= 0`
