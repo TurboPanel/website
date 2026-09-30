@@ -1,6 +1,6 @@
 ---
 title: How to ship
-description: Publish a release candidate and a release for TurboPanel by merging two pull requests, and how a new minor version moves the repositories together
+description: Publish a release candidate and a release for TurboPanel by merging two pull requests, and how to start a new minor or major version
 ---
 
 # How to ship
@@ -15,12 +15,11 @@ This page is for maintainers. The channels themselves are described under
 
 ## The whole path
 
-| Step | Who | Result |
-| --- | --- | --- |
-| Squash-merge a change into `trunk` | Anyone with a green `ci-ok` | A **canary** `x.y.z-canary.N` is built and published |
-| Merge **"Release Candidate x.y.z-rc.N"** (`trunk` → `staging`) | A maintainer | `vx.y.z-rc.N` is published from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
-| Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer | `vx.y.z` becomes the latest release; `live` moves; **"Start x.y.z+1"** opens |
-| Squash-merge **"Start x.y.z+1"** | A maintainer | `trunk` moves to the next number, so the next canary carries it |
+| Step                                                                                 | Who                         | Result                                                                                           |
+| ------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------ |
+| Squash-merge a change into `trunk`                                                   | Anyone with a green `ci-ok` | A **canary** `x.y.z-canary.N` is built and published                                             |
+| Merge **"Release Candidate x.y.z-rc.N"** (`trunk` → `staging`)                       | A maintainer                | `vx.y.z-rc.N` is published from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
+| Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer                | `vx.y.z` becomes the latest release; `live` moves; the next canary is `x.y.z+1` by itself        |
 
 The pull requests are opened and refreshed by a bot (the TurboPanel Release App), so their checks
 run. You never run a workflow by hand for a normal release.
@@ -44,17 +43,18 @@ candidate is replaced, not abandoned.
 3. A workflow takes the **newest** candidate of that version and publishes it as `vx.y.z`, marks
    it the latest release and moves `live`. It pauses for your approval on the **`release`
    environment**; approve it on the run page.
-4. A **Start x.y.z+1** pull request opens. Squash-merge it.
 
-The installer and the update system follow GitHub's *latest* release, so the release is what a
+Nothing else opens: the next canary is the next patch by itself.
+
+The installer and the update system follow GitHub's _latest_ release, so the release is what a
 plain install gets from that moment.
 
-## 3. Start the next number
+## 3. The next number
 
-The **Start** pull request changes only the version files (`deno.json` / `package.json`,
-`app.json` for the web app, `sonar-project.properties`). It bumps a **patch** by default. Add the
-**`minor`** label to any pull request that is merged before the release to make the next number a
-**minor** instead. It never goes below the highest minor any of the repositories is already on.
+Version numbers come from git tags, not from a file, so no pull request moves them. Once
+`vx.y.z` is released, the next canary is `x.y.z+1-canary.1`, and the canary number starts again
+at 1 for every new version. The build writes that number into the binary (it reports plain
+`x.y.z`); the channel and the canary or candidate number live in the signed manifest.
 
 ## Repositories ship independently
 
@@ -63,36 +63,32 @@ website each have their own version and their own two merges. A daemon-only or a
 release is normal: **no release waits on a matching release in another repository.** The website
 ships no binary, so its candidates and releases are notes-only tags on a commit.
 
-## A new minor moves three repositories together
+## Starting a minor or a major
 
-The one exception is a **new minor** (`x.y.0`), because the daemon, control plane and web app are
-released as a set. The order is fixed:
+A **patch** needs nothing. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the first is `1.0.0`) is
+the one deliberate step: run **Start Next Version** in the `turbopaneld` repository (Actions →
+_Start Next Version_ → _Run workflow_, pick `minor` or `major`). Only people with write access to
+that repository can run it. Tick **dry-run** first to see what each repository would get.
 
-1. `turbopanel` and `ui` each publish a release candidate of `x.y.0`.
-2. Then the daemon releases `x.y.0`.
-3. Then `turbopanel` and `ui` release `x.y.0`.
+It pushes a `start/vx.y.0` tag at the head of `trunk` in `turbopaneld`, `turbopanel`, `ui` and
+the website, each one the next minor (or major) after that repository's own newest release, and
+re-runs each repository's trunk build. When those builds finish (about 25 minutes for the control
+plane), the canaries and the **Release Candidate** pull requests carry the new number. Running it
+twice is harmless: a repository already on that version is skipped.
 
-A check named **minor-gate** on each **Release** pull request enforces it. The daemon's stays red
-until both other repositories have an `x.y.0` candidate. The control plane's and the web app's stay
-red until the daemon has released `x.y.0`. Patch releases are never checked, and neither are the
-website or `dev`. When the other side becomes ready the waiting pull request's failed check is
-re-run for you; if it is not, re-run the failed check by hand.
-
-To **start** a minor, label a pull request `minor`. When the release ships, the Start pull request
-for that repository moves to `x.y.0`, and the same "Start x.y.0" pull request opens in the other
-two of the three. The **Start a Minor** form in the `dev` repository (Actions → *Start a Minor*,
-one input: `0.2.0`) does the same by hand.
+After a start, every release of that repository carries the new number, a hotfix included, so
+start a minor only when everything on `trunk` may ship as it. A candidate that is already on
+`staging` still ships under its own number.
 
 ## When something goes wrong
 
-| What you see | What to do |
-| --- | --- |
-| The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build |
-| The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Publish Release Candidate** workflow (*Run workflow*, the commit to tag) |
-| The release run is waiting | Approve the `release` environment on the run page |
-| The automatic path cannot run at all | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path |
-| A candidate was published from the wrong commit | Merge the fix and publish the next candidate; a published candidate is not edited |
-| A minor's Release pull request is red on **minor-gate** | The message names the repository that is not ready yet. Get that repository's candidate (or the daemon's release) done first |
+| What you see                                      | What to do                                                                                                                                                                                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build                                                                                                                                |
+| The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Publish Release Candidate** workflow (_Run workflow_, the commit to tag) |
+| The release run is waiting                        | Approve the `release` environment on the run page                                                                                                                                                    |
+| The automatic path cannot run at all              | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path                                     |
+| A candidate was published from the wrong commit   | Merge the fix and publish the next candidate; a published candidate is not edited                                                                                                                    |
 
 ## Who needs what
 
