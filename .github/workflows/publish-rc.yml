@@ -1,4 +1,4 @@
-# Cuts the next x.y.z-rc.N when the trunk → staging PR is merged (Road to
+# Publishes the next x.y.z-rc.N when the trunk → staging PR is merged (Road to
 # 0.2.x, versioning flow). Runs on the push the merge makes to staging — a push
 # runs the workflow file from the pushed commit, so the very first merge (which
 # brings this file into staging) already works.
@@ -13,9 +13,9 @@
 #   3. release-pr  opens (or refreshes) the staging → live PR "Release <version>"
 #
 # A push to staging that is not a merged trunk PR does nothing.
-# workflow_dispatch re-runs a cut for a given trunk commit.
+# workflow_dispatch re-runs it for a given trunk commit.
 
-name: Cut rc
+name: Publish Release Candidate
 
 on:
   push:
@@ -27,18 +27,22 @@ on:
         required: true
         type: string
 
+# Least privilege: read-only by default, each job asks for what it uses. The
+# GITHUB_TOKEN never writes a pull request here (the Release App token does),
+# and the TurboPanel/dev reusable jobs need `contents: write` (tags, releases).
 permissions:
-  contents: write
-  actions: read
-  pull-requests: write
+  contents: read
 
 concurrency:
-  group: cut-rc
+  group: publish-rc
   cancel-in-progress: false
 
 jobs:
   resolve:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # package.json, tags
+      pull-requests: read # the PR a pushed commit came from
     outputs:
       proceed: ${{ steps.r.outputs.proceed }}
       commit: ${{ steps.r.outputs.commit }}
@@ -57,7 +61,7 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ]; then
             commit="$INPUT_COMMIT"
           else
-            # Only a merged trunk → staging PR cuts an rc. The API can take a
+            # Only a merged trunk → staging PR publishes an rc. The API can take a
             # moment to associate the merge commit with its PR.
             pr=""
             for _ in 1 2 3 4 5 6; do
@@ -66,7 +70,7 @@ jobs:
               sleep 10
             done
             if [ -z "$pr" ]; then
-              echo "push to staging is not a merged trunk PR — nothing to cut"
+              echo "push to staging is not a merged trunk PR — nothing to publish"
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -80,10 +84,10 @@ jobs:
             *) echo "::error::could not read a version from package.json at $commit (got '$version')"; exit 1 ;;
           esac
 
-          # Idempotence: this commit already has an rc (a re-run) — do not cut rc.N+1 of the same bytes.
+          # Idempotence: this commit already has an rc (a re-run) — do not publish rc.N+1 of the same bytes.
           for ref in $(gh api --paginate "repos/$REPO/git/matching-refs/tags/v$version-rc." --jq '.[].ref' | sed 's#^refs/tags/##'); do
             if [ "$(gh api "repos/$REPO/commits/$ref" --jq .sha)" = "$commit" ]; then
-              echo "$ref already carries $commit — nothing to cut"
+              echo "$ref already carries $commit — nothing to publish"
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -94,10 +98,12 @@ jobs:
             echo "commit=$commit"
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"
-          echo "cutting an rc of $version from $commit"
+          echo "publishing an rc of $version from $commit"
 
   prepare:
     needs: resolve
+    permissions:
+      contents: write
     if: needs.resolve.outputs.proceed == 'true'
     uses: TurboPanel/dev/.github/workflows/gh-promote.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
@@ -106,11 +112,13 @@ jobs:
       source: ${{ needs.resolve.outputs.commit }}
       dev-ref: 5464e72c40aec3528fb10e6fc660583ad963b3cb
       # The merge of the promotion PR is the approval.
-      approval-environment: ''
+      approval-environment: ""
     secrets: inherit
 
   publish:
     needs: prepare
+    permissions:
+      contents: write
     uses: TurboPanel/dev/.github/workflows/gh-release.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
       version: ${{ needs.prepare.outputs.version }}
@@ -123,6 +131,8 @@ jobs:
 
   finalize:
     needs: [prepare, publish]
+    permissions:
+      contents: write
     uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
     with:
       to: rc
@@ -135,6 +145,8 @@ jobs:
   release-pr:
     needs: [resolve, prepare, finalize]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # the dev checkout; the PR is written with the App token
     steps:
       - name: Mint a Release App token
         id: app
@@ -164,7 +176,7 @@ jobs:
           set -eu
           existing="$(gh pr list --repo "$REPO" --base live --head staging --state open --json number --jq '.[0].number // empty')"
           {
-            echo "Merging this cuts the release \`v$VERSION\` from \`v$RC\` (same bytes, re-signed) and moves \`live\`. It runs automatically after the merge (\`cut-release.yml\`)."
+            echo "Merging this publishes the release \`v$VERSION\` from \`v$RC\` (same bytes, re-signed) and moves \`live\`. It runs automatically after the merge (\`publish-release.yml\`)."
             echo
             echo "**Since the last release:**"
             echo
