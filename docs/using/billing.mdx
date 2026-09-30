@@ -75,7 +75,7 @@ When a server needs a tier nothing purchased covers — it was added with no mat
 
 ## Past-due payment
 
-When a renewal fails, the payment provider retries on its own schedule and Billing shows **Payment is past due — tier changes are paused**: increases and moves are refused (`subscription_past_due`, naming the grace expiry) with nothing written, while releases and the rest of the console keep working. Update the card under **Invoices & payment method**; a successful payment clears the pause at once. If the subscription is still unpaid **65 days** after it first went past due, it is cancelled, every license is revoked (bound ones included), and leftover credit is forfeited.
+When a renewal fails, the payment provider retries on its own schedule and Billing shows **Payment is past due — tier changes are paused**: increases and moves are refused (`subscription_past_due`) with nothing written, while releases and the rest of the console keep working, and your servers stay licensed. Update the card under **Invoices & payment method**; a successful payment clears the pause at once. If every retry fails, the payment provider cancels the subscription; every license is then revoked (bound ones included), and leftover credit is forfeited. How many retries, and how far apart, is the payment provider's retry schedule for this instance.
 
 ## Invoices and payment method
 
@@ -91,7 +91,7 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | Increase / move up | immediate, prorated invoice now; parked (not granted) while the invoice is unpaid |
 | Decrease / move down | at period end, no credit |
 | Give back the last license | subscription cancels at the period end; buying again before then resumes it |
-| Grace after past due | 65 days, then cancellation and license revocation |
+| Past due | payment provider retries on its schedule; licenses stay; if every retry fails it cancels and every license is revoked |
 | One change at a time | mutations for an organization are serialised; a concurrent one answers `billing_mutation_in_progress` |
 
 ## Errors
@@ -106,7 +106,7 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | `not_an_upgrade`, `not_a_downgrade` | 400 | The chosen tiers do not go in the direction of the action. |
 | `servers_uncovered` | 409 | The change would leave the named server without a license at the tier it needs. |
 | `licenses_in_use` | 409 | The organization would hold more registration keys than it pays for. |
-| `subscription_past_due` | 409 | Increases and moves are paused until the open invoice is paid; `graceExpiresAt` says when cancellation would follow. |
+| `subscription_past_due` | 409 | Increases and moves are paused until the open invoice is paid. |
 | `billing_mutation_in_progress` | 409 | Another change for this organization is being applied; retry in a moment. |
 | `no_license_available` | 409 (Add server) | Every purchased license is held or releasing; buy one more first. |
 | `stripe_error` | 502 / 503 | The payment provider refused (502) or did not answer (503, transient); nothing was applied. |
