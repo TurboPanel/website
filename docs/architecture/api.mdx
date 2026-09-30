@@ -27,16 +27,16 @@ Unversioned docs:
 
 | Area | Files | Role |
 | ---- | ----- | ---- |
-| App shell | `app.ts`, `surfaces.ts` | `createApp()` mounts routers, health, OpenAPI, Scalar |
-| Client | `client-routes.ts`, `auth/*` | Sign-in, org servers |
-| Install | `install-routes.ts`, `auth/install-state.ts` | Self-hosted install wizard (`/api/install/v1/*`, Deno only) |
-| Developer | `developer-routes-core.ts`, `developer-routes.ts` | Fleet, database (Deno-only extras in `developer-routes.ts`) |
-| Daemon | `daemon-api-routes.ts`, `daemon-hub.ts` | Daemon registration, CA fetch, WS hub |
-| Deno-only | `deno.ts`, `system-routes.ts`, `dev-sync.ts`, `tunnel-routes.ts` | Upgrade, reset-dev, dev-sync push |
-| Database | `db.ts`, `db/schema.ts` | Drizzle + postgres.js (`prepare: true` on Workers/Hyperdrive for cached parameterized reads; `prepare: false` on Deno/direct Postgres) |
-| Workers entry | `workers.ts` | Wrangler main; registers `developer-routes-core` only |
+| App shell | `src/app/app.ts`, `src/app/surfaces.ts` | `createApp()` mounts routers, health, OpenAPI, Scalar |
+| Client | `src/client/routes.ts`, `src/client/authn/` | Sign-in, org servers |
+| Install | `src/install/routes.ts`, `src/client/authn/install-state.ts` | Self-hosted install wizard (`/api/install/v1/*`, Deno only) |
+| Developer | `src/developer/routes-core.ts`, `src/developer/routes.ts` | Fleet, database (Deno-only extras in `developer/routes.ts`) |
+| Daemon | `src/daemon/api-routes.ts`, `src/daemon/deno-ws.ts` / `workers-ws.ts` | Daemon registration, CA fetch, WS hub |
+| Deno-only | `src/deno.ts`, `src/developer/system-routes.ts`, `src/developer/dev-sync.ts`, `src/developer/tunnel-routes.ts` | Upgrade, reset-dev, dev-sync push |
+| Database | `src/db/connection.ts`, `src/db/schema.ts` | Drizzle + postgres.js (`prepare: true` on Workers/Hyperdrive for cached parameterized reads; `prepare: false` on Deno/direct Postgres) |
+| Workers entry | `src/workers.ts` | Wrangler main; registers `developer/routes-core` only |
 
-**Workers bundle rule:** Deno-only modules must not be imported from `app.ts` or `workers.ts` — register Deno routes only from `deno.ts`.
+**Workers bundle rule:** Deno-only modules must not be imported from `src/app/app.ts` or `src/workers.ts` — register Deno routes only from `src/deno.ts`.
 
 ## Routing flow
 
@@ -87,7 +87,7 @@ Schema changes are versioned in `turbopanel/migrations/` and applied via `pnpm m
 
 ## Compose documents & server placement
 
-`project.options.compose` / `environment.options.compose` store a versioned **ComposeDocument** (`version: 1`, `data`, `presentation`) so YAML comments, blank lines, and section order survive editor round-trips. Deploy strips `presentation` to runtime YAML and merges the environment overlay onto the project base. The compose library lives at `turbopanel/src/lib/compose/`.
+`project.options.compose` / `environment.options.compose` store a versioned **ComposeDocument** (`version: 1`, `data`, `presentation`) so YAML comments, blank lines, and section order survive editor round-trips. Deploy strips `presentation` to runtime YAML and merges the environment overlay onto the project base. The compose library lives at `turbopanel/src/features/compose/`.
 
 ### `x-turbopanel` vendor extension
 
@@ -104,7 +104,7 @@ Placement is a property of the **environment**, set on the console's Hosting tab
 | `environment.serverId` | The pin. `PATCH /environments/:id` with `serverId`; `null` clears it. |
 | `project.options.defaultServerId` | The fallback every environment inherits when it has no pin. |
 
-Different environments in the same project may resolve to different servers. The pin is an anchor, not a cap: services that declare `deploy.replicas` or `deploy.placement.*` are scheduled by the planner across the organization's connected servers (`turbopanel/src/lib/schedule/`), and a plan that spans hosts needs a spanning (`driver: overlay`) network carried by TurboFabric.
+Different environments in the same project may resolve to different servers. The pin is an anchor, not a cap: services that declare `deploy.replicas` or `deploy.placement.*` are scheduled by the planner across the organization's connected servers (`turbopanel/src/features/schedule/`), and a plan that spans hosts needs a spanning (`driver: overlay`) network carried by TurboFabric.
 
 ### Deploy resolution
 
@@ -128,16 +128,16 @@ The organization console's **Merged compose** preview renders a client-side simu
 
 ## Daemon hub
 
-Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The instance resolves a canonical `server` row, dedupes reconnects, and routes commands over the hub (`src/daemon-hub.ts`).
+Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The instance resolves a canonical `server` row, dedupes reconnects, and routes commands over the daemon cell (`src/daemon/cell/`).
 
 Co-located daemons on the same host dial the Unix socket directly (no Caddy hop) and collapse to a single local slot.
 
 ## Adding new routes
 
 1. Pick the surface (`client`, `developer`, `install`, `daemon`).
-2. Add handlers in the matching `*-routes.ts` file (or `auth/http.ts` for client auth).
-3. Update `src/openapi.ts` and `ui/src/lib/instance-api.ts` when the UI needs the endpoint.
-4. If the route is Deno-only (filesystem, `systemctl`), register it from `deno.ts` — never from `workers.ts`.
+2. Add handlers in that surface's `routes.ts` (for example `src/client/projects/routes.ts`), or `src/client/authn/http.ts` for client auth.
+3. Update `src/client/openapi/` and `ui/src/lib/instance-api.ts` when the UI needs the endpoint.
+4. If the route is Deno-only (filesystem, `systemctl`), register it from `src/deno.ts` — never from `src/workers.ts`.
 
 ## Related
 

@@ -122,7 +122,7 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 
 ## Technology choices
 
-- **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app.ts`).
+- **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app/app.ts`).
 - **Expo / React Native** — Cross-platform UI (`ui/`).
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
 - **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
@@ -130,6 +130,6 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
-- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/instance/commands/`.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).
