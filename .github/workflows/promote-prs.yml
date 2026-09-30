@@ -2,7 +2,7 @@
 #
 # Every green trunk build ("Verify" succeeded) makes sure a PR
 # "Release Candidate <version>-rc.N" from trunk into staging is open. Merging it
-# is the one human act: cut-rc.yml then tags the merged trunk commit as that rc.
+# is the one human act: publish-rc.yml then tags the merged trunk commit as that rc.
 # website ships no binary, so an rc is a notes-only release of the commit. The
 # PR is opened with the Release App's token, because a PR created with
 # GITHUB_TOKEN never starts the required `ci-ok` check.
@@ -69,7 +69,7 @@ jobs:
           rc="$version-rc.$(( ${last:-0} + 1 ))"
           title="Release Candidate $rc"
           {
-            echo "Merging this cuts \`v$rc\` on the merged trunk commit (a notes-only release) and moves \`staging\`. It runs automatically after the merge (\`cut-rc.yml\`)."
+            echo "Merging this publishes \`v$rc\` on the merged trunk commit (a notes-only release) and moves \`staging\`. It runs automatically after the merge (\`publish-rc.yml\`)."
             echo
             echo "**$ahead commit(s) on trunk not yet on staging:**"
             echo
