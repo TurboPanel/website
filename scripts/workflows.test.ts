@@ -135,7 +135,9 @@ describe("versions from tags", () => {
       )) {
         pins.add(m[1]);
       }
-      for (const m of read(file).matchAll(/^ +(?:dev-)?ref: ([\da-f]{40})$/gm))
+      for (const m of read(file).matchAll(
+        /^ +(?:dev-)?ref: ([\da-f]{40})(?: #.*)?$/gm,
+      ))
         pins.add(m[1]);
     }
     expect([...pins]).toHaveLength(1);
