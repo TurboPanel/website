@@ -4,9 +4,11 @@
 # brings this file into staging) already works.
 #
 # website ships no binary, so an rc is a notes-only release: the merged trunk
-# commit is tagged v<package.json version>-rc.N and a GitHub Release is created.
+# commit is tagged v<version>-rc.N and a GitHub Release is created. The version
+# comes from git tags (the newest release's next patch, or a version started
+# with turbopaneld's Start Next Version), never from package.json.
 #
-#   1. resolve  the merged PR's head commit and its package.json version
+#   1. resolve  the merged PR's head commit and the version from the tags
 #   2. prepare / publish / finalize   the shared promote workflows
 #               (TurboPanel/dev), notes-only, with NO approval gate — the merge
 #               was the deliberate act
@@ -41,14 +43,22 @@ jobs:
   resolve:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # package.json, tags
+      contents: read # tags
       pull-requests: read # the PR a pushed commit came from
     outputs:
       proceed: ${{ steps.r.outputs.proceed }}
       commit: ${{ steps.r.outputs.commit }}
       version: ${{ steps.r.outputs.version }}
     steps:
-      - name: Find the merged PR and the version it carries
+      # The version from the tags (the newest release's next patch, or a
+      # started version), never package.json.
+      - name: Work out the version from the tags
+        id: base
+        uses: TurboPanel/dev/.github/actions/version@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
+        with:
+          mode: base
+
+      - name: Find the merged PR
         id: r
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,6 +66,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           PUSHED: ${{ github.sha }}
           INPUT_COMMIT: ${{ inputs.commit }}
+          BASE_VERSION: ${{ steps.base.outputs.base }}
         run: |
           set -eu
           if [ "$EVENT" = "workflow_dispatch" ]; then
@@ -78,10 +89,10 @@ jobs:
             echo "PR #$pr merged trunk commit $commit"
           fi
 
-          version="$(gh api "repos/$REPO/contents/package.json?ref=$commit" --jq .content | base64 -d | jq -r .version)"
+          version="$BASE_VERSION"
           case "$version" in
             [0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "::error::could not read a version from package.json at $commit (got '$version')"; exit 1 ;;
+            *) echo "::error::could not work out a version from the tags (got '$version')"; exit 1 ;;
           esac
 
           # Idempotence: this commit already has an rc (a re-run) — do not publish rc.N+1 of the same bytes.
@@ -105,12 +116,12 @@ jobs:
     permissions:
       contents: write
     if: needs.resolve.outputs.proceed == 'true'
-    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
+    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
     with:
       repo-kind: notes-only
       to: rc
       source: ${{ needs.resolve.outputs.commit }}
-      dev-ref: 5464e72c40aec3528fb10e6fc660583ad963b3cb
+      dev-ref: ac03b76f3b1f3416f711c55b010a06daaf875dcd
       # The merge of the promotion PR is the approval.
       approval-environment: ""
     secrets: inherit
@@ -119,7 +130,7 @@ jobs:
     needs: prepare
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-release.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: rc
@@ -133,7 +144,7 @@ jobs:
     needs: [prepare, publish]
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@5464e72c40aec3528fb10e6fc660583ad963b3cb # dev#35
+    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@ac03b76f3b1f3416f711c55b010a06daaf875dcd # dev#42
     with:
       to: rc
       version: ${{ needs.prepare.outputs.version }}
@@ -159,7 +170,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TurboPanel/dev
-          ref: 5464e72c40aec3528fb10e6fc660583ad963b3cb
+          ref: ac03b76f3b1f3416f711c55b010a06daaf875dcd
           path: .promote
           fetch-depth: 1
           persist-credentials: false
