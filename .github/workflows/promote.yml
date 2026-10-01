@@ -44,19 +44,19 @@ jobs:
   prepare:
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@dadee433d35a73c7a9946268c30a96e466371140 # dev#44
+    uses: TurboPanel/dev/.github/workflows/gh-promote.yml@d9127ee03a6a3b42e9435ebec3542db5fab09bc0 # dev#49
     with:
       repo-kind: notes-only
       to: ${{ inputs.to }}
       source: ${{ inputs.source }}
-      dev-ref: dadee433d35a73c7a9946268c30a96e466371140 # dev#44
+      dev-ref: d9127ee03a6a3b42e9435ebec3542db5fab09bc0 # dev#49
     secrets: inherit
 
   publish:
     needs: prepare
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-release.yml@dadee433d35a73c7a9946268c30a96e466371140 # dev#44
+    uses: TurboPanel/dev/.github/workflows/gh-release.yml@d9127ee03a6a3b42e9435ebec3542db5fab09bc0 # dev#49
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ inputs.to }}
@@ -70,7 +70,7 @@ jobs:
     needs: [prepare, publish]
     permissions:
       contents: write
-    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@dadee433d35a73c7a9946268c30a96e466371140 # dev#44
+    uses: TurboPanel/dev/.github/workflows/gh-promote-finalize.yml@d9127ee03a6a3b42e9435ebec3542db5fab09bc0 # dev#49
     with:
       to: ${{ inputs.to }}
       version: ${{ needs.prepare.outputs.version }}
