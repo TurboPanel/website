@@ -10,20 +10,20 @@ the installer all follow this page.
 
 ## The parts
 
-| Name | What it is |
-| --- | --- |
-| **TurboPanel** | The whole product: the control plane, the web app and the daemons on your servers. |
+| Name              | What it is                                                                                                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TurboPanel**    | The whole product: the control plane, the web app and the daemons on your servers.                                                                                                                          |
 | **Control plane** | The program that runs the API and the database and serves the web app. On **Self-hosted** it is the `turbopanel` binary on its own host; on **TurboPanel High Availability** it runs on Cloudflare Workers. |
-| **App** | What you sign in to and use. **Web app** means the bundle the control plane serves to your browser. |
-| **Daemon** | `turbopaneld`, the program on each server TurboPanel manages. The **co-located daemon** is the one on the control plane's own host. |
-| **Server** | A machine TurboPanel manages. Say **host** only when you mean the operating system itself, as in "host firewall". |
-| **Administrator** | The person who runs a self-hosted control plane. |
+| **App**           | What you sign in to and use. **Web app** means the bundle the control plane serves to your browser.                                                                                                         |
+| **Daemon**        | `turbopaneld`, the program on each server TurboPanel manages. The **co-located daemon** is the one on the control plane's own host.                                                                         |
+| **Server**        | A machine TurboPanel manages. Say **host** only when you mean the operating system itself, as in "host firewall".                                                                                           |
+| **Administrator** | The person who runs a self-hosted control plane.                                                                                                                                                            |
 
 ## The two ways to run it
 
-| Name | Meaning |
-| --- | --- |
-| **Self-hosted** | You run the control plane on your own host. |
+| Name                             | Meaning                                               |
+| -------------------------------- | ----------------------------------------------------- |
+| **Self-hosted**                  | You run the control plane on your own host.           |
 | **TurboPanel High Availability** | TurboPanel runs the control plane for you, always on. |
 
 Always use these two names. "High Availability" describes the control plane only; it
@@ -31,16 +31,16 @@ never means your own apps become highly available.
 
 ## Words TurboPanel does not use
 
-| Not this | Say |
-| --- | --- |
-| console | app (or web app) |
-| panel, for the app | app |
-| instance, in customer copy | control plane; **administrator** for "instance owner" |
-| hosted instance, hosted control plane | TurboPanel High Availability |
-| node, remote node | server |
-| dashboard | the page's own name, such as **Overview** |
-| fleet | servers |
-| agent | daemon |
+| Not this                              | Say                                                   |
+| ------------------------------------- | ----------------------------------------------------- |
+| console                               | app (or web app)                                      |
+| panel, for the app                    | app                                                   |
+| instance, in customer copy            | control plane; **administrator** for "instance owner" |
+| hosted instance, hosted control plane | TurboPanel High Availability                          |
+| node, remote node                     | server                                                |
+| dashboard                             | the page's own name, such as **Overview**             |
+| fleet                                 | servers                                               |
+| agent                                 | daemon                                                |
 
 Names you may still see in URLs, API paths, environment variables, file names and
 log lines, such as `/api/daemon/v1/instance`, `TURBOPANEL_INSTANCE_URL` or
