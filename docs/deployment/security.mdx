@@ -121,6 +121,8 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
+A **Docker gate** is being built to narrow this route (coming in 0.2.x). Today it is **observe-only**: a root-owned `turbopanel-docker-gate` service on managed hosts with Docker forwards requests to Docker unchanged and logs what a strict profile would refuse. Nothing is routed through it and it blocks nothing, so enforcement is off. It never stops Docker or a converge if it fails to install.
+
 ### Control-plane container hardening
 
 TurboPanel's own system-compose stack — the Postgres holding every organization's

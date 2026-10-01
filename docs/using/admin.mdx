@@ -93,12 +93,16 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
         **Start update**. **Cancel** leaves the run unstarted. A second start while one is `pending` or `running` is refused.
       </Step>
       <Step>
-        Watch **Progress**: Preparing → Downloading → Installing → Restarting → Verifying → Done, first for **Co-located daemon**, then **Control plane**. The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
+        Watch **Progress**: *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*, first for the **Daemon step**, then the **Control plane step**. The **Web app step** is the same step as the control plane's (the web app is installed together with it). The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
       </Step>
       <Step>
         The servers list shows each other server. **Retry** on a row that failed or needs attention. A failed row does not hold the next batch.
       </Step>
     </Steps>
+
+    **Versions** lists **Control plane**, **Web app** and **Co-located daemon**. Each shows *Installed on disk* and *Running now* separately, because until the restart the old version is still the one answering, and the newest build on the channel. An update that only changes the web app still lights **Update available** and the **Update** button. Under **Progress**, *Server updates* lists each other server (**Server**, **Component**, **Status**, **Installed**, **Target**, **Step**, **Error**); each server's daemon updates after the control plane is on target.
+
+    One **update** is one press of **Update TurboPanel**; the **steps** (daemon, control plane, then each server) are the parts of it. Only one update runs at a time: pressing it again while one is in progress is refused with *Another update is already in progress* (`upgrade_run_active`). The control-plane step is finished only when the daemon has checked the new version, not when the new version first answers, so a second update cannot start on top of one that could still be rolled back.
 
     **Automatic updates.** **Auto-update servers** is off until you turn it on. Automatic runs start only when a newer build is published, no run is active, and — when **Maintenance window** is on — only inside that UTC window. **Batch size** is **Percent** (default 100) or **Count**, then **Apply**.
 
@@ -208,6 +212,7 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
 | `control_plane_upgrade_required` | 409 | Self-hosted `POST /servers/:id/update` and `POST /servers/updates` while the server-update gate is shut. The server badge reads **Waiting for the control plane upgrade**. Finish **Admin → Updates** first. |
+| `upgrade_run_active` | 409 | An update is already `pending` or `running`. Wait for it to finish or **Cancel update**. |
 | `updates_managed` | 409 | The same routes on TurboPanel High Availability. Per-server **Update** stays hidden; the rollout is **Admin → Updates**. |
 | `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
 | `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
