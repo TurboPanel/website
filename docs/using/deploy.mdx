@@ -75,6 +75,50 @@ A redeploy with no change is a no-op: the platform hashes the compose document t
 
 Each service carries a **Health check policy** (its settings page): **disabled**, **warn**, or **required**. At deploy, a service with policy *required* and no `healthcheck` in its compose refuses the deploy outright (`health_check_missing` with `required: true`). A service with policy *warn* and no health check stops the deploy once with a prompt naming the services; confirming sends the deploy again with the warning acknowledged.
 
+### Deploy strategies
+
+An environment has a **deploy strategy**, which decides how the new version replaces the old one.
+
+| Strategy | What a deploy does | Rolls back on its own? |
+| --- | --- | --- |
+| `sequential` | Stops the old version, runs any pre-deploy migration, starts the new version, then waits for every service to be healthy. This is the default for every **new** environment. | Yes, while it is still safe (see below). |
+| `inplace` | Brings the new containers up over the old ones and does not wait for health. The strategy an environment created before it existed keeps. | No. |
+| `bluegreen` | Starts the new version beside the old one, then switches traffic. **Coming in 0.2.x.** | — |
+
+A sequential deploy goes in this order:
+
+1. **Prepare** — networks, image pulls and source builds. If this fails, nothing has been stopped and the old version is still serving; the deploy simply fails.
+2. **Stop the old version.** Services that keep data on a writable volume (databases and the like) stay running so a migration has something to talk to.
+3. **Migrate** — any pre-deploy command runs. From here on the schema may have changed.
+4. **Start the new version**, then the **health gate**: every service must be healthy. A container with a `healthcheck` must report healthy; one without must stay running for a short stable window; a one-shot service must exit cleanly; a container that exits with an error or keeps restarting fails the gate. The gate gives up after `healthTimeoutSeconds`.
+
+How a sequential deploy that does not finish ends is shown in **Deployment history** instead of a plain *Failed*:
+
+| Outcome | Meaning | What to do |
+| --- | --- | --- |
+| **Rolled back** (`rolled_back`) | The new version failed before any migration ran, so the previous version was started again and is serving. | Fix the cause (the history row gives the reason) and deploy again. |
+| **Needs attention** (`needs_attention`) | The environment was left stopped on purpose, or the previous version could not be restored. The usual cause: a migration had already run, so the old code is never started on a changed schema. | Read the reason, fix forward and deploy again, or restore from a backup. Check the environment before assuming it is serving. |
+
+An environment that declares `migrations: breaking` is treated as past the point of no return from the start, so a failed health gate there is always **Needs attention**. A first deploy has no previous version to go back to, so a failure is an ordinary failure.
+
+The strategy is set on the environment's `options` through the API (there is no screen for it yet), next to the compose overlay:
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `deployStrategy` | `inplace`, `sequential`, `bluegreen` | `sequential` for a new environment, `inplace` for an existing one with none set. `bluegreen` is accepted but runs as `sequential` until it is built. |
+| `migrations` | `none`, `compatible`, `breaking`, `unknown` | `unknown`. Unknown is never treated as `none`. |
+| `healthTimeoutSeconds` | 10 to 3600 | 120 |
+| `drainSeconds` | 0 to 3600 | 30 (used by `bluegreen`) |
+| `rollbackWindowMinutes` | 0 to 1440 | 0 (used by `bluegreen`) |
+
+A project's `options` may carry the three numbers as defaults for its environments; an environment's own value wins. Send `null` for a key to clear it. A value out of range, or a key that does not belong (a project cannot set `deployStrategy`), is refused with `deploy_options_invalid` and the field is named. **Preview** (`GET /environments/:id/deploy-preview`) reports the strategy requested, the one that would really run (`effectiveStrategy`), the migration status and, when the two differ, the `fallbackReasons`.
+
+<Callout type="info" title="Coming in 0.2.x">
+  **Blue-green** deploys, which keep the old version serving until the new one is healthy and then
+  switch, and Swarm-style rolling updates read from a service's `deploy.update_config`, are not
+  built yet. Until they are, asking for `bluegreen` gives a sequential deploy.
+</Callout>
+
 ## Start, stop, restart, destroy
 
 | Action | Where | What it does | Data volumes |
@@ -96,6 +140,8 @@ The environment's Overview lists each service's containers with a status badge f
 
 **Deployment history** on the environment's Overview lists past deploy attempts with their outcome, who or what started them (a person, the system, or **Push to `<branch>`** with the short commit when a git push did) and, for each, the transcript the daemon produced — image pulls, builds, the Compose output — kept for 90 days by default (an operator can change `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS`).
 
+A sequential deploy also names the engine it ran (**Sequential** or **In place**) and, when it did not finish, **Rolled back** or **Needs attention** with the reason; see [Deploy strategies](#deploy-strategies).
+
 A deploy that never finished is recorded as **stalled**, with one of two reasons:
 
 | Outcome | Meaning | Safe to deploy again? |
@@ -111,6 +157,8 @@ A deploy that never finished is recorded as **stalled**, with one of two reasons
 | --- | --- | --- |
 | `acknowledgeHealthCheckWarnings` | boolean | Proceed past the *warn* health-check prompt. Never bypasses *required*. |
 | `noCache` | boolean | Cacheless redeploy. |
+| `strategy` | `inplace` \| `sequential` | Run this one deploy with that strategy instead of the environment's. `bluegreen` is refused with `501 deploy_strategy_unsupported`. |
+| `migration` | string | Refused with `501 deploy_strategy_unsupported` for now; declare the migration status on the environment. |
 | `ref` | string | Refused with `501 source_ref_unsupported` — services deploy their compose-declared branch, and accepting a ref the build would ignore is the one outcome a caller could not detect. Omit it. |
 
 Response: the queued command's id and the URL to poll. `GET /environments/:id/deploy-preview` returns the prepared shape without enqueueing.
@@ -188,6 +236,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `health_check_missing` | 409 | Services with no `healthcheck`. `required: true` refuses; `required: false` is the *warn* prompt — resend with `acknowledgeHealthCheckWarnings: true`. |
 | `binding_endpoint_unavailable` | 422 | A bound managed database has no listener endpoint yet; wait for its cluster to finish applying. |
 | `source_ref_unsupported` | 501 | A `ref` was sent. Omit it. |
+| `deploy_strategy_unsupported` | 501 | `strategy: bluegreen` or a per-deploy `migration` was sent. Use `inplace` or `sequential` and omit `migration`. |
 
 ## Related
 

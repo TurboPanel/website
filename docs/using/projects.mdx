@@ -78,7 +78,7 @@ On a compose project, environments are managed from the scope selector in the pr
     **Rename.** Select the environment, open its **Settings** tab, edit the name.
   </Step>
   <Step>
-    **Delete.** **Settings → Danger → Delete environment**, two presses. It is disabled while the project has only one environment — delete the project instead. The environment's containers are torn down on the host after the row is gone; storage entries whose retention is *retain* survive on the server, the rest are removed with it.
+    **Delete.** **Settings → Danger → Delete environment**, two presses. It is disabled while the project has only one environment — delete the project instead. The confirmation names the environment and says its services, domains, containers and variables are removed. **Stop the environment first:** while it has a running container or a deploy in progress the delete is refused (`environment_running`), and the app says so and offers **Stop**; after the stop finishes, delete again. The environment's containers are torn down on the host after the row is gone; storage entries whose retention is *retain* survive on the server, the rest are removed with it.
   </Step>
 </Steps>
 
@@ -174,6 +174,7 @@ Project, environment and workspace names are compared after trimming surrounding
 | `workspace_name_in_use` | 409 | A workspace with this name already exists in the organization. | Pick another name. |
 | `compose_invalid` | 400 | The compose document failed validation at save. The response carries `issues`, one per finding, with the path and a message. | Fix the listed paths; the editor shows the same findings inline. |
 | `project_has_running_services` | 409 | Delete refused because an environment is still running. | Stop or destroy the environment first; the app's delete flow does this for you. |
+| `environment_running` | 409 | Delete refused because the environment still has a running container or a deploy in progress. | **Stop** the environment, wait for it to stop, then delete it. |
 | `managed_runtime_present` | 409 | Delete refused because the environment (or a project's environment) still hosts a managed database cluster. | Destroy the managed cluster from its Overview first; the app's managed delete does this in order. |
 | `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it in `x-turbopanel.source`. | Detach the source from the service, then delete the repository. |
 | `Invalid request` | 400 | A body field has the wrong shape (for example a non-uuid `workspaceId`). | Check the field types above. |
