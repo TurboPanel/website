@@ -9,13 +9,13 @@ Deploying is what turns a project's description into running containers on a ser
 
 ## The model
 
-A deploy is a **command** the control plane sends to the daemon on the target server. The control plane does the thinking — it merges the project compose with the environment's overlay, resolves variables and secrets, schedules services across servers, allocates addresses, and compiles one runtime `compose.yaml` per participating server. The daemon does the doing — pulls images, checks out and builds source releases, writes the files, and runs Compose. What you see in the console is the command's progress, polled until it reaches a terminal state.
+A deploy is a **command** the control plane sends to the daemon on the target server. The control plane does the thinking — it merges the project compose with the environment's overlay, resolves variables and secrets, schedules services across servers, allocates addresses, and compiles one runtime `compose.yaml` per participating server. The daemon does the doing — pulls images, checks out and builds source releases, writes the files, and runs Compose. What you see in the app is the command's progress, polled until it reaches a terminal state.
 
 Three consequences shape how the buttons behave:
 
 - **Nothing runs until a server is chosen.** An environment resolves its server from its own pin or the project's default; without one, Deploy is disabled and points you at the Hosting tab.
-- **Preview is free; Deploy is a command.** Preview shows exactly what would be sent without sending it. Deploy enqueues a command that the console tracks to completion.
-- **The daemon is the source of truth for status.** Container status is what the daemon last reported; the console refreshes it after each tracked command and on **Refresh**, not on a timer.
+- **Preview is free; Deploy is a command.** Preview shows exactly what would be sent without sending it. Deploy enqueues a command that the app tracks to completion.
+- **The daemon is the source of truth for status.** Container status is what the daemon last reported; the app refreshes it after each tracked command and on **Refresh**, not on a timer.
 
 ## Before you begin
 
@@ -84,7 +84,7 @@ Each service carries a **Health check policy** (its settings page): **disabled**
 | **Restart** | API (`action: restart`) | Stop then start. | Kept |
 | **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the host's Caddy — and the data volumes. | **Removed** |
 
-Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the console asks twice.
+Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the app asks twice.
 
 ## Container status and logs
 
@@ -149,7 +149,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `compose_field_unsupported` | 422 | An unsupported key is present; the message quotes why. Remove it. |
 | `compose_field_requires_org_opt_in` | 403 | A host-level feature — a gated key (`privileged`, `cap_add`, `use_api_socket`, …) or a path outside the service's directory — and the organization has not turned them on. An owner enables them with `PUT /organizations/:id/compose-privileged-fields`. See [Host-level features](/docs/using/compose#host-level-features). |
 | `compose_host_access_requires_manager` | 403 | Host-level features are on, but only an organization manager or owner can deploy them. |
-| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content no manager or owner has deployed in this form. Deploy it once from the console. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content no manager or owner has deployed in this form. Deploy it once from the app. |
 | `invalid_deploy_hosting`, `invalid_deploy_storage` | 400 | A hosting or storage row attached to the environment is malformed; the message names it. |
 | `principal_alias_unknown`, `principal_required_for_service_kind`, `site_principal_ambiguous`, `source_principal_ambiguous`, `site_cron_unowned`, `site_managed_directory_unowned` | 422 | Ownership of a site or Node app is missing or ambiguous — declare `x-turbopanel.principal`, or assign a system user on **Bindings**. |
 | `source_ref_unresolved` | 422 | A source service's branch does not exist or the provider refused the lookup. |
@@ -157,7 +157,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker networks**. |
 | `datacenter_ip_required` | 422 | A hosting row binds to the `datacenter` scope on a server with no datacenter address. |
 
-### Fix the placement or the fleet
+### Fix the placement or the servers
 
 | Code | Status | Meaning |
 | --- | --- | --- |

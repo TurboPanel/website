@@ -40,7 +40,7 @@ Two facts shape every action below:
     **Choose a tier** from the table (**Fits up to** shows each tier's ceilings) and the **Licenses** count — a whole number, at least 1. You can add or remove later.
   </Step>
   <Step>
-    **Continue to checkout.** Payment is collected on a hosted checkout page; the console does not see your card.
+    **Continue to checkout.** Payment is collected on a hosted checkout page; the app does not see your card.
   </Step>
   <Step>
     You return to Billing with **Confirming payment** while the payment provider reports the new subscription — usually a few seconds. **Checkout complete** follows: *You can now add servers from Servers → Add server; each one uses a license.* **Checkout was cancelled** returns you to the tier table with nothing created.
@@ -76,7 +76,7 @@ When a server needs a tier nothing purchased covers — it was added with no mat
 
 ## Past-due payment
 
-When a renewal fails, the payment provider retries on its own schedule and Billing shows **Payment is past due — tier changes are paused**: increases and moves are refused (`subscription_past_due`) with nothing written, while releases and the rest of the console keep working, and your servers stay licensed. Update the card under **Invoices & payment method**; a successful payment clears the pause at once. If every retry fails, the payment provider cancels the subscription; every license is then revoked (bound ones included), and leftover credit is forfeited. How many retries, and how far apart, is the payment provider's retry schedule for this instance.
+When a renewal fails, the payment provider retries on its own schedule and Billing shows **Payment is past due — tier changes are paused**: increases and moves are refused (`subscription_past_due`) with nothing written, while releases and the rest of the app keep working, and your servers stay licensed. Update the card under **Invoices & payment method**; a successful payment clears the pause at once. If every retry fails, the payment provider cancels the subscription; every license is then revoked (bound ones included), and leftover credit is forfeited. How many retries, and how far apart, is the payment provider's retry schedule for this control plane.
 
 ## Invoices and payment method
 
@@ -99,7 +99,7 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `billing_not_configured` | 503 | A hosted instance without its payment keys. (Self-hosted has no billing routes at all — 404.) |
+| `billing_not_configured` | 503 | TurboPanel High Availability without its payment keys. (Self-hosted has no billing routes at all — 404.) |
 | `subscription_exists` | 409 | The organization already subscribes; use **Add** instead of checkout. |
 | `checkout_pending` | 409 | A checkout is already in flight; finish or cancel it. |
 | `no_subscription` | 409 | No live subscription to change; start with checkout. |
@@ -118,5 +118,5 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 
 - [License tiers](/docs/deployment/tiers) — the ladder, placement rules, and what a tier changes in metrics.
 - [Servers, datacenters and networking](/docs/using/servers) — adding a server with a registration key.
-- [Administering an instance](/docs/using/admin) — the tier catalogue a superadmin binds on a fresh instance.
+- [Administering the control plane](/docs/using/admin) — the tier catalogue a superadmin binds on a fresh control plane.
 - [Pricing](/pricing) — list prices.

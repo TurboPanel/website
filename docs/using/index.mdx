@@ -1,21 +1,21 @@
 ---
 title: Using TurboPanel
-description: The console, area by area — what each screen is for, how work is organized into organizations, workspaces, projects and environments, and where to go first
+description: The app, area by area — what each screen is for, how work is organized into organizations, workspaces, projects and environments, and where to go first
 ---
 
 # Using TurboPanel
 
-This part of the documentation is written for the person signed in to the console: the one creating projects, deploying them, and keeping them running. The [Deployment](/docs/deployment) part is for whoever installs and operates the control plane; the [Architecture](/docs/architecture) part explains how it all fits together. Here, every chapter follows the same shape — what a thing *is*, how to *do* it step by step, then the reference tables and the error codes you may meet — so you can read it front to back or open it at the page you need.
+This part of the documentation is written for the person signed in to the app: the one creating projects, deploying them, and keeping them running. The [Deployment](/docs/deployment) part is for whoever installs and operates the control plane; the [Architecture](/docs/architecture) part explains how it all fits together. Here, every chapter follows the same shape — what a thing *is*, how to *do* it step by step, then the reference tables and the error codes you may meet — so you can read it front to back or open it at the page you need.
 
 <Callout type="info" title="Private alpha — not yet publicly available">
   Self-hosted and TurboPanel High Availability are both in **private alpha**. This part describes
-  the console as it exists today, so a reader who has been given access can use it — it is not a
+  the app as it exists today, so a reader who has been given access can use it — it is not a
   public sign-up path.
 </Callout>
 
 ## How work is organized
 
-Four nouns carry everything in the console. Knowing which one owns a setting saves most of the "where is that?" questions.
+Four nouns carry everything in the app. Knowing which one owns a setting saves most of the "where is that?" questions.
 
 | Noun | What it is | What it owns |
 | --- | --- | --- |
@@ -26,38 +26,38 @@ Four nouns carry everything in the console. Knowing which one owns a setting sav
 
 A project always has at least one environment; the first is created for you with the organization's default name (*Production* unless changed under **Projects → Settings**). Deploying happens at the environment, never at the project: the project holds the description, the environment is where it runs.
 
-## The areas of the console
+## The areas of the app
 
 The left navigation is the organization's. Each row below names the area, its address, and what you do there.
 
 | Area | Where | What you do there |
 | --- | --- | --- |
-| **Overview** | `/<org>/overview` | Fleet at a glance: servers, cores, memory. |
+| **Overview** | `/<org>/overview` | All servers at a glance: servers, cores, memory. |
 | **Projects** | `/<org>/projects` | Create projects; open one to edit its compose, deploy environments, manage hostnames, storage, bindings and settings. Sub-pages: **Git sources** (the GitHub Apps and GitLab connections the organization owns) and **Repositories** (every repository a project reads from). |
 | **Workspaces** | `/<org>/workspaces` | Create and rename workspaces; see which projects sit in each. |
 | **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenters**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
 | **Managed** | `/<org>/managed` | Every managed database cluster in the organization, and the organization's managed defaults (client TLS mode, listener ports). |
 | **Network** | `/<org>/network` | The IP address registry, Docker external networks and address pools, reserved ranges, and TurboFabric. |
 | **Access** | `/<org>/access` | Invite a teammate, revoke a pending invitation, and manage access grants. |
-| **Billing** | `/<org>/billing` | TurboPanel High Availability only: licenses, tiers and the customer portal. Absent on a self-hosted instance. |
+| **Billing** | `/<org>/billing` | TurboPanel High Availability only: licenses, tiers and the customer portal. Absent on a self-hosted control plane. |
 
-Two things sit outside the organization: the **account menu** (top right) holds **Security** — two-factor, passkeys, linked accounts — and **Admin** (`/admin`) is the instance-wide surface an administrator uses to configure the control plane itself: public URLs, email, sign-in providers, sign-up, instance-wide Git apps, and secrets. Members never see Admin.
+Two things sit outside the organization: the **account menu** (top right) holds **Security** — two-factor, passkeys, linked accounts — and **Admin** (`/admin`) is the control-plane-wide surface an administrator uses to configure the control plane itself: public URLs, email, sign-in providers, sign-up, control-plane-wide Git apps, and secrets. Members never see Admin.
 
 ## Who sees what
 
 - **Any member** of an organization can open every area above and read it.
 - **Manage** rights on the organization (the default grant an invitation gives) let you create and change projects, delete an environment, deploy, enrol servers and edit the network registry.
 - **Owner** rights are needed for the destructive and organization-shaping actions: deleting a project, adding an access grant, pending-key cleanup, and the two organization opt-ins that widen what a compose file may ask for (privileged container fields, a default resource ceiling).
-- **Administrators** of the instance additionally see **Admin**. On a self-hosted instance the first administrator is created by the install wizard; on TurboPanel High Availability by the operator.
+- **Administrators** of the control plane additionally see **Admin**. On a self-hosted control plane the first administrator is created by the install wizard; on TurboPanel High Availability by the operator.
 
-The console shows you what you can do and hides what you cannot; the control plane enforces the same rule on every request, so a hidden button is never the only thing standing in the way.
+The app shows you what you can do and hides what you cannot; the control plane enforces the same rule on every request, so a hidden button is never the only thing standing in the way.
 
 ## Self-hosted and TurboPanel High Availability
 
-The console is the same on both. Three things differ, and each page in this part says so where it matters:
+The app is the same on both. Three things differ, and each page in this part says so where it matters:
 
-- **Billing** exists only on High Availability; on a self-hosted instance every server is covered by the instance's own license and there is nothing to buy.
-- **Admin → Access** publishes this control plane's hostnames and certificate sources on a self-hosted instance; on High Availability that is the operator's infrastructure.
+- **Billing** exists only on High Availability; on a self-hosted control plane every server is covered by the control plane's own license and there is nothing to buy.
+- **Admin → Access** publishes this control plane's hostnames and certificate sources on a self-hosted control plane; on High Availability that is the operator's infrastructure.
 - **Sign-in providers** are configured by a self-hosted administrator; on High Availability they are configured by the operator.
 
 ## Where to start
@@ -88,14 +88,14 @@ The console is the same on both. Three things differ, and each page in this part
 | [Storage, variables and secrets](/docs/using/storage-and-variables) | Persistent storage; the variable cascade; secrets and `{$KEY}` references. |
 | [Managed databases](/docs/using/managed-databases) | PostgreSQL, MySQL and MariaDB clusters: create, connect, users, replicas, backups and backup schedules. |
 | [Git sources and repositories](/docs/using/git) | GitHub and GitLab applications, binding a repository, push-to-deploy. |
-| [Servers](/docs/using/servers) | Adding a server, the fleet, the control panel, organization server settings. |
+| [Servers](/docs/using/servers) | Adding a server, the server list, the control panel, organization server settings. |
 | [Datacenters and networking](/docs/using/network) | Datacenters, addresses, Docker networks and pools, reserved ranges, the mesh. |
 | [Notifications](/docs/using/notifications) | The bell, the event catalogue, channels and rules, delivery and retries. |
 | [Account security](/docs/using/account-security) | Sign-in, two-factor, backup codes, passkeys, linked providers, passwords. |
 | [Organizations, teams and access](/docs/using/access) | The permission model, invitations, grants. |
 | [Billing and licenses](/docs/using/billing) | High Availability: licenses per tier, checkout, changes, past due. |
-| [Administering an instance](/docs/using/admin) | Instance roles and the Admin area. |
-| [Error codes](/docs/using/reference/errors) | Every refusal the console can show, by area. |
+| [Administering the control plane](/docs/using/admin) | Control plane roles and the Admin area. |
+| [Error codes](/docs/using/reference/errors) | Every refusal the app can show, by area. |
 
 ## Related
 

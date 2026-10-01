@@ -5,9 +5,9 @@ description: Every stable error code the client API returns, by area — the HTT
 
 # Error codes
 
-Every refusal from the client API carries a stable `error` code — a lower-case identifier that never changes wording — and, where it helps, a `message` for people and a few fields naming the thing at fault. The console maps these codes to sentences; this appendix is the same map, in one place, so a code you see in a response, a log or a deploy transcript can be looked up.
+Every refusal from the client API carries a stable `error` code — a lower-case identifier that never changes wording — and, where it helps, a `message` for people and a few fields naming the thing at fault. The app maps these codes to sentences; this appendix is the same map, in one place, so a code you see in a response, a log or a deploy transcript can be looked up.
 
-Codes are grouped by the area of the console that raises them. Each row gives the HTTP status the code is sent with; where a code can be sent with more than one status, both are listed. Chapters that explain the situation in more depth are linked at the top of each group.
+Codes are grouped by the area of the app that raises them. Each row gives the HTTP status the code is sent with; where a code can be sent with more than one status, both are listed. Chapters that explain the situation in more depth are linked at the top of each group.
 
 Two codes appear everywhere and are not repeated in the tables: `Unauthorized` (401 — no session, or it expired) and `Not found` (404 — the record does not exist or is not visible to your organization). A plain `Invalid request` (400) means a body field had the wrong shape; the chapter's reference table for that route says what is expected.
 
@@ -49,7 +49,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `compose_field_unsupported` | 422 | The document sets a key the platform has no behaviour for; the reason is quoted. |
 | `compose_field_requires_org_opt_in` | 403 | The document uses a host-level feature — a gated field (`privileged`, `cap_add`, `use_api_socket`, …) or a path outside the service's directory (an absolute bind, the Docker socket, `extends.file`, …) — and the organization has not turned them on under **Manage Organization → Compose**. |
 | `compose_host_access_requires_manager` | 403 | Host-level Compose features are on, but the person deploying is not an organization manager or owner. |
-| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level Compose content that no manager or owner has deployed in this exact form. Deploy it once from the console to approve it. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level Compose content that no manager or owner has deployed in this exact form. Deploy it once from the app to approve it. |
 | `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default — or the planner found no eligible server. |
 | `health_check_missing` | 409 | Services with no `healthcheck`: `required: true` refuses; `required: false` is the *warn* prompt, acknowledged with `acknowledgeHealthCheckWarnings: true`. |
 | `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |
@@ -75,7 +75,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 | The pinned library certificate is gone, does not cover the hostnames, or is not ready. |
 | `acme_requires_public_bind`, `acme_requires_org_opt_in` | 400 | Let's Encrypt needs a `public` bind and the organization's opt-in. |
 | `tls_material_missing` | 400 | A pinned certificate row has no material to deliver. |
-| `tls_key_not_sealed`, `tls_decrypt_failed` | 500 | The certificate's private key could not be sealed for, or unsealed by, the daemon — an instance secrets problem, not a document one. |
+| `tls_key_not_sealed`, `tls_decrypt_failed` | 500 | The certificate's private key could not be sealed for, or unsealed by, the daemon — a control plane secrets problem, not a document one. |
 | `release_not_found` | 404 | No succeeded release with that id exists for the service in this environment. |
 | `release_not_materialized` | 409 | The release was not published on every server the environment deploys to, so it cannot be rolled back to. |
 
@@ -95,7 +95,7 @@ See [Hosting](/docs/using/hosting).
 | `invalid_certificate` | 400 | The certificate or key you supplied could not be read; `detail` carries the parser's reason. |
 | `organization_ca_exists` | 409 | An organization CA already exists. |
 | `organization_ca_retire_required` | 409 | The current CA must be retired before a new one is minted. |
-| `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the fleet has not yet picked up the new root. |
+| `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the servers have not yet picked up the new root. |
 
 ## Storage, variables and bindings
 
@@ -134,12 +134,12 @@ See [Hosting](/docs/using/hosting).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No GitHub App or GitLab OAuth application is configured for this organization or the instance. |
-| `gitlab_redirect_uri_unknown` | 503 | The instance's public URL is not configured, so a GitLab redirect cannot be built. |
-| `public_url_not_configured` | 503 | The instance has no public URL; the GitHub App manifest flow needs one. |
+| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No GitHub App or GitLab OAuth application is configured for this organization or the control plane. |
+| `gitlab_redirect_uri_unknown` | 503 | The control plane's public URL is not configured, so a GitLab redirect cannot be built. |
+| `public_url_not_configured` | 503 | The control plane has no public URL; the GitHub App manifest flow needs one. |
 | `webhook_origin_not_published` | 400 | The application's webhook origin is not reachable from the provider. |
 | `git_app_required` | 400 | The repository needs a Git application to be read. |
-| `git_app_not_writable` | 403 | The application is instance-wide and cannot be edited from an organization. |
+| `git_app_not_writable` | 403 | The application is shared and cannot be edited from an organization. |
 | `git_app_sync_failed` | 502 | The provider refused or failed the sync. |
 | `git_app_sync_unsupported` | 400 | Sync exists for GitHub Apps only. |
 | `forge_url_rejected` | 400 | A self-managed forge URL failed the safety check: it must be `https`, carry no credentials, name no reserved host, and resolve to a public address. |
@@ -170,7 +170,7 @@ See [Servers](/docs/using/servers).
 | `license_has_attached_server` | 409 | The license is still bound to a server. |
 | `server_has_blockers` | 409 | Networks, containers or addresses still reference the server; the response counts each. |
 | `server_offline` | 409 | The action needs the server's daemon connected. |
-| `live_metrics_disabled` | 409 | Live metrics are turned off on this instance. |
+| `live_metrics_disabled` | 409 | Live metrics are turned off on this control plane. |
 | `metrics_backend_unavailable` | 503 | The metrics store is not reachable. |
 | `unknown_system_component`, `system_component_not_provisioned`, `system_reconcile_unavailable` | 400 / 404 / 503 | The platform's own system project on a server is unknown, not yet provisioned, or cannot be reconciled right now. |
 | `system_resource_immutable` | 403 | The row belongs to the platform's system project and cannot be edited. |
@@ -183,7 +183,7 @@ See [Servers](/docs/using/servers).
 
 See [Datacenters and networking](/docs/using/network).
 
-The console renders one sentence per code from these; the sentences here are the same.
+The app renders one sentence per code from these; the sentences here are the same.
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -254,7 +254,7 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `invitation_pending` | 409 | A pending invitation for that email and team already exists. |
-| `email_unavailable` | 503 | The instance cannot send email, so the invitation was not created. |
+| `email_unavailable` | 503 | The control plane cannot send email, so the invitation was not created. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
 | `invalid_grant` | 400 | A grant names an unknown permission or an entity outside the organization. |
 | `gone` | 410 | The invitation's team or organization no longer exists. |
@@ -299,7 +299,7 @@ See [Billing and licenses](/docs/using/billing).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `billing_not_configured` | 503 | The instance has no billing provider configured. |
+| `billing_not_configured` | 503 | The control plane has no billing provider configured. |
 | `subscription_exists`, `no_subscription` | 409 | The organization already has a subscription, or has none. |
 | `checkout_pending` | 409 | A checkout is already in progress. |
 | `subscription_past_due` | 409 | The subscription is past due; settle it in the customer portal. |
@@ -310,9 +310,9 @@ See [Billing and licenses](/docs/using/billing).
 | `tier_not_purchasable` | 400 | The tier has no product bound to it. |
 | `stripe_error` | 502 / 503 | The billing provider refused (502) or did not answer (503); nothing was applied. |
 
-## Administering an instance
+## Administering the control plane
 
-See [Administering an instance](/docs/using/admin).
+See [Administering the control plane](/docs/using/admin).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -322,13 +322,13 @@ See [Administering an instance](/docs/using/admin).
 | `tier_has_no_product` | 400 | A custom tier has no provider product to verify. |
 | `product_verification_failed` | 400 | The provider product does not match the tier's price ladder; `verification` lists the differences. |
 | `product_lookup_failed` | 400 | The provider could not be asked about the product; `status` is what it answered. |
-| `invalid_settings` | 400 | The instance update settings are malformed. |
+| `invalid_settings` | 400 | The control plane update settings are malformed. |
 | `upgrade_run_not_found` | 404 | No update run has that id. |
 | `upgrade_not_active` | 409 | No update run is active, so there is nothing to retry or cancel. |
 | `upgrade_step_not_found`, `upgrade_step_not_retryable` | 409 | A retry named a step that does not exist, or one that is not waiting on attention, failed or rolled back. |
 | `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
-| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the panel toggle. |
+| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the app toggle. |
 
 ## Related
 

@@ -96,13 +96,13 @@ Address, scope and allocation are immutable after creation; edit the description
 
 <Steps>
   <Step>
-    **Enable TurboFabric.** Optionally set the **container pool** (an IPv4 range, prefix `/16` or wider, from which each relay's prefix is allocated — it runs the collision authority, and a pool too small for the fleet refuses with `fabric_prefix_pool_exhausted` and nothing enabled) and **Allow relay path** (whether traffic may hop through a third server when two cannot reach each other directly).
+    **Enable TurboFabric.** Optionally set the **container pool** (an IPv4 range, prefix `/16` or wider, from which each relay's prefix is allocated — it runs the collision authority, and a pool too small for your servers refuses with `fabric_prefix_pool_exhausted` and nothing enabled) and **Allow relay path** (whether traffic may hop through a third server when two cannot reach each other directly).
   </Step>
   <Step>
     **Relays**: per server, the **Role** (**gateway** for a datacenter — it must belong to one, with a subnet to advertise — or **member**), **Advertised LAN CIDRs** for a gateway, **Keepalive (seconds)**, an **Endpoint override**, and **Set preshared key** (write-only).
   </Step>
   <Step>
-    **Apply** reconciles the whole fleet. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.*
+    **Apply** reconciles every server. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.*
   </Step>
 </Steps>
 
@@ -124,7 +124,7 @@ Disabling is a real teardown: interfaces and allocated prefixes are reclaimed. C
 
 ## Errors
 
-The console renders every collision as a sentence; the codes are what the API answers.
+The app renders every collision as a sentence; the codes are what the API answers.
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ The console renders every collision as a sentence; the codes are what the API an
 | `docker_network_subnet_required`, `docker_network_subnet_mismatch`, `docker_network_subnet_invalid` | 400 | IP range and gateway need a subnet; the subnet and CIDR must agree; the subnet must be a valid CIDR. |
 | `docker_network_ip_range_invalid`, `docker_network_gateway_invalid`, `docker_network_mtu_invalid` | 400 | Range inside the subnet; gateway a bare address inside it; MTU within bounds. |
 | `managed_network_immutable` | 400 | Platform-managed networks cannot be edited. |
-| `address_pools_invalid`, `address_pools_too_many`, `address_pool_base_invalid`, `address_pool_size_invalid`, `address_pools_overlap`, `default_bridge_cidr_invalid` | 400 | The Docker host-pool form's field rules (see the console sentence). |
+| `address_pools_invalid`, `address_pools_too_many`, `address_pool_base_invalid`, `address_pool_size_invalid`, `address_pools_overlap`, `default_bridge_cidr_invalid` | 400 | The Docker host-pool form's field rules (see the app sentence). |
 | `fabric_prefix_pool_exhausted`, `fabric_address_pool_exhausted` | 409 | The container pool has no prefix or address left for another relay. |
 | `fabric_container_pool_in_use` | 409 | Shrinking the pool would strand an allocated relay prefix. |
 | `fabric_cidr_unavailable` | 409 | The mesh range collides with something registered. |
@@ -159,7 +159,7 @@ The console renders every collision as a sentence; the codes are what the API an
 ## Related
 
 - [Datacenter networks](/docs/architecture/datacenter-networks) — the model, the ladder, the collision matrix.
-- [Network addressing](/docs/deployment/network-addressing) — a worked fleet: two datacenters, a VPN reservation, Docker pools.
+- [Network addressing](/docs/deployment/network-addressing) — a worked example: two datacenters, a VPN reservation, Docker pools.
 - [TurboFabric path model](/docs/architecture/turbofabric-path-model) — path states and selection.
 - [Servers](/docs/using/servers) — a server's Network tab.
 - [Firewall](/docs/using/firewall) — rules can name a datacenter or TurboFabric as the source.
