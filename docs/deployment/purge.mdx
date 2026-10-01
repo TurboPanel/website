@@ -20,7 +20,7 @@ Export what you need. The purge deletes every path in this table.
 | Data | Location | Export |
 | --- | --- | --- |
 | Postgres (orgs, projects, secrets metadata) | Docker volume or socket DB | `pg_dump` |
-| TLS certificates (platform CA + leaf) | `/etc/turbopanel/instance/certs/` or role-managed paths | Copy PEM files |
+| TLS certificates (platform CA + leaf) | `/var/lib/turbopanel/tls/` (CA) and `/var/lib/turbopanel/tls/certs/` (server leaf), or role-managed paths | Copy PEM files |
 | Daemon license | `/var/lib/turbopanel/license.*` | Save before wipe if re-enrolling |
 | Application logs | `/var/log/turbopanel/` | Archive for compliance |
 | Secret keyring | `/etc/turbopanel/instance/.instance_secrets` | Copy the file off the host |

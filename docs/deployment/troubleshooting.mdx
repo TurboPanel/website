@@ -25,7 +25,7 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 
 **Solutions:**
 
-1. For `:8443`, change `CADDY_PORT` in the instance/Caddy env and update the firewall to match
+1. For `:8443`, stop or move the process that holds it. The managed Caddyfile binds `:8443` literally and does not read `CADDY_PORT` (only the co-located development overlay does), so the port cannot be changed
 2. When the apply reports `port 80 is held by <process>` (for example `port 80 is held by nginx`), stop that process or move it off port 80, then apply again. Hosting Caddy is the expected holder when tenant sites are already deployed
 3. Check listeners: `ss -tlnp | grep -E '8443|80|443'`
 4. Port **443** is hosting Caddy. Leave it for tenant sites
@@ -40,7 +40,7 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 2. Check Caddy: `systemctl status turbopanel-caddy`
 3. Test health over HTTPS: `curl -k https://localhost:8443/api/health` (omit `-k` when the leaf is publicly trusted). Trust the Platform CA for a self-hosted name.
 4. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
-5. **Static UI:** ensure `ui/dist` exists if `TURBOPANEL_UI_MODE=static`
+5. **Static UI:** ensure the UI export exists in `/opt/turbopanel/share/ui` if `TURBOPANEL_UI_MODE=static`
 6. **Dev UI:** ensure `turbopanel-ui` is running when `TURBOPANEL_UI_MODE=dev`
 
 ## Daemon shows offline but service is running
@@ -102,10 +102,10 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 PID for a long time. A second update attempt returns `update already in progress`.
 
 **Cause:** The UI update path uses `run.sh --no-start` (does not stop the daemon
-during reconcile). The daemon then tries to restart itself with plain
-`systemctl enable --now` as the **`tp` user** — that fails silently
-(non-root cannot restart systemd units; `enable --now` also skips restart when
-already active). An in-memory lock then blocks further updates.
+during reconcile). The daemon then restarts itself with `sudo -n systemctl enable`
+and `sudo -n systemctl restart --no-block`, as the **`tp` user**. If that restart
+is not accepted, the old process keeps running and its in-memory lock blocks further
+updates.
 
 **Check logs on the server:**
 

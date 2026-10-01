@@ -57,7 +57,7 @@ Every self-hosted hostname is `https://<host>:8443`. The certificate follows the
 | **Uploaded**, private | uploaded issuer (`GET /api/daemon/v1/instance/uploaded-trust`) | bootstrap may use `-k`; runtime still verifies the chain and the hostname |
 | **Let's Encrypt** | 404 | no |
 
-Full table: [Control plane](/docs/deployment/control-plane#control-plane-tls-modes). The issuance window, including `port 80 is held by <process>`, is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Full table: [Control plane](/docs/deployment/control-plane#control-plane-listeners). The issuance window, including `port 80 is held by <process>`, is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Installation
 
@@ -146,22 +146,22 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-Pass the node's own control plane and channel back, as above. The installer does not read them from `daemon.env` on a remote node: without `TURBOPANEL_HOST` it uses the hosted control plane named in the release manifest, and without `TURBOPANEL_UPDATE_CHANNEL` it uses `trunk`.
+Pass the node's own control plane and channel back, as above. The installer does not read them from `daemon.env` on a remote node: without `TURBOPANEL_HOST` it uses the hosted control plane named in the release manifest, and without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`.
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mismatches, missing license files, and self-hosted hosts.
 
 <Callout type="info" title="Control plane host">
-  On the machine that runs the instance, use contributor [dev](https://github.com/TurboPanel/dev)
-  (**Start dev stack**) for local development — or the managed production converge for self-hosted
-  when available. Do not use the remote node installer on the co-located dev control plane.
+  On the machine that runs the control plane, the daemon is installed with it and enrols itself once the
+  install wizard has issued the first license. Do not run the server installer with a license there. For
+  local development use contributor [dev](https://github.com/TurboPanel/dev) (**Start dev stack**).
 </Callout>
 
 ### Install options
 
 | Variable / flag | Description |
 | ---- | ----------- |
-| `TURBOPANEL_LICENSE` / `--license <b64>` | **Required.** Base64url-encoded `licenseId:licenseToken`. |
-| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `trunk`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release`, `rc` and `canary` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, the rolling `rc` pre-release, and the rolling `canary` pre-release carrying the newest green `trunk` build); `trunk` from the per-merge build drop. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
+| `TURBOPANEL_LICENSE` / `--license <b64>` | **Required to enrol a server.** Base64url-encoded `licenseId:licenseToken`. Run with no license and no other server option, the installer sets up a control plane instead. |
+| `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `release`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release`, `rc` and `canary` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, the rolling `rc` pre-release, and the rolling `canary` pre-release carrying the newest green `trunk` build); `trunk` from the per-merge build drop. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
 | `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (platform CA / self-signed). Omitted when `TURBOPANEL_TLS_PUBLIC` is set (Let's Encrypt, or an uploaded publicly trusted cert). |
 | `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
@@ -184,7 +184,7 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 | Logs | `/var/log/turbopanel` |
 | Runtime (sockets, `daemon.lock`) | `/run/turbopanel` |
 
-- User `tp:tp` (UID/GID 9999). Its sudo rule is limited to named commands: the orchestration helper plus fixed lists of file, service, account, network, and Docker utilities, without a password. Several of those (`docker`, `systemctl`, `cp`, `tee`, `find`) take any arguments, so treat the `tp` account as equivalent to root on that host.
+- User `tp:tp` (UID/GID 9999). Its sudo rule is limited to three root commands, without a password: the host helper (`/opt/turbopanel/lib/tp-host`), the orchestration runner, and the web-engine config checks. `tp` is also in the `docker` group, and Docker access is root-equivalent, so treat the `tp` account as equivalent to root on that host.
 - `turbopaneld.service` (systemd, single process via `flock`). The unit runs the native binary when `turbopaneld --version` succeeds. On hosts where that probe fails — notably some Raspberry Pi arm64 kernels with a **16 KiB** page size — install downloads `turbopaneld.js`, installs vendored Deno, and uses `deno run …/bin/turbopaneld.js` as the supported ExecStart for that hardware.
 
 <Callout type="info" title="Contributor dev is different">
@@ -204,7 +204,7 @@ Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld
 | -------- | ------- |
 | `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of instance (remote nodes) |
 | `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS (default `/etc/turbopanel/instance-ca.pem`) |
-| `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`trunk` default) |
+| `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`release` default) |
 | `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
 
 Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`. On a

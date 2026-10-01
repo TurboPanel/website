@@ -5,7 +5,7 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — it reads license state from disk and reconciles the FHS tree in place.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — the command below builds the license from state on disk, and the installer reconciles the FHS tree in place.
 
 ## When to use this
 
@@ -53,12 +53,12 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-The command reads the node's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote node. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `trunk`. A self-hosted node refreshed without them would be moved to the hosted control plane and the `trunk` channel.
+The command reads the node's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote node. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`. A self-hosted server refreshed without them would be moved to the hosted control plane and the `release` channel.
 
 The installer:
 
 1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
-2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `trunk`
+2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `release`
 3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's hosted control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
 4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
@@ -116,7 +116,7 @@ follows the rolling `rc` pre-release there, `canary` follows the rolling
 `canary` pre-release — the newest green build of `trunk`, replaced on every
 merge (see [Canary environment](/docs/development/canary)) — and `trunk` is
 the per-merge build drop the hosted platform follows. `edge` is reserved with
-no built-in location. The example below stays on `trunk` (the default):
+no built-in location. The example below sets `trunk` explicitly (the default is `release`):
 
 ```bash
 curl -fsSL turbopanel.sh | \
@@ -140,7 +140,7 @@ Check on the server:
 sudo ls -la /var/lib/turbopanel/
 ```
 
-If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and run it on the server.
+If those files are missing, create a **new license** in the app (**Servers → Add server**), copy the install command immediately, and run it on the server.
 
 ## Verify after update
 

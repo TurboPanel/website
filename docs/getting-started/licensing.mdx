@@ -110,7 +110,7 @@ whatever `trunk` happens to list later.
 | --- | --- |
 | Packaged daemon release | `/opt/turbopanel/share/THIRD_PARTY_NOTICES.md` on the host |
 | Deployed control plane | `THIRD_PARTY_NOTICES.md` at the commit in `GET /api/health` `revision.sourceUrl` (or the matching git tag) |
-| Store binary or production UI update | `THIRD_PARTY_NOTICES.md` at the git revision shown in Settings → About |
+| Store binary or production UI update | `THIRD_PARTY_NOTICES.md` at the git revision shown in the account menu → About |
 | Any other published artifact | `THIRD_PARTY_NOTICES.md` on the matching GitHub tag or commit, not `trunk` |
 
 ## Corresponding Source
@@ -145,7 +145,7 @@ still names the immutable source commit before `+`. Short SHAs are only for
 
 ### Store binary or production UI update
 
-Native **Settings → About** (`/about`, also in the account menu; unsigned users
+Native **About** (`/about`, in the account menu; unsigned users
 may open it) names the license, version/build, and Corresponding Source URL for
 the git revision baked by `app.config.ts` — never `trunk`. Each store binary
 and production EAS Update must publish Corresponding Source for that exact

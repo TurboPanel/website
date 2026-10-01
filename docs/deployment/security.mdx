@@ -33,7 +33,7 @@ Self-hosted Caddy listens on **:8443**. Every hostname is served there. The cert
 | **Uploaded** | `:8443` | 404 for that name | omitted when the certificate chains to a public root |
 | **Let's Encrypt** | `:8443` | 404 for that name | no |
 
-Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is hosting. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is hosting. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
@@ -278,7 +278,7 @@ Recommended:
 
 Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
-Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Choose an option](/docs/deployment/uninstall#choose-an-option).
+Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
 
 ## Daemon Security
 
