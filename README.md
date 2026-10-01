@@ -3,7 +3,6 @@
 **Marketing site and canonical documentation** for [TurboPanel](https://turbopanel.io), one place to run everything you host — Next.js 16, Fumadocs MDX, vanilla Node behind Caddy.
 
 [![Release](https://img.shields.io/github/v/release/TurboPanel/website?label=release)](https://github.com/TurboPanel/website/releases)
-[![Release candidate](https://img.shields.io/github/v/tag/TurboPanel/website?filter=*-rc.*&sort=semver&include_prereleases&label=release%20candidate&color=orange)](https://github.com/TurboPanel/website/releases)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=turbopanel_website)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=coverage)](https://sonarcloud.io/component_measures?id=turbopanel_website&metric=coverage)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=turbopanel_website&metric=code_smells)](https://sonarcloud.io/project/issues?id=turbopanel_website&resolved=false&types=CODE_SMELL)
