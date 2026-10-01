@@ -1,6 +1,6 @@
 ---
 title: Notifications
-description: The bell, the events TurboPanel can tell you about, channels — email, webhook, Slack, Discord, Telegram — rules that decide what reaches each one, delivery and retries, and every refusal code
+description: The bell, the events TurboPanel can tell you about, channels — email, webhook, Slack, Discord, Telegram — rules that decide what reaches each one, delivery and retries, digest and quiet hours, and every refusal code
 ---
 
 # Notifications
@@ -78,6 +78,21 @@ Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw 
 
 One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the control plane's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
 
+## Digest and quiet hours
+
+An **email** channel can wait instead of sending every event the moment it happens. Both settings are per channel, both are off until you turn them on, and both appear on the channel's row.
+
+- **Digest.** Choose **Hourly** or **Daily**. Instead of one email per event you get one summary per window: events grouped by kind with a count, the first few of each listed with a link back to the app, and "and N more" for the rest. A summary lists at most eight kinds and five events per kind. An hourly window closes at the top of the hour; a daily window closes at 08:00.
+- **Quiet hours.** Choose a **start** and **end** (24-hour, for example 22:00 to 07:00; the window may cross midnight). Events that arrive inside it are held and go out as one summary when it ends. If you also have a digest, the held events go out with the digest window that closes after quiet hours end.
+
+**Some events never wait.** An event that means something is down or something about security changed is sent at once, whatever the channel says: `server.offline`, `fleet.mass_disconnect`, `server.daemon_key_revoked`, `access.grant_created` and `access.grant_revoked`. Today that leaves `server.deleted` as the only routine event a digest or quiet hours can hold. The bell is never held either: it always shows an event the moment it happens.
+
+**Which clock.** Quiet hours and digest windows are read in a time zone: your own profile zone for a personal channel (set from the channel row; it is yours, not the channel's), the organization's default time zone for an organization channel, and UTC for a control plane channel or when none is set. Clock changes are followed: a window of 22:00 to 07:00 still ends at 07:00 on the morning the clocks change.
+
+**Pause and resume still work.** A paused channel receives nothing and keeps what it was holding; **Resume** sends the held events in the next summary. Turning a digest or quiet hours off sends whatever was held in the next maintenance tick. A summary that cannot be queued is retried on the following tick, not lost.
+
+Digest and quiet hours are for email channels in this release. Webhook, Slack, Discord and Telegram channels still receive every event as it happens, because a receiver on the other end of a webhook usually wants each one.
+
 ## Reference
 
 | Item | Value |
@@ -89,6 +104,9 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | Channel reach | organization channels, its members' own channels, and every control plane channel |
 | Address rule | `https`, no credentials in the URL; any host, LAN included |
 | Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
+| Digest | email channels only; `hourly` (top of the hour) or `daily` (08:00), in the owner's time zone; at most 8 kinds and 5 events per kind per summary |
+| Quiet hours | email channels only; `HH:MM` start and end, may cross midnight, never equal; urgent events are never held |
+| Delivery status `held` | waiting for quiet hours to end or a digest window to close; retries do not touch it |
 | Signature | `X-TurboPanel-Signature: sha256=<hex HMAC-SHA256 of the raw body>` |
 | Name | ≤ 80 characters; address ≤ 2048; signing secret ≤ 256 |
 
@@ -105,6 +123,11 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | `rule_event_unknown` | 400 | A rule names an event that is not in the catalogue (`reason` carries it). |
 | `rule_severity_invalid`, `rules_invalid` | 400 | The rule list is malformed. |
 | `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or the pause flag is not true or false. |
+| `digest_cadence_invalid` | 400 | The digest is not `hourly`, `daily` or null. |
+| `quiet_hours_invalid` | 400 | Quiet hours need a start and an end as 24-hour `HH:MM`, and they cannot be the same time. |
+| `time_zone_invalid` | 400 | Not a time zone from the list the app offers. |
+| `time_zone_user_channels_only` | 422 | A time zone is set on your own profile, from one of your personal channels. |
+| `timing_email_only` | 422 | Digest and quiet hours are for email channels. |
 | `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
 | `Forbidden` | 403 | Organization channels need `organization:manage`. |
 | `Not found` | 404 | The channel or the inbox row is not yours. |

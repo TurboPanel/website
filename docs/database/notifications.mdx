@@ -5,7 +5,7 @@ description: "Data dictionary — notifications tables: attempt, channel, notifi
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0015_snapshot.json (0015_deploy_options_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0016_snapshot.json (0016_notification_digest_quiet_hours).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — notifications tables: attempt, channel, notifi
 
 The notification catalogue rows, delivery channels, routing rules and per-channel attempts.
 
-Tables on this page: [`attempt`](#attempt) · [`channel`](#channel) · [`notification`](#notification) · [`rule`](#rule). Generated from migration `0015_deploy_options_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`attempt`](#attempt) · [`channel`](#channel) · [`notification`](#notification) · [`rule`](#rule). Generated from migration `0016_notification_digest_quiet_hours`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `attempt` [#attempt]
 
@@ -29,7 +29,7 @@ Delivery-attempt ledger: one row per event per routed channel, inserted before t
 | `event` | `text` | no |  | Catalogue code (`NOTIFICATION_EVENTS`), same vocabulary as `notification.event`. |
 | `severity` | `text` | no |  | `info`, `warning` or `critical`, copied from the event's catalogue definition. |
 | `payload` | `jsonb` | yes |  | Rendered non-secret message as JSON: `event`, `severity`, `title`, `body`, `organizationId`, `organizationName`, `targetType`, `targetId`, `context`, `at`. |
-| `status` | `text` | no | `'pending'` | `pending` (default, not yet sent), `sent`, `failed` (retry due) or `abandoned` (after 5 failed attempts); retries pick up `pending` and `failed`. |
+| `status` | `text` | no | `'pending'` | `pending` (default), `sent`, `failed` (retry due), `abandoned` (after 5 attempts) or `held` (waits for quiet hours or a digest); retries skip `held`. |
 | `attempts` | `integer` | no | `0` | Number of send attempts so far, bumped in SQL by the sender; the row is abandoned once it reaches 5. |
 | `next_attempt_at` | `timestamp(3) with time zone` | yes |  | Earliest time the retry sweep may pick the row up: now plus 2 min grace on insert, then backoff of 1, 5, 25 and 125 min; NULL once sent. |
 | `sent_at` | `timestamp(3) with time zone` | yes |  | When a send succeeded; NULL until then. |
@@ -38,10 +38,11 @@ Delivery-attempt ledger: one row per event per routed channel, inserted before t
 **Constraints and indexes**
 
 - Index `idx_attempt_pending`: (`status`, `next_attempt_at`)
+- Index `idx_attempt_held`: (`channel_id`, `created_at`) where `status = 'held'`
 - Index `idx_attempt_channel_created`: (`channel_id`, `created_at`)
 - Check `attempt_event_check`: `event IN ('server.offline', 'fleet.mass_disconnect', 'server.deleted', 'server.daemon_key_revoked', 'access.grant_created', 'access.grant_revoked')`
 - Check `attempt_severity_check`: `severity IN ('info', 'warning', 'critical')`
-- Check `attempt_status_check`: `status IN ('pending', 'sent', 'failed', 'abandoned')`
+- Check `attempt_status_check`: `status IN ('pending', 'sent', 'failed', 'abandoned', 'held')`
 
 ## `channel` [#channel]
 
@@ -62,6 +63,9 @@ An address notifications can be delivered to, owned by the instance, one organiz
 | `verified_at` | `timestamp(3) with time zone` | yes |  | When the address was confirmed; stamped at creation for own or member emails, NULL means unverified and email delivery is skipped. |
 | `disabled_at` | `timestamp(3) with time zone` | yes |  | Set when the owner pauses the channel; it keeps its rules but receives nothing until resumed. |
 | `created_by_user_id` | `uuid` | yes |  | FK → [`user`](/docs/database/identity#user).`id` (on delete set null). User whose session created the channel (provenance, set NULL on user delete); differs from `user_id` for org and instance channels. |
+| `digest_cadence` | `text` | yes |  | Email only: `hourly` or `daily` batches non-urgent events into one summary per window; NULL sends each event as it happens. |
+| `quiet_start_minute` | `smallint` | yes |  | Quiet hours start as minutes after local midnight (0-1439), set together with `quiet_end_minute`; NULL means no quiet hours. |
+| `quiet_end_minute` | `smallint` | yes |  | Quiet hours end as minutes after local midnight (0-1439); the window may wrap midnight, and held events go out as one summary when it ends. |
 
 **Constraints and indexes**
 
@@ -70,6 +74,8 @@ An address notifications can be delivered to, owned by the instance, one organiz
 - Check `channel_scope_check`: `scope IN ('instance', 'organization', 'user')`
 - Check `channel_kind_check`: `kind IN ('email', 'webhook', 'slack', 'discord', 'telegram', 'push')`
 - Check `channel_owner_check`: `(scope = 'instance' AND organization_id IS NULL AND user_id IS NULL) OR (scope = 'organization' AND organization_id IS NOT NULL AND user_id IS NULL) OR (scope = 'user' AND user_id IS NOT NULL AND organization_id IS NULL)`
+- Check `channel_digest_cadence_check`: `digest_cadence IS NULL OR digest_cadence IN ('hourly', 'daily')`
+- Check `channel_quiet_hours_check`: `(quiet_start_minute IS NULL AND quiet_end_minute IS NULL) OR (quiet_start_minute BETWEEN 0 AND 1439 AND quiet_end_minute BETWEEN 0 AND 1439 AND quiet_start_minute <> quiet_end_minute)`
 
 ## `notification` [#notification]
 

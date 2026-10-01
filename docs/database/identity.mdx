@@ -5,7 +5,7 @@ description: "Data dictionary — identity tables: 2fa, account, passkey, sessio
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0015_snapshot.json (0015_deploy_options_comments).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0016_snapshot.json (0016_notification_digest_quiet_hours).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — identity tables: 2fa, account, passkey, sessio
 
 Who a person is to the control plane: the Better Auth-compatible user, credential, session and verification tables.
 
-Tables on this page: [`2fa`](#2fa) · [`account`](#account) · [`passkey`](#passkey) · [`session`](#session) · [`user`](#user) · [`verification`](#verification). Generated from migration `0015_deploy_options_comments`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`2fa`](#2fa) · [`account`](#account) · [`passkey`](#passkey) · [`session`](#session) · [`user`](#user) · [`verification`](#verification). Generated from migration `0016_notification_digest_quiet_hours`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `2fa` [#2fa]
 
@@ -119,6 +119,7 @@ One row per person who can sign in to the instance, keyed by unique `email`; cre
 | `is_2fa_enabled` | `boolean` | no | `false` | Derived flag kept in step with the `2fa` row: set true when TOTP enrolment is verified and false when two-factor is disabled. |
 | `is_disabled` | `boolean` | no | `false` | Sign-in gate read by every authn path (password, OTP, passkey, OAuth) and refused with `account_disabled`; no control-plane route writes it today. |
 | `role` | `text` | no | `'user'` | Instance role `user`, `admin` or `superadmin`; sign-ups get `user`, the install wizard mints the one `superadmin`, and admins bypass org grants. |
+| `time_zone` | `varchar(64)` | yes |  | IANA zone (from the supported list) in which quiet hours on the personal channels of this user are read; NULL means UTC. |
 
 **Constraints and indexes**
 
