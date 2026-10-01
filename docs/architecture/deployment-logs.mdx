@@ -5,7 +5,7 @@ description: The ExecutionLogStore contract, the daemon spool-file durability mo
 
 # Deployment logs
 
-A **deployment log** (an *execution log*, internally) is the stdout/stderr a daemon produces while running one command — a deploy, a lifecycle action, a stop, a managed-engine apply. It is addressed by `commandId`, streamed while the command is still running, and read back by the console live.
+A **deployment log** (an *execution log*, internally) is the stdout/stderr a daemon produces while running one command — a deploy, a lifecycle action, a stop, a managed-engine apply. It is addressed by `commandId`, streamed while the command is still running, and read back by the app live.
 
 The transcript is a **separate, never load-bearing channel**. The command's own outcome travels on the WebSocket `command-outcome` frame as before; an upload failure, a full disk, or a disabled log store can never change whether a command succeeded.
 
@@ -56,7 +56,7 @@ Four methods, identical on every driver, exercised by one shared conformance sui
 
 `null`, empty, and sealed-empty mean different things and the API keeps them apart:
 
-| Store answer | Meaning | The console shows |
+| Store answer | Meaning | The app shows |
 | ------------ | ------- | ----------------- |
 | `null` (`exists: false`) | Nothing has been written yet | "Waiting for output" — **not** a 404 |
 | `exists: true`, zero bytes | Running, no output yet | Live view, still polling |
@@ -66,7 +66,7 @@ A poll loop never 404s, so "waiting for output" and "no transcript retained" sta
 
 ### Progress is guaranteed
 
-`nextSeq` advances only past chunks returned **in full**, so a resumed read never re-emits a partial chunk's tail nor skips its remainder. A chunk larger than the caller's byte budget yields a partial slice with `nextSeq` unchanged — the reader still makes progress, and the console dedupes by event sequence because that replay is expected.
+`nextSeq` advances only past chunks returned **in full**, so a resumed read never re-emits a partial chunk's tail nor skips its remainder. A chunk larger than the caller's byte budget yields a partial slice with `nextSeq` unchanged — the reader still makes progress, and the app dedupes by event sequence because that replay is expected.
 
 ### Caps and the truncation marker
 
@@ -78,12 +78,12 @@ A poll loop never 404s, so "waiting for output" and "no transcript retained" sta
 
 Past the total cap, an append becomes a no-op that flips `truncated` and writes `EXECUTION_LOG_TRUNCATION_MARKER` **once, as a real part** — a reader sees *why* the transcript stops instead of getting a silently short tail. The overflow append still advances `nextSeq`, so a runaway command finishes normally instead of retrying forever.
 
-## The read contract the console mirrors
+## The read contract the app mirrors
 
 `GET /api/client/v1/servers/:id/commands/:commandId/log?from=&max=`
 
 - `from` is a **chunk sequence, not a byte offset**. Poll with the previous response's `nextSeq`.
-- `sealed` is the stop condition. The console's `useCommandLog` hook polls at 1 s **only while the latest read is not sealed**, then stops — there is no timer to cancel and no fixed poll ceiling.
+- `sealed` is the stop condition. The app's `useCommandLog` hook polls at 1 s **only while the latest read is not sealed**, then stops — there is no timer to cancel and no fixed poll ceiling.
 - Chunks accumulate client-side keyed by `(serverId, commandId)` and are deduped by event sequence.
 - Rendering is one shared transcript component across the deploy overview, deployment history, managed apply, and managed engine logs. ANSI is **stripped**, never interpreted.
 

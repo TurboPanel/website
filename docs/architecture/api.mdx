@@ -1,9 +1,9 @@
 ---
-title: Instance API architecture
-description: Versioned surfaces, routing layout, and request flow in the turbopanel instance
+title: Control plane API architecture
+description: Versioned surfaces, routing layout, and request flow in the TurboPanel control plane
 ---
 
-# Instance API architecture
+# Control plane API architecture
 
 The TurboPanel API lives in the [TurboPanel/turbopanel](https://github.com/TurboPanel/turbopanel) repository at `~/turbopanel`. It is a **Hono** application with dual runtimes: **Cloudflare Workers** (`src/workers.ts` + wrangler) and **Deno** (`src/deno.ts` + Unix socket).
 
@@ -30,7 +30,7 @@ Unversioned docs:
 | App shell | `src/app/app.ts`, `src/app/surfaces.ts` | `createApp()` mounts routers, health, OpenAPI, Scalar |
 | Client | `src/client/routes.ts`, `src/client/authn/` | Sign-in, org servers |
 | Install | `src/install/routes.ts`, `src/client/authn/install-state.ts` | Self-hosted install wizard (`/api/install/v1/*`, Deno only) |
-| Developer | `src/developer/routes-core.ts`, `src/developer/routes.ts` | Fleet, database (Deno-only extras in `developer/routes.ts`) |
+| Developer | `src/developer/routes-core.ts`, `src/developer/routes.ts` | Servers, database (Deno-only extras in `developer/routes.ts`) |
 | Daemon | `src/daemon/api-routes.ts`, `src/daemon/deno-ws.ts` / `workers-ws.ts` | Daemon registration, CA fetch, WS hub |
 | Deno-only | `src/deno.ts`, `src/developer/system-routes.ts`, `src/developer/dev-sync.ts`, `src/developer/tunnel-routes.ts` | Upgrade, reset-dev, dev-sync push |
 | Database | `src/db/connection.ts`, `src/db/schema.ts` | Drizzle + postgres.js (`prepare: true` on Workers/Hyperdrive for cached parameterized reads; `prepare: false` on Deno/direct Postgres) |
@@ -44,7 +44,7 @@ Unversioned docs:
 sequenceDiagram
     participant Browser
     participant Caddy
-    participant Instance as instance (Workers/Deno)
+    participant Instance as control plane (Workers/Deno)
     participant DB as Postgres
 
     Browser->>Caddy: HTTPS /api/client/v1/auth/sign-in
@@ -70,7 +70,7 @@ Client auth routes under `/api/client/v1/auth/*`. Install wizard routes live und
 
 ### Secret envelopes
 
-Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the instance re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes — field order is exactly `tpdaemon.v<n>.<serverId>.<keyId>.<payload>`. Stateless auth challenges use `tp2fa` (two-factor sign-in), `tpwebauthn` (WebAuthn ceremony), and `tpoauth` (OAuth start/callback CSRF state). The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Full scheme table and rotation runbook: [Security → Envelope grammar](/docs/deployment/security#envelope-grammar).
+Persisted secrets (variables, TLS private keys, principal passwords) use a single root of trust (`TURBOPANEL_SECRETS`) and the universal at-rest format `tpsecret`. At delivery the control plane re-seals to recipient-bound `tpdaemon(serverId, keyId)` via `resealSecretForDaemon`; daemons decrypt only those envelopes — field order is exactly `tpdaemon.v<n>.<serverId>.<keyId>.<payload>`. Stateless auth challenges use `tp2fa` (two-factor sign-in), `tpwebauthn` (WebAuthn ceremony), and `tpoauth` (OAuth start/callback CSRF state). The client surface encrypts only (optional show-once generate). There are no per-server at-rest keys — a credential is server-agnostic in Postgres and can be delivered to any authorized daemon. Key rotation uses lazy re-seal-on-write plus superadmin `POST /api/admin/v1/secrets/reencrypt`. Full scheme table and rotation runbook: [Security → Envelope grammar](/docs/deployment/security#envelope-grammar).
 
 ## Database
 
@@ -97,7 +97,7 @@ A stored document that carries `x-turbopanel.placement` is **refused at save** (
 
 ### Environment placement
 
-Placement is a property of the **environment**, set on the console's Hosting tab:
+Placement is a property of the **environment**, set on the app's Hosting tab:
 
 | Field | Meaning |
 | --- | --- |
@@ -120,7 +120,7 @@ The same code answers when the planner can place nothing (`no_eligible_server`);
 
 ### Compiled compose (`compose.yaml`)
 
-The control plane stores a project base compose and an optional environment overlay. Merge and platform inject happen on the instance; deploy then publishes a **single compiled** `compose.yaml` (`role: 'runtime'`) that the daemon writes and runs. There is no multi-file `-f` chain on the host and no `composeYaml` fallback on `environment.deploy`.
+The control plane stores a project base compose and an optional environment overlay. Merge and platform inject happen on the control plane; deploy then publishes a **single compiled** `compose.yaml` (`role: 'runtime'`) that the daemon writes and runs. There is no multi-file `-f` chain on the host and no `composeYaml` fallback on `environment.deploy`.
 
 Overrides and nullification between authored layers follow the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (a later layer wins per key), most sequences — `ports`, `volumes`, `env_file`, and similar lists — **append** with attribute-specific key-based de-duplication rather than replacing the earlier layer wholesale, and `command`, `entrypoint`, and a service's `healthcheck.test` always **fully replace** rather than append. Authors who need to remove a value entirely, or force full replacement instead of the default append/merge behavior for a sequence, can use the reserved **`!reset`** (delete the key) and **`!override`** (force full replacement) YAML tags on the environment overlay.
 
@@ -128,7 +128,7 @@ The organization console's **Merged compose** preview renders a client-side simu
 
 ## Daemon hub
 
-Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The instance resolves a canonical `server` row, dedupes reconnects, and routes commands over the daemon cell (`src/daemon/cell/`).
+Daemons connect to `/ws/daemon/v1` and send a `hello` with `hostname`, optional persisted `serverId`, and `machineId`. The control plane resolves a canonical `server` row, dedupes reconnects, and routes commands over the daemon cell (`src/daemon/cell/`).
 
 Co-located daemons on the same host dial the Unix socket directly (no Caddy hop) and collapse to a single local slot.
 
