@@ -38,7 +38,7 @@ or referenced by an operator: you reach a managed database through its
 connection panel or a binding, and you manage the stack through TurboPanel, not
 through `docker` on the host. Nothing on a managed server is expected to carry a
 human-readable Docker name. The one exception is the self-hosted TurboPanel
-instance stack itself, whose compose project stays `turbopanel-system` because
+control plane stack itself, whose compose project stays `turbopanel-system` because
 operators do inspect it directly.
 
 ## Ports and firewall
@@ -127,7 +127,7 @@ every deploy — after this ingress port move, consuming environments must be
 
 A **binding** connects a managed database principal to a compose service:
 
-1. Instance materializes service-scoped variables (host, port, user, password,
+1. The control plane materializes service-scoped variables (host, port, user, password,
    URL, CA paths) — secret values never reappear on later GETs.
 2. **Host/port** always resolve to the **consuming service’s placement server**
    ProxySQL listener (even when engine members live elsewhere). ProxySQL on that
@@ -164,7 +164,7 @@ only.
 
 - [Architecture overview](/docs/architecture)
 - [Datacenter networks](/docs/architecture/datacenter-networks)
-- [Instance API](/docs/architecture/api)
+- [Control plane API](/docs/architecture/api)
 - [Organization CA](/docs/security/organization-ca)
 - [Self-hosted overview](/docs/deployment/self-hosted)
 - [Deployment security](/docs/deployment/security)

@@ -35,7 +35,7 @@ A backup root on its own attached disk reads straight from the filesystem, so th
 
 `storage.dockerUsedBytes` — the total bytes Docker holds: image layers, container writable layers, volumes, and build cache. This is the one figure shared with [Docker](/docs/metrics/managed-docker); that group's breakdown sums to it.
 
-The wire carries no Docker free-bytes field. The console joins the free side at render time from the filesystem that carries the **docker** role in the server's inventory (root when Docker lives on `/`), which is exactly what the other three free series mean. With no docker-role filesystem known, the chart shows used only.
+The wire carries no Docker free-bytes field. The app joins the free side at render time from the filesystem that carries the **docker** role in the server's inventory (root when Docker lives on `/`), which is exactly what the other three free series mean. With no docker-role filesystem known, the chart shows used only.
 
 On **S1** this total is all the Docker accounting you get — the layer / container / volume / build-cache split is a separate family granted from S2. See [Docker](/docs/metrics/managed-docker).
 
@@ -76,7 +76,7 @@ Used approaching max means new connections will be refused at the engine, whethe
 
 ## Inodes for these roles [#managed-storage-inodes]
 
-Bytes are only half of "can this grow". The console also shows **free inodes** for each filesystem that carries a hosting, backup, docker, or logs role in the server's inventory — the roles are the join key, since the wire carries no filesystem id on this row. A role that lives on `/` reuses [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes); one filesystem carrying several roles joins once. A hosting root full of small files can run out of inodes with gigabytes still free.
+Bytes are only half of "can this grow". The app also shows **free inodes** for each filesystem that carries a hosting, backup, docker, or logs role in the server's inventory — the roles are the join key, since the wire carries no filesystem id on this row. A role that lives on `/` reuses [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes); one filesystem carrying several roles joins once. A hosting root full of small files can run out of inodes with gigabytes still free.
 
 ## Related
 

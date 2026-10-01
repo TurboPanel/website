@@ -140,7 +140,7 @@ A scheduled backup of one managed engine or one local storage copy, pushed to it
 | `target_kind` | `text` | no |  | `managed` or `copy`: which of `managed_id` and `copy_id` names the target; exactly one is set (`retention_target_check`). |
 | `managed_id` | `uuid` | yes |  | FK → [`managed`](/docs/database/managed#managed).`id` (on delete cascade). |
 | `copy_id` | `uuid` | yes |  | FK → [`copy`](/docs/database/storage#copy).`id` (on delete cascade). |
-| `name` | `text` | no |  | Operator label for the policy, shown in the console's backup list. |
+| `name` | `text` | no |  | Operator label for the policy, shown in the app's backup list. |
 | `schedule` | `text` | no |  | The schedule as authored, a cron expression or alias; translated to a systemd `OnCalendar` value when pushed to the host. |
 | `timezone` | `text` | yes |  | IANA zone the schedule is read in; null means the host's local time. |
 | `retention_keep` | `integer` | no |  | How many of this policy's own artifacts the host keeps, 1 to 100; older ones are pruned after each run. |
