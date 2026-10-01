@@ -66,6 +66,12 @@ The bind is frozen into the host's Caddy at deploy time, so changing it — or a
 
 Once a row is saved, it carries its own **Variables** panel — the hosting scope of the variable cascade, for values that differ per hostname (a `SITE_URL`, a per-host feature flag). For a site served by a host engine, the row also exposes **PHP** options: series (`8.3`, `8.4`), `memory_limit`, `max_execution_time`, and up to 64 static environment entries (`web.env`) of at most 4096 characters each.
 
+### WordPress sites
+
+After each deploy the daemon looks in a site's document root for the file names a WordPress install has (`wp-config.php`, or `wp-config-sample.php` beside `wp-settings.php`, together with `wp-includes/` or `wp-content/`) and reports the result. It reads file names only and never opens `wp-config.php`, so no password is read. The site then carries a **WordPress** tag on the **Services** tab, the Overview diagram and the phone Stack list; the tag clears on a later deploy if the files are gone. A plain PHP or static site gets no tag.
+
+WordPress runs only on **MySQL or MariaDB**. The Services tab warns **WordPress needs MySQL or MariaDB** when the site is bound to a Postgres database ("Bind a MySQL or MariaDB database instead") or to no database at all ("Bind one, unless the site already points at a database elsewhere"). The second case is a check, not a verdict: a database the platform does not manage cannot be seen. Bind a [managed MySQL or MariaDB database](/docs/using/managed-databases) to the site to clear the warning.
+
 ## Publish a TCP or UDP port
 
 <Steps>
