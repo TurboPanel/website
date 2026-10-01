@@ -5,7 +5,7 @@ description: On TurboPanel High Availability — what a license is, buying the f
 
 # Billing and licenses
 
-On **TurboPanel High Availability**, an organization pays for **licenses**, and each connected server uses one. Which tier a server needs is decided by its hardware; which license it gets is decided by the platform; what you buy is only *how many, at which tier*. This chapter is the **Billing** screen (`/<org>/billing`) — first checkout, changing quantities, moving a license between tiers, and what happens when payment fails. Prices are on [Pricing](/pricing); the ladder itself is in [License tiers](/docs/deployment/tiers).
+On **TurboPanel High Availability**, an organization pays for **licenses**, and each connected server uses one. Which tier a server needs is decided by its hardware; which license it gets is decided by the platform; what you buy is only *how many, at which tier*. This chapter is the **Billing** screen (`/<org>/billing`), reached from the organization menu — it is not in the sidebar — first checkout, changing quantities, moving a license between tiers, and what happens when payment fails. Prices are on [Pricing](/pricing); the ladder itself is in [License tiers](/docs/deployment/tiers).
 
 <Callout type="info" title="Self-hosted has no Billing screen">
   A self-hosted control plane has no subscription: every server it licenses is entitled to **SX** automatically, and the sidebar omits Billing. Server count is bounded only by the organization's own capacity setting (**Servers → Settings**). Everything on this page is High Availability.
@@ -37,7 +37,7 @@ Two facts shape every action below:
 
 <Steps>
   <Step>
-    **Choose a tier** from the table (**Fits up to** shows each tier's ceilings) and the **Number of licenses** — a whole number, at least 1. You can add or release later.
+    **Choose a tier** from the table (**Fits up to** shows each tier's ceilings) and the **Licenses** count — a whole number, at least 1. You can add or remove later.
   </Step>
   <Step>
     **Continue to checkout.** Payment is collected on a hosted checkout page; the console does not see your card.
@@ -49,16 +49,17 @@ Two facts shape every action below:
 
 A second checkout while one is in flight is refused (`checkout_pending`); a checkout for an organization that already subscribes is refused (`subscription_exists`) — add licenses to the subscription instead.
 
-## Add or release licenses at a tier
+## Add or remove licenses at a tier
 
-**Billing → Licenses by tier.** Each purchased tier is a row with its quantity and two buttons:
+**Billing → Licenses by tier.** Each purchased tier is a row with its price, **Purchased**, **In use**, **Ends** and **Available** counts, and up to three buttons. Each opens a dialog with a **Licenses** count:
 
 | Button | What happens |
 | --- | --- |
-| **+1** | Buys one more at that tier. The console fetches a quote (**Prorated** amount for the rest of the period), you confirm, and it is invoiced now. |
-| **−1** | Releases one at the end of the period. It shows under pending changes with the date it lands; the license stays usable until then. |
+| **Add** | **Review price** fetches a quote (a **Prorated** amount for the rest of the period); **Confirm and pay** invoices it now, then bills monthly with your other licenses. Disabled while a payment is past due. |
+| **Remove** | **Remove n** ends that many licenses at the end of the period, with no refund. Until then they still count as yours and can be restored, but they cannot take a new server. You can remove only as many as no server is using; refused if a server would be left without a license. |
+| **Restore** | Shown only at a tier with licenses ending. Takes them back for free; nothing is charged and they stay yours past the end date. |
 
-**Buy one** at a tier you do not yet hold adds that tier to the subscription the same way. The **Licenses** summary shows *held* of *purchased* in use, how many more servers can be added, and how many are *releasing*.
+Restore comes before buying: an **Add** at a tier that has licenses ending opens as a **Restore** (API: `licenses_ending`). **Add licenses at another tier** (choose a tier, then **Add**) adds a tier you do not yet hold to the subscription the same way. The **Licenses** summary shows **Purchased**, **In use** and **Available** tiles, an **Ends** tile while any are ending, and any **Pending changes** with the date each lands.
 
 ## Move a license to another tier
 
@@ -67,7 +68,7 @@ A second checkout while one is in flight is refused (`checkout_pending`); a chec
 - **Up the ladder** is invoiced now (a prorated quote first) and applies once the invoice is paid. If the card fails, the change waits, parked, until the open invoice is paid; nothing is granted meanwhile.
 - **Down the ladder** applies at the end of the period, with no credit.
 
-A move that is not actually an upgrade or downgrade in the chosen direction is refused (`not_an_upgrade` / `not_a_downgrade`); one that would uncover a server is refused (`servers_uncovered`).
+A move that is not actually an upgrade or downgrade in the chosen direction is refused (`not_an_upgrade` / `not_a_downgrade`); one that would uncover a server is refused (`servers_uncovered`); one into a tier that has licenses ending is refused (`licenses_ending`) — restore those first.
 
 ## Servers not covered
 
@@ -99,13 +100,15 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `billing_not_configured` | 503 | A hosted instance without its payment keys. (Self-hosted has no billing routes at all — 404.) |
-| `subscription_exists` | 409 | The organization already subscribes; use **+1** / **Buy one** instead of checkout. |
+| `subscription_exists` | 409 | The organization already subscribes; use **Add** instead of checkout. |
 | `checkout_pending` | 409 | A checkout is already in flight; finish or cancel it. |
 | `no_subscription` | 409 | No live subscription to change; start with checkout. |
 | `tier_not_purchasable` | 400 | The tier is SX, or its product no longer verifies with the provider (the response lists the failures). |
 | `not_an_upgrade`, `not_a_downgrade` | 400 | The chosen tiers do not go in the direction of the action. |
 | `servers_uncovered` | 409 | The change would leave the named server without a license at the tier it needs. |
 | `licenses_in_use` | 409 | The organization would hold more registration keys than it pays for. |
+| `licenses_ending` | 409 | More licenses were asked for at a tier where some are ending; **Restore** them first (free). |
+| `no_licenses_ending` | 409 | **Restore** at a tier with nothing ending. |
 | `subscription_past_due` | 409 | Increases and moves are paused until the open invoice is paid. |
 | `billing_mutation_in_progress` | 409 | Another change for this organization is being applied; retry in a moment. |
 | `no_license_available` | 409 (Add server) | Every purchased license is held or releasing; buy one more first. |
