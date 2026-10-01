@@ -24,6 +24,7 @@ See [Projects and environments](/docs/using/projects).
 | `managed_runtime_present` | 409 | Delete refused: the environment still hosts a managed database cluster. Destroy the cluster first. |
 | `compose_invalid` | 400 | The compose document failed validation at save; `issues[]` lists path and message for each finding. |
 | `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it under `x-turbopanel.source`. |
+| `deploy_options_invalid` | 400 | The deploy options on an environment (strategy, migration or related settings) are malformed or contradict each other; `message` names the field. |
 
 ## Compose, services and the docker run importer
 
@@ -64,6 +65,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `source_ref_unsupported` | 501 | A `ref` was sent on the deploy body; omit it. |
+| `deploy_strategy_unsupported` | 501 | A `strategy` or `migration` was sent on the deploy body; every deploy runs as the environment is configured, so omit both. |
 | `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value, is malformed, or interpolates a secret into a plain field. |
 | `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
 | `datacenter_ip_required` | 422 | A `datacenter` bind on a server with no datacenter address. |
@@ -90,6 +92,7 @@ See [Hosting](/docs/using/hosting).
 | `lets_encrypt_not_enabled` | 403 | The organization has not turned on **Allow Let's Encrypt certificates**. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` name, or a DNS-01 challenge, on a Let's Encrypt row. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. |
+| `invalid_certificate` | 400 | The certificate or key you supplied could not be read; `detail` carries the parser's reason. |
 | `organization_ca_exists` | 409 | An organization CA already exists. |
 | `organization_ca_retire_required` | 409 | The current CA must be retired before a new one is minted. |
 | `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the fleet has not yet picked up the new root. |
@@ -108,6 +111,10 @@ See [Hosting](/docs/using/hosting).
 | `binding_key_prefix_in_use` | 409 | Another binding in the environment already uses that key prefix. |
 | `binding_engine_defaults_in_use` | 409 | The binding's default keys are already taken. |
 | `binding_owned_variable` | 409 | The variable is written by a binding and cannot be edited directly. |
+| `binding_engine_unsupported` | 400 | The managed database's engine does not support bindings. |
+| `database_not_found` | 404 | The named database is not one of the cluster's databases. |
+| `binding_password_unavailable` | 422 | The binding's database user has no stored password to deliver, so the binding was not created. |
+| `binding_not_found`, `binding_principal_invalid`, `binding_ca_unavailable`, `binding_cluster_invalid` | 400 | The binding could not be built: it no longer exists, it does not point at a database user, the organization's certificate authority could not be made ready, or the cluster's options could not be read. |
 | `backup_target_unsupported` | 400 | The storage copy cannot be backed up from where it lives; `detail` says why (for example it has no local folder or Docker volume on its server). |
 
 ## System users (principals)
@@ -168,6 +175,9 @@ See [Servers](/docs/using/servers).
 | `unknown_system_component`, `system_component_not_provisioned`, `system_reconcile_unavailable` | 400 / 404 / 503 | The platform's own system project on a server is unknown, not yet provisioned, or cannot be reconciled right now. |
 | `system_resource_immutable` | 403 | The row belongs to the platform's system project and cannot be edited. |
 | `container_id_unavailable` | 409 | The container has no id yet; the daemon has not reported it. |
+| `updates_managed` | 409 | TurboPanel High Availability: daemon updates are rolled out from **Admin → Updates**, not per server. |
+| `control_plane_upgrade_required` | 409 | Self-hosted: update the control plane from **Admin → Updates** before updating other servers. |
+| `upgrade_gate_unavailable` | 503 | TurboPanel could not confirm that the control plane is ready for server updates. Retry shortly. |
 
 ## Datacenters and networking
 
@@ -183,6 +193,8 @@ The console renders one sentence per code from these; the sentences here are the
 | `datacenter_has_members`, `datacenter_has_networks` | 409 | A datacenter with servers or networks cannot be deleted. |
 | `address_in_use` | 409 | That address is already pinned. |
 | `address_not_in_any_subnet` | 400 | The address falls outside every subnet in the datacenter. |
+| `invalid_address` | 400 | The pinned address is not a valid IP address. |
+| `address_not_in_cidr` | 400 | The pinned address falls outside the CIDR of the group it was pinned in. |
 | `address_cidr_unreported`, `address_not_reported` | 400 | That server has not reported a private IP; pick one it reports. |
 | `ip_in_use`, `ip_address_in_use` | 409 | The IP is bound to a hosting, or the address already exists in the registry. |
 | `cidr_overlaps_fabric`, `cidr_overlaps_fabric_pool` | 409 | That range overlaps the TurboFabric range or its container pool. |
@@ -311,6 +323,9 @@ See [Administering an instance](/docs/using/admin).
 | `product_verification_failed` | 400 | The provider product does not match the tier's price ladder; `verification` lists the differences. |
 | `product_lookup_failed` | 400 | The provider could not be asked about the product; `status` is what it answered. |
 | `invalid_settings` | 400 | The instance update settings are malformed. |
+| `upgrade_run_not_found` | 404 | No update run has that id. |
+| `upgrade_not_active` | 409 | No update run is active, so there is nothing to retry or cancel. |
+| `upgrade_step_not_found`, `upgrade_step_not_retryable` | 409 | A retry named a step that does not exist, or one that is not waiting on attention, failed or rolled back. |
 | `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
 | `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the panel toggle. |
