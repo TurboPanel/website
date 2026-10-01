@@ -86,6 +86,29 @@ enrols and connects; that is the whole path exercised.
   bind the new product. Existing subscriptions keep their Stripe price until the next change.
 - **SX:** negotiated per customer; there is nothing to enter here.
 
+## Hand edits in the Stripe Dashboard
+
+What you may and may not change in Stripe by hand, per Stripe account (testing, staging and live each
+have their own):
+
+- **Do not edit customers' subscriptions or subscription schedules.** TurboPanel creates, changes and
+  releases them through the API (a license increase, a move, a decrease at the end of the period) and
+  keeps its own record of pending changes and license counts beside them. A change made in the
+  Dashboard never reaches that record, so licenses and what Stripe bills can end up out of step.
+  Nothing reconciles hand edits yet: that is a planned feature, not a safety net. Make the change
+  from the billing screens instead.
+- **Do set dunning by hand, on purpose.** These are account settings, not API fields: a custom retry
+  schedule of about **14 days** on staging and live (testing may use a much shorter one to exercise the
+  lifecycle), and **If all retries fail: cancel the subscription**. That cancellation is the only thing
+  that ends a past-due subscription; TurboPanel has no clock of its own and never cancels. Do not
+  choose "leave past-due" or "mark unpaid", because the customer's licenses would then never end.
+- **The catalogue is the exception in between.** Products and prices are created by hand once (steps 1
+  and 2 above) and changed only the way [Later changes](#later-changes) describes, because the
+  verifier holds them to the ladder in code.
+- **Other account settings stay in the Dashboard:** the Customer Portal's branding, and the Stripe Tax
+  default behaviour and registrations. The portal's features are set by code, and a portal
+  configuration edited in the Dashboard is never used.
+
 ## Related
 
 - [License tiers](/docs/deployment/tiers) — the ladder and the placement rules
