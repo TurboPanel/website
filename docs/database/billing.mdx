@@ -5,7 +5,7 @@ description: "Data dictionary — billing tables: allowance, entitlement, licens
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0013_snapshot.json (0013_add_edict_and_bulwark).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0014_snapshot.json (0014_update_grace_expires_at_comment).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — billing tables: allowance, entitlement, licens
 
 Tiers are platform-global priced offerings; licenses, payers, subscriptions and seats record what an organization bought and how each server is entitled.
 
-Tables on this page: [`allowance`](#allowance) · [`entitlement`](#entitlement) · [`license`](#license) · [`payer`](#payer) · [`seat`](#seat) · [`subscription`](#subscription) · [`tier`](#tier). Generated from migration `0013_add_edict_and_bulwark`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`allowance`](#allowance) · [`entitlement`](#entitlement) · [`license`](#license) · [`payer`](#payer) · [`seat`](#seat) · [`subscription`](#subscription) · [`tier`](#tier). Generated from migration `0014_update_grace_expires_at_comment`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `allowance` [#allowance]
 
@@ -137,8 +137,8 @@ One provider subscription per `payer`, upserted by the Stripe webhook on `provid
 | `provider_status` | `text` | no |  | Provider status string verbatim, never interpreted; kept beside `status` so an unknown Stripe value lands as `unknown` plus the raw string, not a refused event. |
 | `current_period_end` | `timestamp(3) with time zone` | yes |  | End of the current billing period as the provider reports it, taken from the subscription or else its first item; null when the provider gives none. |
 | `schedule_id` | `text` | yes |  | Provider subscription schedule id (Stripe `sub_sched_...`) while a downgrade is parked on a schedule; null otherwise, written by the webhook projection. |
-| `grace_expires_at` | `timestamp(3) with time zone` | yes |  | Moment entitlement lapses after non-payment: latched to `past_due_since` plus 65 days while status is `past_due` or `unpaid`, cleared on any other status. |
-| `past_due_since` | `timestamp(3) with time zone` | yes |  | First moment the provider reported `past_due` or `unpaid`; latched while delinquent, cleared by any other status so a second lapse restarts the grace clock. |
+| `grace_expires_at` | `timestamp(3) with time zone` | yes |  | Always null since the TurboPanel grace clock was removed: provider retries now end a past-due subscription. Kept by the schema freeze, never read. |
+| `past_due_since` | `timestamp(3) with time zone` | yes |  | First moment the provider reported `past_due` or `unpaid`; latched while delinquent, cleared by any other status so a later lapse is measured afresh. |
 
 **Constraints and indexes**
 
