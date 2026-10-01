@@ -32,7 +32,7 @@ Secrets at rest use the control plane keyring — without a database backup, enc
 
 <Callout type="warn" title="Purging a control plane">
   The database and the secret keyring live under `/etc/turbopanel` and in Docker volumes.
-  Purging hosted data is unrecoverable and leaves other enrolled servers without this control plane.
+  Purging TurboPanel High Availability data is unrecoverable and leaves other enrolled servers without this control plane.
 </Callout>
 
 ## Run the purge script
@@ -70,13 +70,13 @@ Detection only changes the label and the warnings printed before you confirm. Th
 | What the script finds | Label shown | Extra warning |
 | --- | --- | --- |
 | Instance binary or `turbopanel-instance.service`, and no `TURBOPANEL_INSTANCE_URL` | self-hosted control plane | database and keyring warning |
-| Daemon with URL host `turbopanel.app` or `*.turbopanel.dev` | TurboPanel High Availability | delete the server in the console |
-| Daemon enrolled with some other control plane | self-hosted control plane at `<url>` | delete the server in the console |
+| Daemon with URL host `turbopanel.app` or `*.turbopanel.dev` | TurboPanel High Availability | delete the server in the app |
+| Daemon enrolled with some other control plane | self-hosted control plane at `<url>` | delete the server in the app |
 | Partial install with control-plane traces | control-plane leftovers | database and keyring warning |
 | Partial install with no control-plane traces | leftovers, type unknown | — |
 | Daemon with no control-plane URL | TurboPanel daemon (control plane URL not set) | — |
 
-The database and keyring warning is the text in [Purging a control plane](#before-you-purge). The console warning is: `After the purge, delete this server in the console so the control plane drops the enrolment.`
+The database and keyring warning is the text in [Purging a control plane](#before-you-purge). The app warning is: `After the purge, delete this server in the app so the control plane drops the enrolment.`
 
 If the scan finds nothing, the script prints `TurboPanel is not installed on this host` and exits 0.
 
@@ -175,8 +175,8 @@ Every package that is purged is first simulated with `apt-get -s purge`. A packa
 
 ## After purging a daemon
 
-1. Stop environments from the console before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
-2. After the script finishes, open the server in the console and use **Delete server**. On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
+1. Stop environments from the app before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
+2. After the script finishes, open the server in the app and use **Delete server**. On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
 3. Reinstall with the commands the script prints at the end:
 
 Install a daemon again ([Daemon setup](/docs/deployment/daemon-setup)):
@@ -226,7 +226,7 @@ Reset does not delete `~/dev` itself.
 </Callout>
 
 <Callout type="warn" title="FHS state and secrets stay on the guest">
-  `/etc/turbopanel` (including `daemon.env` and the instance secret keyring), `/var/lib/turbopanel`,
+  `/etc/turbopanel` (including `daemon.env` and the control plane secret keyring), `/var/lib/turbopanel`,
   `/var/log/turbopanel`, and `/run/turbopanel` stay in place. Credentials and application state
   remain until those trees are removed by hand.
 </Callout>
@@ -235,7 +235,7 @@ Reset does not delete `~/dev` itself.
 
 Cancel your account through commercial support. Export org data via API or requested export before closure.
 
-Servers enrolled with TurboPanel High Availability are purged with the same script. After it finishes, delete the server in the console.
+Servers enrolled with TurboPanel High Availability are purged with the same script. After it finishes, delete the server in the app.
 
 ## Related
 

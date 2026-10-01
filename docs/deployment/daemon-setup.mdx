@@ -5,20 +5,20 @@ description: Install and configure TurboPanel daemons on managed servers
 
 # Daemon Setup
 
-The TurboPanel **daemon** ([turbopaneld](https://github.com/TurboPanel/turbopaneld)) runs on managed servers. It connects to the instance over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
+The TurboPanel **daemon** ([turbopaneld](https://github.com/TurboPanel/turbopaneld)) runs on managed servers. It connects to the control plane over **HTTPS/WSS**, runs Ansible to install runtimes and services, and manages Docker, tunnels, and orchestration locally.
 
 ## Overview
 
 ### Purpose
 
-- Connect to the instance control plane as a remote daemon
-- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, instance, UI)
-- Apply dev-sync pushes and Cloudflare tunnel tokens from the instance
+- Connect to the control plane control plane as a remote daemon
+- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, control plane, web app)
+- Apply dev-sync pushes and Cloudflare tunnel tokens from the control plane
 - Report server identity (`serverId`, `hostname`, `machineId`) on WebSocket `hello`
 
 ### Relationship to control plane
 
-The daemon is the constant on every TurboPanel-managed host and the only party that runs Ansible. On the control plane host it runs co-located (Unix socket or Caddy URL). On additional servers it dials the instance URL you provide at install time.
+The daemon is the constant on every TurboPanel-managed host and the only party that runs Ansible. On the control plane host it runs co-located (Unix socket or Caddy URL). On additional servers it dials the control plane URL you provide at install time.
 
 ### Architecture
 
@@ -38,12 +38,12 @@ graph TD
 
 ## Deployment models
 
-| Feature | TurboPanel High Availability | Self-hosted instance |
+| Feature | TurboPanel High Availability | Self-hosted control plane |
 | ------- | ---------------------------- | -------------------- |
-| Instance URL | Hosted Workers URL (manifest default) | `https://<host>:8443` for every hostname |
-| Co-located daemon | Contributor dev only (socket mode) | Installed with the control plane; dials the instance socket |
+| Control plane URL | TurboPanel High Availability (Workers) URL (manifest default) | `https://<host>:8443` for every hostname |
+| Co-located daemon | Contributor dev only (socket mode) | Installed with the control plane; dials the control plane socket |
 | Remote daemon | Required per extra server | Required per extra server |
-| Communication | WSS through instance URL | WSS through Caddy or direct socket |
+| Communication | WSS through control plane URL | WSS through Caddy or direct socket |
 | Daemon coordination | WSS (Durable Objects) | WSS (Redis cell) |
 
 Both control-plane models are in **private alpha** and not yet publicly available. The installer and daemon behavior below apply when you have access.
@@ -79,7 +79,7 @@ Full table: [Control plane](/docs/deployment/control-plane#control-plane-listene
     base64url-encoded `licenseId:licenseToken` (the UI copy-paste command includes this).
   </Step>
   <Step>
-    Run the channel installer from **turbopanel.sh** — production and self-hosted instances use this
+    Run the channel installer from **turbopanel.sh** — production and self-hosted control planes use this
     host, not the contributor Vagrant workflow.
   </Step>
   <Step>
@@ -87,7 +87,7 @@ Full table: [Control plane](/docs/deployment/control-plane#control-plane-listene
     `GET /api/daemon/v1/instance/ca` and configures `TURBOPANEL_INSTANCE_CA`.
     A 404 on a Let's Encrypt name, or on an uploaded certificate that chains to a public root, uses the system trust store.
     A private upload uses the issuer from `GET /api/daemon/v1/instance/uploaded-trust`.
-    Re-run the same command any time to upgrade or reconcile a node.
+    Re-run the same command any time to upgrade or reconcile a server.
   </Step>
 </Steps>
 
@@ -114,7 +114,7 @@ While provisioning runs, the terminal shows a **rolling status view** (spinner o
 
 #### Contributor dev overlay only
 
-The instance host `/run.sh` path is **development-only** — served by the dev overlay Caddyfile at `https://<dev-host>:8443/run.sh`. LAN names use `curl -k` and `TURBOPANEL_INSECURE_TLS=1` because the leaf is the Platform CA:
+The control plane host `/run.sh` path is **development-only** — served by the dev overlay Caddyfile at `https://<dev-host>:8443/run.sh`. LAN names use `curl -k` and `TURBOPANEL_INSECURE_TLS=1` because the leaf is the Platform CA:
 
 ```bash
 curl -fsSLk https://<dev-host>:8443/run.sh | \
@@ -124,7 +124,7 @@ curl -fsSLk https://<dev-host>:8443/run.sh | \
   sh
 ```
 
-### Refresh an existing node
+### Refresh an existing server
 
 If the server is already installed, re-run the same **`turbopanel.sh`** installer. Build the license argument from state on disk (or copy a fresh install command from the UI):
 
@@ -146,7 +146,7 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-Pass the node's own control plane and channel back, as above. The installer does not read them from `daemon.env` on a remote node: without `TURBOPANEL_HOST` it uses the hosted control plane named in the release manifest, and without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`.
+Pass the server's own control plane and channel back, as above. The installer does not read them from `daemon.env` on a remote server: without `TURBOPANEL_HOST` it uses the TurboPanel High Availability control plane named in the release manifest, and without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`.
 
 See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mismatches, missing license files, and self-hosted hosts.
 
@@ -162,9 +162,9 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mism
 | ---- | ----------- |
 | `TURBOPANEL_LICENSE` / `--license <b64>` | **Required to enrol a server.** Base64url-encoded `licenseId:licenseToken`. Run with no license and no other server option, the installer sets up a control plane instead. |
 | `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `release`. Channel names (`trunk`, `canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release`, `rc` and `canary` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, the rolling `rc` pre-release, and the rolling `canary` pre-release carrying the newest green `trunk` build); `trunk` from the per-merge build drop. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
-| `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted instances (`https://…`). |
+| `TURBOPANEL_HOST` / `--host <URL>` | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted control planes (`https://…`). |
 | `TURBOPANEL_INSECURE_TLS=1` / `--insecure-tls` | Use `curl -k` for bootstrap downloads only (platform CA / self-signed). Omitted when `TURBOPANEL_TLS_PUBLIC` is set (Let's Encrypt, or an uploaded publicly trusted cert). |
-| `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this node |
+| `--tunnel-token <TOKEN>` | Cloudflare tunnel token for this server |
 | `--instance-ca <PATH>` | PEM platform CA (skips automatic CA fetch) |
 | `--no-start` | Provision without starting `turbopaneld.service` |
 
@@ -202,13 +202,13 @@ Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld
 
 | Variable | Purpose |
 | -------- | ------- |
-| `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of instance (remote nodes) |
+| `TURBOPANEL_INSTANCE_URL` | HTTPS base URL of the control plane (remote servers) |
 | `TURBOPANEL_INSTANCE_CA` | Platform CA PEM path for TLS (default `/etc/turbopanel/instance-ca.pem`) |
 | `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`release` default) |
-| `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs instance/UI) |
+| `TURBOPANEL_DEV_INSTANCE` | `1` for co-located dev (Ansible installs control plane/web app) |
 
 Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`. On a
-self-hosted control plane that is the daemon the instance installer provisions: it starts before the wizard has
+self-hosted control plane that is the daemon the control plane installer provisions: it starts before the wizard has
 issued a license, re-checks the daemon state directory every few seconds, and enrols as soon as the wizard writes
 the first organization's license there. Contributor dev keeps the console opt-in (`TURBOPANEL_DEV_INSTANCE`);
 a managed install connects without it.
@@ -216,8 +216,8 @@ a managed install connects without it.
 ## Communication
 
 - **WebSocket:** `wss://<instance>/ws/daemon/v1`
-- **Hello:** daemon sends `hostname`, optional `serverId`, `machineId`; instance returns canonical `serverId`
-- **Commands:** instance routes over the daemon cell; dev-sync and tunnel-token messages for operator pushes
+- **Hello:** daemon sends `hostname`, optional `serverId`, `machineId`; the control plane returns canonical `serverId`
+- **Commands:** the control plane routes over the daemon cell; dev-sync and tunnel-token messages for operator pushes
 
 ## Common issues
 
@@ -243,7 +243,7 @@ Unlike the installer, this script must be run with `sudo` (or from a root shell)
 ## Related documentation
 
 - [Deployment hub](/docs/deployment) — Operator overview
-- [Control plane](/docs/deployment/control-plane) — Instance and Caddy layout
+- [Control plane](/docs/deployment/control-plane) — Control plane and Caddy layout
 - [Security](/docs/deployment/security) — TLS and socket hardening
 - [Purge](/docs/deployment/purge) — Purge TurboPanel from a host
 - [Daemon README](https://github.com/TurboPanel/turbopaneld/blob/trunk/README.md) — Maintainer reference

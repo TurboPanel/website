@@ -1,6 +1,6 @@
 ---
 title: Upgrade and rollback
-description: Managed platform upgrades — this host's daemon, then the control plane, then the rest of the fleet — with backups, batches, and rollback
+description: Managed platform upgrades — this host's daemon, then the control plane, then the rest of the servers — with backups, batches, and rollback
 ---
 
 # Upgrade and rollback
@@ -21,10 +21,10 @@ installs.
 On a self-hosted host the order is fixed:
 
 1. **This host's daemon** — the co-located daemon, the one enrolled on the control plane's own machine.
-2. **Control plane** — the instance package and the static UI on that same host.
+2. **Control plane** — the control plane package and the static UI on that same host.
 3. **Other servers** — every other daemon, in batches.
 
-The fleet phase does not start until both earlier steps are on the target build. A failed
+The servers step does not start until both earlier steps are on the target build. A failed
 control-plane step fails the run and leaves that gate shut. A `trunk` channel has no
 control-plane package, so that step is skipped and the gate needs only the co-located
 daemon on target.
@@ -40,7 +40,7 @@ graph TD
 
 TurboPanel High Availability deploys the control plane itself. **Admin → Updates** shows
 that version as **Managed by TurboPanel** and rolls out daemons only. Per-server **Update**
-on the organization console stays off (`updates_managed`).
+on the app stays off (`updates_managed`).
 
 Mixed versions stay connected the whole time. The version floors do not change, and a
 daemon below its floor still holds its socket so the update can reach it. See
@@ -53,10 +53,10 @@ daemon below its floor still holds its socket so the update can reach it. See
   database first — this transition cannot use the managed backup yet — then update
   **only the daemon**, pinned to one verified manifest. On a host that already runs
   this control plane, that command refreshes the co-located daemon in socket mode
-  (`daemon-colocated-refresh.yml`). It does not run the remote-node installer
+  (`daemon-colocated-refresh.yml`). It does not run the remote-server installer
   (`daemon-install.yml`), so `daemon.env` keeps dialing the local instance socket,
   shared state and config ownership stay as they are, and the daemon unit still
-  starts after the instance. The instance, UI, and database are not replaced.
+  starts after the control plane. The control plane, UI, and database are not replaced.
   When the new daemon attaches and advertises `managed-upgrade-v1`, start the
   upgrade from **Admin → Updates**.
 
@@ -73,7 +73,7 @@ daemon below its floor still holds its socket so the update can reach it. See
   The pre-flight sheet fills in the right tag for you.
 </Callout>
 
-## From the console
+## From the app
 
 **Admin → Updates** (`/admin/updates`). An `admin` or `superadmin` account.
 
@@ -83,14 +83,14 @@ daemon below its floor still holds its socket so the update can reach it. See
 
     **Update TurboPanel** opens **Ready to update TurboPanel?**. The sheet lists the pre-flight checks, notes that the control-plane database is backed up before the install, and shows the **Recovery command** with **Copy command**. **Start update** begins the run. **Cancel** closes the sheet.
 
-    Progress follows **Co-located daemon**, then **Control plane**, then the fleet table. Each step moves through Preparing → Downloading → Installing → Restarting → Verifying → Done. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a fleet row dispatches that step again.
+    Progress follows **Co-located daemon**, then **Control plane**, then the servers table. Each step moves through Preparing → Downloading → Installing → Restarting → Verifying → Done. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a server row dispatches that step again.
 
-    **Automatic updates** is off until you turn on **Auto-update fleet**. Automatic runs start only when the target differs from what is installed, no run is already active, and — if you enable **Maintenance window** — only inside that UTC window. The default batch is **100%** (Percent). Switch to **Count** to cap how many servers move together, then **Apply**.
+    **Automatic updates** is off until you turn on **Auto-update servers**. Automatic runs start only when the target differs from what is installed, no run is already active, and — if you enable **Maintenance window** — only inside that UTC window. The default batch is **100%** (Percent). Switch to **Count** to cap how many servers move together, then **Apply**.
 
     A failed step is terminal for its batch: the next batch still starts. It does not hold the wave.
   </Tab>
   <Tab value="TurboPanel High Availability">
-    The control plane line is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update fleet** toggle — daemon rollouts run on their own, inside the maintenance window when one is set.
+    The control plane line is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update servers** toggle — daemon rollouts run on their own, inside the maintenance window when one is set.
 
     **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** still applies (Percent or Count, **Apply**). **Retry** is on a row that needs it.
   </Tab>
@@ -106,7 +106,7 @@ Only one run is active. A second start is refused while a run is `pending` or `r
 | Batch **Count** | 1–10000 | — |
 | Maintenance window | off, or a UTC start (minutes after midnight, 0–1439), a length (1–1440 minutes), and optional weekdays (Sunday = 0) | off; when on, empty weekdays means every day |
 
-Percent rounds up so a non-empty fleet always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`). On TurboPanel High Availability a large batch drains across maintenance ticks so one tick does not enqueue the whole fleet at once.
+Percent rounds up so a non-empty set of servers always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`). On TurboPanel High Availability a large batch drains across maintenance ticks so one tick does not enqueue the every server at once.
 
 An offline server's step waits (`waiting`) and is dispatched when that daemon reconnects. A step with no progress for 15 minutes is retried, up to 3 dispatches, then `needs_attention`. A step that rolled back is retried once, then `needs_attention`.
 
@@ -141,7 +141,7 @@ One previous generation stays beside the new files, by rename:
 
 ## Automatic rollback
 
-After the control plane restarts, the daemon polls `GET /api/health` on the instance socket until `version` and `revision.commit` match the pinned manifest. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
+After the control plane restarts, the daemon polls `GET /api/health` on the control plane socket until `version` and `revision.commit` match the pinned manifest. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
 
 A daemon self-update arms an update guard for about 10 minutes. If the new build crash-loops, the guard restores the daemon `.prev` files and restarts `turbopaneld`. Detail: [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
@@ -155,7 +155,7 @@ sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i l
   instance-rollback.yml
 ```
 
-That restores the `.prev` builds and, when the migration fingerprint changed, the database dump under `/backup/control-plane/<upgrade id>/`. The helper is the installed absolute path, so it runs when the panel is stopped and `tp-orchestrate` is not on `PATH`. To reinstall one pinned control-plane manifest instead:
+That restores the `.prev` builds and, when the migration fingerprint changed, the database dump under `/backup/control-plane/<upgrade id>/`. The helper is the installed absolute path, so it runs when the control plane is stopped and `tp-orchestrate` is not on `PATH`. To reinstall one pinned control-plane manifest instead:
 
 ```bash
 sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate update-instance \
@@ -178,7 +178,7 @@ curl -fsSL turbopanel.sh \
     TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
 ```
 
-Pin a remote node's daemon. On a node enrolled with a self-hosted control plane, also pass `TURBOPANEL_HOST` with that control plane's URL, as in [Refresh a stuck daemon](/docs/deployment/daemon-update); without it the node is enrolled with the hosted control plane:
+Pin a remote server's daemon. On a server enrolled with a self-hosted control plane, also pass `TURBOPANEL_HOST` with that control plane's URL, as in [Refresh a stuck daemon](/docs/deployment/daemon-update); without it the server is enrolled with the TurboPanel High Availability control plane:
 
 ```bash
 curl -fsSL turbopanel.sh \
@@ -189,17 +189,17 @@ curl -fsSL turbopanel.sh \
 
 Pins accept release manifests only. Each package's pin must be a `manifest.json` or `manifest-<version>.json` under its own repository's GitHub Releases (`https://github.com/TurboPanel/<repo>/releases/download/<tag>/…` or `…/releases/latest/download/…`); the daemon also accepts its CDN channel drop (`https://dl.trbp.nl/channels/<channel>/manifest.json`). The installer and the root helper refuse anything else, including a URL with `..`, a percent-encoded character, a port or a query string. A `TURBOPANEL_*_MANIFEST_URL` pin in `daemon.env` that does not match is ignored, as if unset.
 
-The instance checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
+The control plane checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
 
 The daemon refuses a control-plane target below `MIN_SUPPORTED_INSTANCE_VERSION` (today **0.1.0**). A target it cannot parse is allowed. Daemon self-update does not consult that floor.
 
 ## History
 
-Finished runs stay for 365 days, and at least the newest 50. Successful steps (`done`, `skipped`) are pruned after `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` (default 14). Failed steps (`failed`, `rolled_back`, `needs_attention`) stay 90 days. The run row keeps its summary after the steps are gone. See [Instance configuration](/docs/deployment/instance-configuration).
+Finished runs stay for 365 days, and at least the newest 50. Successful steps (`done`, `skipped`) are pruned after `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` (default 14). Failed steps (`failed`, `rolled_back`, `needs_attention`) stay 90 days. The run row keeps its summary after the steps are gone. See [Control plane configuration](/docs/deployment/instance-configuration).
 
 ## Related
 
 - [Compatibility matrix](/docs/deployment/compatibility)
 - [Refresh a stuck daemon](/docs/deployment/daemon-update)
 - [Troubleshooting](/docs/deployment/troubleshooting)
-- [Administering an instance](/docs/using/admin)
+- [Administering the control plane](/docs/using/admin)

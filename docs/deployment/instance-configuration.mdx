@@ -1,17 +1,17 @@
 ---
-title: Instance Configuration
-description: Every environment variable a self-hosted TurboPanel instance reads at boot — what is required, what defaults, and what degrades silently
+title: Control Plane Configuration
+description: Every environment variable a self-hosted TurboPanel control plane reads at boot — what is required, what defaults, and what degrades silently
 ---
 
-# Instance Configuration Reference
+# Control Plane Configuration Reference
 
-What a **self-hosted instance** (the Deno control plane, run by the `turbopanel-instance` unit from `/opt/turbopanel/bin/turbopanel`) reads from its environment at boot, in one place. On a managed install the daemon's `instance-launch` role writes these into the unit and `/etc/turbopanel/instance/runtime.env`; you only set them by hand on a bespoke host. TurboPanel High Availability (Cloudflare Workers) reads the subset marked *Workers too* from Wrangler vars and secrets.
+What a **self-hosted control plane** (the Deno control plane, run by the `turbopanel-instance` unit from `/opt/turbopanel/bin/turbopanel`) reads from its environment at boot, in one place. On a managed install the daemon's `instance-launch` role writes these into the unit and `/etc/turbopanel/instance/runtime.env`; you only set them by hand on a bespoke host. TurboPanel High Availability (Cloudflare Workers) reads the subset marked *Workers too* from Wrangler vars and secrets.
 
 Three behaviours matter more than any single value:
 
 - **Two variables throw at boot when missing:** `TURBOPANEL_DATABASE_URL` and `TURBOPANEL_SECRET` / `TURBOPANEL_SECRETS`. Everything else has a default.
 - **Redis is required but not checked up front:** the daemon cell, the query cache and the auth rate limiters open `TURBOPANEL_REDIS_SOCKET` lazily; a missing socket surfaces as failures on the first request that needs it, not as a refusal to start.
-- **The email queue degrades silently:** with `TURBOPANEL_AMQP_URL` unset the instance probes the dev broker, and with no broker reachable it logs one line and uses a no-op queue — sign-ups, invitations and verifications then produce no email at all.
+- **The email queue degrades silently:** with `TURBOPANEL_AMQP_URL` unset the control plane probes the dev broker, and with no broker reachable it logs one line and uses a no-op queue — sign-ups, invitations and verifications then produce no email at all.
 
 ## Required
 
@@ -25,8 +25,8 @@ Three behaviours matter more than any single value:
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
 | `TURBOPANEL_REDIS_SOCKET` | `/run/turbopanel/redis.sock` | Redis over a Unix socket: daemon cell (presence, outbox, request correlation), query cache, auth and daemon rate limiters. Opened lazily; not validated at boot. |
-| `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the instance's in-process email consumer drains it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
-| `TURBOPANEL_UPDATE_CHANNEL` | `release` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
+| `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the control plane's in-process email consumer drains it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
+| `TURBOPANEL_UPDATE_CHANNEL` | `release` | The channel this control plane resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
 | `TURBOPANEL_INSTANCE_SERVICE` | `turbopanel-instance` | The systemd unit the developer surface restarts after Upgrade System. Set it only when the unit has a non-standard name. |
 
 ## Paths (FHS layout)
@@ -35,7 +35,7 @@ Three behaviours matter more than any single value:
 | -------- | ------- | ------- |
 | `TURBOPANEL_STATE_DIR` | `/var/lib/turbopanel` | Durable state: the platform CA (`tls/`), metrics, execution logs, and in compiled mode the server leaf certificate (`tls/certs/`). |
 | `TURBOPANEL_CONFIG_DIR` | `/etc/turbopanel` | Protected config (`instance/runtime.env`, the secret keyring, public URLs). |
-| `TURBOPANEL_RUN_DIR` | `/run/turbopanel` | Runtime sockets. `TURBOPANEL_SOCKET_DIR` is the older name for the same value; `TURBOPANEL_SOCKET` overrides the instance listen socket path itself (`<run dir>/instance.sock`). |
+| `TURBOPANEL_RUN_DIR` | `/run/turbopanel` | Runtime sockets. `TURBOPANEL_SOCKET_DIR` is the older name for the same value; `TURBOPANEL_SOCKET` overrides the control plane listen socket path itself (`<run dir>/instance.sock`). |
 | `TURBOPANEL_LOG_DIR` | `/var/log/turbopanel` | File logs. |
 | `TURBOPANEL_METRICS_DIR` | `<state>/metrics` | The embedded DuckDB metrics store. |
 | `TURBOPANEL_EXECUTION_LOG_DIR` | `<state>/execution-logs` | Command and deploy logs when `TURBOPANEL_EXECUTION_LOG_DRIVER` is `file` (the default). |
@@ -46,8 +46,8 @@ Three behaviours matter more than any single value:
 
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
-| `TURBOPANEL_PUBLIC_URLS` | derived | Comma-separated projection of the **Platform CA** hostnames. Admin → **Access** → **Hostnames** is the editor; this setting stays in sync so certificate SANs, webhook reachability, and the install command keep reading it. Unset, the instance derives an origin from the host's interfaces. Every stored name is served at `https://<host>:8443`. |
-| `TURBOPANEL_BASE_URL` | derived from the request | The origin used in outbound links (verification and invitation emails, offline-sweep notices). Unset, it is resolved per request; behind a Unix socket the instance guards against the literal `null` origin. |
+| `TURBOPANEL_PUBLIC_URLS` | derived | Comma-separated projection of the **Platform CA** hostnames. Admin → **Access** → **Hostnames** is the editor; this setting stays in sync so certificate SANs, webhook reachability, and the install command keep reading it. Unset, the control plane derives an origin from the host's interfaces. Every stored name is served at `https://<host>:8443`. |
+| `TURBOPANEL_BASE_URL` | derived from the request | The origin used in outbound links (verification and invitation emails, offline-sweep notices). Unset, it is resolved per request; behind a Unix socket the control plane guards against the literal `null` origin. |
 | `TURBOPANEL_TLS_PUBLIC` | unset | `1` / `true` when any hostname is Let's Encrypt, or when the operator marks TLS public. `GET /api/daemon/v1/instance/ca` then 404s for a name that presents a Let's Encrypt or uploaded leaf. An unlisted name on `:8443` still receives the Platform CA bundle. Install commands omit `--insecure-tls` for a publicly trusted leaf. |
 | `TURBOPANEL_INSTANCE_ACME__CONTACT_EMAIL` | unset | Contact email for this control plane's Let's Encrypt account. Env wins over Admin → **Access** → **Certificates**. Independent of every organization's Let's Encrypt opt-in. |
 | `TURBOPANEL_INSTANCE_ACME__TOS_ACCEPTED` | `false` | Terms acceptance for that account. Same env-wins rule. |
@@ -55,7 +55,7 @@ Three behaviours matter more than any single value:
 | `TURBOPANEL_INSTANCE_ACME__USE_STAGING` | `false` | `true` selects the Let's Encrypt staging directory. Same env-wins rule. |
 | `TURBOPANEL_TLS_CA`, `TURBOPANEL_TLS_CA_KEY`, `TURBOPANEL_TLS_CA_BUNDLE` | `<state>/tls/ca.crt`, `ca.key`, `ca-bundle.pem` | The Platform CA the `generate-self-signed-cert` verb maintains and daemons trust. |
 | `TURBOPANEL_TLS_CERTS_DIR` | `<state>/tls/certs` (compiled) / `<checkout>/certs` (source) | Where the Platform CA server leaf is written. Let's Encrypt and uploaded leaves for individual hostnames are files beside it. |
-| `CADDY_PORT` | `8443` | **Development only.** The port the development Caddy unit (and the docs site's dev unit) listens on and links to. The instance does not read it: install origins always use `:8443`, and a managed Caddyfile binds `:8443` whatever this is set to. |
+| `CADDY_PORT` | `8443` | **Development only.** The port the development Caddy unit (and the docs site's dev unit) listens on and links to. The control plane does not read it: install origins always use `:8443`, and a managed Caddyfile binds `:8443` whatever this is set to. |
 | `CADDY_TLS_CERT`, `CADDY_TLS_KEY` | `<certs dir>/self-signed.crt`, `.key` | Leaf paths the **development** Caddyfile reads. A managed Caddyfile bakes `platform-ca.*` plus per-hostname files at render time. The Caddy unit sets these from `TURBOPANEL_TLS_CERTS_DIR`. |
 | `TURBOPANEL_REVISION` | stamped at build | The exact source commit `/api/health` reports for AGPL Corresponding Source. A release build carries its commit already; source-mode installs set it from `git rev-parse HEAD`. |
 
@@ -70,7 +70,7 @@ The four `TURBOPANEL_INSTANCE_ACME__*` keys are this control plane's settings. E
 
 ## Email
 
-Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, `mailpit-api` on Workers only, `mailpit-smtp` on Deno only), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILPIT_API_URL` (Workers `mailpit-api` — full HTTP base URL), `MAILPIT_SMTP_PORT` (Deno `mailpit-smtp` — co-located Mailpit SMTP, default 1025), `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. On self-hosted Deno the email consumer runs inside the instance process and reads the same variables; on Workers the `mailpit-api` and `mailgun` providers send directly from the request path.
+Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<KEY>` that wins over the value stored in the admin settings: `PROVIDER` (`smtp` default, `mailgun`, `mailpit-api` on Workers only, `mailpit-smtp` on Deno only), `FROM` (`noreply@turbopanel.local`), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAILPIT_API_URL` (Workers `mailpit-api` — full HTTP base URL), `MAILPIT_SMTP_PORT` (Deno `mailpit-smtp` — co-located Mailpit SMTP, default 1025), `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`, `QUEUE_PREFETCH`. Secrets stored in the database are `tpsecret` envelopes sealed with the root keyring. On self-hosted Deno the email consumer runs inside the control plane process and reads the same variables; on Workers the `mailpit-api` and `mailgun` providers send directly from the request path.
 
 ## Metrics and logs
 

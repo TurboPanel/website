@@ -36,7 +36,7 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 
 **Solutions:**
 
-1. Check instance: `systemctl status turbopanel-instance`
+1. Check the control plane: `systemctl status turbopanel-instance`
 2. Check Caddy: `systemctl status turbopanel-caddy`
 3. Test health over HTTPS: `curl -k https://localhost:8443/api/health` (omit `-k` when the leaf is publicly trusted). Trust the Platform CA for a self-hosted name.
 4. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
@@ -57,10 +57,10 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 
 **Solutions:**
 
-1. Verify instance URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443`. The daemon refuses an `http://` control-plane URL.
-2. Test from the node over HTTPS: `curl -k https://<host>:8443/api/daemon/v1/version` (omit `-k` when the origin is publicly trusted). LAN names trust the Platform CA, or use `-k` only for this bootstrap check.
+1. Verify the control plane URL: `TURBOPANEL_INSTANCE_URL=https://<host>:8443`. The daemon refuses an `http://` control-plane URL.
+2. Test from the server over HTTPS: `curl -k https://<host>:8443/api/daemon/v1/version` (omit `-k` when the origin is publicly trusted). LAN names trust the Platform CA, or use `-k` only for this bootstrap check.
 3. Confirm the Platform CA: compare `/etc/turbopanel/instance-ca.pem` with `GET /api/daemon/v1/instance/ca` (bundle, current CA first). A 404 on a Let's Encrypt or uploaded name means that name uses the system trust store, or the uploaded issuer for a private pair — do not install `instance-ca.pem` for that name. An unlisted name on `:8443` still receives the Platform CA bundle.
-4. Firewall: allow **8443** from remote daemons to the instance. Allow **80** from the internet only while Let's Encrypt is issuing or renewing. **443** is hosting. The installer removes `ufw`, `firewalld` and `iptables-persistent` from every host it installs on — TurboPanel owns the host firewall — so a distribution firewall cannot be what blocks 8443 after a completed install. If `curl https://127.0.0.1:8443/api/health` answers locally but not remotely, look upstream: a cloud security group, a provider firewall, or a NAT in front of the host.
+4. Firewall: allow **8443** from remote daemons to the control plane. Allow **80** from the internet only while Let's Encrypt is issuing or renewing. **443** is hosting. The installer removes `ufw`, `firewalld` and `iptables-persistent` from every host it installs on — TurboPanel owns the host firewall — so a distribution firewall cannot be what blocks 8443 after a completed install. If `curl https://127.0.0.1:8443/api/health` answers locally but not remotely, look upstream: a cloud security group, a provider firewall, or a NAT in front of the host.
 5. Logs: `journalctl -u turbopaneld -f`
 
 ### Stale platform CA (tls-trust parked)
@@ -73,11 +73,11 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 
 1. Prefer the overlap path: on the control plane, keep the old CA in `ca-bundle.pem` and enqueue `server.tls.trust.reconcile` while the existing WSS session is still valid.
 2. If the session is already dead, re-run the installer with `--instance-ca` (or `--insecure-tls` for bootstrap fetch). `run.sh` pins `--cacert` first; on HTTP `000` it retries **once** unpinned and installs only if the fetched PEM validates the live leaf. Old and new fingerprints are printed when `$CA_PATH` is replaced.
-3. If verification fails, keep the existing CA and fix the instance URL / SAN list rather than blindly replacing the file.
+3. If verification fails, keep the existing CA and fix the control plane URL / SAN list rather than blindly replacing the file.
 
 ## Postgres connection failures (self-hosted)
 
-**Problem:** Instance cannot connect to Postgres.
+**Problem:** The control plane cannot connect to Postgres.
 
 **Solutions:**
 
@@ -133,9 +133,9 @@ Or reconcile by re-running `run.sh` — see [Refresh a stuck daemon](/docs/deplo
 | `waiting` | The daemon is offline. It is dispatched when it reconnects. |
 | `failed` / `rolled_back` | The step ended. A rolled-back step is retried once; after that it becomes `needs_attention`. |
 | `needs_attention` | Retries are exhausted (3 dispatches with no progress for 15 minutes, or a rollback that was already retried). **Retry** on that row, or fix the host and retry. |
-| Run `failed` | The control-plane step failed. The fleet stays gated until a new run gets this host's daemon and the control plane onto the target. |
+| Run `failed` | The control-plane step failed. Servers stay gated until a new run gets this host's daemon and the control plane onto the target. |
 
-Pre-flight codes (`preflight_disk`, `preflight_manifest`, `preflight_trust`, `preflight_backup`, `preflight_in_progress`) are explained on [Refresh a stuck daemon](/docs/deployment/daemon-update#pre-flight-errors). A control-plane health failure that restored the previous build reports `health_timeout`, `health_mismatch`, or `restart_failed`. `recovery_required` means that automatic restore did not bring the panel back.
+Pre-flight codes (`preflight_disk`, `preflight_manifest`, `preflight_trust`, `preflight_backup`, `preflight_in_progress`) are explained on [Refresh a stuck daemon](/docs/deployment/daemon-update#pre-flight-errors). A control-plane health failure that restored the previous build reports `health_timeout`, `health_mismatch`, or `restart_failed`. `recovery_required` means that automatic restore did not bring the control plane back.
 
 **Restore from the automatic backup.** On the control-plane host, as root, use the recovery command from the pre-flight sheet (the upgrade id is in the path):
 
@@ -170,11 +170,11 @@ Monitor **`/api/daemon/v1/readiness`** instead. It reads the database, so it is 
 | **503** `{"ok":true,"ready":false,"needsInstall":true}` | Up, but the install wizard has not created the first organization and superadmin yet |
 | **503** `{"ok":false,"ready":false,"error":"database unavailable"}` | The database is down, unreachable or mid-failover |
 
-Alert on the third. The second is a normal state for a freshly installed instance, and co-located daemons already poll this endpoint and wait it out.
+Alert on the third. The second is a normal state for a freshly installed control plane, and co-located daemons already poll this endpoint and wait it out.
 
 ## Getting paged when a server goes dark
 
-The control plane watches its fleet on a sweep and marks a daemon offline when it stops answering. Without somewhere to send that, it is a log line nobody reads at 3am. Point it at an incoming webhook:
+The control plane watches its servers on a sweep and marks a daemon offline when it stops answering. Without somewhere to send that, it is a log line nobody reads at 3am. Point it at an incoming webhook:
 
 ```bash
 curl -X PUT https://<host>:8443/api/admin/v1/settings/alert-webhook \
@@ -188,7 +188,7 @@ curl -X PUT https://<host>:8443/api/admin/v1/settings/alert-webhook \
 | Alert | When |
 | ----- | ---- |
 | `server.offline` | One daemon stopped answering and was marked offline |
-| `fleet.mass_disconnect` | A single sweep lost at least three hosts **and** either half the connected fleet or ten hosts outright — a shared cause (a bad daemon release, a broken ingress, a cell outage) rather than N coincidences. It is sent before the per-server alerts it explains |
+| `fleet.mass_disconnect` | A single sweep lost at least three hosts **and** either half the connected servers or ten hosts outright — a shared cause (a bad daemon release, a broken ingress, a cell outage) rather than N coincidences. It is sent before the per-server alerts it explains |
 
 The body carries a `text` field, which Slack, Mattermost, Rocket.Chat and Discord all render, plus `kind` and `detail` for anything that parses JSON.
 
@@ -203,9 +203,9 @@ A delivery that fails is logged and dropped. It never delays or fails the sweep 
 
 | Fault | Recovery |
 | ---- | -------- |
-| Postgres container crashes | Docker's `unless-stopped` policy restarts it; the instance's connection pool reconnects. No operator action, and **`turbopanel-instance` is not restarted** — if systemd bounced the unit, something else is wrong |
+| Postgres container crashes | Docker's `unless-stopped` policy restarts it; the control plane's connection pool reconnects. No operator action, and **`turbopanel-instance` is not restarted** — if systemd bounced the unit, something else is wrong |
 | RabbitMQ container crashes | Same, and the command consumer reconnects with capped backoff, retrying until the broker is back |
-| Instance process exits | `Restart=always` in the unit, with a 2s delay |
+| Control plane process exits | `Restart=always` in the unit, with a 2s delay |
 
 One trap worth knowing before you test any of this by hand: **`docker kill <name>` is not a crash simulation.** Docker records it as a manual stop, and a restart policy does not fire for a manual stop — the container stays down until you run `docker start`. To simulate a real crash, signal the container's process directly:
 
@@ -227,8 +227,8 @@ It refuses to run outside a development guest, bounds every wait, and exits non-
 
 | Task | Command |
 | ---- | ------- |
-| Instance health | `curl -k https://localhost:8443/api/health` (omit `-k` when the leaf is publicly trusted; trust the Platform CA for a self-hosted name) |
-| Instance readiness | `curl -k https://localhost:8443/api/daemon/v1/readiness` — the probe that reads the database; see [What to point a monitor at](#what-to-point-a-monitor-at) |
+| Control plane health | `curl -k https://localhost:8443/api/health` (omit `-k` when the leaf is publicly trusted; trust the Platform CA for a self-hosted name) |
+| Control plane readiness | `curl -k https://localhost:8443/api/daemon/v1/readiness` — the probe that reads the database; see [What to point a monitor at](#what-to-point-a-monitor-at) |
 | Client status | `curl -k https://localhost:8443/api/client/v1/status` (omit `-k` when the leaf is publicly trusted) |
 | Service status | `systemctl status turbopanel-instance turbopanel-caddy turbopaneld` |
 | Follow logs | `journalctl -u turbopanel-instance -u turbopanel-caddy -u turbopaneld -f` |
