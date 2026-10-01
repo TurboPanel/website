@@ -52,8 +52,7 @@ Promotion is a pointer move — the bytes that soaked on `rc` are the bytes `rel
 | Daemon → control plane | `0.1.0` | Every daemon REST response, including a non-OK response and the 401 before a session refresh, carries `x-turbopanel-version`. A socket-only session carries `{ type: "version", instanceVersion }` on attach. A response or frame that omits the version clears the last observation back to unknown, and unknown passes. An unsupported control plane is logged (`instance-version:`) and the daemon keeps reconnecting. The daemon also refuses to install a control-plane package below this floor. A missing or non-semver target is unknown and is allowed. The control plane accepts `instance-update` from any connected daemon. |
 | App → instance | `0.1.0` | The instance stamps `x-turbopanel-version` on every response and the app sends `x-turbopanel-client-version`. The native app refuses to connect to an older instance and says which version it needs; an instance that sends no header is accepted. The bundled web UI always matches its instance. |
 
-Current packages are **0.1.1**. Both floors are **0.1.0**, so a `0.1.x` peer is in
-window and a `0.0.x` peer is not. The window may trail the current release by
+Both floors are **0.1.0**, so any `0.1.x` peer is in window and a `0.0.x` peer is not. The window may trail the current release by
 several minor versions. Raise both floors in the same change, and record why.
 The floors are unchanged by managed upgrades. A platform upgrade follows the order
 above; a daemon and a control plane that are not on the same build stay connected
@@ -63,9 +62,20 @@ either way.
 
 The cell attach frame `{ type: "version", instanceVersion, features }` lists what this
 control plane can speak. A daemon hello lists what that daemon can speak. Today both
-sides advertise `managed-upgrade-v1` (pinned backup and rollback on a platform upgrade)
-and `update-progress-v1` (fire-and-forget stage reports: preparing, downloading,
-installing, restarting, verifying, done, failed, rolled-back). A peer checks the list
+sides advertise four features:
+
+- `managed-upgrade-v1`: pinned backup and rollback on a platform upgrade.
+- `update-progress-v1`: fire-and-forget stage reports (preparing, downloading,
+  installing, restarting, verifying, done, failed, rolled-back).
+- `sealed-instance-secrets-v1`: the daemon opens sealed envelopes for the instance TLS
+  keys and the tunnel token, so the control plane sends those secrets sealed to that one
+  daemon instead of as plaintext. A daemon that does not list it still gets the legacy
+  plaintext fields until the floor moves; one that lists it but cannot be sealed to is
+  refused, never sent plaintext.
+- `managed-health-v1`: the on-demand managed-database replica health probe. The request
+  goes only to a daemon that lists it.
+
+A peer checks the list
 before it treats the other side as able to speak the message. A daemon that does not
 list `managed-upgrade-v1` still receives a plain `update`, which is how a co-located
 daemon from before this release is refreshed; the control-plane step refuses to start
