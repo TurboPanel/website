@@ -89,6 +89,20 @@ describe(".github/workflows", () => {
     );
     expect(text).not.toMatch(/^ {4}if: always\(\)$/m);
   });
+
+  it("verify.yml runs the data-dictionary check and ci-ok requires it", () => {
+    const text = read("verify.yml");
+    expect(text).toMatch(/^ {2}data-dictionary:\n/m);
+    expect(text).toContain(
+      "node turbopanel/scripts/generate-data-dictionary.mjs --check",
+    );
+    const needs = /^ {2}ci-ok:\n {4}name: ci-ok\n {4}needs: \[([^\]]+)\]/m.exec(
+      text,
+    );
+    expect(needs?.[1].split(",").map((n) => n.trim())).toContain(
+      "data-dictionary",
+    );
+  });
 });
 
 // Versions come from git tags (Road to 0.2.x, versioning Phase 3): no "Start

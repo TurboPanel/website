@@ -156,6 +156,62 @@ jobs:
         working-directory: turbopaneld
         run: deno task check:metrics-legacy
 
+  # docs/database is GENERATED from turbopanel's schema
+  # (turbopanel/scripts/generate-data-dictionary.mjs). turbopanel CI runs the
+  # same --check against this repo, so a hand edit here merges green and then
+  # reddens every turbopanel PR. Run it here too, so the stale page is caught
+  # on the website PR that caused it. A same-named turbopanel branch is used
+  # when one exists (a schema change lands with its website PR), else trunk.
+  data-dictionary:
+    name: data-dictionary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    concurrency:
+      group: website-data-dictionary-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: website
+
+      - name: Resolve turbopanel checkout ref
+        id: turbopanel-ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # A same-named feature branch, else the sibling's trunk. Never the
+          # sibling's staging or live: promotion PRs (base staging/live) and
+          # PRs from those branches carry commits that passed against trunk.
+          REF="$HEAD_REF"
+          case "$REF:$BASE_REF" in
+            staging:* | live:* | *:staging | *:live) REF=trunk ;;
+            *) ;;
+          esac
+          if gh api "repos/TurboPanel/turbopanel/branches/${REF}" --silent; then
+            echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=trunk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out turbopanel
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: TurboPanel/turbopanel
+          path: turbopanel
+          ref: ${{ steps.turbopanel-ref.outputs.ref }}
+
+      - name: Check the generated data dictionary is current
+        run: |
+          if ! node turbopanel/scripts/generate-data-dictionary.mjs --check; then
+            echo "::error::docs/database is generated from turbopanel's schema and is stale. Never hand-edit it: in a turbopanel checkout beside this one run 'node scripts/generate-data-dictionary.mjs', then commit the regenerated docs/database pages here."
+            exit 1
+          fi
+
   # Single aggregate check for the branch rulesets. It needs every job that
   # runs on pull_request and fails unless all of them succeeded. Required-check
   # contexts move from the individual job names to this one context so a job
@@ -172,7 +228,7 @@ jobs:
   # must not paint the commit red.
   ci-ok:
     name: ci-ok
-    needs: [verify, metrics-legacy]
+    needs: [verify, metrics-legacy, data-dictionary]
     if: ${{ (github.event_name == 'pull_request' && always()) || (!cancelled() && !contains(needs.*.result, 'cancelled')) }}
     permissions: {}
     runs-on: ubuntu-latest

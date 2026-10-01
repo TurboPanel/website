@@ -238,6 +238,8 @@ website/
 
 ## Key conventions
 
+**`docs/database` is generated: never hand-edit it.** The pages come from turbopanel's schema via `node scripts/generate-data-dictionary.mjs` (run in a `turbopanel` checkout beside this one; `--check` verifies). CI runs the check here (`data-dictionary` job, part of `ci-ok`) and in turbopanel; a hand edit turns turbopanel's checks red.
+
 ### SonarQube (CI-based analysis)
 
 - Analysis runs in GitHub Actions (`.github/workflows/verify.yml`) with
