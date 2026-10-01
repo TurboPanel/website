@@ -192,6 +192,7 @@ x-turbopanel:
 | `invalid_hosting_options` | 400 | A field has the wrong shape (a bad port, a `tcp` row with no ports, more than 10 ports). | See the options table. |
 | `lets_encrypt_not_enabled` | 403 | The organization has not opted in. | **Servers → TLS → Allow Let's Encrypt certificates**. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` hostname, or a DNS-01 challenge, on a Let's Encrypt row. | List each hostname; HTTP-01 only. |
+| `private_hostname_unsupported` | 400 | A loopback or private hostname on a Let's Encrypt row. | Use a public name, or a self-signed or Organization CA certificate. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. | Pin the existing row. |
 | `organization_ca_exists`, `organization_ca_retire_required` | 409 | An organization CA already exists, or the current one must be retired before a new one is minted. | Use the Organization CA panel's rotate flow. |
 | `acme_requires_public_bind` | 400 (deploy) | A Let's Encrypt row is pinned on a `datacenter` or `local` hosting. | Set the bind to `public`. |
