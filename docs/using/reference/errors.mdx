@@ -91,6 +91,7 @@ See [Hosting](/docs/using/hosting).
 | `invalid_hosting_options` | 400 | A hosting field has the wrong shape. |
 | `lets_encrypt_not_enabled` | 403 | The organization has not turned on **Allow Let's Encrypt certificates**. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` name, or a DNS-01 challenge, on a Let's Encrypt row. |
+| `private_hostname_unsupported` | 400 | A loopback or private name (`localhost`, `.local`, `.internal`, `.lan`, a private IP) on a Let's Encrypt row. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. |
 | `invalid_certificate` | 400 | The certificate or key you supplied could not be read; `detail` carries the parser's reason. |
 | `organization_ca_exists` | 409 | An organization CA already exists. |
