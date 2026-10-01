@@ -131,15 +131,52 @@ Automatic failover is fenced: the platform promotes a same-datacenter failover r
 
 ## Backups
 
-**Backups** tab — PostgreSQL today; the other engines say *backups unsupported* until their executor lands.
+**Backups** tab, for all three engines. A backup is a logical dump of one database, stored on the server that runs the cluster's primary.
+
+| Engine | Dump | File |
+| --- | --- | --- |
+| PostgreSQL | `pg_dump` custom format, per database | `.dump` |
+| MySQL, MariaDB | `mysqldump`, per database | `.sql` |
+
+### Back up now, restore, delete
 
 | Action | What happens |
 | --- | --- |
-| **Back up now** | `pg_dump` in custom format, per database, stored on the primary's server. Retention prunes to the newest N on every successful backup. |
-| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. |
+| **Back up now** | Dumps the database on the primary's server and records it in the list. |
+| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
 | **Delete** | Two presses. Removes the backup. |
 
-Backups are metadata in the console — there is no download; the artifact lives on the server. Scheduled backups are not built yet: back up before a risky change and after a good one.
+Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the console: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
+
+### Schedules
+
+The **Schedules** panel on the Backups tab makes backups on a timetable. Only organization **owners** and **managers** see it. The server runs them on its own, even while the control plane is unreachable, and a run that was missed because the server was off happens once when it is back.
+
+Every **new** managed database starts with one schedule named **Daily**: every day at 03:MM server time (the minute is spread per database so databases on one server do not all start together), keeping the most recent `7`. It carries an **Automatic** badge. Databases that existed before schedules were added do not get one; add a schedule to those yourself.
+
+<Steps>
+  <Step>
+    **Add schedule**, give it a **Name** (up to 64 characters) and choose **Schedule**: **Hourly**, **Daily** (a time, `HH:MM`, 24-hour), **Weekly** (a day and a time) or **Advanced: cron** (five fields: minute, hour, day of month, month, day of week).
+  </Step>
+  <Step>
+    Pick a **Timezone** or leave **Server time** to follow the server's own clock.
+  </Step>
+  <Step>
+    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add schedule** saves it.
+  </Step>
+</Steps>
+
+Each row shows the schedule in words (for example *Daily at 03:12*), how many it keeps, when it runs next, and the last run (*Succeeded* or *Failed*, with the error). **Enabled** / paused switches it off without losing it, **Edit** changes it, **Run history** lists recent runs (newest first), and **Delete** removes the schedule and stops its timer: **backups it already made stay on the server**.
+
+What to know:
+
+- A schedule's count prunes **only that schedule's own** backups, so an hourly schedule keeping 24 never removes a daily schedule's backups or a manual one. Each schedule's files live in their own folder on the server.
+- A database can have at most **20** schedules.
+- A schedule that cannot run on the server is refused when you save it: `@reboot`, a cron line that fixes both a day of the month and a day of the week (cron would treat that as either, which is rarely what you mean), and a step in the day-of-week field such as every other Tuesday.
+- After a save the console says when the server could not be reached; it picks the change up when it reconnects.
+- A run is refused (and recorded as failed) when another backup or restore of the same cluster is running, or when the server is short of disk space (less than twice the previous backup's size, and never under 256 MiB).
+- Backups stay on the server's own disk: they do not protect against losing the whole server. Offsite storage is not built yet.
+- Schedules for **storage volumes** are separate and API-only today: see [Storage and variables](/docs/using/storage-and-variables#volume-backups).
 
 ## Lifecycle and organization settings
 
@@ -160,7 +197,7 @@ Backups are metadata in the console — there is no download; the artifact lives
 | Replica classes | `failover` (same datacenter) · `read` (anywhere) |
 | Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
 | Applied login | `<short>_<11 random>` when the organization's randomized usernames are on (default); root is always suffixed |
-| Backups | PostgreSQL `pg_dump -Fc`, per database; retention-pruned; no download; no schedule yet |
+| Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |
 
 ## Errors
 
@@ -184,8 +221,13 @@ Backups are metadata in the console — there is no download; the artifact lives
 | `username_reserved` | 400 | `postgres`, `root`, `mysql`, `superadmin`. |
 | `managed_user_has_bindings`, `managed_database_has_bindings` | 409 | Sever the service bindings first. |
 | `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**. |
-| `managed_backup_unsupported` | 400 | The engine has no backup executor yet. |
+| `managed_backup_unsupported` | 400 | The engine does not support backups. |
 | `backup_not_found` | 404 | No backup with that id. |
+| `backup_policy_invalid` | 400 | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset. |
+| `backup_schedule_invalid`, `backup_timezone_invalid` | 400 | The schedule or timezone cannot be used; the response says why. |
+| `backup_target_unsupported` | 400 | This target cannot have a schedule through this route. |
+| `backup_policy_not_found` | 404 | No schedule with that id on this database. |
+| `backup_policy_limit` | 409 | The database already has 20 schedules. |
 | `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults; not something a form change fixes. |
