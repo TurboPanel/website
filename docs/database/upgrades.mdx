@@ -5,7 +5,7 @@ description: "Data dictionary — upgrades tables: stage, upgrade"
 
 {/*
   GENERATED FILE — do not edit by hand.
-  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0011_snapshot.json (0011_rename_upgradestep_to_stage).
+  Source: turbopanel/src/db/schema-descriptions.ts + migrations/meta/0012_snapshot.json (0012_rename_stage_last_stage_at).
   Regenerate: `node scripts/generate-data-dictionary.mjs` in the turbopanel repo (`pnpm docs:data-dictionary`).
 */}
 
@@ -13,7 +13,7 @@ description: "Data dictionary — upgrades tables: stage, upgrade"
 
 Instance-wide upgrade runs and the per-server daemon and instance steps that belong to them.
 
-Tables on this page: [`stage`](#stage) · [`upgrade`](#upgrade). Generated from migration `0011_rename_upgradestep_to_stage`; see [How to read this](/docs/database#how-to-read-this-dictionary).
+Tables on this page: [`stage`](#stage) · [`upgrade`](#upgrade). Generated from migration `0012_rename_stage_last_stage_at`; see [How to read this](/docs/database#how-to-read-this-dictionary).
 
 ## `stage` [#stage]
 
@@ -36,7 +36,7 @@ One `daemon` or `instance` install on one server inside an upgrade run, advanced
 | `to_version` | `text` | yes |  | Version this step installs, copied from the run target for `unit`. |
 | `from_commit` | `text` | yes |  | Commit installed before this step ran; NULL when it was unknown. |
 | `to_commit` | `text` | yes |  | Commit this step installs, copied from the run target for `unit`. |
-| `last_stage_at` | `timestamp(3) with time zone` | yes |  | When `status` last changed, so a step stuck in one stage can be detected. |
+| `status_changed_at` | `timestamp(3) with time zone` | yes |  | When `status` last changed, so a step stuck in one stage can be detected. |
 | `error_code` | `text` | yes |  | Machine-readable code when the step fails, rolls back or needs attention. |
 | `error_message` | `text` | yes |  | Human-readable failure text set alongside `error_code`. |
 | `detail` | `jsonb` | yes |  | Small stage facts such as bytes fetched or an exit code; the orchestrator writes it, never a transcript. |
