@@ -30,13 +30,13 @@ Behind an entry are its **copies** — where the bytes actually are. A copy has 
     **Name** the entry; choose the **Kind** — *Volume*, *Directory* or *File* — and the **Server** it lives on.
   </Step>
   <Step>
-    For a directory or file, give the **Host path**. A file's **content** (up to 256 KiB — larger files belong in a volume or a build) can be set through the API; the console form has no field for it.
+    For a directory or file, give the **Host path**. A file's **content** (up to 256 KiB — larger files belong in a volume or a build) can be set through the API; the app form has no field for it.
   </Step>
   <Step>
     Pick the **Mount service** and the **Destination path** inside it. Two entries cannot mount at the same destination in one service.
   </Step>
   <Step>
-    **Create storage**. The mount is live on the next deploy. The console form has no access mode or retention field, so a new entry takes the defaults (`single_writer`, `retain`); change them through the API.
+    **Create storage**. The mount is live on the next deploy. The app form has no access mode or retention field, so a new entry takes the defaults (`single_writer`, `retain`); change them through the API.
   </Step>
 </Steps>
 
@@ -57,7 +57,7 @@ Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is
 
 ### Volume backups
 
-A storage entry's copy can be backed up on a schedule or on demand, and restored from any of its backups. **This is API-only today: the console has no screen for it yet.** (Managed databases have the console's Backups tab: see [Managed databases](/docs/using/managed-databases#backups).)
+A storage entry's copy can be backed up on a schedule or on demand, and restored from any of its backups. **This is API-only today: the app has no screen for it yet.** (Managed databases have the app's Backups tab: see [Managed databases](/docs/using/managed-databases#backups).)
 
 **What can be backed up.** A copy on a server of your own that is either a **Docker volume** (`docker` provider), or a **host directory** (`path` provider) under `/srv/users/` (a system user's volumes) or under the server's own default storage directory. Copies on remote providers (NFS, S3 and the like), `file` and `object` entries, and copies with no server are refused with `backup_target_unsupported`. Only organization **owners** and **managers** may back up or restore.
 
@@ -104,13 +104,13 @@ A **variable** is a key and a value at one **scope**. Scopes nest, and a service
 organization → workspace → project → environment → service → hosting
 ```
 
-A key set at a narrower scope overrides the same key set wider. **Server**-scoped variables are the seventh scope, resolved per server at deploy rather than inherited down the project tree, so a value can differ by host. The console edits three of the scopes today: the **project's** and the **environment's** on their **Settings** tabs (**Add Variable**), and a **hosting row's** on the **Hosting** tab once the row is saved. Organization, workspace, service and server scopes exist in the API (`POST /variables` with the matching parent id) and resolve in the cascade, but have no console panel yet.
+A key set at a narrower scope overrides the same key set wider. **Server**-scoped variables are the seventh scope, resolved per server at deploy rather than inherited down the project tree, so a value can differ by host. The app edits three of the scopes today: the **project's** and the **environment's** on their **Settings** tabs (**Add Variable**), and a **hosting row's** on the **Hosting** tab once the row is saved. Organization, workspace, service and server scopes exist in the API (`POST /variables` with the matching parent id) and resolve in the cascade, but have no app screen yet.
 
 Each variable carries four switches:
 
 | Switch | Meaning |
 | --- | --- |
-| **Secret** | The value is stored sealed and is **write-only** — the API returns `null` for it, the console shows a placeholder, and at deploy it travels sealed to the daemon and lands as a file, never in YAML or in the generated `.env`. |
+| **Secret** | The value is stored sealed and is **write-only** — the API returns `null` for it, the app shows a placeholder, and at deploy it travels sealed to the daemon and lands as a file, never in YAML or in the generated `.env`. |
 | **Literal** | The value is used exactly as typed — a `$` in it is escaped so Docker Compose does not try to interpolate it. Off, a `${OTHER}` inside the value is left for Compose to expand. |
 | **For build** | Passed as a build argument to services that build an image. Off by default. |
 | **For runtime** | Passed to the running container. On by default. |

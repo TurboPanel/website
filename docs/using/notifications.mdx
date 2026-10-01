@@ -17,16 +17,16 @@ When something happens that a person should know about — a server goes offline
 
 | Term | Meaning |
 | --- | --- |
-| **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the instance as a whole. |
-| **Inbox** | Your own rows behind the bell. A server event lands in the inbox of every member of that organization; the events that mirror the audit trail — deletes, key revokes, grant changes — reach only its owners and managers; an instance event reaches every instance administrator. No setup needed. |
-| **Channel** | Somewhere outside the console a notification can be delivered. **Yours** (they follow your account across organizations), the **organization's** (managers edit them), or the **instance's** — an administrator's receivers that hear every event on the instance, managed through the [admin API](/docs/using/admin#also-in-the-instance-api) for now. Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
+| **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the control plane as a whole. |
+| **Inbox** | Your own rows behind the bell. A server event lands in the inbox of every member of that organization; the events that mirror the audit trail — deletes, key revokes, grant changes — reach only its owners and managers; a control plane event reaches every administratoristrator. No setup needed. |
+| **Channel** | Somewhere outside the app a notification can be delivered. **Yours** (they follow your account across organizations), the **organization's** (managers edit them), or the **control plane's** — an administrator's receivers that hear every event on the control plane, managed through the [admin API](/docs/using/admin#also-in-the-instance-api) for now. Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
 | **Rule** | What a channel receives: **every event** at or above a severity floor, or a chosen list of events. A channel with no rule receives nothing. |
 | **Delivery** | One attempt ledger per event × channel: written before the send, retried on failure with backoff, abandoned after five attempts. |
 
 Three facts:
 
-- **A channel's address is a credential.** A webhook URL's path *is* the secret, and so is a bot token. They are stored sealed under the instance's data-encryption key and never shown again — the screen shows the origin, or the last few characters.
-- **Addresses must be `https` with no credentials in the URL.** That is the whole rule: a LAN receiver (an Alertmanager next to the control plane, a `10.x` address, a bare hostname) is allowed on every runtime. A hosted instance cannot reach a private address, so a delivery there simply fails and is recorded as such.
+- **A channel's address is a credential.** A webhook URL's path *is* the secret, and so is a bot token. They are stored sealed under the control plane's data-encryption key and never shown again — the screen shows the origin, or the last few characters.
+- **Addresses must be `https` with no credentials in the URL.** That is the whole rule: a LAN receiver (an Alertmanager next to the control plane, a `10.x` address, a bare hostname) is allowed on every runtime. TurboPanel High Availability cannot reach a private address, so a delivery there simply fails and is recorded as such.
 - **Delivering never blocks the thing being reported.** A webhook that is down does not stop a deploy or a sweep; it leaves a failed delivery that the maintenance tick retries.
 
 ## The events
@@ -34,8 +34,8 @@ Three facts:
 | Code | Severity | Scope | Inbox | When |
 | --- | --- | --- | --- | --- |
 | `server.offline` | critical | organization | every member | The daemon stopped answering and the server was marked offline. |
-| `fleet.mass_disconnect` | critical | instance | administrators | A whole sweep lost its fleet at once — usually the control plane's own network or broker. |
-| `server.deleted` | info | organization | owners and managers | A server was deleted from the console. |
+| `fleet.mass_disconnect` | critical | instance | administrators | A whole sweep lost all its servers at once — usually the control plane's own network or broker. |
+| `server.deleted` | info | organization | owners and managers | A server was deleted from the app. |
 | `server.daemon_key_revoked` | warning | organization | owners and managers | A server's daemon key was revoked. |
 | `access.grant_created` | info | organization | owners and managers | A permission grant was added. |
 | `access.grant_revoked` | warning | organization | owners and managers | A permission grant was removed. |
@@ -76,7 +76,7 @@ Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw 
 
 ## Delivery and retries
 
-One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the instance's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
+One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the control plane's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
 
 ## Reference
 
@@ -85,8 +85,8 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | Kinds | `email` · `webhook` · `slack` · `discord` · `telegram` (`push` is registered by the store apps, never typed) |
 | Severities | `info` < `warning` < `critical` |
 | Rule | `*` at a floor, or one row per event |
-| Inbox fan-out | server events: every organization member; audit-mirroring events: owners and managers; instance events: every instance admin |
-| Channel reach | organization channels, its members' own channels, and every instance channel |
+| Inbox fan-out | server events: every organization member; audit-mirroring events: owners and managers; control plane events: every administrator |
+| Channel reach | organization channels, its members' own channels, and every control plane channel |
 | Address rule | `https`, no credentials in the URL; any host, LAN included |
 | Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
 | Signature | `X-TurboPanel-Signature: sha256=<hex HMAC-SHA256 of the raw body>` |
@@ -108,11 +108,11 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
 | `Forbidden` | 403 | Organization channels need `organization:manage`. |
 | `Not found` | 404 | The channel or the inbox row is not yours. |
-| `Encryption unavailable — no encryption key configured` | 503 | The instance has no root secret, so a sealed address cannot be stored. |
+| `Encryption unavailable — no encryption key configured` | 503 | The control plane has no root secret, so a sealed address cannot be stored. |
 
 ## Related
 
 - [Servers](/docs/using/servers) — what `server.offline` and a revoked key mean.
 - [Organizations, teams and access](/docs/using/access) — the grants the access events describe.
-- [Administering an instance](/docs/using/admin) — the operator's instance-wide alert webhook.
+- [Administering the control plane](/docs/using/admin) — the operator's control-plane-wide alert webhook.
 - [Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark) — configuring that webhook from the shell.

@@ -5,7 +5,7 @@ description: Signing in, two-factor with an authenticator app, backup codes, pas
 
 # Account security
 
-Your account is one identity across every organization you belong to, and the ways you prove it is you are managed in one place: the account menu → **Security** (`/account/security`). This chapter covers signing in, the second factor, passkeys, linked sign-in providers, password rules and recovery. Configuring which providers an instance offers is the operator's side, in [Accounts and access](/docs/getting-started/accounts-and-access).
+Your account is one identity across every organization you belong to, and the ways you prove it is you are managed in one place: the account menu → **Security** (`/account/security`). This chapter covers signing in, the second factor, passkeys, linked sign-in providers, password rules and recovery. Configuring which providers a control plane offers is the operator's side, in [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ## The model
 
@@ -20,7 +20,7 @@ An account has an email address and up to four **ways in**:
 
 Three rules run through everything below:
 
-1. **Changing how you sign in needs a fresh proof.** Enrolling or disabling two-factor, regenerating backup codes, adding or removing a passkey, and unlinking a provider all require **re-authentication**. An account that has a password must type it into the **Current password** field every time — a fresh session does not substitute. An account with no password (it signs in only with a passkey or a linked provider) is let through on a session younger than **15 minutes**. Otherwise the request is refused (403) and the console asks for the password. *Linking* a provider is the one exception: it is a redirect and cannot carry a password, so it always uses the 15-minute window.
+1. **Changing how you sign in needs a fresh proof.** Enrolling or disabling two-factor, regenerating backup codes, adding or removing a passkey, and unlinking a provider all require **re-authentication**. An account that has a password must type it into the **Current password** field every time — a fresh session does not substitute. An account with no password (it signs in only with a passkey or a linked provider) is let through on a session younger than **15 minutes**. Otherwise the request is refused (403) and the app asks for the password. *Linking* a provider is the one exception: it is a redirect and cannot carry a password, so it always uses the 15-minute window.
 2. **Securing the account signs everyone else out.** Each of those changes revokes every other session on the account and keeps only the one that made the change. A password reset revokes *all* sessions, including the one at the keyboard.
 3. **You cannot remove your last way in.** Unlinking the only provider on an account that has no password and no passkey is refused (`last_sign_in_method`). Keep at least two ways in before removing one.
 
@@ -30,13 +30,13 @@ Sessions last **7 days** and are cookie-bound to the control plane's origin; the
 
 <Steps>
   <Step>
-    Email and password → **Sign In**. On an instance with providers configured, **Sign in with GitHub** / **Sign in with Google** sit beside it, and **Sign in with a passkey** below.
+    Email and password → **Sign In**. On a control plane with providers configured, **Sign in with GitHub** / **Sign in with Google** sit beside it, and **Sign in with a passkey** below.
   </Step>
   <Step>
     If two-factor is on, the **authentication code** step follows: six digits from your app, or **Use a backup code** to type one of the ten. The challenge lives **5 minutes**. **Five wrong codes** within 15 minutes lock two-factor sign-in for that account until the 15 minutes are up; signing in again does not reset the count. Each code works once: a code that already signed you in is refused, even under a new challenge, so wait for the next one from your app.
   </Step>
   <Step>
-    A new account made by sign-up must **verify its email** first (the link in the mail is good for 24 hours); until then sign-in is refused with *Verify your email before signing in*. An instance without outbound email skips verification entirely.
+    A new account made by sign-up must **verify its email** first (the link in the mail is good for 24 hours); until then sign-in is refused with *Verify your email before signing in*. A control plane without outbound email skips verification entirely.
   </Step>
 </Steps>
 
@@ -56,7 +56,7 @@ On the sign-in screen, **Forgot password?** sits under the password field.
   </Step>
 </Steps>
 
-A link that is expired, already used or unknown opens *This reset link doesn't work anymore* with **Request a new link**. An instance that cannot send email cannot send the link, so the email never arrives there.
+A link that is expired, already used or unknown opens *This reset link doesn't work anymore* with **Request a new link**. A control plane that cannot send email cannot send the link, so the email never arrives there.
 
 ## Turn on two-factor
 
@@ -77,7 +77,7 @@ A link that is expired, already used or unknown opens *This reset link doesn't w
   </Step>
 </Steps>
 
-Afterwards the panel shows the method and how many backup codes remain. **Regenerate backup codes** issues ten new ones and invalidates the old set; **Disable two-factor** removes the authenticator and the codes. Both re-authenticate.
+Afterwards the app shows the method and how many backup codes remain. **Regenerate backup codes** issues ten new ones and invalidates the old set; **Disable two-factor** removes the authenticator and the codes. Both re-authenticate.
 
 ## Add a passkey
 
@@ -98,7 +98,7 @@ To sign in with it: **Sign in with a passkey** on the sign-in screen — no emai
 
 ## Link GitHub or Google
 
-**Security → Linked accounts.** Only providers the instance has configured appear. Linking is web-only (**Link from a browser** on native). Finish the provider round trip in the same browser that started it: the return trip is refused on any other.
+**Security → Linked accounts.** Only providers the control plane has configured appear. Linking is web-only (**Link from a browser** on native). Finish the provider round trip in the same browser that started it: the return trip is refused on any other.
 
 <Steps>
   <Step>
@@ -130,13 +130,13 @@ The same rule is enforced on every path that sets a password (install, sign-up, 
 | Authenticator | RFC 6238 TOTP, six digits |
 | Backup codes | 10, one-time, shown once; regenerate replaces all |
 | Passkeys | WebAuthn, user verification required, discoverable, ES256 / RS256; web only |
-| Email verification | 24-hour link; skipped when the instance sends no mail |
+| Email verification | 24-hour link; skipped when the control plane sends no mail |
 | Password | 8–256 characters, a number, a special character, no edge whitespace |
 | Sessions revoked on | 2FA on/off, backup codes regenerated, passkey added/removed, provider linked/unlinked (all but the current); password reset (all) |
 
 ## Errors
 
-Account routes answer with a short `error` string; the console shows the sentence in the table.
+Account routes answer with a short `error` string; the app shows the sentence in the table.
 
 | Error | Status | Meaning |
 | --- | --- | --- |
@@ -159,11 +159,11 @@ Account routes answer with a short `error` string; the console shows the sentenc
 | `account_conflict` | redirect | The provider identity belongs to another user. |
 | `account_disabled` | redirect | The account is disabled. |
 | `oauth_reauth_required`, `oauth_unauthenticated` | redirect | Linking needs a recent sign-in, or the session ended during the round trip. |
-| `Not configured` | 503 | The instance has no root secret or that provider is not set up. |
+| `Not configured` | 503 | The control plane has no root secret or that provider is not set up. |
 
 ## Related
 
-- [Accounts and access](/docs/getting-started/accounts-and-access) — the operator's side: configuring GitHub and Google on the instance.
+- [Accounts and access](/docs/getting-started/accounts-and-access) — the operator's side: configuring GitHub and Google on the control plane.
 - [Organizations, teams and access](/docs/using/access) — invitations and grants.
 - [Password safety](/docs/security/password-safety) — the breached-password check.
 - [Security](/docs/deployment/security) — sessions, secrets and the trust model.

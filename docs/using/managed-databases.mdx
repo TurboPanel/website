@@ -5,7 +5,7 @@ description: PostgreSQL, MySQL and MariaDB clusters TurboPanel provisions on you
 
 # Managed databases
 
-A **managed database** is a database cluster TurboPanel provisions, secures and connects for you on your own servers: PostgreSQL, MySQL or MariaDB, in a container the platform owns, behind a shared listener that every consumer dials, with replication, promotion and backups handled from the console. You choose the engine, a version series and a server; the platform does the rest and hands you an endpoint and a first user. This chapter is written for the person creating and using one; the wiring underneath is in [Managed database ingress](/docs/architecture/managed-database-ingress).
+A **managed database** is a database cluster TurboPanel provisions, secures and connects for you on your own servers: PostgreSQL, MySQL or MariaDB, in a container the platform owns, behind a shared listener that every consumer dials, with replication, promotion and backups handled from the app. You choose the engine, a version series and a server; the platform does the rest and hands you an endpoint and a first user. This chapter is written for the person creating and using one; the wiring underneath is in [Managed database ingress](/docs/architecture/managed-database-ingress).
 
 ## The model
 
@@ -146,7 +146,7 @@ Automatic failover is fenced: the platform promotes a same-datacenter failover r
 | **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
 | **Delete** | Two presses. Removes the backup. |
 
-Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the console: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
+Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
 
 ### Schedules
 
@@ -173,7 +173,7 @@ What to know:
 - A schedule's count prunes **only that schedule's own** backups, so an hourly schedule keeping 24 never removes a daily schedule's backups or a manual one. Each schedule's files live in their own folder on the server.
 - A database can have at most **20** schedules.
 - A schedule that cannot run on the server is refused when you save it: `@reboot`, a cron line that fixes both a day of the month and a day of the week (cron would treat that as either, which is rarely what you mean), and a step in the day-of-week field such as every other Tuesday.
-- After a save the console says when the server could not be reached; it picks the change up when it reconnects.
+- After a save the app says when the server could not be reached; it picks the change up when it reconnects.
 - A run is refused (and recorded as failed) when another backup or restore of the same cluster is running, or when the server is short of disk space (less than twice the previous backup's size, and never under 256 MiB).
 - Backups stay on the server's own disk: they do not protect against losing the whole server. Offsite storage is not built yet.
 - Schedules for **storage volumes** are separate and API-only today: see [Storage and variables](/docs/using/storage-and-variables#volume-backups).
