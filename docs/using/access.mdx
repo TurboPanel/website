@@ -78,7 +78,7 @@ Renaming is **Manage Organization → Organization** (managers may save). Names 
     The invitee opens the emailed link, which lands on **Accept invitation** and never accepts by itself. What it shows depends on who is opening it:
 
     - **Already has an account on the invited address:** they are taken to sign in, return to the page, and press **Accept invitation**.
-    - **No account on that address yet:** the page asks them to **Create a password** and press **Join** the organization. That one step creates the account (the address counts as verified, because the emailed link proves it), accepts the invitation and signs them in, with no confirmation step and no personal organization of their own. It works **even while public sign-up is disabled**.
+    - **No account on that address yet:** the page asks them to **Create a password** and press **Join** (the button reads *Join* plus the organization's name). That one step creates the account (the address counts as verified, because the emailed link proves it), accepts the invitation and signs them in, with no confirmation step and no personal organization of their own. It works **even while public sign-up is disabled**.
     - **Signed in as someone else:** the page says *This invitation is for another account* and offers **Switch account**, which signs them out and returns to sign in with the invited address.
     - **Link already accepted:** the page says so and points to sign in. **Expired or withdrawn:** it says which and asks them to request a new invitation from whoever sent it. A link replaced by a re-sent invitation says it is *not valid anymore*: use the newest email.
   </Step>
@@ -134,7 +134,7 @@ Subject IDs are the account, team or organization ids. The console does not yet 
 | `Not found` | 404 | No pending invitation, or no grant, with that id. |
 | `Entity not found` | 404 | The grant target is not in this organization. |
 | `… may only be granted on organization entities` / `… on team entities` | 400 | The permission does not fit the target kind. |
-| `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. |
+| `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. A team has the same rule: `Cannot remove the last owner of a team`. |
 | `You don't have permission to manage access on this scope.` | 403 | Grant management needs `organization:own` on the target. |
 
 ## Related

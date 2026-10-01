@@ -11,9 +11,9 @@ A service built from source needs three things the platform keeps apart on purpo
 
 | Layer | What it is | Where |
 | --- | --- | --- |
-| **Application** | A GitHub App or a GitLab OAuth application registered with the provider. Organization-owned, or **instance-wide** (registered by an administrator under **Admin → Git** for everyone; shown read-only to organizations). An instance may hold several — github.com beside GitHub Enterprise, one App per customer account, gitlab.com beside a self-managed GitLab. | **Projects → Git sources** |
+| **Application** | A GitHub App or a GitLab OAuth application registered with the provider. Organization-owned, or **instance-wide** (registered by an administrator under **Admin → Git providers** for everyone; shown read-only to organizations). An instance may hold several — github.com beside GitHub Enterprise, one App per customer account, gitlab.com beside a self-managed GitLab. | **Projects → Git sources** |
 | **Installation / connection** | What the provider grants the application: a GitHub App **installation** on an account (with the repositories it may see), or a GitLab OAuth **connection** for a user. | The application's detail page, **Repository access** |
-| **Repository** | One row per canonical repository URL in the organization, recording how it authenticates (its **lane**), its default branch, and whether pushes deploy. Created the first time a service picks it. | **Projects → Repositories** |
+| **Repository** | One row per canonical repository URL in the organization, recording how it authenticates (its **Access**), its default branch, and whether pushes deploy. Created the first time a service picks it. | **Projects → Repositories** |
 | **Binding** | `x-turbopanel.source` on a service: the repository, the branch (which an environment can override), and the build. | The service's **Source** section on the Services tab; an environment's **Git branch** panel |
 
 Three rules:
@@ -33,29 +33,29 @@ Three rules:
 
 <Steps>
   <Step>
-    **Projects → Git sources → Create a GitHub App.** Choose whether the App lives on your **personal** GitHub account or a GitHub **organization** (its `github.com/<login>` slug — not a TurboPanel organization).
+    **Projects → Git sources → Create a GitHub App.** Choose its **Owner**: your **Personal account** or a GitHub **Organization** (give its `github.com/<login>` slug — not a TurboPanel organization).
   </Step>
   <Step>
     GitHub opens its manifest flow with the webhook URL and callback already set. Approve it; GitHub creates the App and returns you to the application's page (`?created=`), with every credential stored — secrets are write-only from here on.
   </Step>
   <Step>
-    On the application's page, **Install** (a 302 to GitHub). Pick the account and the repositories the App may see. GitHub sends you back with the installation claimed for this organization.
+    On the application's page, **Install repositories** (a 302 to GitHub). Pick the account and the repositories the App may see. GitHub sends you back with the installation claimed for this organization.
   </Step>
   <Step>
     **Repository access** now lists the installation and its repositories. **Sync from GitHub** refreshes the list after you change it on GitHub. An installation GitHub has suspended shows **Suspended**.
   </Step>
 </Steps>
 
-**Add manually** takes an existing App's id, private key and secrets instead of the manifest flow — for an App you already own, or on GitHub Enterprise (give its base URL).
+**Register an existing one** (next to **Create a GitHub App**) takes an existing App's id, private key and secrets instead of the manifest flow — for an App you already own, or on GitHub Enterprise (give its base URL).
 
 ## Connect GitLab
 
 <Steps>
   <Step>
-    **Projects → Git sources → Add manually → GitLab**: the GitLab base URL (gitlab.com or your own), and the OAuth application id and secret you registered there with the callback URL the form shows.
+    **Projects → Git sources → Register an existing one → GitLab**: the GitLab base URL (gitlab.com or your own), and the OAuth application id and secret you registered there with the callback URL the form shows.
   </Step>
   <Step>
-    **Connect** — a 302 to GitLab. Authorize; GitLab returns you with a connection for your user.
+    **Add application**, then **Connect a GitLab account** — a 302 to GitLab. Authorize; GitLab returns you with a connection for your user.
   </Step>
 </Steps>
 
@@ -113,7 +113,7 @@ The webhook URL on each application's page carries that application's routing re
 
 ## Repositories — the ledger
 
-**Projects → Repositories** lists every repository row: its provider, its **lane** (connection, deploy key or anonymous), the tracked branch, whether the provider's default branch has drifted from it, its auto-deploy mode, and the projects using it. **Refresh** re-reads the default branch and last commit through the provider. **Delete** works only for a repository no compose document references (`source_referenced_by_compose`).
+**Projects → Repositories** lists every repository row: its provider, its **Access** (connection, deploy key or anonymous), the tracked branch, whether the provider's default branch has drifted from it, its auto-deploy mode, and the projects using it. **Refresh** re-reads the default branch and last commit through the provider. **Delete** works only for a repository no compose document references (`source_referenced_by_compose`).
 
 ## Reference
 
