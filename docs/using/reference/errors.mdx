@@ -108,6 +108,7 @@ See [Hosting](/docs/using/hosting).
 | `binding_key_prefix_in_use` | 409 | Another binding in the environment already uses that key prefix. |
 | `binding_engine_defaults_in_use` | 409 | The binding's default keys are already taken. |
 | `binding_owned_variable` | 409 | The variable is written by a binding and cannot be edited directly. |
+| `backup_target_unsupported` | 400 | The storage copy cannot be backed up from where it lives; `detail` says why (for example it has no local folder or Docker volume on its server). |
 
 ## System users (principals)
 
@@ -215,6 +216,11 @@ The console renders one sentence per code from these; the sentences here are the
 | `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | The root account, the initial database and the replication user are platform-managed; rotate root through its own route. |
 | `managed_backup_unsupported` | 400 | The engine does not support backups yet. |
 | `backup_not_found` | 404 | No backup with that id. |
+| `backup_policy_invalid` | 400 | A backup schedule's name, keep count or enabled flag is invalid; `field` names it and `detail` says why. |
+| `backup_schedule_invalid` | 400 | The schedule is not a preset or a cron expression a host can run (for example it restricts both day-of-month and day-of-week, or is `@reboot`); `detail` says why. |
+| `backup_timezone_invalid` | 400 | The time zone is not an IANA zone name (plain `UTC` is accepted); `detail` says why. |
+| `backup_policy_limit` | 409 | The database already has its maximum of 20 backup schedules; `limit` is sent. |
+| `backup_policy_not_found` | 404 | No backup schedule with that id on this database (also sent when the id is not a UUID). |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down. |
 | `managed_credential_not_sealed`, `root_principal_missing`, `managed_settings_invalid`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults — a credential could not be sealed, the root principal or the daemon key is missing, the stored settings are corrupt. |
 | `not_managed_environment` | 400 | The environment is not a managed project's. |
@@ -243,6 +249,8 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | `two_factor_enabled` | 409 | Two-factor is already enrolled; disable it before enrolling again. |
 | `passkey_exists` | 409 | That credential is already registered. |
 | `last_sign_in_method` | 409 | The provider cannot be unlinked; it is the account's only way to sign in. |
+| `invitation_unavailable` | 410 | The invitation link was already used, has expired or was revoked; `status` says which. |
+| `account_exists` | 409 | The invitation's email already has an account: sign in, then accept the invitation. |
 | `oauth_reauth_required` | redirect (`?error=`) | Linking a provider needs a session younger than 15 minutes. |
 
 ## Notifications
@@ -258,6 +266,20 @@ See [Notifications](/docs/using/notifications).
 | `signing_secret_not_applicable`, `signing_secret_invalid` | 400 | Only a webhook signs; 1–256 characters. |
 | `rule_event_unknown`, `rule_severity_invalid`, `rules_invalid` | 400 | The rule list names an unknown event or is malformed. |
 | `kind_invalid`, `scope_invalid` | 400 | Not a channel kind that can be typed in, or not `user` / `organization`. |
+| `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or `disabled` is not true or false. |
+
+## Firewall
+
+See [Firewall](/docs/using/firewall). All of these are for organization owners and managers.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `firewall_policy_invalid` | 400 | The organization's firewall policy is malformed; `message` says which part. |
+| `firewall_rule_invalid` | 400 | A rule is malformed (label, action, protocol, ports or sources); `message` says which part. |
+| `firewall_rule_limit` | 409 | The organization already has its maximum of 200 firewall rules. |
+| `firewall_mode_invalid` | 400 | The mode must be `observe`, `managed` or `off`. |
+| `firewall_probe_unavailable` | 503 | This control plane cannot run the outside reachability check. |
+| `firewall_probe_rate_limited` | 429 | The outside check runs at most once every 30 seconds per server; `retryAfterSeconds` is sent, also as `Retry-After`. |
 
 ## Billing (TurboPanel High Availability)
 
@@ -284,6 +306,11 @@ See [Administering an instance](/docs/using/admin).
 | --- | --- | --- |
 | `reencrypt_in_progress` | 409 | A re-encrypt sweep is already running; wait or resume it. |
 | `tier_invalid` | 400 | The tier row or product patch failed validation; `message` names the field. |
+| `tier_exists` | 409 | A tier with that label or provider product already exists. |
+| `tier_has_no_product` | 400 | A custom tier has no provider product to verify. |
+| `product_verification_failed` | 400 | The provider product does not match the tier's price ladder; `verification` lists the differences. |
+| `product_lookup_failed` | 400 | The provider could not be asked about the product; `status` is what it answered. |
+| `invalid_settings` | 400 | The instance update settings are malformed. |
 | `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
 | `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the panel toggle. |
