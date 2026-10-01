@@ -293,6 +293,11 @@ See [Notifications](/docs/using/notifications).
 | `rule_event_unknown`, `rule_severity_invalid`, `rules_invalid` | 400 | The rule list names an unknown event or is malformed. |
 | `kind_invalid`, `scope_invalid` | 400 | Not a channel kind that can be typed in, or not `user` / `organization`. |
 | `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or `disabled` is not true or false. |
+| `digest_cadence_invalid` | 400 | The digest setting is not one of the offered cadences. |
+| `quiet_hours_invalid` | 400 | Quiet hours need a start and an end as 24-hour `HH:MM`, and they must differ. |
+| `time_zone_invalid` | 400 | Not a time zone the app knows. |
+| `timing_email_only` | 422 | Digests and quiet hours exist only on email channels. |
+| `time_zone_user_channels_only` | 422 | A time zone can be set only on a personal channel; organization and instance channels read their windows in UTC. |
 
 ## Firewall
 
