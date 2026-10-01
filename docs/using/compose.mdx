@@ -108,7 +108,7 @@ services:
 | `description` | all | Free text shown on the service card and the Overview. |
 | `principal` | `site`, `node` (refused on `container`) | Alias of a root `principals` entry — the account the service runs as. Required for sites and Node apps. |
 | `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| acme, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
-| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. |
+| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `deployOnPush: false` keeps a git push from deploying the service (a console deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `root` | `site` | Document root, relative to the account's site directory. |
 | `php` | `site` | `{ version?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
@@ -214,6 +214,7 @@ A service with a `source` produces a **release** on every deploy: the repository
 | --- | --- |
 | Hosting entries per service | 10 ports per hosting entry; hostnames unlimited but unique per organization |
 | `source.branch` | Same maximum length as the repository's branch field |
+| `source.deployOnPush` | `true` or `false` |
 | `source.buildCommand`, `startCommand` | Non-secret, single line |
 | `cron[].name` | Lowercase `[a-z0-9-]`, unique per service; a name that a scheduled task also folds to is refused on the task, not here |
 | PHP series | `8.3`, `8.4` |

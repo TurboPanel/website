@@ -13,8 +13,8 @@ A service built from source needs three things the platform keeps apart on purpo
 | --- | --- | --- |
 | **Application** | A GitHub App or a GitLab OAuth application registered with the provider. Organization-owned, or **instance-wide** (registered by an administrator under **Admin → Git** for everyone; shown read-only to organizations). An instance may hold several — github.com beside GitHub Enterprise, one App per customer account, gitlab.com beside a self-managed GitLab. | **Projects → Git sources** |
 | **Installation / connection** | What the provider grants the application: a GitHub App **installation** on an account (with the repositories it may see), or a GitLab OAuth **connection** for a user. | The application's detail page, **Repository access** |
-| **Repository** | One row per canonical repository URL in the organization, recording how it authenticates (its **lane**), the tracked branch, and whether pushes deploy. Created the first time a service picks it. | **Projects → Repositories** |
-| **Binding** | `x-turbopanel.source` on a service: the repository, the branch, and the build. | The service's **Source** section on the Services tab |
+| **Repository** | One row per canonical repository URL in the organization, recording how it authenticates (its **lane**), its default branch, and whether pushes deploy. Created the first time a service picks it. | **Projects → Repositories** |
+| **Binding** | `x-turbopanel.source` on a service: the repository, the branch (which an environment can override), and the build. | The service's **Source** section on the Services tab; an environment's **Git branch** panel |
 
 Three rules:
 
@@ -81,15 +81,33 @@ A repository the providers do not host — or one you would rather not connect a
 
 ## Push-to-deploy
 
+Two things decide whether a push deploys, and they are kept apart: the **repository** says whether pushes are allowed at all, and each **environment** says which branch it builds.
+
 Each repository row carries **Auto-deploy**:
 
-| Mode | What a push to the tracked branch does |
+| Mode | What a push does |
 | --- | --- |
 | `disabled` (default) | Nothing. Deploy from the console. |
-| `immediate` | Deploys every environment whose services bind this repository and branch, as soon as the push arrives. |
+| `immediate` | Deploys every environment that builds the pushed branch, as soon as the push arrives. |
 | `checks_passed` | Parks the pushed commit and deploys it when the provider reports the commit's checks passed (a GitHub check suite, a GitLab pipeline). A newer push replaces the parked commit. |
 
-A push that cannot deploy is answered and dropped, not retried: no environment binds the branch, the environment has no server, the branch was deleted, or the deploy pipeline refused it for a reason a retry would not fix (the same refusals a console deploy gets — see [Deploying](/docs/using/deploy#errors)). Only an instance-side failure makes the provider redeliver.
+### One branch per environment
+
+An environment builds the branch its services name (`x-turbopanel.source.branch`), or the repository's default branch when none is named. Because an environment's own compose is laid over the project's, one project can build different branches in different environments from the same repository: `production` builds `main`, `staging` builds `staging`. A push to `staging` deploys only `staging`; `production` is left alone.
+
+To give an environment its own branch, open it and use its **Git branch** panel: for each Git-bound service it shows the branch that environment builds and where it came from (this environment, the project, or the repository's default), a **Branch for this environment** field, and **Follow the project** to remove the override. The panel saves a small override in the environment's own compose; it does not copy the service. A service that runs a plain image cannot be overridden this way — change it in the compose editor.
+
+**Deploy on push** (in the same panel, and in the service's **Source** section) turns push deploys off for that service. The environment can still be deployed by hand; only the push is ignored. If the repository's own **Auto-deploy** is `disabled`, the panel says so and offers to turn it on, because until it is on no push deploys anything.
+
+Matching is exact: branch names are case-sensitive, `refs/heads/staging` and `staging` are the same branch, and tags and other references are never branches. A service with no branch of its own and a repository with no recorded default branch is never deployed by a push — name a branch.
+
+### What a push-triggered deploy looks like
+
+The deploy goes through the same path as a console deploy, as the system, and is recorded in the environment's **Deployment history** as **Push to `<branch>`** with the short commit it built. Several services of one repository on different branches in one environment each build their own branch's commit.
+
+A push that cannot deploy is answered and dropped, not retried: no environment builds that branch, the environment has no server, the branch was deleted, push deploys are off for it, or the deploy pipeline refused it for a reason a retry would not fix (the same refusals a console deploy gets — see [Deploying](/docs/using/deploy#errors)). Only an instance-side failure makes the provider redeliver.
+
+With `checks_passed`, a repository parks one commit at a time, so when several environments build different branches a newer push to another branch replaces a parked commit that has not yet seen its checks pass.
 
 The webhook URL on each application's page carries that application's routing reference (`/webhook/github/<ref>` on self-managed providers), so a delivery names its application before any secret is checked; a delivery whose signature does not match is refused.
 

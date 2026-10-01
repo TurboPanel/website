@@ -94,7 +94,7 @@ The environment's Overview lists each service's containers with a status badge f
 
 ## Deployment history
 
-**Deployment history** on the environment's Overview lists past deploy attempts with their outcome and, for each, the transcript the daemon produced — image pulls, builds, the Compose output — kept for 90 days by default (an operator can change `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS`).
+**Deployment history** on the environment's Overview lists past deploy attempts with their outcome, who or what started them (a person, the system, or **Push to `<branch>`** with the short commit when a git push did) and, for each, the transcript the daemon produced — image pulls, builds, the Compose output — kept for 90 days by default (an operator can change `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS`).
 
 A deploy that never finished is recorded as **stalled**, with one of two reasons:
 
