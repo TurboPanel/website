@@ -13,7 +13,7 @@ A **server** is a Linux host running the TurboPanel daemon, enrolled into one or
 | --- | --- |
 | **Registration key** | A one-shot credential the console mints when you add a server. It is embedded in the install command; the daemon consumes it at enrollment and it is bound to that server from then on. An unconsumed key is a **pending key**. |
 | **Daemon** | `turbopaneld` on the host: enrolls with the key, holds a signed key pair, streams facts and metrics, and executes the commands the control plane queues (deploys, reboots, updates). It connects **out** to the control plane; nothing connects in. |
-| **Co-located server** | On self-hosted, the control plane's own host is also a server — enrolled at install, named *this server*. It cannot be deleted, its key cannot be revoked, and it updates with the control plane rather than through the console. |
+| **Co-located server** | On self-hosted, the control plane's own host is also a server — enrolled at install and badged **Platform Server**. It cannot be deleted, its key cannot be revoked, and it updates with the control plane rather than through the console. |
 | **Capacity** | An owner-set ceiling on how many servers the organization may hold (**Servers → Settings → Server capacity**); enrolled servers and pending keys both count. On High Availability the purchased [licenses](/docs/using/billing) bound it as well. |
 | **Machine class** | Physical or virtual. Decides whether hardware-sensor slots are used; inferred from discovered sensors unless pinned. |
 
@@ -123,7 +123,7 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 | `license_has_attached_server` | 409 | The key is bound to a live server; delete the server, not the key. |
 | `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own console. |
-| `Co-located hosts are updated via local git, not remote updates` | 403 | Update the control plane instead. |
+| `The co-located development daemon cannot be updated from the control plane` | 403 | Update the control plane instead. |
 | `control_plane_upgrade_required` | 409 | Self-hosted: the fleet gate is shut. The badge reads **Waiting for the control plane upgrade**. |
 | `updates_managed` | 409 | TurboPanel High Availability: per-server **Update** is hidden. Use **Admin → Updates**. |
 | `Daemon not connected`, `Up to date`, `Target unavailable` | 404 (update) | The daemon must be online to update; there is no newer build; or the release manifest could not be read. Other commands queue and wait. |

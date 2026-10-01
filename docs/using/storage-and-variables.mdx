@@ -27,16 +27,16 @@ Behind an entry are its **copies** — where the bytes actually are. A copy has 
     Select the environment and open **Storage** (from the gear on the Services document, or the surface tab). At project scope the tab stacks one panel per environment.
   </Step>
   <Step>
-    **Name** the entry; choose the **Kind** — *volume*, *directory* or *file*.
+    **Name** the entry; choose the **Kind** — *Volume*, *Directory* or *File* — and the **Server** it lives on.
   </Step>
   <Step>
-    For a directory or file, give the **Host path**; for a file, optionally paste its **content** (up to 256 KiB — larger files belong in a volume or a build).
+    For a directory or file, give the **Host path**. A file's **content** (up to 256 KiB — larger files belong in a volume or a build) can be set through the API; the console form has no field for it.
   </Step>
   <Step>
     Pick the **Mount service** and the **Destination path** inside it. Two entries cannot mount at the same destination in one service.
   </Step>
   <Step>
-    Set access mode and retention if the defaults do not fit, and save. The mount is live on the next deploy.
+    **Create storage**. The mount is live on the next deploy. The console form has no access mode or retention field, so a new entry takes the defaults (`single_writer`, `retain`); change them through the API.
   </Step>
 </Steps>
 

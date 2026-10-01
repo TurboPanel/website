@@ -120,7 +120,7 @@ A login's name must be unique across every cluster on servers the same organizat
     **Promote** a failover replica for a planned switchover: the old primary becomes a replica, the endpoint does not change.
   </Step>
   <Step>
-    **Promote for DR** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
+    **Promote for disaster recovery** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
   </Step>
   <Step>
     **Remove** a replica that is no longer needed. The primary cannot be removed.
