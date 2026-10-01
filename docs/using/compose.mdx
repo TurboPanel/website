@@ -80,7 +80,7 @@ x-turbopanel:
       access: sftp        # none | sftp | ssh — the access the account is created with
 ```
 
-`principals` declares the **system users** a document's services may run as, by a document-local alias. The alias is a name inside this file; the Unix account behind it — username, uid, home, keys, password — lives on a **system user** row the platform creates on first deploy and that you manage on the **Bindings** tab. An alias is never a Linux username.
+`principals` declares the **system users** a document's services may run as, by a document-local alias. The alias is a name inside this file; the Unix account behind it — username, uid, home, keys, password — lives on a **system user** row the platform creates on first deploy and that you manage on the **Bindings** tab. An alias is never a Linux username. The account's system name follows the organization's [name scheme](/docs/using/managed-databases#name-schemes) (default `partial`).
 
 ### On a service
 
