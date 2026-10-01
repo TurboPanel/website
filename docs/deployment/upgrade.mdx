@@ -35,7 +35,7 @@ graph TD
     B --> C[Control plane]
     C --> D{Both on target?}
     D -->|yes| E[Other servers, in batches]
-    D -->|no| F[Fleet stays waiting]
+    D -->|no| F[Servers stay waiting]
 ```
 
 TurboPanel High Availability deploys the control plane itself. **Admin → Updates** shows
@@ -83,7 +83,7 @@ daemon below its floor still holds its socket so the update can reach it. See
 
     **Update TurboPanel** opens **Ready to update TurboPanel?**. The sheet lists the pre-flight checks, notes that the control-plane database is backed up before the install, and shows the **Recovery command** with **Copy command**. **Start update** begins the run. **Cancel** closes the sheet.
 
-    Progress follows **Co-located daemon**, then **Control plane**, then the servers table. Each step moves through Preparing → Downloading → Installing → Restarting → Verifying → Done. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a server row dispatches that step again.
+    Progress follows **Co-located daemon**, then **Control plane**, then the servers table. Each step moves through *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a server row dispatches that step again.
 
     **Automatic updates** is off until you turn on **Auto-update servers**. Automatic runs start only when the target differs from what is installed, no run is already active, and — if you enable **Maintenance window** — only inside that UTC window. The default batch is **100%** (Percent). Switch to **Count** to cap how many servers move together, then **Apply**.
 
@@ -96,7 +96,7 @@ daemon below its floor still holds its socket so the update can reach it. See
   </Tab>
 </Tabs>
 
-Only one run is active. A second start is refused while a run is `pending` or `running`.
+Only one run is active. A second start is refused while a run is `pending` or `running`, with `409 upgrade_run_active` (*Another update is already in progress*). The control-plane step is not finished until the daemon has checked the new build, even if the new control plane already answers as the target version.
 
 ## Batches and the maintenance window
 
@@ -141,7 +141,7 @@ One previous generation stays beside the new files, by rename:
 
 ## Automatic rollback
 
-After the control plane restarts, the daemon polls `GET /api/health` on the control plane socket until `version` and `revision.commit` match the pinned manifest. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
+After the control plane restarts, the daemon polls `GET /api/health` on the control plane socket until `version` and `revision.commit` match the pinned manifest. It waits up to **10 minutes** by default, because a small host can take several minutes to start the new build and apply migrations, and a rollback is worse than waiting. `TURBOPANEL_UPDATE_HEALTH_TIMEOUT_SECONDS` (30 to 3600, in the daemon's environment, `/etc/turbopanel/daemon.env`) changes the wait; an unset or out-of-range value keeps 10 minutes. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
 
 A daemon self-update arms an update guard for about 10 minutes. If the new build crash-loops, the guard restores the daemon `.prev` files and restarts `turbopaneld`. Detail: [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
