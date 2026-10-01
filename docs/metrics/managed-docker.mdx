@@ -8,7 +8,7 @@ description: Docker's own disk breakdown — image layers, containers, volumes, 
 The **Docker** group is Docker's own accounting of its data root: layers, images, containers, volumes, and build cache, each with the share a prune would free. It is read from the Engine's disk-usage report every five minutes on the daemon's own timer, never on the sample tick, and the whole breakdown sums to the Docker total on [Storage usage](/docs/metrics/managed-storage#managed-storage-docker).
 
 <Callout type="info" title="Granted from S2">
-  On TurboPanel High Availability this family is part of the **S2 and higher** entitlement. An S1 server still shows the Docker data-root total under Storage usage; in place of this group the console shows a one-line notice saying the tier does not include it. Self-hosted and seats with no tier assigned keep the group. See [License tiers](/docs/deployment/tiers).
+  On TurboPanel High Availability this family is part of the **S2 and higher** entitlement. An S1 server still shows the Docker data-root total under Storage usage; in place of this group the console shows a one-line notice saying the tier does not include it. Self-hosted servers and servers with no tier assigned keep the group. See [License tiers](/docs/deployment/tiers).
 </Callout>
 
 A host with no Docker socket, or whose Engine is unhealthy this minute, reports nothing — absent, not zero.

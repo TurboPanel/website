@@ -40,9 +40,23 @@ Sessions last **7 days** and are cookie-bound to the control plane's origin; the
   </Step>
 </Steps>
 
-<Callout type="info" title="There is no Forgot password link yet">
-  The API carries an email-code password reset (`POST /auth/reset-password/request-otp` then `POST /auth/reset-password/otp`), but the console does not offer it in this release. If you lose your password, sign in with a passkey or a linked provider and keep going; otherwise ask the instance's administrator.
-</Callout>
+## Forgot your password
+
+On the sign-in screen, **Forgot password?** sits under the password field.
+
+<Steps>
+  <Step>
+    Enter your account's email and choose **Send reset link**. The answer is always *Check your inbox*, whether or not an account uses that address, so the screen never tells a stranger which emails have accounts.
+  </Step>
+  <Step>
+    If the address belongs to an active account that has a password, an email arrives with a link that is good for **one hour**.
+  </Step>
+  <Step>
+    The link opens **Reset Password**: choose a **New password** (the same rules as everywhere, see [Passwords](#passwords)). The page says *Your password has been changed* and signs you out **on every device**: sign in again with the new password.
+  </Step>
+</Steps>
+
+A link that is expired, already used or unknown opens *This reset link doesn't work anymore* with **Request a new link**. An instance that cannot send email cannot send the link, so the email never arrives there.
 
 ## Turn on two-factor
 
