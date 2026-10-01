@@ -72,7 +72,7 @@ One firewall rule an operator typed, in the wire contract words; rules derived f
 | `updated_at` | `timestamp(3) with time zone` | no | `now()` | Last write time; the ORM sets it to `now()` on every update. |
 | `organization_id` | `uuid` | no |  | FK → [`organization`](/docs/database/organizations#organization).`id` (on delete cascade). Owning organization; cascade-deletes the rule with the org. |
 | `server_id` | `uuid` | yes |  | FK → [`server`](/docs/database/runtime#server).`id` (on delete cascade). The one server the rule applies to; null means every server in the organization. |
-| `label` | `text` | no |  | Operator label shown in the app, also sent to the host as the rule's comment, so it uses the comment alphabet. |
+| `label` | `text` | no |  | Operator label shown in the console, also sent to the host as the rule's comment, so it uses the comment alphabet. |
 | `scope` | `text` | no |  | `host` for the host's own listeners or `published` for a port Docker publishes for a container. |
 | `action` | `text` | no |  | `accept` allows, `drop` blocks silently and `reject` blocks and tells the sender. |
 | `proto` | `text` | no |  | `tcp`, `udp` or `any`; ports are meaningful only for `tcp` and `udp`. |
