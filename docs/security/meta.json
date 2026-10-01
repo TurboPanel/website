@@ -5,6 +5,7 @@
     "reporting",
     "trust-boundaries",
     "daemon-trust-model",
+    "signing-key-rotation",
     "organization-ca"
   ]
 }

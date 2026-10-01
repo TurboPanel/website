@@ -53,7 +53,7 @@ WireGuard PSK files are deleted after apply; they never appear in Ansible extra-
 
 ## Updates
 
-Channel manifest from CDN → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS** from the published CDN origin; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. There is no separate cryptographic signature on manifests or artifacts today — treat TLS to the CDN plus checksum verification as the current trust boundary. Artifact signing may be added in a future release.
+Channel manifest from CDN or GitHub Releases → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS**; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. Every production manifest also carries an **Ed25519 signature** made with the release signing key. The installer, the daemon, and the control plane each verify it against one pinned public key and refuse a missing, malformed, or foreign signature; the daemon and the control plane also refuse a validly signed manifest that is older than the build they already know about. The key is a single trusted key today: see [Signing key rotation](/docs/security/signing-key-rotation) for what changing it involves.
 
 ## Data sent to the control plane
 
@@ -95,6 +95,7 @@ Organization CA rotation (managed-database / ProxySQL / replication leaves — n
 
 ## Related
 
+- [Signing key rotation](/docs/security/signing-key-rotation)
 - [Trust boundaries](/docs/security/trust-boundaries) — what each part reaches if it is compromised
 
 - [Daemon setup](/docs/deployment/daemon-setup)
