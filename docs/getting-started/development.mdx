@@ -105,9 +105,9 @@ Use **←** / **→** to switch areas in `./console` (`ActiveArea = "developer" 
 | Area | Contents |
 | ---- | -------- |
 | **Services** | Service list/detail, restart, runtime switch (Deno/Workers) |
-| **Developer** | Fleet, database, shell, **Converge / re-converge**, cell trace |
+| **Developer** | **Repair install**, **Converge / re-converge development environment**, **Optional services…**, **Reset development environment**, **Reset dev database**, **Run tests…**, cell trace, **Purge completely** |
 
-In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc** returns to the section list.
+In the **Developer** area: **↑↓** picks an action and **Enter** runs it (destructive actions ask for confirmation first).
 
 ## Instance runtime modes
 
@@ -144,7 +144,7 @@ TurboPanel ships versioned SQL migrations in `turbopanel/migrations/`. Co-locate
 ./scripts/introspect.sh    # pull live DB → instance schema.ts
 ```
 
-For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). The dev console **Database** section can reset the dev instance or start Drizzle Studio.
+For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). Developer → **Reset dev database** wipes the dev schema and re-applies the migrations; Drizzle Studio is on the **Services** list.
 
 ### Formatting
 

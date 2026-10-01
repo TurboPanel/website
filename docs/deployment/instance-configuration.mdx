@@ -5,7 +5,7 @@ description: Every environment variable a self-hosted TurboPanel instance reads 
 
 # Instance Configuration Reference
 
-What a **self-hosted instance** (the Deno control plane, `turbopanel-instance`) reads from its environment at boot, in one place. On a managed install the daemon's `instance-launch` role writes these into the unit and `/etc/turbopanel/instance/runtime.env`; you only set them by hand on a bespoke host. TurboPanel High Availability (Cloudflare Workers) reads the subset marked *Workers too* from Wrangler vars and secrets.
+What a **self-hosted instance** (the Deno control plane, run by the `turbopanel-instance` unit from `/opt/turbopanel/bin/turbopanel`) reads from its environment at boot, in one place. On a managed install the daemon's `instance-launch` role writes these into the unit and `/etc/turbopanel/instance/runtime.env`; you only set them by hand on a bespoke host. TurboPanel High Availability (Cloudflare Workers) reads the subset marked *Workers too* from Wrangler vars and secrets.
 
 Three behaviours matter more than any single value:
 
@@ -17,7 +17,7 @@ Three behaviours matter more than any single value:
 
 | Variable | Read by | Behaviour |
 | -------- | ------- | --------- |
-| `TURBOPANEL_DATABASE_URL` | boot, `migrate` verb | Postgres URL. Socket form on managed installs: `postgresql://<user>:<pass>@/<db>?host=/var/run/turbopanel/postgres`. **Throws** `TURBOPANEL_DATABASE_URL is required` when unset. The compiled binary can only reach Postgres over that Unix socket path (its `--allow-net` is pinned); TCP Postgres is a source-mode development option. |
+| `TURBOPANEL_DATABASE_URL` | boot, `migrate` verb | Postgres URL. Socket form on managed installs: `postgresql://<user>:<pass>@/<db>?host=/var/run/turbopanel/postgres`. **Throws** `TURBOPANEL_DATABASE_URL is required` when unset. Managed installs reach Postgres over that Unix socket path; TCP Postgres is a source-mode development option. |
 | `TURBOPANEL_SECRET` or `TURBOPANEL_SECRETS` | boot | The root secret keyring (session signing, OTP and TOTP verifiers, data-encryption key derivation). `TURBOPANEL_SECRETS` is the versioned form `2:<new secret>,1:<old secret>` written by `instance-launch` to `/etc/turbopanel/instance/.instance_secrets`. The **first** entry is the current key: it signs and encrypts, and the later entries only verify and decrypt. List the highest version first. An out-of-order list is used as written, with a warning in the log, so putting the old key first keeps signing with it. `TURBOPANEL_SECRET` is a single value. **Throws** when neither is set. Losing this keyring loses every encrypted row — see [Security](/docs/deployment/security). |
 
 ## Runtime services
@@ -26,7 +26,7 @@ Three behaviours matter more than any single value:
 | -------- | ------- | --------- |
 | `TURBOPANEL_REDIS_SOCKET` | `/run/turbopanel/redis.sock` | Redis over a Unix socket: daemon cell (presence, outbox, request correlation), query cache, auth and daemon rate limiters. Opened lazily; not validated at boot. |
 | `TURBOPANEL_AMQP_URL` | probe `amqp://guest:guest@localhost:19828`, else no-op | RabbitMQ for the email queue (the instance's in-process email consumer drains it). **Empty string** means "no queue" explicitly; **unset** probes the dev broker URL and falls back to a no-op queue with one log line. Managed installs set it from the `rabbitmq` role. |
-| `TURBOPANEL_UPDATE_CHANNEL` | `trunk` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
+| `TURBOPANEL_UPDATE_CHANNEL` | `release` | The channel this instance resolves **daemon** updates on (`trunk`, `canary`, `rc`, `release`; `edge` reserved). Every queued update carries it. An unknown value is a boot error, like the daemon's. Managed installs write the channel they installed from. |
 | `TURBOPANEL_INSTANCE_SERVICE` | `turbopanel-instance` | The systemd unit the developer surface restarts after Upgrade System. Set it only when the unit has a non-standard name. |
 
 ## Paths (FHS layout)
@@ -77,9 +77,9 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 | Variable | Default | Behaviour |
 | -------- | ------- | --------- |
 | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | `90` | How long the DuckDB metrics store keeps samples. *Workers too (Analytics Engine).* |
-| `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS`, `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | DuckDB defaults | Resource caps for the embedded store. |
-| `TURBOPANEL_EXECUTION_LOG_DRIVER` | `file` | `file` or `s3`. With `s3`: `TURBOPANEL_EXECUTION_LOG_S3_BUCKET`, `_ENDPOINT`, `_REGION`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_FORCE_PATH_STYLE`. |
-| `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS` | driver default | Retention for command and deploy logs. *Workers too.* |
+| `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS`, `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | `2`, `128` (MiB) | Resource caps for the embedded store. |
+| `TURBOPANEL_EXECUTION_LOG_DRIVER` | `file` | `file` (the default) or `s3`; any other value falls back to files. With `s3`: `TURBOPANEL_EXECUTION_LOG_S3_BUCKET`, `_ENDPOINT`, `_REGION`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_FORCE_PATH_STYLE`. |
+| `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS` | `90` | Retention for command and deploy logs. *Workers too.* |
 | `TURBOPANEL_DAEMON_WS_INBOUND_LIMIT`, `TURBOPANEL_DAEMON_WS_INBOUND_WINDOW_MS` | built-in | Per-daemon inbound WebSocket rate limit. *Workers too.* |
 | `TURBOPANEL_ARGON2ID_MEMORY_KIB`, `TURBOPANEL_ARGON2ID_TIME_COST` | built-in | Password-hash work factor; the hasher is verified available at boot. |
 | `TURBOPANEL_UI_CORS_ORIGINS` | unset | Extra browser origins (a docs site, a Metro dev server) allowed read-only cross-origin API access. *Workers too.* |

@@ -25,20 +25,20 @@ TurboPanel uses **versioned SQL migrations** in `turbopanel/migrations/` (applie
 
 ## Reset dev database
 
-**Developer console (superadmin):** `/developer/database` → **Reset Dev Instance** — drops `public`, re-pushes `schema.ts`, restarts instance. UI redirects through `/recovering` then `/install` or `/sign-in`.
+**Dev console:** Developer → **Reset dev database** (asks for confirmation) — drops the `public` schema, re-applies the migrations, and restarts the instance into the install wizard.
 
 **Manual:**
 
 ```bash
 # From dev/ with Postgres running
-./scripts/sync.sh --force   # after DROP SCHEMA public CASCADE; or use reset-dev API
+./scripts/sync.sh --force   # push schema.ts for quick iteration; to rebuild from migrations use Reset dev database
 ```
 
 **Nuclear (dev only):** stop the instance (`systemctl stop turbopanel-instance`), remove the Postgres container and its data volume (`docker rm -f turbopanel-database && docker volume rm turbopanel-database`), then Developer → **Converge / re-converge** (recreates empty Postgres and applies migrations).
 
 ## Drizzle Studio
 
-- Start from the developer console Database section.
+- Enable it from the **Services** list in `./console` (Drizzle Studio is on by default in the optional-services picker).
 - Open `https://local.drizzle.studio?host=localhost&port=4983`.
 - Studio applies DDL directly — follow with `dev/scripts/introspect.sh` to pull changes into `schema.ts`.
 - Close Studio before running `dev/scripts/sync.sh` to avoid connection contention.
