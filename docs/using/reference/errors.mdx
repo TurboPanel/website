@@ -256,6 +256,7 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | --- | --- | --- |
 | `invitation_pending` | 409 | A pending invitation for that email and team already exists. |
 | `email_unavailable` | 503 | The control plane cannot send email, so the invitation was not created. |
+| `Only an owner can remove an owner` | 403 | A manager tried to remove an owner from the organization's **Members**. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
 | `invalid_grant` | 400 | A grant names an unknown permission or an entity outside the organization. |
 | `gone` | 410 | The invitation's team or organization no longer exists. |
@@ -264,6 +265,12 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | `last_sign_in_method` | 409 | The provider cannot be unlinked; it is the account's only way to sign in. |
 | `invitation_unavailable` | 410 | The invitation link was already used, has expired or was revoked; `status` says which. |
 | `account_exists` | 409 | The invitation's email already has an account: sign in, then accept the invitation. |
+| `reauth_required` | 403 | The organization asks for confirmation before a permanent action (delete a project, environment, server or managed database, remove a member, revoke a key). The body names the `action` and the `methods` accepted; prove it with `POST /auth/reauth`, then repeat. |
+| `reauth_unavailable` | 400 | `POST /auth/reauth` on an account with no password and no authenticator; sign in again. |
+| `incorrect_current_password` | 400 | Change password: the current password is wrong. |
+| `password_unchanged` | 400 | Change password: the new password equals the current one. |
+| `password_breached` | 400 | The new password appears in a known data breach (sign-up, invitation sign-up, password reset, change password). The check fails open if the lookup is unreachable. |
+| `no_password` | 409 | Change password on an account that signs in without a password. |
 | `oauth_reauth_required` | redirect (`?error=`) | Linking a provider needs a session younger than 15 minutes. |
 
 ## Notifications

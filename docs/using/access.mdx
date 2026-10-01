@@ -90,6 +90,30 @@ The accepted invitation creates the team membership and, by default, an **organi
   An invitation is accepted only by an account whose email equals the invited address (case-insensitively). Forwarding the link to another address does not work; revoke and re-invite instead.
 </Callout>
 
+## Members
+
+**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member**, the highest organization permission the person holds) and *Joined* date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
+
+<Steps>
+  <Step>
+    **Remove** on a row asks *Remove \<person\> from this organization? They lose all access.* Confirm.
+  </Step>
+  <Step>
+    The person's team memberships and every grant they hold inside the organization are deleted in one step. Their next request is refused and the organization drops out of their list. Their account, their sessions and their other organizations are untouched.
+  </Step>
+</Steps>
+
+To leave yourself, use **Leave organization** on your own row (*Leave this organization? You lose all access to it.*). Anyone can leave.
+
+| Rule | What happens |
+| --- | --- |
+| Owners and managers may remove people | Anyone else is refused (`Forbidden`, 403). |
+| Only an owner can remove an owner | A manager removing an owner is refused (`Only an owner can remove an owner`, 403). |
+| The last owner cannot be removed or leave | Refused (`Cannot remove the last owner of an organization`, 409). Make another person an owner first. |
+| Removal is recorded | The audit log records `member.remove`, and the person is told their access was revoked. |
+
+When the organization has turned on **Ask people to confirm it is them before permanent actions**, removing a person (and leaving) first asks you to confirm your password; see [Account security](/docs/using/account-security#permanent-actions).
+
 ## Assign a permission
 
 **Access → Access grants.** Owner-only; others see *You don't have permission to manage access on this scope.*
@@ -106,7 +130,7 @@ The accepted invitation creates the team membership and, by default, an **organi
   </Step>
 </Steps>
 
-Subject IDs are the account, team or organization ids. The app does not yet list members with their ids — the teams are in the **Team** picker, and a user's id comes from the API (`GET /api/client/v1/authn/session` shows your own). Grants are allow-only — there is no deny row, and team membership is not removed from the app in this release; take access away by revoking the grant.
+Subject IDs are the account, team or organization ids. The teams are in the **Team** picker, and a person's id is in the **Members** list (`GET /organizations/:id/members`); your own is in `GET /api/client/v1/authn/session`. Grants are allow-only — there is no deny row. To take a person's access away entirely, remove them under **Members** rather than revoking grants one by one.
 
 ## Reference
 
@@ -135,6 +159,7 @@ Subject IDs are the account, team or organization ids. The app does not yet list
 | `Entity not found` | 404 | The grant target is not in this organization. |
 | `… may only be granted on organization entities` / `… on team entities` | 400 | The permission does not fit the target kind. |
 | `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. A team has the same rule: `Cannot remove the last owner of a team`. |
+| `Only an owner can remove an owner` | 403 | A manager tried to remove an owner from **Members**. Ask an owner. |
 | `You don't have permission to manage access on this scope.` | 403 | Grant management needs `organization:own` on the target. |
 
 ## Related

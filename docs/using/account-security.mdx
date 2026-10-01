@@ -117,7 +117,34 @@ TurboPanel stores the provider identity only — no provider tokens. A provider 
 
 ## Passwords
 
-The same rule is enforced on every path that sets a password (install, sign-up, reset): at least **8** characters, at most 256, at least one **number**, at least one of `$ ! @ % & * # ^ ( ) _ + = -`, and no leading or trailing space. The sign-up form additionally checks the password against the Have I Been Pwned range API in the browser (k-anonymity — five hash characters leave the device) and refuses a known-breached one; see [Password safety](/docs/security/password-safety). There is no change-password screen in this release.
+The same rule is enforced on every path that sets a password (install, sign-up, reset): at least **8** characters, at most 256, at least one **number**, at least one of `$ ! @ % & * # ^ ( ) _ + = -`, and no leading or trailing space. Every one of those paths also refuses a password that appears in a known data breach (`password_breached`); see [Password safety](/docs/security/password-safety).
+
+## Change your password
+
+**Account menu → Security → Change password** (signed in; an account that has a password).
+
+<Steps>
+  <Step>
+    Type your **Current password**, then the **New password** (at least 8 characters, a number and a symbol, no space at either end) and **Confirm new password**.
+  </Step>
+  <Step>
+    **Change password.** The screen says *Password changed — Every other device was signed out. This one stays signed in.*
+  </Step>
+</Steps>
+
+The current password is checked first, and wrong guesses are limited like every other password check (5 a minute). A new password must differ from the current one and must not be a known breached password. An account that signs in only with a passkey or a linked provider has no password to change, and there is no screen to set one yet (`no_password`).
+
+## Permanent actions
+
+An organization **owner** can turn on **Manage Organization → Security → Ask people to confirm it is them before permanent actions**. It is off by default; turning it on is recommended, and the change is recorded in the audit trail. When it is on, these actions each ask the person for proof first:
+
+- delete a project, an environment, a server, a managed database, or a database inside one;
+- remove a member from the organization (or leave it);
+- revoke a license key, or a server's key.
+
+The app opens **Confirm it is you** and asks for your **password**, or the 6-digit **authentication code** from your authenticator app if two-factor is on. Once confirmed, the action goes through, and every permanent action on that sign-in is unlocked for **five minutes**; signing in counts as a confirmation, so nobody is asked straight after signing in. An account with neither a password nor an authenticator (passkey or provider sign-in only) is told to sign in again, then repeat the action.
+
+Over the API the first call answers **403** `reauth_required` with the `action`, the `methods` accepted (`password`, `totp` or `signin`) and `windowSeconds`. Prove it with `POST /auth/reauth` (`{ "password": "…" }` or `{ "code": "…" }`), which answers `expiresAt`, then repeat the call. A wrong proof is `Reauthentication failed` (403) and too many attempts is `Too many attempts` (429). This five-minute confirmation is separate from the 15-minute rule that guards changing how you sign in, described [above](#the-model).
 
 ## Reference
 
@@ -132,6 +159,7 @@ The same rule is enforced on every path that sets a password (install, sign-up, 
 | Passkeys | WebAuthn, user verification required, discoverable, ES256 / RS256; web only |
 | Email verification | 24-hour link; skipped when the control plane sends no mail |
 | Password | 8–256 characters, a number, a special character, no edge whitespace |
+| Permanent-action confirmation | organization setting, off by default; password or authenticator code; unlocks for 5 minutes on that sign-in |
 | Sessions revoked on | 2FA on/off, backup codes regenerated, passkey added/removed, provider linked/unlinked (all but the current); password reset (all) |
 
 ## Errors
@@ -143,6 +171,12 @@ Account routes answer with a short `error` string; the app shows the sentence in
 | `Invalid credentials` | 401 | Wrong email or password — the same answer whether or not the account exists. |
 | `Verify your email before signing in…` | 403 | The sign-up link has not been opened yet. |
 | `Reauthentication required` | 403 | Type your current password (a password-less account: sign in again — the 15-minute window has passed). |
+| `reauth_required` | 403 | The organization asks for confirmation before this permanent action. Prove it with `POST /auth/reauth` and repeat. |
+| `reauth_unavailable` | 400 | `POST /auth/reauth` on an account with no password and no authenticator; sign in again instead. |
+| `incorrect_current_password` | 400 | Change password: the current password is wrong. (400, not 403: the app treats a 403 as "ask again".) |
+| `password_unchanged` | 400 | Change password: the new password equals the current one. |
+| `password_breached` | 400 | The password appears in a known data breach. Choose another. Returned by sign-up, invitation sign-up, password reset and change password. |
+| `no_password` | 409 | Change password on an account that signs in without a password. |
 | `Too many requests` | 429 | Too many password checks for this account in a minute; wait and try again. |
 | `two_factor_enabled` | 409 | Two-factor is already on; disable it before enrolling again. |
 | `Not enrolled`, `Invalid code` | 400 | Verify was called without a pending enrollment, or the code did not match. A code that was already used also answers `Invalid code`. |
