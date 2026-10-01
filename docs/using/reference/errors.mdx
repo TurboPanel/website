@@ -65,7 +65,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `source_ref_unsupported` | 501 | A `ref` was sent on the deploy body; omit it. |
-| `deploy_strategy_unsupported` | 501 | A `strategy` or `migration` was sent on the deploy body; every deploy runs as the environment is configured, so omit both. |
+| `deploy_strategy_unsupported` | 501 | A `strategy` or `migration` was sent on the deploy body. Choosing a strategy per deploy is planned for 0.2.x and is not available yet; omit both and the deploy runs as the environment is configured. |
 | `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value, is malformed, or interpolates a secret into a plain field. |
 | `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
 | `datacenter_ip_required` | 422 | A `datacenter` bind on a server with no datacenter address. |
