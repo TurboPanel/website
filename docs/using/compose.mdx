@@ -67,7 +67,7 @@ Sites and Node apps are stripped out of the runtime compose the daemon runs; the
 
 ## Import a `docker run` line
 
-**Services → Import from docker run** turns a `docker run …` command into one ordinary service — plain Compose, nothing written under `x-turbopanel`, validated like a hand-written document. The importer knows every option `docker container run` accepts; the ones Compose can express are mapped, the ones that describe the container but have no Compose expression are refused with the option named (`docker_run_unsupported`), and a gated field the command asks for (`--privileged`, `--cap-add`, a Docker socket mount) is flagged as a risk before the service exists. Shell syntax in the pasted line — `$(…)`, pipes, redirection, globs — is taken as literal text and warned about, never executed.
+**Import docker run** (in the compose editor toolbar) turns a `docker run …` command into one ordinary service — plain Compose, nothing written under `x-turbopanel`, validated like a hand-written document. The importer knows every option `docker container run` accepts; the ones Compose can express are mapped, the ones that describe the container but have no Compose expression are refused with the option named (`docker_run_unsupported`), and a gated field the command asks for (`--privileged`, `--cap-add`, a Docker socket mount) is flagged as a risk before the service exists. Shell syntax in the pasted line — `$(…)`, pipes, redirection, globs — is taken as literal text and warned about, never executed.
 
 ## The `x-turbopanel` extension
 
@@ -235,7 +235,7 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `site_principal_ambiguous`, `source_principal_ambiguous` | 422 | No alias, and more than one system user could own the service. Declare the alias. |
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
-| `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker**. |
+| `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
 | `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network. |
 
 ## Errors at save

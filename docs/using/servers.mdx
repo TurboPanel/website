@@ -45,10 +45,10 @@ Two rules:
 </Steps>
 
 <Callout type="info" title="The install command carries a secret">
-  The key inside the command enrolls one host; treat the command as a password until it has been used. A key you will not use is deleted under **Servers → Keys**.
+  The key inside the command enrolls one host; treat the command as a password until it has been used. A key you will not use is deleted under **Servers → Pending keys**.
 </Callout>
 
-**Servers → Keys** lists the unconsumed keys (owner-only). **Delete** is two-press. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
+**Servers → Pending keys** lists the unconsumed keys (owner-only). **Delete** is two-press. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
 
 ## The fleet
 
@@ -58,7 +58,7 @@ Two rules:
 
 ## The control panel
 
-Open a server for five tabs: **Overview · Control · Time · Network · Metrics**.
+Open a server for six tabs: **Overview · Control · Time · Network · Firewall · Metrics**. The **Firewall** tab is described in [Firewall](/docs/using/firewall).
 
 ### Overview
 
@@ -109,7 +109,7 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 | Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
 | Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
 | Reserved name | `this server` (the co-located server) |
-| Control-panel tabs | Overview · Control · Time · Network · Metrics |
+| Control-panel tabs | Overview · Control · Time · Network · Firewall · Metrics |
 | Machine class | `auto` (default) · `physical` · `virtual` |
 | Cascades | timezone, SSH port, NTP: organization → datacenter → server |
 | Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
