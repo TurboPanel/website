@@ -22,8 +22,8 @@ flowchart TD
 | Path | Who it is for | Status today |
 | --- | --- | --- |
 | **Contributor development** | Engineers working on TurboPanel source | Available for contributors |
-| **Self-hosted control plane** | Operators who run the panel on their infrastructure | Private alpha — preview docs only |
-| **TurboPanel High Availability** | Operators who want TurboPanel to run the panel | Private alpha — [join the waitlist](https://turbopanel.app/sign-up) |
+| **Self-hosted control plane** | Operators who run the control plane on their infrastructure | Private alpha — preview docs only |
+| **TurboPanel High Availability** | Operators who want TurboPanel to run the control plane | Private alpha — [join the waitlist](https://turbopanel.app/sign-up) |
 
 Enrolling **additional managed servers** (daemons on workload hosts) uses the production installer at `turbopanel.sh` once you have a control plane — see [Additional managed server daemons](#additional-managed-server-daemons) below.
 
@@ -47,7 +47,7 @@ For **contributors** building TurboPanel itself — not for production self-host
     dev/console
     ```
 
-    The console installs pinned Node, converges the stack, and starts the Ink UI.
+    The app installs pinned Node, converges the stack, and starts the Ink UI.
   </Step>
   <Step>
     On the host, open `https://localhost:8443` (ports are forwarded). Prefer a LAN hostname when attaching remote test machines.
@@ -76,7 +76,7 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     curl -fsSL turbopanel.sh | sh
     ```
 
-    Run with nothing else, the installer downloads the current release packages (instance, UI and the
+    Run with nothing else, the installer downloads the current release packages (control plane, web app and the
     daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
     the host with the daemon's Ansible roles (Postgres, Redis, RabbitMQ, Docker, certificates, Caddy),
     applies the database migrations and starts the units — see [Control plane](/docs/deployment/control-plane)
@@ -101,10 +101,10 @@ When self-hosted is publicly available, you provision a control plane on Debian 
 <Callout type="info" title="Private alpha — join the waitlist">
   TurboPanel High Availability is **not yet publicly available**. [Join the waitlist](https://turbopanel.app/sign-up)
   for access updates. The control plane runs on a global edge network; remote daemons connect over HTTPS/WSS.
-  See [Control plane](/docs/deployment/control-plane) for how hosted coordination works.
+  See [Control plane](/docs/deployment/control-plane) for how TurboPanel High Availability coordination works.
 </Callout>
 
-When access is available, you create an organization in the hosted panel, obtain server licenses, and enroll nodes with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default).
+When access is available, you create an organization in the app, obtain server licenses, and enroll servers with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default).
 
 ## Additional managed server daemons
 
@@ -128,9 +128,9 @@ curl -fsSL turbopanel.sh | \
 
 The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
 
-Replace host and port with where the instance is reachable from the node. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
+Replace host and port with where the control plane is reachable from the server. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
 
-### Supported platforms (managed nodes)
+### Supported platforms (managed servers)
 
 | OS | Architecture |
 | -- | ------------ |
@@ -144,7 +144,7 @@ Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 ## Prerequisites (all paths)
 
 - **64-bit** Linux server (Debian 12+ recommended for Ansible paths; Raspberry Pi OS 64-bit on arm64)
-- Docker (optional — installed on demand when a node runs container workloads)
+- Docker (optional — installed on demand when a server runs container workloads)
 - SSH access to GitHub for platform repo clones on co-located dev hosts (`git@github.com:TurboPanel/...`)
 - For contributor dev: see [Prerequisites](/docs/development/prerequisites)
 
