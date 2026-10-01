@@ -5,7 +5,7 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — the command below builds the license from state on disk, and the installer reconciles the FHS tree in place.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the server is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — the command below builds the license from state on disk, and the installer reconciles the FHS tree in place.
 
 ## When to use this
 
@@ -53,13 +53,13 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-The command reads the node's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote node. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`. A self-hosted server refreshed without them would be moved to the hosted control plane and the `release` channel.
+The command reads the server's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote server. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`. A self-hosted server refreshed without them would be moved to the TurboPanel High Availability control plane and the `release` channel.
 
 The installer:
 
 1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
 2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `release`
-3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's hosted control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
+3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's TurboPanel High Availability control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
 4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
 
@@ -79,7 +79,7 @@ It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. Th
 
 ## Pre-flight errors
 
-The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the panel is driving the run):
+The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the control plane is driving the run):
 
 | Code | Meaning |
 | --- | --- |
@@ -115,7 +115,7 @@ non-pre-release on the daemon's
 follows the rolling `rc` pre-release there, `canary` follows the rolling
 `canary` pre-release — the newest green build of `trunk`, replaced on every
 merge (see [Canary environment](/docs/development/canary)) — and `trunk` is
-the per-merge build drop the hosted platform follows. `edge` is reserved with
+the per-merge build drop TurboPanel High Availability follows. `edge` is reserved with
 no built-in location. The example below sets `trunk` explicitly (the default is `release`):
 
 ```bash
@@ -149,7 +149,7 @@ sudo systemctl status turbopaneld
 curl -sS https://turbopanel.app/api/daemon/v1/version   # or your instance URL
 ```
 
-In the UI, refresh the servers page — the node should show **Online** with a current commit on the update row.
+In the UI, refresh the servers page — the server should show **Online** with a current commit on the update row.
 
 ## Related
 

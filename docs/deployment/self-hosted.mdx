@@ -21,7 +21,7 @@ Self-hosted TurboPanel delivers the **same product** as TurboPanel High Availabi
 | Data residency you control | Panel data stays on infrastructure you provision |
 | Predictable infra cost | Control plane is planned to be **free, unlimited servers** — you pay for VMs and ops time |
 
-TurboPanel High Availability is the planned default when you prefer TurboPanel to operate the panel. **Both paths are in private alpha and not yet publicly available.**
+TurboPanel High Availability is the planned default when you prefer TurboPanel to operate the control plane. **Both paths are in private alpha and not yet publicly available.**
 
 ## What you run
 
@@ -38,7 +38,7 @@ When self-hosted is publicly available, operators follow this sequence:
 
 <Steps>
   <Step>
-    **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel on Debian or Raspbian
+    **[Control plane deployment](/docs/deployment/control-plane)** — provision the control plane on Debian or Raspbian
     (the bootstrap refuses other distributions) with `curl -fsSL turbopanel.sh | sh` (a managed FHS install from the
     release packages, converged by the daemon's Ansible roles; private alpha preview).
   </Step>
@@ -60,7 +60,7 @@ When you run managed databases, hosts that serve SQL clients also converge Proxy
 
 ## Compose projects: compiled runtime file
 
-When you deploy a Docker Compose project from the panel, TurboPanel stores a **project** base compose and an **environment** overlay, then compiles them into a **single** `compose.yaml` the daemon runs:
+When you deploy a Docker Compose project from the app, TurboPanel stores a **project** base compose and an **environment** overlay, then compiles them into a **single** `compose.yaml` the daemon runs:
 
 `docker compose -p <project-id> -f compose.yaml`
 

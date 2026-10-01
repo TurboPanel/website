@@ -31,15 +31,15 @@ Let's Encrypt HTTP-01 calls the public hostname on port 80. Control-plane Caddy 
 2. For each Let's Encrypt hostname, `http://<host>/.well-known/acme-challenge/*` is forwarded to the issuer and the Host header is kept. Every other path on that temporary site answers 404.
 3. `turbopanel-instance-acme.service` runs for the window. It is not enabled at boot. The daemon starts it and stops it. Its log is `/var/log/turbopanel/instance-acme.log`.
 4. Before the order, the daemon publishes a nonce and requires `http://<hostname>/.well-known/acme-challenge/<nonce>` to return it. A miss fails the apply. The detail phrase is `did not reach the instance ACME issuer`, and that error is stored on the hostname.
-5. When the leaf is stored, the daemon copies it into the instance certificate directory, stops the issuer, removes the temporary site, and reloads control-plane Caddy so `https://<host>:8443` presents the new certificate. When hosting Caddy then has no tenant sites left, it is stopped. A later renewal failure leaves the previous expiry in place.
+5. When the leaf is stored, the daemon copies it into the control plane certificate directory, stops the issuer, removes the temporary site, and reloads control-plane Caddy so `https://<host>:8443` presents the new certificate. When hosting Caddy then has no tenant sites left, it is stopped. A later renewal failure leaves the previous expiry in place.
 
-The contact email, subscriber agreement, directory URL, and staging switch are under Admin → **Access** → **Certificates**. The matching `TURBOPANEL_INSTANCE_ACME__*` variable wins and the field is read-only. See [Instance configuration](/docs/deployment/instance-configuration).
+The contact email, subscriber agreement, directory URL, and staging switch are under Admin → **Access** → **Certificates**. The matching `TURBOPANEL_INSTANCE_ACME__*` variable wins and the field is read-only. See [Control plane configuration](/docs/deployment/instance-configuration).
 
 ## Tenant sites
 
 Tenant hostnames are a different certificate. Hosting Caddy on the serving server listens on **:443**, and on **:80** while those sites are deployed. A hosting row can pin an uploaded or self-signed library certificate, Caddy `tls internal`, or a **Let's Encrypt** library row that Caddy issues and renews on that host (`tlsMode: acme`). HTTP-01 is the only challenge, so the hostname must resolve to that server, **:80** and **:443** must be reachable from the internet, and the bind scope must be **public**. `local` and `datacenter` binds are refused with `acme_requires_public_bind`. Wildcards and DNS-01 are rejected when the library row is created.
 
-That organization's opt-in does not obtain a certificate for the panel. See [Hosting](/docs/using/hosting) and [Organization CA](/docs/security/organization-ca).
+That organization's opt-in does not obtain a certificate for the control plane. See [Hosting](/docs/using/hosting) and [Organization CA](/docs/security/organization-ca).
 
 ## Related
 

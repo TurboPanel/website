@@ -15,7 +15,7 @@ that is not on the new build yet.
 
 A **platform upgrade** (Admin → Updates, or an automatic run) does impose an order on
 self-hosted: this host's daemon, then the control plane, then the other servers, and the
-fleet does not start until the first two are on target. That order is the upgrade run.
+the servers step does not start until the first two are on target. That order is the upgrade run.
 It is not a version floor, and it does not drop a socket. See
 [Upgrade and rollback](/docs/deployment/upgrade).
 
@@ -50,7 +50,7 @@ Promotion is a pointer move — the bytes that soaked on `rc` are the bytes `rel
 | --- | --- | --- |
 | Control plane → daemon | `0.1.0` | The daemon reports its version on `hello`. A supported daemon runs commands; an unsupported one keeps its connection but every command fails with `daemon_unsupported` until it updates. A daemon that reports no version passes as unknown. |
 | Daemon → control plane | `0.1.0` | Every daemon REST response, including a non-OK response and the 401 before a session refresh, carries `x-turbopanel-version`. A socket-only session carries `{ type: "version", instanceVersion }` on attach. A response or frame that omits the version clears the last observation back to unknown, and unknown passes. An unsupported control plane is logged (`instance-version:`) and the daemon keeps reconnecting. The daemon also refuses to install a control-plane package below this floor. A missing or non-semver target is unknown and is allowed. The control plane accepts `instance-update` from any connected daemon. |
-| App → instance | `0.1.0` | The instance stamps `x-turbopanel-version` on every response and the app sends `x-turbopanel-client-version`. The native app refuses to connect to an older instance and says which version it needs; an instance that sends no header is accepted. The bundled web UI always matches its instance. |
+| App → control plane | `0.1.0` | The control plane stamps `x-turbopanel-version` on every response and the app sends `x-turbopanel-client-version`. The native app refuses to connect to an older control plane and says which version it needs; a control plane that sends no header is accepted. The bundled web UI always matches its control plane. |
 
 Both floors are **0.1.0**, so any `0.1.x` peer is in window and a `0.0.x` peer is not. The window may trail the current release by
 several minor versions. Raise both floors in the same change, and record why.
@@ -67,7 +67,7 @@ sides advertise four features:
 - `managed-upgrade-v1`: pinned backup and rollback on a platform upgrade.
 - `update-progress-v1`: fire-and-forget stage reports (preparing, downloading,
   installing, restarting, verifying, done, failed, rolled-back).
-- `sealed-instance-secrets-v1`: the daemon opens sealed envelopes for the instance TLS
+- `sealed-instance-secrets-v1`: the daemon opens sealed envelopes for the control plane TLS
   keys and the tunnel token, so the control plane sends those secrets sealed to that one
   daemon instead of as plaintext. A daemon that does not list it still gets the legacy
   plaintext fields until the floor moves; one that lists it but cannot be sealed to is
@@ -91,7 +91,7 @@ A panel feature that depends on a daemon-rendered artifact has its own minimum,
 separate from the floor. Unknown is unsupported for a feature. The first entry
 is `instance-cert-sources-per-hostname` at daemon **0.1.1**: per-hostname
 certificate sources on the control-plane Caddyfile. Older daemons stay
-connected and receive the flat public-URL list only. The console reads
+connected and receive the flat public-URL list only. The app reads
 `resolveDaemonCapabilities` and does not compare versions itself.
 
 Mixing channels (a `canary` control plane with `release` daemons, or the reverse)
@@ -104,7 +104,7 @@ from the CDN and has no control-plane package to mix.
 | --- | --- |
 | Daemon | `turbopaneld --version` → `turbopaneld v0.1.0 <commit> (…)` |
 | Control plane (self-hosted) | `GET /api/health` → `version` and `revision.commit` (the release job stamps the exact commit) |
-| Control plane (TurboPanel High Availability) | `GET /api/health` on the hosted origin, or the `x-turbopanel-version` response header |
+| Control plane (TurboPanel High Availability) | `GET /api/health` on the TurboPanel High Availability origin, or the `x-turbopanel-version` response header |
 | UI | The **About** screen; the web export ships as `turbopanel-ui-<version>.tar.gz` and reports itself in `x-turbopanel-client-version` |
 | Server page | The daemon panel shows the running version and commit and names the channel target by version |
 
