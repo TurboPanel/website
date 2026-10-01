@@ -154,7 +154,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `principal_alias_unknown`, `principal_required_for_service_kind`, `site_principal_ambiguous`, `source_principal_ambiguous`, `site_cron_unowned`, `site_managed_directory_unowned` | 422 | Ownership of a site or Node app is missing or ambiguous — declare `x-turbopanel.principal`, or assign a system user on **Bindings**. |
 | `source_ref_unresolved` | 422 | A source service's branch does not exist or the provider refused the lookup. |
 | `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value at any scope, is malformed, or interpolates a secret into a plain field. |
-| `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
+| `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker networks**. |
 | `datacenter_ip_required` | 422 | A hosting row binds to the `datacenter` scope on a server with no datacenter address. |
 
 ### Fix the placement or the fleet
