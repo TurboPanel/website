@@ -44,6 +44,7 @@ Supporting line for the self-hosted split: *"Self-host it when you need to; let 
 Voice rules:
 
 - Plain words a developer would say out loud: **host, run, one place, fast, always-on, your servers**. "Control plane" belongs in technical and docs copy; headlines prefer "panel" or "one place".
+- **Names for the parts** live on `docs/getting-started/terminology.mdx` and apply to docs, app copy, errors, emails and installer output: **control plane** (the program), **app** / **web app** (what you sign in to), **daemon**, **server**, **administrator**, **Self-hosted** and **TurboPanel High Availability**. Never write *console*, *panel* for the app, *instance* in customer copy, *hosted instance*, *node*, *dashboard* or *fleet* in new copy. The brand slogans above keep "panel" as written.
 - Machine-brochure vocabulary is **banned and enforced**: `pnpm check:vocabulary` fails on the marketing-phrase block in `src/lib/vocabulary.ts` (kept in sync across sibling repos). Beyond the enforced stems, also avoid: streamline, unlock, unified platform, cloud-native, cutting-edge, leverage, robust.
 - **Infrastructure story:** TurboPanel High Availability runs on **"a global edge network"** — close to users and their servers, fast and always on, worldwide. Never name the underlying vendor or its products in marketing/docs copy.
 - **Claim boundary:** "always-on" and "High Availability" describe the **control plane only**. Never imply customer workloads become highly available automatically — "always-on hosting" and "your apps never go down" are off-limits.
