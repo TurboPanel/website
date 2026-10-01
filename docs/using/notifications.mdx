@@ -104,6 +104,7 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | `signing_secret_invalid` | 400 | 1–256 characters. |
 | `rule_event_unknown` | 400 | A rule names an event that is not in the catalogue (`reason` carries it). |
 | `rule_severity_invalid`, `rules_invalid` | 400 | The rule list is malformed. |
+| `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or the pause flag is not true or false. |
 | `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
 | `Forbidden` | 403 | Organization channels need `organization:manage`. |
 | `Not found` | 404 | The channel or the inbox row is not yours. |

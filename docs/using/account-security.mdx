@@ -152,9 +152,9 @@ Account routes answer with a short `error` string; the console shows the sentenc
 | `Invalid credential` | 400 | The browser's WebAuthn response did not verify (wrong origin, counter went backwards, no user verification). |
 | `Not found` | 404 | The passkey is not on this account. |
 | `last_sign_in_method` | 409 | Unlinking would leave no password, passkey or other provider. |
-| `oauth_state_invalid` | redirect | *Sign-in expired. Try again.* — the 10-minute provider round trip took too long, was tampered with, or came back in a different browser from the one that started it. A sign-in in progress while the control plane was upgraded also fails this way once. |
+| `oauth_state_invalid` | redirect | *Sign-in expired or was started in another browser. Try again.* — the 10-minute provider round trip took too long, was tampered with, or came back in a different browser from the one that started it. A sign-in in progress while the control plane was upgraded also fails this way once. |
 | `oauth_email_unverified` | redirect | The provider has not verified this email address, so it cannot be used to create an account. Verify it with the provider, or sign up with a password. |
-| `oauth_exchange_failed` | redirect | *Could not complete sign-in.* — the provider refused the code exchange. |
+| `oauth_exchange_failed` | redirect | *Could not complete sign-in. Try again.* — the provider refused the code exchange. |
 | `oauth_signup_disabled` | redirect | *New accounts cannot be created this way.* — no linked account and sign-up is closed. |
 | `account_conflict` | redirect | The provider identity belongs to another user. |
 | `account_disabled` | redirect | The account is disabled. |
