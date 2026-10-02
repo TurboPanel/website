@@ -95,6 +95,8 @@ Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written 
 
 `HYPERDRIVE` / `HYPERDRIVE_CACHED` (Hyperdrive bindings), `TURBOPANEL_COMMAND_QUEUE` (Cloudflare Queue binding), `TURBOPANEL_TLS_CA_PEM_B64` (the platform CA served to daemons), `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `TURBOPANEL_PROJECT_ID`, and the Stripe billing secrets. These are configured in `wrangler.jsonc` and the Cloudflare dashboard; the self-hosted binary never reads them.
 
+**Stripe webhook signing secret (High Availability).** A Stripe Dashboard webhook endpoint has its own `whsec_…` signing secret, distinct from the one the Stripe CLI prints. Set it with `wrangler secret put TURBOPANEL_STRIPE_WEBHOOK_SIGNING_SECRET` (a secret, never a `vars` entry); until it is set, `/webhook/stripe` answers `503 stripe_webhook_not_configured`. A self-hosted control plane has no billing surface and no Stripe webhook, so there is nothing to set there.
+
 ## The install-time verbs
 
 The compiled instance binary carries three verbs the installer runs before the unit exists, each reading the variables above: `turbopanel migrate` (`TURBOPANEL_DATABASE_URL`), `generate-secret` (none), and `generate-self-signed-cert` (`TURBOPANEL_STATE_DIR`, `TURBOPANEL_TLS_*`, `TURBOPANEL_PUBLIC_URLS`, `TURBOPANEL_TLS_EXTRA_SANS`). None of them loads the metrics store, so they run without `libduckdb.so` on the library path.
