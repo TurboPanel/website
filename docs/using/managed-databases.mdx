@@ -133,7 +133,7 @@ Existing principals are never renamed by a default or a lock change. The chosen 
 
 | Replica class | Where | What it is for |
 | --- | --- | --- |
-| **Failover replica** | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand. |
+| **Failover replica** | Same datacenter as the primary | A **switchover** on demand, and the only replica an automatic failover may promote (with the limits [below](#what-automatic-failover-does-and-does-not-do-today)). |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 <Steps>
@@ -151,7 +151,31 @@ Existing principals are never renamed by a default or a lock change. The chosen 
   </Step>
 </Steps>
 
-Automatic failover is fenced: the platform promotes a same-datacenter failover replica when the primary dies and it can confirm the old primary is isolated; when it cannot, it refuses and says so rather than risk two writers.
+A cluster accepts **one member per server**: adding a replica on a server that already holds a member of the cluster (the primary included) is refused with `managed_member_exists`.
+
+### What automatic failover does and does not do today
+
+<Callout type="warn" title="Private alpha: do not rely on it">
+  A **manual Promote** works and is the dependable way to move the writer. Automatic failover is
+  only partly built: it has not yet been proven on a live cluster, it does not run for PostgreSQL,
+  and it does not recover from losing a whole server. Treat it as a bonus, not as your protection.
+</Callout>
+
+**Manual promote (works).** **Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and re-points the endpoint, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind; the app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**. The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`); a promote you start yourself goes ahead even when the old primary cannot be reached.
+
+**Automatic failover (MySQL and MariaDB only, same datacenter only).** The detector is **Orchestrator**, which TurboPanel runs on the servers that host a primary or a failover replica. The daemon asks its local Orchestrator for a dead primary every 15 seconds and tells the control plane. The control plane then picks the lowest-numbered same-datacenter **failover** replica that passes the same streaming and lag check (a replica's **serves read traffic** setting makes no difference), **stops the old primary**, promotes the replica and re-points the endpoint. The steps and the reason for any refusal are kept as the cluster's latest recovery record.
+
+What it does **not** do:
+
+| Case | What happens |
+| --- | --- |
+| **PostgreSQL** | Nothing triggers. The bundled Orchestrator speaks only the MySQL protocol, so PostgreSQL clusters are not registered with it and no dead-primary signal exists. Promote by hand. A PostgreSQL detector is still in development. |
+| **Whole server lost** | Not automatic. Automatic failover goes ahead only once the old primary has been stopped; when its server cannot be reached, it cannot be stopped and the control plane refuses to promote (`Automatic failover blocked: unable to verify previous primary is fenced`) rather than risk two writers. Promote the replica yourself. |
+| **No usable replica** | It refuses and says why: no same-datacenter failover replica exists, or none is healthy enough. |
+| **Read replicas** | Never promoted automatically, whatever their health. |
+| **Another datacenter** | Never automatic. Orchestrator runs one **Raft group per datacenter**, made only of the servers hosting that datacenter's primaries and failover replicas, so a failover never crosses datacenters. Use **Promote for disaster recovery**. |
+
+Because it is a Raft group, a datacenter needs a majority of its Orchestrator servers up to elect a leader, and Orchestrator reports nothing without one. With two servers in the datacenter, losing either leaves no leader, so no event is sent at all.
 
 ## Backups
 
@@ -233,7 +257,7 @@ What to know:
 | `server_placement_required` | 409 | No server chosen for the primary. |
 | `server_offline` | 409 | The action needs the member's daemon connected. |
 | `managed_busy` | 409 | The cluster is provisioning or applying; wait for it. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists; the primary cannot be removed; the cluster has no primary. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary. |
 | `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
 | `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport` | 422 | A failover replica needs a trusted datacenter and a datacenter path to the primary. |
 | `fabric_address_required` | 422 | A remote replica or consumer needs a TurboFabric address on its server. |

@@ -42,7 +42,7 @@ baseline response-header set on every response: `Strict-Transport-Security`
 are a separate Caddy config the daemon generates and do not inherit these
 headers.
 
-Self-High Availability deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the control plane socket:
+Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the control plane socket:
 
 ```nginx
 # nginx example — proxy to Caddy HTTPS or upstream HTTP
@@ -87,6 +87,7 @@ The control plane implements:
 - Passkeys (WebAuthn, user-verification required, browser-only)
 - GitHub / Google sign-in with **identity persisted only, no provider tokens, and no automatic linking by email**
 - Re-authentication (password, or a session younger than 15 minutes) for enroll/disable 2FA, passkey add/remove, and provider unlink
+- Optional **step-up re-authentication** before permanent actions (delete a project, environment, server or managed database, remove a member, revoke a license or server key). An organization owner turns it on; it is off by default and recommended. See [Account security](/docs/using/account-security#permanent-actions)
 - Host PAM gate for the Deno install wizard (not for routine sign-in)
 - WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
 
@@ -121,7 +122,31 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
-A **Docker gate** is being built to narrow this route (coming in 0.2.x). Today it is **observe-only**: a root-owned `turbopanel-docker-gate` service on managed hosts with Docker forwards requests to Docker unchanged and logs what a strict profile would refuse. Nothing is routed through it and it blocks nothing, so enforcement is off. It never stops Docker or a converge if it fails to install.
+#### Docker gate
+
+The **Docker gate** is a root-owned service, `turbopanel-docker-gate`, that the daemon's converge installs on a managed host wherever Docker runs. A failed gate install only prints a warning: it never blocks a Docker install or a converge. It listens on two Unix sockets under `/run/turbopanel-gate/`:
+
+| Socket | Who can open it | What it does today |
+| --- | --- | --- |
+| `/run/turbopanel-gate/docker.sock` (directory `root:tp 0750`, socket `root:tp 0660`) | The daemon account | **Observe only.** Forwards every request to the real Docker socket unchanged and logs what a strict profile would refuse as `docker-gate.would-deny` in the journal (`turbopanel-docker-gate`). It refuses only malformed requests (ambiguous framing, `Expect:` requests, bodies over 4 MiB, heads over 64 KiB). Nothing routes through it: the daemon still talks to the real Docker socket, so the gate blocks no policy violation. |
+| `/run/turbopanel-gate/ro/docker.sock` (directory `root:root 0750`, socket `root:root 0660`) | Root and a container's root; not the daemon account | A **read-only** listener for the Traefik ingress proxies. It answers `GET` and `HEAD` for `/_ping`, `/version`, `/events`, `/containers/json` and `/containers/{id}/json` and returns **403** for everything else. |
+
+**What the ingress switch protects.** Without it, each host's Traefik reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, Traefik mounts the read-only socket's directory instead and the proxy container is removed once no service Traefik file on the host still names it. A compromised Traefik then reaches the five read-only endpoints above, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for tenant containers or for the main socket.
+
+The switch is **off by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on` (`root:tp 0640`, written by the converge):
+
+- **Present** (and `/run/turbopanel-gate/ro` exists): the daemon renders Traefik against the read-only socket. If either is missing, it keeps the socket proxy.
+- **Absent**: Traefik keeps using the socket proxy.
+
+To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. Empty, the default, leaves the switch as it is, so an ordinary update never flips it. Any other value fails the converge before anything changes. The app has no control for it, and the root helper `tp-orchestrate` refuses extra variables that are not on its allowlist; this one is not, so neither the app nor a panel-driven update can change it. Turning it **on** writes the file and restarts the gate. With the switch on, the gate refuses to start if the read-only listener cannot open, and the converge fails unless that socket answers `/_ping`. Turning it **off** removes the file and restarts the gate. In both directions Traefik keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it. A TCP or UDP service that Traefik rendered before the switch keeps using the socket proxy until it is redeployed.
+
+**Proof script.** `scripts/docker-gate-proof.sh` in the [turbopaneld](https://github.com/TurboPanel/turbopaneld) repository is the canary check. It is not installed on hosts, so run it from a checkout, as root, on a managed host that has Docker, ideally a test host:
+
+```bash
+sudo bash docker-gate-proof.sh
+```
+
+It starts and removes throwaway `true`/`echo` containers on pinned images and prints `PASS` or `FAIL` for each check; it exits non-zero if any fails. It proves that the gate service is active with the socket modes above, that real Docker traffic (run, exec, logs, events, a Compose deploy) passes through unchanged, that the root-equivalent shapes are logged as `would-deny` and still run, that nothing routes through the gate by default, and that the read-only socket answers the five endpoints and refuses everything else. With the switch on, it also checks that a Traefik mounts the read-only directory, that no socket-proxy container is running (or notes the one a pre-switch TCP/UDP service still uses), and that a new route works after a gate restart.
 
 ### Control-plane container hardening
 
@@ -290,6 +315,22 @@ Tenant principal accounts have homes at `/srv/users/<username>`. The host picks 
 - Use TLS with the Platform CA (or a public certificate) for all daemon ↔ control plane traffic. A Let's Encrypt name, and an uploaded certificate that chains to a public root, use the system trust store and omit `--insecure-tls`.
 - Rotate the control plane root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
 
+### Manifests, the Platform CA and secrets on the command line
+
+**Signed manifests.** The installer (`run.sh`), the daemon and the control plane verify each channel manifest's Ed25519 signature before they use it, and parse it strictly: a manifest that repeats a key is refused, and every field is read from the exact bytes the signature covered. The daemon and the control plane also refuse a validly signed manifest that is older than the build they already run; set `TURBOPANEL_ALLOW_DOWNGRADE=1` in the daemon's environment on the host to accept one deliberately. Key handling is in [Signing key rotation](/docs/security/signing-key-rotation).
+
+**The Platform CA pin.** On a self-hosted control plane the installer fetches the Platform CA from `GET /api/daemon/v1/instance/ca`, pins it as `/etc/turbopanel/instance-ca.pem` and the daemon trusts it alongside the system roots. An existing pin is never replaced over unverified TLS:
+
+| You pass | What the installer does with the pin |
+| --- | --- |
+| Nothing | Fetches the CA verifying against the existing pin. If that fails to connect, it asks once more using only the system trust store: a `404` means the control plane now presents a publicly trusted certificate and the pin is dropped; a PEM that parses and validates the live certificate replaces it. Otherwise it **keeps the existing CA**, prints the old and new fingerprints, and tells you to confirm the new fingerprint out of band and re-run with `--instance-ca`. It never retries with verification off. |
+| `--instance-ca <pem>` | Installs the PEM you give it as `instance-ca.pem` and skips the fetch. This is how you apply a real CA rotation. |
+| `--insecure-tls` (or `TURBOPANEL_INSECURE_TLS=1`) | Skips certificate verification (`curl -k`) for the **self-hosted bootstrap fetches only**: the installer's own re-exec, the CA fetch and the private uploaded-issuer fetch. The run then stops unless the CA or issuer it fetched validates the certificate the control plane presents. Release and update downloads are always verified. Compare the printed fingerprint with the control plane's before relying on it. |
+
+`tp-orchestrate update`, the root helper behind a panel-driven daemon update, does not accept `--insecure-tls`, and the only CA it trusts beyond the system store is `/etc/turbopanel/instance-ca.pem`.
+
+**Secrets travel in the environment, not on the command line.** The installer's license and tunnel token reach its `sudo` re-run through the environment (`--preserve-env`), and the daemon starts `cloudflared` with the tunnel token in `TUNNEL_TOKEN`, so neither shows in `ps` or `/proc/<pid>/cmdline`. The daemon itself can read only `TURBOPANEL_*`, `HOME`, `PATH`, `USER` and `LOGNAME` from its environment, and the control plane only `TURBOPANEL_*`, `HOME`, `PATH`, `LANG`, `CADDY_TLS_CERT` and `SMTP_PORT`.
+
 ### Network Security
 
 <Callout type="info" title="Production Requirement">
@@ -347,7 +388,7 @@ graph TD
 
 # Remote managed server — the one installer, pointed at your control plane.
 # The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;
-# pass TURBOPANEL_INSTANCE_CA=<path> to supply it yourself instead.
+# pass --instance-ca <path> to supply the PEM yourself instead.
 curl -fsSL turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
     TURBOPANEL_HOST=https://turbopanel.example.com:8443 sh

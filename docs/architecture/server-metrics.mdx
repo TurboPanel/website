@@ -9,13 +9,13 @@ TurboPanel collects **host metrics** from connected daemons via authenticated `P
 
 <Callout type="info" title="Canonical source">
   What each console chart means: [Server metrics](/docs/metrics). The five PSI stall-time percentages are explained there under [Pressure Stall Information](/docs/metrics#pressure-stall-information).
-  Agent maintenance detail lives in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">instance/src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
+  Agent maintenance detail lives in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">control plane src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
   Operations: [Metrics deployment](/docs/deployment/metrics). Which tier a server lands on and what that entitles: [License tiers](/docs/deployment/tiers).
 </Callout>
 
 ## Overview
 
-One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 6`) is mirrored in the daemon and instance repos (not build-coupled). Ingest rejects any sample whose `metadata.version` is not `6`; there is no dual-accept and no migration. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 6`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest rejects any sample whose `metadata.version` is not `6`; there is no dual-accept and no migration. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
 
 | Runtime | Store | Backend |
 | ------- | ----- | ------- |
@@ -112,7 +112,7 @@ The contract has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics ar
 | `managed.ingress` | Presence-gated + `managedIngressEnabled` | one unpaged row per `ingressSources[]` entry (**Caddy only**) | 19 — requests, response class counts (2xx/3xx/4xx/5xx), request errors, request/response bytes, a raw per-interval duration **sum**, six cumulative latency buckets (≤10ms/50ms/100ms/500ms/1s/5s), in-flight, upstreams healthy/total, retries |
 | `managed.router` | Presence-gated + `managedIngressEnabled` | host (no entity id) — the shared hosting Traefik | 12 — backends up/total, services, routers, retries, backend 5xx, backend latency avg + requests, open connections, config reloads + age, soonest TLS expiry (7 spare slots) |
 | `managed.database_proxy` | Presence-gated + `databaseProxyMetricsEnabled` | one unpaged row per `databaseProxies[]` entry (ProxySQL) | 17 — queries, slow queries, query/backend latency avg, active transactions, client connections + created/aborted, rejected at max-connections, backend connections + created/aborted, connection errors, backends up/total, bytes from/to backends (2 spare slots) |
-| `managed.storage` | Presence-gated, **granted at every tier** | host (no entity id) | 19 — hosting/backup/Docker/logs used bytes, hosting/backup/logs free bytes, then a postgres/mysql/mariadb census (instances running + healthy, connections used + max per engine). Absent until the daemon's first directory walk completes |
+| `managed.storage` | Presence-gated, **granted at every tier** | host (no entity id) | 19 — hosting/backup/Docker/logs used bytes, hosting/backup/logs free bytes, then a postgres/mysql/mariadb census (engines running + healthy, connections used + max per engine). Absent until the daemon's first directory walk completes |
 | `managed.docker` | Presence-gated + `managedDockerEnabled` (**S2 and up**) | host (no entity id) | 10 — layer bytes, image count + reclaimable bytes, container bytes + count, volume bytes + count + reclaimable, build-cache bytes + reclaimable (9 spare slots) |
 
 **Entitlement vs. emission are distinct.** A capability-plan slot count (`gpuSlots: 2`) is what a server is *allowed* to report; whether it emits rows depends entirely on whether the daemon found that hardware. A server entitled to two GPUs with none installed emits zero `gpu` rows. Entitlement caps *how many* entities may be reported; presence decides *whether* a family is emitted at all this tick. The same split applies everywhere — `physicalHardwareSignalSlots` is 19 on a physical machine (11 on the entry tier) and 0 on a VM, but a physical host with no working sensors still emits nothing for `hardware.physical`. Hosted ingest enforces the ceiling with `truncateSampleToCapabilityPlan`; self-hosted ingest skips truncation entirely.
@@ -150,7 +150,7 @@ The memory half of `host.diagnostics` is the **Memory detail** group — what RA
 | `diagnostics.pageScanKswapdPerSecond` | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) | Background reclaim. Healthier than direct scan |
 | `diagnostics.compactionStallsPerSecond` | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) | A process waited while the kernel packed fragmented pages |
 
-**Missing values** are `null` on the wire — never coerced to `0`. First-sample rate metrics are `null` until a second delta exists; a metric a host genuinely doesn't support (no temperature probe, no swap configured, no `/proc/pressure/`) stays `null` permanently. The twelve per-engine census fields on `managed.storage` are `null` for an engine the host does not run, and for every engine until the daemon's first managed-engine census lands; an engine with instances present reports real counts, including `0` running.
+**Missing values** are `null` on the wire — never coerced to `0`. First-sample rate metrics are `null` until a second delta exists; a metric a host genuinely doesn't support (no temperature probe, no swap configured, no `/proc/pressure/`) stays `null` permanently. The twelve per-engine census fields on `managed.storage` are `null` for an engine the host does not run, and for every engine until the daemon's first managed-engine census lands; an engine with databases present reports real counts, including `0` running.
 
 **Retired since v4:** `host.cpu.maxCoreBusyPercent` → `saturatedCoreCount` (cores at or above 90% busy); `host.memory.availableBytes` → `usedBytes` + `cachedFilesBytes`; `host.storage.diskReadLatencyMs` + `diskWriteLatencyMs` → one `diskLatencyMs`; `host.storage.maxBlockDeviceUtilPercent` removed; `gpu.temperatureCelsius` / `memoryTemperatureCelsius` / `powerWatts` and `block.temperatureCelsius` moved to `hardware.physical`; `cpu.detail` + `memory.detail` merged into `host.diagnostics` (seven memory fields dropped: page tables, kernel stack, commit limit, and the four active/inactive splits); `cpu.core.live` and the NUMA reservation deleted outright; `collectionMode` removed from the metadata.
 
@@ -382,9 +382,9 @@ Exact, test-verified row counts for the fixed machine shapes in `turbopanel/src/
 
 Live 10 s mode adds **no durable writes**: leased samples are buffered for the live chart and never written to Analytics Engine or DuckDB, so a live session costs nothing here regardless of how long it runs.
 
-### Read volume (dashboards)
+### Read volume (Metrics screen)
 
-Reads scale with **dashboard views ÷ cache TTL** (live 45 s / historical 300 s), **not** chart count or server count — one combined query per server/range/resolution, cache-collapsed.
+Reads scale with **Metrics screen views ÷ cache TTL** (live 45 s / historical 300 s), **not** chart count or server count — one combined query per server/range/resolution, cache-collapsed.
 
 | Item | Value |
 | ---- | ----- |

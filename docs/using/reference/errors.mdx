@@ -220,7 +220,7 @@ The app renders one sentence per code from these; the sentences here are the sam
 | `managed_series_immutable` | 422 | A cluster's version series cannot change after provisioning. |
 | `managed_version_unsupported` | 422 | The requested series or variant is not in the catalog. |
 | `managed_busy` | 409 | The cluster is provisioning or applying; wait. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists, the member is the primary, or the cluster has no primary. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server), the member is the primary, or the cluster has no primary. |
 | `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
 | `managed_no_read_targets` | 422 | No replica serves read traffic. |
 | `managed_listener_bind_conflict` | 422 | The listener port is already bound on that server. |
@@ -261,6 +261,7 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | `email_send_failed` | 502 | The verification email could not be sent. A newly created email channel is rolled back; try again. |
 | `not_an_email_channel` | 400 | Resend verification was asked for a channel that is not an email channel. |
 | `already_verified` | 409 | Resend verification was asked for an email channel that is already verified. |
+| `address_unreadable` | 409 | Resend verification could not read the channel's stored address (it cannot be unsealed), so no link was sent. |
 | `too_soon` | 429 | A verification link was already sent in the last minute; `retryAfterSeconds` and `Retry-After` say how long to wait. |
 | `Only an owner can remove an owner` | 403 | A manager tried to remove an owner from the organization's **Members**. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
@@ -343,6 +344,7 @@ See [Administering the control plane](/docs/using/admin).
 | `product_lookup_failed` | 400 | The provider could not be asked about the product; `status` is what it answered. |
 | `invalid_settings` | 400 | The control plane update settings are malformed. |
 | `upgrade_run_not_found` | 404 | No update run has that id. |
+| `upgrade_run_active` | 409 | An update is already `pending` or `running`, so a second one cannot start. Wait for it or cancel it. Answered before the manifest host is contacted. |
 | `upgrade_not_active` | 409 | No update run is active, so there is nothing to retry or cancel. |
 | `upgrade_step_not_found`, `upgrade_step_not_retryable` | 409 | A retry named a step that does not exist, or one that is not waiting on attention, failed or rolled back. |
 | `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |

@@ -106,6 +106,6 @@ The rules above are worth stating as a contract because each one closes a specif
 
 **Re-asking a Compose question invents a second source of truth.** If replicas could be set in both `deploy.replicas` and an extension key, one of them is silently losing, and which one depends on merge order.
 
-**Letting a document pin a compiler decision breaks the abstraction that makes fleets work.** A container name, an address, a placement — pinned in YAML, they are re-litigated on every deploy and cannot be changed without editing and redeploying every document that mentions them.
+**Letting a document pin a compiler decision breaks the abstraction that makes multi-server deployments work.** A container name, an address, a placement — pinned in YAML, they are re-litigated on every deploy and cannot be changed without editing and redeploying every document that mentions them.
 
 **Privilege in a document is privilege without a gate.** Aliases in compose, accounts on records, is the shape that keeps "who may edit YAML" and "who may create a Linux account with a shell" as two different questions.

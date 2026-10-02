@@ -9,7 +9,7 @@ Every release is a GitHub Release with its packages as assets. The installer and
 both follow a **channel** — `release` (the latest promoted release), `rc` (the current
 release candidate) or `canary` (the newest green build of `trunk`, for a
 [canary environment](/docs/development/canary)) — and resolve that channel's `manifest.json`
-straight from GitHub. The control plane and the daemon are separate packages. A managed
+straight from GitHub. A host keeps following the channel it was installed on, and one with no channel follows `release`. The control plane and the daemon are separate packages. A managed
 upgrade installs them in a fixed order. Re-running the installer still moves both on this host.
 
 A run pins the manifest URL and the target commit it resolved when it started. A channel
@@ -109,6 +109,25 @@ Only one run is active. A second start is refused while a run is `pending` or `r
 Percent rounds up so a non-empty set of servers always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`). On TurboPanel High Availability a large batch drains across maintenance ticks so one tick does not enqueue the every server at once.
 
 An offline server's step waits (`waiting`) and is dispatched when that daemon reconnects. A step with no progress for 15 minutes is retried, up to 3 dispatches, then `needs_attention`. A step that rolled back is retried once, then `needs_attention`.
+
+## Network failures, older builds and your apps' releases
+
+**Short network failures are retried.** A DNS hiccup or a GitHub 5xx should not fail a whole update, so the fetches of the manifest and the downloads retry, in two places:
+
+| Fetch | Retried | Not retried |
+| --- | --- | --- |
+| The installer, `run.sh` (curl) | A failed name lookup (curl exit 6) and a refused connection (exit 7): 4 attempts, waiting 2, 4 and 8 seconds | Any other curl failure, any 4xx response, a checksum or signature failure |
+| The daemon's update reads | HTTP 502, 503 and 504; 429, honoring `Retry-After` up to 10 seconds; resets, timeouts and DNS lookup failures: 4 attempts, waiting 2, 4 and 8 seconds | Every other response, including 4xx, and anything wrong with the body or its signature |
+
+When the attempts run out, the last error is shown unchanged. The installer's error message names the URL without its query string, because a signed download link can carry a token.
+
+**An older build is refused.** The daemon and the control plane refuse a validly signed manifest older than the build they run. For a managed update this shows as a step with `downgrade_refused` when a server already runs something newer than the target; a server is never downgraded. To accept an older signed build deliberately on one host, set `TURBOPANEL_ALLOW_DOWNGRADE=1` in the daemon's environment.
+
+**A restarted control plane is never installed over twice.** If the control-plane step restarts and the daemon then reports nothing for `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default), the step ends as `needs_attention` with `verify_timeout` and the run finishes, so the next **Update TurboPanel** can start. The step says whether the control plane is running the target build. Check the daemon log on that host, then **Retry** or cancel.
+
+<Callout type="warn" title="Updating the daemon does not make old releases roll-back-able">
+  Rolling an app back to an earlier **source release** uses a record the daemon wrote on that server when it published the release. A release published before the daemon wrote records (daemons older than 0.1.6) has none, and an update does not create it: that release cannot be rolled back until you redeploy it. Releases published afterwards are unaffected. See [Releases and rollback](/docs/using/compose#releases-and-rollback).
+</Callout>
 
 ## Pre-flight, backup, and `.prev`
 
