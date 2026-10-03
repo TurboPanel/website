@@ -70,7 +70,7 @@ The hook (`hook.mjs`, logic in `hook-lib.mjs`) verifies `X-Hub-Signature-256` in
 
 ## CI gate
 
-`run-env-deploy.sh` runs `ci-gate.mjs <sha>` (logic in `ci-gate-lib.mjs`) before any build. It polls the commit's GitHub check runs every minute and deploys only once the required checks (`verify`, `metrics-legacy`) concluded `success` on their newest run. A failure, or checks still pending after 30 minutes, leaves the running color untouched. The repo is public, so no token is needed; an optional `GITHUB_TOKEN` in alpha's environment raises the API rate limit. `install-alpha.sh` installs both `.mjs` pairs into `~/bin`.
+`run-env-deploy.sh` runs `ci-gate.mjs <sha>` (logic in `ci-gate-lib.mjs`) before any build. It polls the commit's GitHub check runs every minute and deploys only once the required check (`verify`) concluded `success` on their newest run. A failure, or checks still pending after 30 minutes, leaves the running color untouched. The repo is public, so no token is needed; an optional `GITHUB_TOKEN` in alpha's environment raises the API rate limit. `install-alpha.sh` installs both `.mjs` pairs into `~/bin`.
 
 ## Blue-green
 
