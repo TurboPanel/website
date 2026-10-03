@@ -5,10 +5,10 @@ description: Per-organization certificate authority for managed-database TLS, ro
 
 # Organization CA
 
-The **Organization CA** is the per-organization certificate authority that signs managed-database TLS leaves. It is distinct from the instance-wide **Platform CA** that daemons use to trust the control plane.
+The **Organization CA** is the per-organization certificate authority that signs managed-database TLS leaves. It is distinct from the control-plane-wide **Platform CA** that daemons use to trust the control plane.
 
 <Callout type="info" title="Not the Platform CA">
-  There is one active Organization CA per organization. It is never shared across organizations. For the *other* CA — the instance-wide root daemons pin — see [Daemon trust model](/docs/security/daemon-trust-model) → Platform CA rotation.
+  There is one active Organization CA per organization. It is never shared across organizations. For the *other* CA — the control-plane-wide root daemons pin — see [Daemon trust model](/docs/security/daemon-trust-model) → Platform CA rotation.
 </Callout>
 
 ## What it is
@@ -64,7 +64,7 @@ the cost depends on which key it was.
 | --- | --- | --- |
 | An **Organization CA leaf** (a ProxySQL or engine certificate) | Rotate the Organization CA with the runbook below | Every leaf in that organization is re-issued, and `verify-ca`/`verify-full` clients re-download the bundle. Bounded: leaves live **90 days** and the sweep renews at a third remaining, so an un-rotated leak expires on its own inside a quarter — rotation is how you make that immediate, not how you avoid an indefinite exposure. |
 | An **Organization CA private key** | Rotate immediately, then retire the old generation as soon as overlap converges | Same fan-out, but the old generation must not linger in the bundle: while it does, anything signed by the leaked key is still trusted. |
-| The **Platform CA** | The daemon trust model's own rotation — see [Daemon trust model](/docs/security/daemon-trust-model) | Every daemon re-trusts; do not retire before the fleet has converged. |
+| The **Platform CA** | The daemon trust model's own rotation — see [Daemon trust model](/docs/security/daemon-trust-model) | Every daemon re-trusts; do not retire before every server has converged. |
 
 CA roots are minted for **10 years** and leaves for **90 days**. The long root
 is what makes retire-after-overlap safe; the short leaf is what bounds a leak
@@ -96,9 +96,9 @@ Three certificate surfaces stay separate. Changing one leaves the others unchang
 
 **Organization CA** signs managed-database client leaves and the ingress certificate for that organization. It does not sign the control plane's Platform CA leaf, an uploaded panel certificate, or a Let's Encrypt certificate.
 
-**Instance Let's Encrypt** is **Admin → Access → Certificates**. It obtains certificates for this control plane's own hostnames. It does not read or write an organization's Let's Encrypt opt-in, and it does not touch that organization's certificate library.
+**Control plane Let's Encrypt** is **Admin → Access → Certificates**. It obtains certificates for this control plane's own hostnames. It does not read or write an organization's Let's Encrypt opt-in, and it does not touch that organization's certificate library.
 
-**Tenant hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). That row is gated by the organization's **Allow Let's Encrypt certificates**. It does not obtain a certificate for the panel, and the control plane's Let's Encrypt settings do not obtain a tenant certificate. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+**Site hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). That row is gated by the organization's **Allow Let's Encrypt certificates**. It does not obtain a certificate for the panel, and the control plane's Let's Encrypt settings do not obtain a tenant certificate. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Related
 

@@ -8,7 +8,7 @@ description: SQLite-backed Durable Object daemon cell for presence, merged reque
 The **daemon cell** is TurboPanel's low-latency coordination layer for remote daemons. Each cell is keyed by `serverId` and owns **presence**, **outbox delivery**, and **pending-request correlation** only. Postgres remains canonical for business data (`server` rows, commands, org membership).
 
 <Callout type="info" title="Canonical source">
-  This page mirrors shipped behavior documented in the instance repo. For agent maintenance and
+  This page mirrors shipped behavior documented in the TurboPanel repo. For agent maintenance and
   anti-regression rules, see <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md">instance/AGENTS.md</File> (Daemon Cell section).
 </Callout>
 
@@ -108,7 +108,7 @@ One stable DO id per server: always `getByName(serverId)` — never `newUniqueId
 
 ## WebSocket handshake
 
-Remote daemons authenticate over REST before upgrading to `/ws/daemon/v1`. First-time nodes enroll; returning nodes reuse persisted keys.
+Remote daemons authenticate over REST before upgrading to `/ws/daemon/v1`. First-time servers enroll; returning servers reuse persisted keys.
 
 <Steps>
   <Step>
@@ -129,7 +129,7 @@ Remote daemons authenticate over REST before upgrading to `/ws/daemon/v1`. First
 ```mermaid
 sequenceDiagram
     participant Daemon
-    participant Instance as Instance API
+    participant Instance as Control plane API
     participant Cell as Daemon Cell DO
 
     Note over Daemon,Cell: First-time only: POST /enroll after challenge + signed proof
@@ -244,7 +244,7 @@ On Workers:
 3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable/retry/inflight request rows, expiry, or terminal retention work.
 4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost. Ticks are serialized by a durable Postgres `setting` lease (`expiresAt` covers the enforced live runtime so a slow phase cannot be stolen by the next cron) and bounded by a per-tick **hard** wall-clock deadline: timed-out phases log and skip later work rather than overlapping the next invocation.
 
-**WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the instance-side max-age check remains only as that suspect-path backstop.
+**WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the control plane-side max-age check remains only as that suspect-path backstop.
 
 On Redis (self-hosted), timer-driven `maintain()` + `sweepStalePresence` remain the offline path — cost-safe because there is no DO billing.
 
@@ -508,5 +508,5 @@ stateDiagram-v2
 ## Related
 
 - [Control plane deployment](/docs/deployment/control-plane) — Workers vs self-hosted layout
-- [Instance API architecture](/docs/architecture/api) — versioned surfaces and routing
-- [Daemon setup](/docs/deployment/daemon-setup) — node installer and co-located daemon
+- [Control plane API architecture](/docs/architecture/api) — versioned surfaces and routing
+- [Daemon setup](/docs/deployment/daemon-setup) — server installer and co-located daemon

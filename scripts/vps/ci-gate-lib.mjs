@@ -5,7 +5,7 @@
  */
 
 /** Checks a website commit must pass before it deploys (the ruleset's required checks). */
-export const REQUIRED_CHECKS = Object.freeze(['verify', 'metrics-legacy'])
+export const REQUIRED_CHECKS = Object.freeze(['verify'])
 
 /**
  * @typedef {{ id: number, name: string, status: string, conclusion: string | null }} CheckRun

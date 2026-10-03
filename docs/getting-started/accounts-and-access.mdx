@@ -1,24 +1,24 @@
 ---
 title: Accounts and access
-description: The operator's side of sign-in — configuring GitHub and Google on the instance, how invitations reach people without an account — with pointers to the user guide's account and access chapters
+description: The operator's side of sign-in — configuring GitHub and Google on the control plane, how invitations reach people without an account — with pointers to the user guide's account and access chapters
 ---
 
 # Accounts and access
 
-How operators sign in, protect an account, and invite teammates. Two-factor, passkeys, and GitHub / Google sign-in are managed from the signed-in console; invitations are team-scoped.
+How operators sign in, protect an account, and invite teammates. Two-factor, passkeys, and GitHub / Google sign-in are managed from the signed-in app; invitations are team-scoped.
 
 <Callout type="info" title="Private alpha — not yet publicly available">
   Self-hosted and TurboPanel High Availability are both in **private alpha**. This page describes
-  the account and access flows that already exist in the console — not a public sign-up path.
+  the account and access flows that already exist in the app — not a public sign-up path.
 </Callout>
 
 ## Protecting an account
 
-Two-factor with an authenticator app, backup codes, passkeys and linked GitHub / Google identities are managed by each person from the account menu → **Security** (`/account/security`). The user-facing procedures, the re-authentication rule (a password account resubmits its password; a passkey- or provider-only account has a 15-minute window) and every refusal are in [Account security](/docs/using/account-security). The operator's part is below: configuring the providers the instance offers.
+Two-factor with an authenticator app, backup codes, passkeys and linked GitHub / Google identities are managed by each person from the account menu → **Security** (`/account/security`). The user-facing procedures, the re-authentication rule (a password account resubmits its password; a passkey- or provider-only account has a 15-minute window) and every refusal are in [Account security](/docs/using/account-security). The operator's part is below: configuring the providers the control plane offers.
 
 ## Sign in with GitHub or Google
 
-Buttons appear on sign-in **only when that provider is configured** on the instance.
+Buttons appear on sign-in **only when that provider is configured** on the control plane.
 
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-hosted">
@@ -52,7 +52,7 @@ Unlinking refuses when it would remove your last way to sign in.
 
 ## Invite a teammate
 
-Invitations are **team-scoped**: you invite someone to a team, and organization access follows from team membership. A manager of the team invites; only an organization owner may attach explicit permission grants; the link is good for **7 days**; and an instance without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering an instance](/docs/using/admin#email)). The console procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
+Invitations are **team-scoped**: you invite someone to a team, and organization access follows from team membership. A manager of the team invites; only an organization owner may attach explicit permission grants; the link is good for **7 days**; and a control plane without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering the control plane](/docs/using/admin#email)). The app procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
 
 ```mermaid title="Invitation when the invitee has no account"
 sequenceDiagram
@@ -73,7 +73,7 @@ sequenceDiagram
 ## Related
 
 - [Account security](/docs/using/account-security) and [Organizations, teams and access](/docs/using/access) — the user guide chapters
-- [Control plane](/docs/deployment/control-plane) — Instance configuration, including mail and OAuth environment variables
+- [Control plane](/docs/deployment/control-plane) — Control plane configuration, including mail and OAuth environment variables
 - [Security](/docs/deployment/security) — TLS, authentication, and secret envelopes
 - [Password safety](/docs/security/password-safety) — Compromised-password checks on sign-up and password changes
 - [Instance API architecture](/docs/architecture/api) — Auth routes and secret envelopes

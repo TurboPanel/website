@@ -30,7 +30,7 @@ graph LR
     Daemon -->|"POST /api/daemon/v1/metrics (JWT)"| HTTP["Worker isolate / Deno (no DO)"]
     HTTP --> AE["Analytics Engine"]
     HTTP --> DuckDB["DuckDB + Parquet"]
-    Cron["offline-sweep cron"] -->|"1 fleet AE SQL read/tick"| AE
+    Cron["offline-sweep cron"] -->|"1 all-servers AE SQL read/tick"| AE
     Cron -->|"checkLiveness only for AE-suspects"| WS
     API["GET /metrics/series"] --> AE
     API --> DuckDB
@@ -266,7 +266,7 @@ Resource caps and configuration:
 | `GET /api/client/v1/servers/:id/metrics/series` | Time-series buckets for selected metrics |
 | `GET /api/client/v1/servers/:id/metrics/summary` | Aggregated summary for a range |
 | `GET /api/client/v1/servers/:id/metrics/connection` | Uptime/downtime history from the status event stream (history-only — see above) |
-| `GET /api/client/v1/servers/metrics/latest` | One fleet snapshot for the org servers overview — never N per-server chart calls |
+| `GET /api/client/v1/servers/metrics/latest` | One servers snapshot for the org servers overview — never N per-server chart calls |
 
 Session + server read grant required. **One combined backend query** per `(server, range)` — not per metric or chart.
 
@@ -384,7 +384,7 @@ Live 10 s mode adds **no durable writes**: leased samples are buffered for the l
 
 ### Read volume (dashboards)
 
-Reads scale with **dashboard views ÷ cache TTL** (live 45 s / historical 300 s), **not** chart count or fleet size — one combined query per server/range/resolution, cache-collapsed.
+Reads scale with **dashboard views ÷ cache TTL** (live 45 s / historical 300 s), **not** chart count or server count — one combined query per server/range/resolution, cache-collapsed.
 
 | Item | Value |
 | ---- | ----- |

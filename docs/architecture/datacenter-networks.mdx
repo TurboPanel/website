@@ -37,7 +37,7 @@ Every datacenter carries two routing-policy fields, both stored under
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `priority` | integer `0`–`1000` | `100` | Ladder rank — **lower wins** when two servers share more than one datacenter. Out-of-range values are dropped by the instance, not clamped; the console validates before it sends. |
+| `priority` | integer `0`–`1000` | `100` | Ladder rank — **lower wins** when two servers share more than one datacenter. Out-of-range values are dropped by the control plane, not clamped; the app validates before it sends. |
 | `trusted` | boolean | `true` | Whether the L2 is under the operator's control. `false` marks a shared retail LAN, a provider-owned segment, or anything you would not put unencrypted replication on. |
 
 An **untrusted** datacenter is skipped entirely by the datacenter rung.
@@ -53,7 +53,7 @@ datacenter and re-converges ProxySQL backends and the mesh.
 
 ## The ladder
 
-For any pair of servers the instance picks exactly one transport:
+For any pair of servers the control plane picks exactly one transport:
 
 ```mermaid
 flowchart TD
@@ -69,7 +69,7 @@ flowchart TD
 
 The tiebreak is `priority asc`, then `datacenterId asc`. Two datacenters with
 the same priority therefore still produce a deterministic answer, and the
-console can name the winner before anything is created: the datacenter Routing
+app can name the winner before anything is created: the datacenter Routing
 panel reads *"Backhaul (priority 10) currently wins over Primary LAN (100) for
 db-1 ↔ db-2"*, and a managed member row reads `Datacenter LAN · Backhaul
 (priority 10)`. Those hints are derived client-side from the same rule; the
@@ -85,7 +85,7 @@ read replicas may continue down the ladder.
 Every CIDR the control plane writes or allocates on behalf of an organization
 passes one collision authority. Each pair below is a **hard failure** with its
 own `409` code, and the response carries `cidr` (what was refused) and
-`conflictingCidr` (what it hit) so the console can show *what* is in the way:
+`conflictingCidr` (what it hit) so the app can show *what* is in the way:
 
 | Candidate vs | Code | Why it breaks |
 | --- | --- | --- |
@@ -139,14 +139,14 @@ control plane records membership pins against them, and that is the whole
 contract. Addresses are expected to change — DHCP leases, a re-cabled NIC, a
 provider renumbering.
 
-When a pinned address disappears from the daemon's report, the instance's
+When a pinned address disappears from the daemon's report, the control plane's
 maintenance sweep looks for a replacement inside the pin's subnet:
 
 - **Exactly one** unambiguous candidate → the pin is re-pointed automatically
   (a *repin*).
 - **None**, or **more than one** → the pin is marked **stale**
   (`address_gone_no_candidate` / `address_gone_ambiguous`) and keeps naming the
-  last known address. Nothing is guessed. The console shows a **Stale** badge
+  last known address. Nothing is guessed. The app shows a **Stale** badge
   with the reason; you re-pin by unassigning and re-adding the server, or wait
   for the host to report a usable address.
 
@@ -160,4 +160,4 @@ bind address is frozen at deploy time, so the environment surfaces a
 - [TurboFabric path model](/docs/architecture/turbofabric-path-model)
 - [Managed database ingress](/docs/architecture/managed-database-ingress)
 - [Network addressing](/docs/deployment/network-addressing)
-- [Instance API](/docs/architecture/api)
+- [Control plane API](/docs/architecture/api)

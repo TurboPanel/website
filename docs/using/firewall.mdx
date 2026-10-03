@@ -1,0 +1,178 @@
+---
+title: Firewall
+description: The firewall TurboPanel manages on each server — what it opens by itself, the mode of each server, your own rules, the safety net, and what is preview-only today
+---
+
+# Firewall
+
+TurboPanel owns the firewall on every server that runs its daemon. The installer removes `ufw`, `firewalld` and the other tools that would compete with it, and the control plane works out which doors each server should have open from what you have deployed on it. You add your own rules on top.
+
+<Callout type="warn" title="Preview only today">
+  **Nothing is applied to a server unless an operator opts that one server in.** Each server is sent a **preview** of
+  the firewall it would get: it renders the rules, asks the kernel to check
+  them, loads nothing, and reports back. Switching enforcement on is a separate
+  step that waits until the safety net below has been proven on a real host.
+  This chapter says so wherever it matters.
+</Callout>
+
+## The model
+
+```
+organization
+├─ policy        incoming default, who may use SSH, IPv6      (Network → Firewall)
+├─ rules         your own allow / block rules, org-wide or for one server
+└─ servers       each has a mode and a preview               (a server's Firewall tab)
+```
+
+| Thing                  | What it is                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Inbound only**       | The firewall decides what may reach a server. Outbound traffic is always open, and TurboPanel does not restrict it.                                                                                                                                                                                                                                                            |
+| **Always allowed**     | Loopback, replies to connections the server started, ICMP and ICMPv6, the DHCP client, every port the server's SSH daemon listens on, and — on a server that also runs the control plane — the control plane's own ports. These are rendered before every rule, so a rule you add cannot close them. If the server cannot tell which SSH port it uses, port **22** stays open. |
+| **Worked out for you** | What you deployed: the control plane's port on its own host, hosting sites on **80** / **443**, ports published by compose services, managed-database listeners, the [TurboFabric](/docs/using/network) port, and the replication ports of high-availability databases. A service bound only to `127.0.0.1` is not exposed, so it gets no rule.                                |
+| **Your rules**         | Allow, block, or block-and-tell-the-sender, for a protocol and ports, from a chosen set of sources.                                                                                                                                                                                                                                                                            |
+| **Mode**               | Per server: **Off**, **Observe** or **Managed**. New servers start on **Observe**.                                                                                                                                                                                                                                                                                             |
+| **Preview**            | What the server says it would load: a rule count, a digest, the kernel's verdict and the rendered ruleset.                                                                                                                                                                                                                                                                     |
+
+One rule that is not about the firewall at all: **TurboPanel does not touch a firewall that is outside the host**. A cloud security group or a provider firewall is still yours.
+
+## Before you begin
+
+- You must be an organization **owner** or **manager**. Everyone else cannot see or change a server's firewall.
+- A server needs a connected daemon to receive a preview.
+
+## Modes
+
+| Mode        | What the control plane does                                                                                                                           | Today                                                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Observe** | Sends the server a preview and applies nothing. The preview refreshes when you change a rule, the policy or the mode, and when the server reconnects. | The default and the useful one.                                                                                           |
+| **Managed** | Means you want this server to **enforce** its firewall.                                                                                               | Saved. It behaves like **Observe** unless an operator has also named this server (see [Turn enforcement on for one server](#turn-enforcement-on-for-one-server)); then the rules are loaded with the safety net. |
+| **Off**     | Sends the server nothing and leaves its firewall alone.                                                                                               | Works as described.                                                                                                       |
+
+## Look at a server's preview
+
+<Steps>
+  <Step>
+    Open the server and choose its **Firewall** tab. The banner reads **Preview
+    only: nothing is applied to this server.**
+  </Step>
+  <Step>
+    **Preview** shows the status — **Waiting for the server**, **Previewed**,
+    **Would be refused** or **Failed** — with the time, the rule count and the
+    digest. **Kernel check** is the server's own verdict from asking the kernel
+    to test the rules.
+  </Step>
+  <Step>
+    Expand **Rendered ruleset (IPv4)** and **Rendered ruleset (IPv6)** to read
+    exactly what would be loaded.
+  </Step>
+  <Step>
+    **What could not be worked out** lists things TurboPanel could not turn into
+    a rule instead of guessing — for example a compose port with no fixed host
+    port. **The server also said** carries the server's own warnings.
+  </Step>
+</Steps>
+
+To change the mode, use **Mode** on the same tab. Each choice explains itself before you confirm it.
+
+## Set the policy
+
+**Network → Firewall** has the organization's **Policy**:
+
+| Setting                          | Choices                                                                                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Default for incoming traffic** | **Allow by default** or **Block by default**. **Block by default** is saved and shown in previews, but a server refuses to enforce it today, so a preview of it reads **Would be refused**. |
+| **Who may use SSH**              | **Anyone** (the default), or addresses and ranges such as `203.0.113.0/24`. Saved now, but it is not sent to servers until enforcement is switched on.                                      |
+| **IPv6**                         | **Same rules for IPv6**, or **Leave IPv6 alone**.                                                                                                                                           |
+
+**Save policy** stores it and refreshes the previews.
+
+## Add a rule
+
+**Network → Firewall** also lists the organization's **Rules**.
+
+<Steps>
+  <Step>
+    **Add rule** → a **Label** (up to 48 characters: letters, digits, spaces and
+    `._:/-`). It is also the comment on the rule on the server.
+  </Step>
+  <Step>
+    **Action**: **Allow**, **Block**, or **Block and tell the sender**.
+  </Step>
+  <Step>
+    **Protocol** (**TCP**, **UDP** or **Any protocol**) and **Port or range** —
+    `5432`, or `5432-5440`.
+  </Step>
+  <Step>
+    **Applies to**: **The server's own services**, or **Ports published by
+    containers** (checked after Docker maps them).
+  </Step>
+  <Step>
+    **Who may connect**: **Anyone**, **My other TurboPanel servers**, **This
+    datacenter**, **TurboFabric only**, or **These addresses** — then one
+    address or CIDR per line.
+  </Step>
+  <Step>**Server**: **Every server**, or one. **Save rule**.</Step>
+</Steps>
+
+Edit, **Enabled** and **Delete** are on each row. Every change refreshes the previews of the servers it touches.
+
+How a rule reads on a published port: Docker keeps governing everything you did not restrict. An **Allow** from named sources means only those sources reach that port; an **Allow** from **Anyone** changes nothing, because that is already the case.
+
+## Turn enforcement on for one server
+
+Enforcement is off for every server and cannot be switched on for all of them yet. For a proof on a test host, it takes two keys, and either one alone leaves the server on **Observe**:
+
+1. The operator lists the server's id in `TURBOPANEL_FIREWALL_APPLY_SERVERS` (up to three server UUIDs, separated by commas; a `*`, `all` or a malformed id empties the whole list). It is ignored on the hosted live environment.
+2. An organization owner or manager sets that server's **Mode** to **Managed**.
+
+The control plane then sends rules to that server under the safety net below. **Block by default** is still refused by the server whatever is sent. To undo it, set the mode back to **Observe** or **Off**, or take the id out of the variable: the control plane sends the server a teardown that removes TurboPanel's firewall chains and stored rulesets, and repeats it until the server confirms.
+
+**Rules are provisional.** Rules a server loads are provisional: unless they are confirmed, the server rolls them back after 120 seconds and returns to the last confirmed rules. Today, confirming is manual: run `/opt/turbopanel/bin/turbopaneld firewall confirm` on the server within those 120 seconds, after checking that you can still reach it. Automatic confirmation by the server's own daemon is planned, but it is not available yet.
+
+**Reading the status.** **Preview** shows **Waiting for the server** until the server answers. If the server cannot do the job, for example because it could not arm the rollback timer, the status becomes **Failed** with the server's reason, instead of waiting forever; the next answer clears it. The app shows `applied` or `pending` for a ruleset the server may already have rolled back, because it does not learn about a confirm or a rollback on the server. To see what is really loaded, run `/opt/turbopanel/bin/turbopaneld firewall status` on the server.
+
+## The safety net
+
+Enforcement is built to be undone automatically if it goes wrong. This is built and tested; it is being proven on a real host before enforcement is switched on.
+
+- **A new ruleset is provisional.** When enforcement is on, a server loads new rules for two minutes. They become permanent only when someone confirms them from **outside** the server — you running `turbopaneld firewall confirm` on the server today, with automatic confirmation planned. A server's own link to the control plane proves nothing, because outbound traffic is always open.
+- **Unconfirmed rules are undone.** A timer run by root, independent of the daemon, takes TurboPanel's rules out and puts back the last confirmed ones. If those cannot be loaded, the server ends up **open**, never half-restored.
+- **Confirmed rules survive a reboot.** They are loaded at boot before Docker starts. Rules that were still provisional are not.
+- **Nothing is applied if the safety net cannot be armed.**
+
+If the control plane cannot be reached and you need the firewall gone, log in to the server as root and run:
+
+```bash
+/opt/turbopanel/bin/turbopaneld firewall off
+```
+
+It removes every TurboPanel firewall chain, rule, stored ruleset and pending state. `turbopaneld firewall status` shows what is pending, and `turbopaneld firewall confirm` confirms it.
+
+## Reference
+
+| Field           | Values                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| Mode            | `observe` (default), `managed`, `off`                                                           |
+| Action          | **Allow** (`accept`), **Block** (`drop`), **Block and tell the sender** (`reject`)              |
+| Protocol        | `tcp`, `udp`, `any` — **Any protocol** takes no ports                                           |
+| Ports           | One port or a range `from-to`. An **Allow** rule must name ports.                               |
+| Who may connect | `any`, `servers`, `datacenter`, `fabric`, `addresses` — addresses only with **These addresses** |
+| Limits          | 200 rules per organization, 256 addresses per rule                                              |
+
+## Errors
+
+| Code                                             | Status | Meaning                                                                                 |
+| ------------------------------------------------ | ------ | --------------------------------------------------------------------------------------- |
+| `firewall_rule_invalid`                          | 400    | The rule failed validation; the message names the field.                                |
+| `firewall_rule_limit`                            | 409    | The organization already has the maximum number of rules.                               |
+| `firewall_policy_invalid`                        | 400    | The policy failed validation; the message names the field.                              |
+| `firewall_mode_invalid`                          | 400    | The mode must be `observe`, `managed` or `off`.                                         |
+| `serverId must be a server of this organization` | 400    | A rule named a server that belongs to another organization.                             |
+| `Not found`                                      | 404    | The rule, server or organization does not exist, or it belongs to another organization. |
+
+## Related
+
+- [Datacenters and networking](/docs/using/network) — datacenters and the TurboFabric mesh that rules can name as a source.
+- [Servers](/docs/using/servers) — the server page the **Firewall** tab lives on.
+- [Security](/docs/deployment/security) — firewall guidance for the control-plane host and daemon hosts.
+- [Managed database ingress](/docs/architecture/managed-database-ingress) — the listeners the firewall opens for managed databases.

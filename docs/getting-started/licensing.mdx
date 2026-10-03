@@ -20,7 +20,7 @@ Corresponding Source for a deployed control plane or a store binary.
 | [TurboPanel/turbopanel](https://github.com/TurboPanel/turbopanel) (control plane) | [AGPL-3.0-only](https://github.com/TurboPanel/turbopanel/blob/trunk/LICENSE) |
 | [TurboPanel/turbopaneld](https://github.com/TurboPanel/turbopaneld) (daemon) | [AGPL-3.0-only](https://github.com/TurboPanel/turbopaneld/blob/trunk/LICENSE) |
 | [TurboPanel/dev](https://github.com/TurboPanel/dev) (contributor console) | [AGPL-3.0-only](https://github.com/TurboPanel/dev/blob/trunk/LICENSE) |
-| [TurboPanel/ui](https://github.com/TurboPanel/ui) (product console) | AGPL-3.0-only with the [Apple App Store additional permission](https://github.com/TurboPanel/ui/blob/trunk/LICENSES/TurboPanel-Apple-App-Store-Additional-Permission.txt) |
+| [TurboPanel/ui](https://github.com/TurboPanel/ui) (the app) | AGPL-3.0-only with the [Apple App Store additional permission](https://github.com/TurboPanel/ui/blob/trunk/LICENSES/TurboPanel-Apple-App-Store-Additional-Permission.txt) |
 | [TurboPanel/website](https://github.com/TurboPanel/website) | [Apache-2.0](https://github.com/TurboPanel/website/blob/trunk/LICENSE) (site and application code); [CC BY 4.0](https://github.com/TurboPanel/website/blob/trunk/LICENSES/CC-BY-4.0.txt) (`docs/`) |
 
 The UI additional permission is a GNU AGPLv3 section 7 permission for Apple App
@@ -72,7 +72,7 @@ official TurboPanel products without prior written permission.
 - [Logo & brand](/about/logo)
 
 Third-party marks are **never** covered by TurboPanel’s licenses or by the UI
-App Store additional permission. OS identity artwork in the product console
+App Store additional permission. OS identity artwork in the app
 (for example the Debian swirl) stays under its original copyright, license, and
 trademark terms:
 [ui/assets/os/NOTICE.md](https://github.com/TurboPanel/ui/blob/trunk/assets/os/NOTICE.md).
@@ -110,7 +110,7 @@ whatever `trunk` happens to list later.
 | --- | --- |
 | Packaged daemon release | `/opt/turbopanel/share/THIRD_PARTY_NOTICES.md` on the host |
 | Deployed control plane | `THIRD_PARTY_NOTICES.md` at the commit in `GET /api/health` `revision.sourceUrl` (or the matching git tag) |
-| Store binary or production UI update | `THIRD_PARTY_NOTICES.md` at the git revision shown in Settings → About |
+| Store binary or production UI update | `THIRD_PARTY_NOTICES.md` at the git revision shown in the account menu → About |
 | Any other published artifact | `THIRD_PARTY_NOTICES.md` on the matching GitHub tag or commit, not `trunk` |
 
 ## Corresponding Source
@@ -145,7 +145,7 @@ still names the immutable source commit before `+`. Short SHAs are only for
 
 ### Store binary or production UI update
 
-Native **Settings → About** (`/about`, also in the account menu; unsigned users
+Native **About** (`/about`, in the account menu; unsigned users
 may open it) names the license, version/build, and Corresponding Source URL for
 the git revision baked by `app.config.ts` — never `trunk`. Each store binary
 and production EAS Update must publish Corresponding Source for that exact

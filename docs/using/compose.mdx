@@ -32,7 +32,7 @@ The `x-turbopanel` blocks are hidden from the YAML view and re-attached on save,
 ## Before you begin
 
 - A project of the compose type — every card on the create wizard except *Template* and *Managed* produces one, and a template project becomes an ordinary compose project once created.
-- For a service that runs as a Unix account — a site or a Node app — a **system user** declared under `x-turbopanel.principals` or assigned on the **Bindings** tab. The daemon skips a release that has nobody to run as, and the console keeps Deploy disabled until one is assigned.
+- For a service that runs as a Unix account — a site or a Node app — a **system user** declared under `x-turbopanel.principals` or assigned on the **Bindings** tab. The daemon skips a release that has nobody to run as, and the app keeps Deploy disabled until one is assigned.
 - For a service built from a repository, a Git source connected under **Projects → Git sources**.
 
 ## Add a service
@@ -67,7 +67,7 @@ Sites and Node apps are stripped out of the runtime compose the daemon runs; the
 
 ## Import a `docker run` line
 
-**Services → Import from docker run** turns a `docker run …` command into one ordinary service — plain Compose, nothing written under `x-turbopanel`, validated like a hand-written document. The importer knows every option `docker container run` accepts; the ones Compose can express are mapped, the ones that describe the container but have no Compose expression are refused with the option named (`docker_run_unsupported`), and a gated field the command asks for (`--privileged`, `--cap-add`, a Docker socket mount) is flagged as a risk before the service exists. Shell syntax in the pasted line — `$(…)`, pipes, redirection, globs — is taken as literal text and warned about, never executed.
+**Import docker run** (in the compose editor toolbar) turns a `docker run …` command into one ordinary service — plain Compose, nothing written under `x-turbopanel`, validated like a hand-written document. The importer knows every option `docker container run` accepts; the ones Compose can express are mapped, the ones that describe the container but have no Compose expression are refused with the option named (`docker_run_unsupported`), and a gated field the command asks for (`--privileged`, `--cap-add`, a Docker socket mount) is flagged as a risk before the service exists. Shell syntax in the pasted line — `$(…)`, pipes, redirection, globs — is taken as literal text and warned about, never executed.
 
 ## The `x-turbopanel` extension
 
@@ -80,7 +80,7 @@ x-turbopanel:
       access: sftp        # none | sftp | ssh — the access the account is created with
 ```
 
-`principals` declares the **system users** a document's services may run as, by a document-local alias. The alias is a name inside this file; the Unix account behind it — username, uid, home, keys, password — lives on a **system user** row the platform creates on first deploy and that you manage on the **Bindings** tab. An alias is never a Linux username.
+`principals` declares the **system users** a document's services may run as, by a document-local alias. The alias is a name inside this file; the Unix account behind it — username, uid, home, keys, password — lives on a **system user** row the platform creates on first deploy and that you manage on the **Bindings** tab. An alias is never a Linux username. The account's system name follows the organization's [name scheme](/docs/using/managed-databases#name-schemes) (default `partial`).
 
 ### On a service
 
@@ -108,10 +108,10 @@ services:
 | `description` | all | Free text shown on the service card and the Overview. |
 | `principal` | `site`, `node` (refused on `container`) | Alias of a root `principals` entry — the account the service runs as. Required for sites and Node apps. |
 | `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| acme, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
-| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. |
+| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `deployOnPush: false` keeps a git push from deploying the service (an app deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `root` | `site` | Document root, relative to the account's site directory. |
-| `php` | `site` | `{ version?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
+| `php` | `site` | `{ version?, mode?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), the [PHP mode](/docs/using/php) (`fastcgi`, `fpm`, `lsphp-detached`, `lsphp-attached`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
 | `framework` | `node` | `auto` (default), `node`, `next`. |
 | `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range. |
 | `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
@@ -156,7 +156,7 @@ A relative bind that stays inside the service directory (`./data:/data`, `./conf
 
 Host-level features are off by default, per organization. An organization owner turns them on under **Manage Organization → Compose** (`PUT /organizations/:id/compose-privileged-fields`); every flip is written to the organization's audit trail. With them on, only an organization **manager or owner** can deploy a document that uses them.
 
-A Git-triggered deploy has no person behind it. It may deploy host-level content only after a manager or owner has deployed that same content once from the console. That deploy records an approval tied to exactly what reaches the host, so any change to those parts of the document needs a new console deploy before automated deploys resume.
+A Git-triggered deploy has no person behind it. It may deploy host-level content only after a manager or owner has deployed that same content once from the app. That deploy records an approval tied to exactly what reaches the host, so any change to those parts of the document needs a new console deploy before automated deploys resume.
 
 The server checks again at deploy. It resolves every bind and file path to its real location on the host and refuses one that escapes the service directory through a symbolic link, even with host-level features on. It also refuses a path nested inside another writable bind, which a container could change between the check and the deploy. The deploy then fails with `compose deploy refused — host paths outside this deployment:` followed by each path and where it resolves.
 
@@ -214,6 +214,7 @@ A service with a `source` produces a **release** on every deploy: the repository
 | --- | --- |
 | Hosting entries per service | 10 ports per hosting entry; hostnames unlimited but unique per organization |
 | `source.branch` | Same maximum length as the repository's branch field |
+| `source.deployOnPush` | `true` or `false` |
 | `source.buildCommand`, `startCommand` | Non-secret, single line |
 | `cron[].name` | Lowercase `[a-z0-9-]`, unique per service; a name that a scheduled task also folds to is refused on the task, not here |
 | PHP series | `8.3`, `8.4` |
@@ -221,7 +222,7 @@ A service with a `source` produces a **release** on every deploy: the repository
 
 ### Deploy-time refusals that originate in the document
 
-These are reported by **Deploy**, not by Save, because they depend on the merged document, the organization or the fleet. The full deploy table is in [Deploying](/docs/using/deploy#errors).
+These are reported by **Deploy**, not by Save, because they depend on the merged document, the organization or the servers. The full deploy table is in [Deploying](/docs/using/deploy#errors).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -229,13 +230,13 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `compose_field_unsupported` | 422 | An unsupported key is present; the reason is quoted. Drop the key. |
 | `compose_field_requires_org_opt_in` | 403 | A host-level feature is present and the organization has not turned them on. Names the fields and paths. |
 | `compose_host_access_requires_manager` | 403 | Host-level features are on, but the person deploying is not an organization manager or owner. |
-| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content that no manager or owner has deployed in this form. Deploy it once from the console to approve it. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level content that no manager or owner has deployed in this form. Deploy it once from the app to approve it. |
 | `principal_alias_unknown` | 422 | A service names an alias the root does not declare (only reachable with a stale document). |
 | `principal_required_for_service_kind` | 422 | A site or Node app has neither an alias nor a system user assigned on Bindings. |
 | `site_principal_ambiguous`, `source_principal_ambiguous` | 422 | No alias, and more than one system user could own the service. Declare the alias. |
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
-| `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker**. |
+| `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
 | `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network. |
 
 ## Errors at save

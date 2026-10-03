@@ -5,7 +5,7 @@ description: Install and configure the TurboPanel control plane for self-hosted 
 
 # Control Plane Deployment
 
-The TurboPanel **instance** is the control plane API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for TurboPanel High Availability. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
+The TurboPanel **control plane** is the API. It runs as **Deno** on self-hosted hosts (Unix socket + Caddy) or on **Cloudflare Workers** for TurboPanel High Availability. The Expo UI is served by Caddy (static export or dev proxy) or Workers assets.
 
 <Callout type="info" title="Private alpha — not yet publicly available">
   Self-hosted and TurboPanel High Availability control planes are both in **private alpha** and
@@ -24,16 +24,16 @@ The TurboPanel **instance** is the control plane API. It runs as **Deno** on sel
 
 ### Relationship to daemon
 
-On the control plane host, a **co-located daemon** installs and updates the instance, Caddy, UI, and Postgres via Ansible. Additional servers run a standalone daemon that connects back over WSS. See [Daemon setup](/docs/deployment/daemon-setup).
+On the control plane host, a **co-located daemon** installs and updates the control plane, Caddy, UI, and Postgres via Ansible. Additional servers run a standalone daemon that connects back over WSS. See [Daemon setup](/docs/deployment/daemon-setup).
 
 <Callout type="info" title="Co-located daemon">
-  The control plane server includes a co-located daemon that dials the local instance (socket or Caddy).
-  Remote nodes use the production installer at `turbopanel.sh` — not a separate control-plane container image.
+  The control plane server includes a co-located daemon that dials the local control plane (socket or Caddy).
+  Remote servers use the production installer at `turbopanel.sh` — not a separate control-plane container image.
 </Callout>
 
 <Callout type="info" title="One server is enough">
-  The server that runs the control plane (`this server` in the console) is an ordinary deploy target.
-  A single-server install runs the panel and your projects on the same box; what you give up is
+  The server that runs the control plane (`this server` in the app) is an ordinary deploy target.
+  A single-server install runs the control plane and your projects on the same box; what you give up is
   multi-node placement — a second database node, spreading projects across hosts — not the ability
   to deploy. [Enrol more servers](/docs/deployment/daemon-setup) whenever you want that.
 </Callout>
@@ -129,7 +129,7 @@ See [Local development](/docs/getting-started/development). Logs: `journalctl -u
 
 ### Self-hosted control plane (private alpha — preview)
 
-The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian — the bootstrap refuses any other distribution up front — with dedicated service users (`tp`, `tpctrl`, `tpcaddy`), one compiled instance binary, `/opt/turbopanel/bin/turbopanel`, beside the daemon (its DuckDB library in `/opt/turbopanel/lib`; the email consumer runs inside it, there is no separate mailer process), the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **Packages exist once the first `v0.1.0` release is published; until then the command refuses with "does TurboPanel/turbopanel have a release yet?".**
+The same `turbopanel.sh` installer that enrols a daemon installs a control plane, on an explicit opt-in. It provisions a managed **FHS** layout on Debian — the bootstrap refuses any other distribution up front — with dedicated service users (`tp`, `tpctrl`, `tpcaddy`), one compiled instance binary, `/opt/turbopanel/bin/turbopanel`, beside the daemon (its DuckDB library in `/opt/turbopanel/lib`; the email consumer runs inside it, there is no separate mailer process), the static UI at `/opt/turbopanel/share/ui`, Postgres / Redis / RabbitMQ / Docker, the platform CA and a self-signed leaf, systemd units and Caddy — from the release packages on [GitHub Releases](https://github.com/TurboPanel/turbopanel/releases), every asset verified against the release's `manifest.json`. **When the chosen channel has no release yet, the command stops with "does TurboPanel/turbopanel have a `<channel>` release yet?".**
 
 <Steps>
   <Step>
@@ -142,22 +142,22 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     curl -fsSL turbopanel.sh | sh
     ```
 
-    Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing panel, pass `TURBOPANEL_LICENSE` from that panel's server install command.
+    Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing control plane, pass `TURBOPANEL_LICENSE` from that control plane's server install command.
   </Step>
   <Step>
     Complete the install wizard at `https://<host>:8443` (host PAM + superadmin). A Platform CA name is signed by the certificate at `/var/lib/turbopanel/tls/ca.crt`. A Let's Encrypt or uploaded name presents that name's own leaf on the same port.
   </Step>
   <Step>
-    Enroll managed servers — including this host, once the wizard has issued a license — with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
+    This host's own daemon enrols itself once the wizard has issued the first license; do not run the server installer with a license on it. Enroll every other server with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
   </Step>
 </Steps>
 
 ### The first admin (hosted)
 
 A self-hosted control plane creates its first superadmin in the install wizard, from host PAM.
-The hosted (Workers) control plane has no wizard: signup is off unless
+The TurboPanel High Availability (Workers) control plane has no wizard: signup is off unless
 `TURBOPANEL_IS_SIGNUP_ENABLED` says otherwise, and no route ever grants a role. So a freshly
-migrated hosted database has no way in — and the [tier catalogue](/docs/deployment/tier-catalogue)
+migrated TurboPanel High Availability database has no way in — and the [tier catalogue](/docs/deployment/tier-catalogue)
 needs a superadmin to enter it. Once, from the `turbopanel` checkout, over the same database URL
 `pnpm migrate` uses:
 
@@ -181,11 +181,11 @@ Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-host
 
 ### TurboPanel High Availability (private alpha — waitlist)
 
-TurboPanel High Availability runs the instance on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to a hosted URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.app/sign-up) for access updates.
+TurboPanel High Availability runs the control plane on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to the control plane's URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.app/sign-up) for access updates.
 
-When access is available, operators create an organization in the hosted panel, configure Workers bindings and secrets, and enroll nodes with `turbopanel.sh` (manifest default host — no `TURBOPANEL_HOST` required).
+When access is available, operators create an organization in the app, configure Workers bindings and secrets, and enroll servers with `turbopanel.sh` (manifest default host — no `TURBOPANEL_HOST` required).
 
-Maintainers deploy the Workers bundle from the instance repo:
+Maintainers deploy the Workers bundle from the control plane repo:
 
 ```bash
 export TURBOPANEL_DATABASE_URL="postgresql://user:pass@host:5432/dbname"
@@ -209,9 +209,9 @@ pnpm deploy
 
 ## Configuration
 
-The complete list of what a self-hosted instance reads at boot — required, defaulted, and silently degrading — is [Instance configuration](/docs/deployment/instance-configuration). The most common ones:
+The complete list of what a self-hosted control plane reads at boot — required, defaulted, and silently degrading — is [Control plane configuration](/docs/deployment/instance-configuration). The most common ones:
 
-### Key environment variables (instance)
+### Key environment variables (control plane)
 
 | Variable | Purpose |
 | -------- | ------- |
@@ -222,15 +222,15 @@ The complete list of what a self-hosted instance reads at boot — required, def
 | `TURBOPANEL_SOCKET` / `TURBOPANEL_SOCKET_DIR` | Unix socket path overrides |
 | `TURBOPANEL_UI_MODE` | `dev` (Expo proxy) or `static` (exported UI) |
 | `TURBOPANEL_UI_ROOT` | Static UI export root. Production (FHS) default `/opt/turbopanel/share/ui` (where the daemon `ui-build` role publishes the export); co-located dev overrides it to a checkout-relative path such as `../ui/dist` |
-| `CADDY_PORT` | HTTPS listen port (default **8443**) |
+| `CADDY_PORT` | Contributor dev overlay only (default **8443**). The managed Caddyfile binds a literal `:8443` and does not read it |
 | `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s for a hostname that presents a Let's Encrypt or uploaded leaf |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Forces sign-up open (`1`) or closed (`0`), overriding the admin setting — both runtimes |
 | `TURBOPANEL_REDIS_SOCKET` / `TURBOPANEL_AMQP_URL` | Redis socket (required, opened lazily) and the RabbitMQ URL for the email queue (unset → probe, then a silent no-op queue) |
-| `TURBOPANEL_UPDATE_CHANNEL` | The channel this instance resolves daemon, control-plane, and UI updates on (`trunk` default; `canary`, `rc`, `release`) |
-| `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | How long a successful upgrade step is kept (default 14). Failed steps stay 90 days; runs stay 365 days, newest 50 kept. See [Instance configuration](/docs/deployment/instance-configuration) |
+| `TURBOPANEL_UPDATE_CHANNEL` | The channel this control plane resolves daemon, control-plane, and UI updates on (`release` default; `trunk`, `edge`, `canary`, `rc`) |
+| `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | How long a successful upgrade step is kept (default 14). Failed steps stay 90 days; runs stay 365 days, newest 50 kept. See [Control plane configuration](/docs/deployment/instance-configuration) |
 | `TURBOPANEL_AUTH_PROVIDERS__*` | GitHub / Google OAuth client id + secret (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Env wins over the `SYSTEM_AUTH_PROVIDERS` setting row. On TurboPanel High Availability these are Wrangler secrets. |
 
-Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the instance checkout. Provider setup (Admin → Auth providers, env-wins, and linking rules): [Accounts and access](/docs/getting-started/accounts-and-access).
+Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.vars` in the control plane checkout. Provider setup (Admin → Sign-in providers, env-wins, and linking rules): [Accounts and access](/docs/getting-started/accounts-and-access).
 
 ### Admin → Access
 
@@ -246,7 +246,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 Per-hostname sources need a co-located daemon that can render them (`instance-cert-sources-per-hostname`, daemon **0.1.1** or newer). Older daemons keep the rows visible and leave the sources disabled until that daemon is updated.
 
-**Admin → Updates** is the managed platform upgrade. On self-hosted it runs this host's daemon, then the control plane, then the other servers, and the fleet waits until the first two are on target. On TurboPanel High Availability the control plane line is **Managed by TurboPanel** and only daemons roll out. Detail: [Upgrade and rollback](/docs/deployment/upgrade).
+**Admin → Updates** is the managed platform upgrade. On self-hosted it runs this host's daemon, then the control plane, then the other servers, and the other servers wait until the first two are on target. On TurboPanel High Availability the control plane line is **Managed by TurboPanel** and only daemons roll out. Detail: [Upgrade and rollback](/docs/deployment/upgrade).
 
 ### API entrypoints
 
@@ -266,24 +266,24 @@ Per-hostname sources need a co-located daemon that can render them (`instance-ce
 
 ## Communication patterns
 
-- **Browser → Caddy → instance:** REST and cookies on `/api/client/v1/*`
-- **Daemon → instance:** WSS `/ws/daemon/v1` (through Caddy or direct Unix socket when co-located)
+- **Browser → Caddy → control plane:** REST and cookies on `/api/client/v1/*`
+- **Daemon → control plane:** WSS `/ws/daemon/v1` (through Caddy or direct Unix socket when co-located)
 - **Dev sync / tunnel:** Operator pushes daemon builds or tunnel tokens via developer API + daemon WS messages
 
 ## Compose deploys (compiled runtime file)
 
-The control plane stores a **project** base compose and an optional **environment** overlay. Merge and platform inject happen on the instance; `environment.deploy` then publishes a **single compiled** `compose.yaml` (`role: 'runtime'`) that the daemon writes under `<stateDir>/deployments/<projectId>/<environmentId>/` next to `.env` (non-secrets) and `deployment.json`.
+The control plane stores a **project** base compose and an optional **environment** overlay. Merge and platform inject happen on the control plane; `environment.deploy` then publishes a **single compiled** `compose.yaml` (`role: 'runtime'`) that the daemon writes under `<stateDir>/deployments/<projectId>/<environmentId>/` next to `.env` (non-secrets) and `deployment.json`.
 
 Overrides between the authored project and environment layers follow the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (a later layer wins per key), most sequences — `ports`, `volumes`, `env_file`, and similar lists — **append** with attribute-specific key-based de-duplication rather than replacing the earlier layer wholesale, and `command`, `entrypoint`, and a service's `healthcheck.test` always **fully replace** rather than append. Authors who need to remove a value entirely, or force full replacement instead of the default append/merge behavior for a sequence, can use the reserved **`!reset`** (delete the key) and **`!override`** (force full replacement) YAML tags on the environment overlay.
 
-In the organization console, **Merged compose** is a client-side simulation of the fully merged effective document (readability aid). **Prepared compose** and the live `environment.deploy` path show that compiled `compose.yaml`. See also [API architecture — compiled compose](/docs/architecture/api#compiled-compose-composeyaml).
+In the app, **Merged compose** is a client-side simulation of the fully merged effective document (readability aid). **Prepared compose** and the live `environment.deploy` path show that compiled `compose.yaml`. See also [API architecture — compiled compose](/docs/architecture/api#compiled-compose-composeyaml).
 
 ## Related documentation
 
 - [Installation paths](/docs/getting-started/installation) — Decision guide for all install paths
 - [Accounts and access](/docs/getting-started/accounts-and-access) — Two-factor, passkeys, GitHub / Google sign-in, and invitations
 - [Self-hosted overview](/docs/deployment/self-hosted) — Operator responsibilities
-- [Daemon setup](/docs/deployment/daemon-setup) — Remote node installer
+- [Daemon setup](/docs/deployment/daemon-setup) — Remote server installer
 - [Security](/docs/deployment/security) — TLS, auth, and hardening
 - [Deployment troubleshooting](/docs/deployment/troubleshooting) — Runtime issues
 - [Instance API architecture](/docs/architecture/api) — Code layout

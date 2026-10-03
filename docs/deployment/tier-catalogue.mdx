@@ -1,28 +1,28 @@
 ---
 title: First-run tier catalogue
-description: The one-time procedure that gives a fresh TurboPanel High Availability instance its S1–S7 catalogue — which Stripe products to create, what the verifier checks, and what an empty instance looks like
+description: The one-time procedure that gives a fresh TurboPanel High Availability control plane its S1–S7 catalogue — which Stripe products to create, what the verifier checks, and what an empty control plane looks like
 ---
 
 # First-run tier catalogue
 
-A fresh **TurboPanel High Availability** instance has a billing surface and no catalogue. The
+A fresh **TurboPanel High Availability** control plane has a billing surface and no catalogue. The
 ladder (S1–S7, SX) is fixed in code; what a superadmin enters is only *which Stripe product each
 priced label sells through*. Nothing seeds this and nothing writes it automatically — by design,
 so a wrong price can never appear because a script ran. This page is that procedure, once per
 instance.
 
-Self-hosted instances skip all of it: every server they license is SX, free — see
+Self-hosted control planes skip all of it: every server they license is SX, free — see
 [License tiers](/docs/deployment/tiers).
 
 ## Before you start
 
 | You need | Where |
 | --- | --- |
-| A superadmin session | See [The first admin](/docs/deployment/control-plane#the-first-admin-hosted) — a freshly migrated hosted database has none |
+| A superadmin session | See [The first admin](/docs/deployment/control-plane#the-first-admin-hosted) — a freshly migrated TurboPanel High Availability database has none |
 | `TURBOPANEL_STRIPE_SECRET_KEY` and `TURBOPANEL_STRIPE_WEBHOOK_SIGNING_SECRET` on the environment | Cloudflare deploy settings for that env |
 | A Stripe Tax default *or* `tax_behavior` set on every price | Stripe Dashboard → Settings → Tax. The verifier refuses a price whose tax behaviour resolves to nothing |
 
-## What an empty instance looks like
+## What an empty control plane looks like
 
 Before anyone has entered anything: **Admin → Tiers** lists no rows; `GET /api/admin/v1/tiers`
 returns an empty list; an organization trying to buy a license sees no purchasable tier; a server
@@ -52,7 +52,7 @@ and never sold through Checkout. For each product:
 | S6 | 128 | 512 GiB | $35.00 |
 | S7 | 256 | 1 TiB | $50.00 |
 
-The prices are the ladder's — `src/lib/tiers/ladder.ts` in the control plane — and the verifier
+The prices are the ladder's — `src/features/tiers/ladder.ts` in the control plane — and the verifier
 holds Stripe to them. Changing a price is a code change first, then a Stripe change, never the
 other way round.
 
@@ -75,7 +75,7 @@ What the verifier refuses, in the words it uses:
 Press **Verify all** (`POST /api/admin/v1/tiers/verify`): it re-verifies every priced row against
 Stripe and refreshes the cached price. Then, as an ordinary organization owner, open the billing
 page — all seven tiers should be purchasable at the ladder prices — and buy one S1 license in
-Stripe **test mode** before the instance takes real money. A server whose cores and RAM fit S1 then
+Stripe **test mode** before the control plane takes real money. A server whose cores and RAM fit S1 then
 enrols and connects; that is the whole path exercised.
 
 ## Later changes
@@ -86,7 +86,30 @@ enrols and connects; that is the whole path exercised.
   bind the new product. Existing subscriptions keep their Stripe price until the next change.
 - **SX:** negotiated per customer; there is nothing to enter here.
 
+## Hand edits in the Stripe Dashboard
+
+What you may and may not change in Stripe by hand, per Stripe account (testing, staging and live each
+have their own):
+
+- **Do not edit customers' subscriptions or subscription schedules.** TurboPanel creates, changes and
+  releases them through the API (a license increase, a move, a decrease at the end of the period) and
+  keeps its own record of pending changes and license counts beside them. A change made in the
+  Dashboard never reaches that record, so licenses and what Stripe bills can end up out of step.
+  Nothing reconciles hand edits yet: that is a planned feature, not a safety net. Make the change
+  from the billing screens instead.
+- **Do set dunning by hand, on purpose.** These are account settings, not API fields: a custom retry
+  schedule of about **14 days** on staging and live (testing may use a much shorter one to exercise the
+  lifecycle), and **If all retries fail: cancel the subscription**. That cancellation is the only thing
+  that ends a past-due subscription; TurboPanel has no clock of its own and never cancels. Do not
+  choose "leave past-due" or "mark unpaid", because the customer's licenses would then never end.
+- **The catalogue is the exception in between.** Products and prices are created by hand once (steps 1
+  and 2 above) and changed only the way [Later changes](#later-changes) describes, because the
+  verifier holds them to the ladder in code.
+- **Other account settings stay in the Dashboard:** the Customer Portal's branding, and the Stripe Tax
+  default behaviour and registrations. The portal's features are set by code, and a portal
+  configuration edited in the Dashboard is never used.
+
 ## Related
 
 - [License tiers](/docs/deployment/tiers) — the ladder and the placement rules
-- [Control plane](/docs/deployment/control-plane) — hosted deploy and the first admin
+- [Control plane](/docs/deployment/control-plane) — High Availability deploy and the first admin
