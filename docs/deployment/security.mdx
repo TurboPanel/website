@@ -121,7 +121,29 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
-A **Docker gate** is being built to narrow this route (coming in 0.2.x). Today it is **observe-only**: a root-owned `turbopanel-docker-gate` service on managed hosts with Docker forwards requests to Docker unchanged and logs what a strict profile would refuse. Nothing is routed through it and it blocks nothing, so enforcement is off. It never stops Docker or a converge if it fails to install.
+The **Docker gate** narrows this route. It is a root-owned service, `turbopanel-docker-gate`, that the daemon's converge installs on a managed host wherever Docker runs. A failed gate install only prints a warning: it never stops a Docker install or a converge. It is still in **observe mode** on every host, so it blocks nothing yet. Enforcement is built but not switched on, and the daemon does not route its Docker traffic through the gate yet (coming in 0.2.x).
+
+**What it would block.** The gate reads each request the way Docker does and judges it against a strict profile. A request for a container, volume, network or build that would hand out the host is a *finding*:
+
+- a privileged container, extra Linux capabilities, devices, and the host's network, process, IPC or user namespaces;
+- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside the site owners' homes (`/srv/users`) and TurboPanel's own storage;
+- volume drivers, log drivers and mount types that point somewhere the author picks, and any Docker setting the gate has not reviewed (a field a newer Docker adds is refused until someone reviews it);
+- a request whose framing is ambiguous, whose body is not strict JSON, or whose path Docker would rewrite;
+- a container request whose owner the gate cannot check (it fails closed when Docker does not answer within 5 seconds).
+
+Platform containers (the database proxy, managed engines, backups) and Compose features a site owner has been approved for are allowed through. The control plane signs each approval for one exact request, and a changed request needs a new one.
+
+**Observe and enforce.** In observe mode the gate forwards every request to Docker unchanged and writes `docker-gate.would-deny` to the journal (`turbopanel-docker-gate`) for each finding, so a host shows what would break before anything does. In enforce mode the same findings are refused with a `403` before Docker sees them, and a `docker-gate.denied` line is logged. The mode is set in the gate's unit file and is `observe` on every host today.
+
+**Three sockets, under `/run/turbopanel-gate/`.**
+
+| Socket | For | What it allows |
+| ------ | --- | -------------- |
+| `docker.sock` | The daemon account | Everything the profile allows. Build sessions (`/session`, `/grpc`) are a finding here. |
+| `ro/docker.sock` | The Traefik ingress proxies | Read only: ping, version, events and container details. Everything else is `403`. |
+| `build/docker.sock` (stage 4) | The daemon's own image builds | Build sessions open only here. |
+
+**Stage 4: builds.** A Docker build speaks a stream the gate cannot read, and every build choice (network, mounts, extra privileges) rides inside it. So builds are allowed on one socket only. Only the daemon account may open it: Linux checks the caller when it connects, the socket belongs to root and a group that holds nothing but the daemon account, and no header or token can stand in for it. Site builds that are not Docker builds run in the [build sandbox](/docs/security/site-isolation#builds), which has no Docker access at all. The daemon does not use this socket for its builds yet, so enforce mode stays off until it does.
 
 ### Control-plane container hardening
 

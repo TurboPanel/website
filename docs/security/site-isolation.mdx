@@ -1,6 +1,6 @@
 ---
 title: Site owner accounts and isolation
-description: How a site owner's Linux user, home directory, SSH access, builds and web servers are kept apart from each other and from the host
+description: How a site owner's Linux user, home directory, SSH and SFTP access, builds and web servers are kept apart from each other and from the host
 ---
 
 # Site owner accounts and isolation
@@ -34,16 +34,29 @@ The panel manages every key. Keys are written to `/etc/ssh/turbopanel/authorized
 
 ## Builds
 
-Project builds run in a sandbox, not as the platform or as the owner.
+Every native and static project build on a managed host runs in a sandbox, not as the platform or as the owner. Docker and Railpack image builds are not part of this sandbox: they run through Docker and are governed by the [Docker gate](/docs/deployment/security#docker-socket-security).
 
 - They run as an **unprivileged build user** with no home, which belongs to neither the Docker nor the TurboPanel group.
 - There is **no Docker** inside the sandbox: the Docker socket and the platform's own files are not reachable.
-- The network is **public internet only**. Loopback, private, link-local and carrier-grade NAT addresses are blocked, so a build cannot reach the host, other servers on its network, or cloud metadata. The host's own DNS servers are the one exception.
+- The network is **public internet only**. Loopback, private, link-local and carrier-grade NAT addresses are blocked, so a build cannot reach the host, other servers on its network, or cloud metadata. There is no exception for the host's own DNS: the build gets its own list of public nameservers (the host's public ones, else the ones its resolver uses, else `1.1.1.1` and `8.8.8.8`), so a private or router DNS server is not reachable either.
 - Limits per build: **4 GB of memory, 2 CPUs and 30 minutes**.
 - **One build runs at a time** on a server; others wait.
-- Each build has a private `/tmp` and no access to other owners' homes, and the finished files are handed back to the owner afterwards.
+- Each build has a private `/tmp` and no access to other owners' homes, and the finished files are handed back to the owner afterwards. A build that leaves a link out of its own folder is refused when it is handed back.
+- A build that runs over 30 minutes, or whose client goes away, is stopped.
 
-Using this sandbox for project builds on the server is coming in 0.2.x. The sandbox needs systemd 247 or newer, and on hosts older than 255 it runs with a reduced but still unprivileged set of restrictions.
+A development install builds as the developer instead. The sandbox needs systemd 247 or newer; on hosts older than 255 it runs with a reduced but still unprivileged set of restrictions.
+
+## SFTP jail
+
+An owner with files-only access (SFTP, no shell) can be locked into their own home. The jail is **off by default** and is turned on for one server at a time by an operator on that server, once the home layout above is in place:
+
+```bash
+sudo /opt/turbopanel/lib/tp-host sftp-chroot on
+```
+
+`on` first checks the layout and refuses if anything is wrong: a folder on the way to the home that root does not own or that others can write to, an owner with no `home/` of their own, a login home other than `home/`, or a user in both the SFTP and the shell groups. `off` removes the jail and is never refused; `status` shows the state.
+
+With the jail on, a files-only owner signs in to `home/` and sees only `home/`, `data/`, `tmp/`, `sites/` and `volumes/`. They can write their own folders, `webroot/` and `shared/`, cannot change `sites/` or any release, and cannot see `/etc` or another owner's home. A shell login gets "This service allows sftp connections only". Owners with shell access are never jailed. The check runs again at every SSH update; if the layout has drifted, that one owner's login closes and the jail stays on for everyone.
 
 ## Web server accounts
 
