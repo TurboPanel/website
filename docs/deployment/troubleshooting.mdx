@@ -17,7 +17,7 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 | **80**   | Only during Let's Encrypt issuance or renewal.                    |
 | **443**  | Hosting only.                                                     |
 
-Hosting Caddy also binds **80** while tenant sites are deployed. A control plane with no tenant sites leaves **80** closed except during that issuance or renewal window. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Hosting Caddy also binds **80** while hosted sites are deployed. A control plane with no hosted sites leaves **80** closed except during that issuance or renewal window. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Port conflicts (8443 / 80 / 443)
 
@@ -26,9 +26,9 @@ Hosting Caddy also binds **80** while tenant sites are deployed. A control plane
 **Solutions:**
 
 1. For `:8443`, stop or move the process that holds it. The managed Caddyfile binds `:8443` literally and does not read `CADDY_PORT` (only the co-located development overlay does), so the port cannot be changed
-2. When the apply reports `port 80 is held by <process>` (for example `port 80 is held by nginx`), stop that process or move it off port 80, then apply again. Hosting Caddy is the expected holder when tenant sites are already deployed
+2. When the apply reports `port 80 is held by <process>` (for example `port 80 is held by nginx`), stop that process or move it off port 80, then apply again. Hosting Caddy is the expected holder when hosted sites are already deployed
 3. Check listeners: `ss -tlnp | grep -E '8443|80|443'`
-4. Port **443** is hosting Caddy. Leave it for tenant sites
+4. Port **443** is hosting Caddy. Leave it for hosted sites
 
 ## UI or API not loading
 

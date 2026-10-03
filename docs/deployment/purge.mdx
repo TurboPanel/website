@@ -27,7 +27,7 @@ Export what you need. The purge deletes every path in this table.
 | Secret keyring                              | `/etc/turbopanel/instance/.instance_secrets`                                                              | Copy the file off the host       |
 | Nightly control-plane dumps                 | `/var/lib/turbopanel/backup/postgres`                                                                     | Copy the dumps off the host      |
 | Managed-engine backups                      | `/backup`, or `TURBOPANEL_BACKUP_DIR`                                                                     | Copy the tree off the host       |
-| Principal homes                             | `/srv/users/<username>`                                                                                   | Copy the home directories        |
+| Site owner homes                             | `/srv/users/<username>`                                                                                   | Copy the home directories        |
 
 Secrets at rest use the control plane keyring — without a database backup, encrypted blobs cannot be recovered. Back up the keyring ([Backup and escrow](/docs/deployment/security#backup-and-escrow)) and the database ([Backup and disaster recovery](/docs/deployment/security#backup-and-disaster-recovery)) before you purge.
 
@@ -86,7 +86,7 @@ Before the confirmation prompt, the report shows:
 
 - **Host** and the **install label** from the table above
 - **Control plane URL**, when `TURBOPANEL_INSTANCE_URL` is set
-- How many **principals** were found, and the home root they live under
+- How many **site owner Linux users** were found, and the home root they live under
 - **Docker** status: installed and responding, installed but not responding, or not installed. A non-default data root is printed here when the script can read it
 - The scan, grouped under **Units**, **Containers**, **Networks**, **Docker volumes**, **Firewall chains**, **WireGuard**, **Host files**, **Shell startup files**, **Folders to remove**, **Data folders (config, state, logs, backups)**, **Accounts to remove**, **Groups to remove**, **Principal homes**, and **Left alone**
 - **Data folder sizes**
@@ -103,9 +103,9 @@ The script also cleans up installs from earlier releases, and installs that were
 
 When `daemon.env` is missing, discovery still starts from the default folders (`/etc/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/opt/turbopanel/vendor`, `/run/turbopanel`, `/backup`, `/srv/users`). The daemon unit adds a run-directory override from `Environment=TURBOPANEL_RUN_DIR`, and `/etc/tmpfiles.d/turbopanel.conf` adds runtime socket paths that match a known folder. A custom `TURBOPANEL_BACKUP_DIR` or `TURBOPANEL_PRINCIPAL_HOME_ROOT` (for example `/mnt/backups`) is read from `daemon.env`, or from a unit `Environment=` line that sets that variable. With both gone, that path stays out of the report, the purge, and the final remaining-items scan.
 
-The script only deletes inside TurboPanel's own folders: `/opt/turbopanel`, `/etc/turbopanel`, `/etc/ssh/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`, `/backup`, `/srv/users`, its Ansible scratch folders, and the Docker folders `/var/lib/docker`, `/var/lib/containerd` and `/etc/docker`. It resolves symlinks in a folder's parent path before it checks. A custom backup directory, principal home root or Docker data root outside those folders is never deleted. It is listed under **Configured outside TurboPanel's folders (kept)** in the report and the summary. A principal home root outside them is also never used to pick accounts to delete. Remove those folders yourself once you have what you need from them.
+The script only deletes inside TurboPanel's own folders: `/opt/turbopanel`, `/etc/turbopanel`, `/etc/ssh/turbopanel`, `/var/lib/turbopanel`, `/var/log/turbopanel`, `/run/turbopanel`, `/backup`, `/srv/users`, its Ansible scratch folders, and the Docker folders `/var/lib/docker`, `/var/lib/containerd` and `/etc/docker`. It resolves symlinks in a folder's parent path before it checks. A custom backup directory, site owner home root or Docker data root outside those folders is never deleted. It is listed under **Configured outside TurboPanel's folders (kept)** in the report and the summary. A site owner home root outside them is also never used to pick accounts to delete. Remove those folders yourself once you have what you need from them.
 
-Before you purge, confirm every custom backup directory and principal home root in the pre-removal report: the `Principals: … under …` line, **Data folder sizes**, **Folders to remove**, **Data folders (config, state, logs, backups)**, and **Configured outside TurboPanel's folders (kept)**. When a path is missing, restore `daemon.env` (or the unit `Environment=` line) and run the script again.
+Before you purge, confirm every custom backup directory and site owner home root in the pre-removal report: the `Principals: … under …` line, **Data folder sizes**, **Folders to remove**, **Data folders (config, state, logs, backups)**, and **Configured outside TurboPanel's folders (kept)**. When a path is missing, restore `daemon.env` (or the unit `Environment=` line) and run the script again.
 
 If a tool the script wants is missing, that step shows as `SKIPPED: <tool> not installed`. A skip is not a failure.
 
@@ -124,17 +124,17 @@ There is one path and nothing to choose. `q` is not offered; the only way out is
 | `TP-*` firewall chains, WireGuard `tp0`                                                                                                                                | Removed             |
 | Host config drop-ins (sysctl, udev, tmpfiles, sudoers, sshd, `/usr/local/bin/php`)                                                                                     | Removed             |
 | `/opt/turbopanel`, runtime and run folders, Ansible scratch folders                                                                                                    | Removed             |
-| `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-purge.bak` copy is saved first; principal homes are removed whole) | Removed             |
+| `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-purge.bak` copy is saved first; site owner homes are removed whole) | Removed             |
 | Service accounts and groups (IDs 9900–9999)                                                                                                                            | Removed             |
 | Config, state, log and backup folders; `/etc/ssh/turbopanel`                                                                                                           | Removed             |
-| Principal accounts, `<user>-grp` groups, homes                                                                                                                         | Removed             |
+| Site owner accounts, `<user>-grp` groups, homes                                                                                                                         | Removed             |
 | Docker Engine: containers, volumes, images, packages, its apt repo and key                                                                                             | Removed             |
 | PHP packages and the sury key that TurboPanel installed                                                                                                                | Removed (see below) |
 | Any other apt package                                                                                                                                                  | Never touched       |
 
 Other `tp*` and `turbopanel*` accounts outside the 9900–9999 band show under **Left alone** and are never deleted.
 
-**Principals.** Accounts are found by home folder under each discovered principal home root (default `/srv/users/<username>`), whatever the UID. Earlier releases used IDs from 1000 or 10001. Current ones start at 15001.
+**Site owner Linux users.** Accounts are found by home folder under each discovered site owner home root (default `/srv/users/<username>`), whatever the UID. Earlier releases used IDs from 1000 or 10001. Current ones start at 15001.
 
 <Callout type="warn" title="Docker purge is the whole host">
   Purging Docker Engine removes every container, volume, and image on this host,

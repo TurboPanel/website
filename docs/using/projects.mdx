@@ -115,7 +115,7 @@ Placement is set on the **Hosting** tab, at either scope:
 
 Until an environment resolves to a connected server, its **Deploy** button is replaced by *No server — set one in Hosting*. A project whose services declare `deploy.replicas` or placement constraints is scheduled across the organization's connected servers by the planner; the pin is the anchor, not a cap — see [Deploying](/docs/using/deploy#placement-and-scheduling).
 
-Any connected server in the organization is a valid target, including a self-hosted control plane's own host: a single-server installation can run the control plane and its tenant projects on the same machine. The trade — tenant containers beside the control plane's database and secrets — is the operator's to accept.
+Any connected server in the organization is a valid target, including a self-hosted control plane's own host: a single-server installation can run the control plane and its projects on the same machine. The trade — site and app containers beside the control plane's database and secrets — is the operator's to accept.
 
 ## Project settings
 

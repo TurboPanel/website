@@ -109,7 +109,7 @@ This is the guarantee that matters most, and it is not pattern matching.
 
 <Callout type="warn" title="Deny-set, not heuristics">
   The redaction deny-set is built from the values **this command actually decrypted** — variable
-  material, principal passwords, TLS private keys, and (for `managed.apply`) credential plaintexts.
+  material, system user passwords, TLS private keys, and (for `managed.apply`) credential plaintexts.
   Every line is scrubbed to `***` and stripped of log-injection control characters **before it is
   written to disk**, so plaintext never reaches the spool file, let alone the network. TurboPanel
   deliberately does **not** rely on a generic secret-scanning regex, which would both miss real

@@ -113,19 +113,19 @@ Every login and system user has two names: the **display name** you typed, and t
 | `partial` (default) | what you typed, then `_` and 11 random lowercase letters and digits | `bob_x7k2m9qpz1a` |
 | `random` | 12 random characters: a leading letter, then 11 lowercase letters and digits. It never starts with a `tp` prefix and carries no trace of the typed name. | `u7k2m9x4qpz1` |
 
-The scheme applies to every kind of principal: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
+The scheme applies to every kind of login or system user: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
 
 The typed name is at most 16 characters under `partial`, so the whole name stays within 28 characters and the Linux group `<name>-grp` fits in 32.
 
 Three places choose a scheme:
 
 - **Organization default.** An owner or manager sets it (default `partial`).
-- **Per principal.** Each new login or system user can pick a scheme; it starts at the organization default.
-- **Organization lock.** An owner or manager can force one scheme for every **new** principal. A request for a different scheme is refused with `principal_scheme_locked` (409). The lock can be turned off and on again.
+- **Per login or system user.** Each new login or system user can pick a scheme; it starts at the organization default.
+- **Organization lock.** An owner or manager can force one scheme for every **new** login or system user. A request for a different scheme is refused with `principal_scheme_locked` (409). The lock can be turned off and on again.
 
-Existing principals are never renamed by a default or a lock change. The chosen scheme is stored on the principal (`options.nameScheme`). An organization that predates schemes keeps its old behaviour: randomized usernames on means `partial`, off means `plain`, and unset means `partial`.
+Existing logins and system users are never renamed by a default or a lock change. The chosen scheme is stored on the login or system user (`options.nameScheme`). An organization that predates schemes keeps its old behaviour: randomized usernames on means `partial`, off means `plain`, and unset means `partial`.
 
-**API.** `GET` and `PUT /organizations/:id/principal-defaults` read and write `{ nameScheme, schemeLocked }`. Creating a principal or a managed user accepts an optional `nameScheme`; omit it to use the organization default.
+**API.** `GET` and `PUT /organizations/:id/principal-defaults` read and write `{ nameScheme, schemeLocked }`. Creating a login or a managed user accepts an optional `nameScheme`; omit it to use the organization default.
 
 ## Replicas, promotion and disaster recovery
 

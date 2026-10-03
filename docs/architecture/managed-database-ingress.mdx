@@ -25,9 +25,9 @@ flowchart LR
 | **ProxySQL** | One compose project per managed server, with configuration under `/etc/turbopanel/proxysql/`. Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
 | **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family) |
 | **Backends** | Engine containers on the organization's managed Docker network, or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
-| **Users** | Non-replication managed principals resealed for that server — binding-created users included |
+| **Users** | Non-replication managed database users resealed for that server — binding-created users included |
 
-Replication principals never become ProxySQL frontend users.
+Replication users never become ProxySQL frontend users.
 
 ### Names you never have to type
 
@@ -126,7 +126,7 @@ every deploy — after this ingress port move, consuming environments must be
 
 ## Bindings (credentials → compose)
 
-A **binding** connects a managed database principal to a compose service:
+A **binding** connects a managed database user to a compose service:
 
 1. The control plane materializes service-scoped variables (host, port, user, password,
    URL, CA paths) — secret values never reappear on later GETs.
@@ -137,7 +137,7 @@ A **binding** connects a managed database principal to a compose service:
    cross-host consumers resolve it by name.
 3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
    consumer server and cluster member servers so frontend users and servers stay
-   aligned with sealed principal passwords.
+   aligned with sealed system user passwords.
 
 ## Replicas and failover
 

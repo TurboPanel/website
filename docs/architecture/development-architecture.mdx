@@ -105,8 +105,8 @@ Every table and non-obvious column has a one-sentence description applied to the
 
 | Service | Default port | Host forward | Notes |
 | ------- | ------------ | ------------ | ----- |
-| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant sites, and the control-plane Let's Encrypt window |
-| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (tenant sites) |
+| Hosting Caddy HTTP | 80 | `0.0.0.0` | Hosted sites, and the control-plane Let's Encrypt window |
+| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (hosted sites) |
 | Caddy HTTPS | 8443 | `0.0.0.0` | Always. Control plane (Platform CA catch-all) |
 | Website | 19820 | `0.0.0.0` | Next.js (optional) |
 | Wrangler (Workers mode) | 18787 | — | Internal only |
@@ -118,7 +118,7 @@ Every table and non-obvious column has a one-sentence description applied to the
 | Redis Insight | 5540 | `127.0.0.1` | Unauthenticated |
 | DuckDB UI | 4213 | `127.0.0.1` | On-demand, development build only |
 
-Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while tenant sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
+Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while hosted sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
 
 ## Technology choices
 
