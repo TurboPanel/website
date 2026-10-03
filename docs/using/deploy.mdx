@@ -113,10 +113,35 @@ The strategy is set on the environment's `options` through the API (there is no 
 
 A project's `options` may carry the three numbers as defaults for its environments; an environment's own value wins. Send `null` for a key to clear it. A value out of range, or a key that does not belong (a project cannot set `deployStrategy`), is refused with `deploy_options_invalid` and the field is named. **Preview** (`GET /environments/:id/deploy-preview`) reports the strategy requested, the one that would really run (`effectiveStrategy`), the migration status and, when the two differ, the `fallbackReasons`.
 
+### Rolling deploys across servers
+
+An environment whose services land on more than one server (through `deploy.replicas` or `deploy.placement`, see [Placement and scheduling](#placement-and-scheduling)) is deployed to each of them. A `sequential` deploy (and `bluegreen`, which runs as `sequential` for now) then updates the servers in **batches**, sized by the Compose `deploy.update_config.parallelism` of its services:
+
+```yaml
+services:
+  web:
+    deploy:
+      update_config:
+        parallelism: 2   # two servers at a time
+```
+
+| Setting | Effect |
+| --- | --- |
+| `parallelism` (whole number, 0 or more) | How many servers update at once. Default **1**. `0` means every server at once. A negative or fractional value is refused. |
+| Several services set it | The lowest value wins; `0` yields to any other value. |
+| `failure_action: pause` or `rollback` | Accepted. Both stop the rollout when a server fails, exactly as the default does. `rollback` does **not** undo servers that already updated. |
+| `delay`, `monitor`, `order`, `max_failure_ratio`, `failure_action: continue` | Refused at deploy with `compose_field_unsupported` (a warning while you save), so nothing is silently ignored. |
+
+Only the first batch is queued. Each next batch is queued when every server in the batch before has applied the deploy. A single-server deploy is unchanged. The deploy response and the preview report `rollout` as `{ parallelism, batches }`.
+
+**When a batch fails.** The first server that fails or times out stops the rollout. Servers that have not started are marked **failed** in Deployment history with the reason *rollout stopped … this server was not started*, and their commands are cancelled. Servers that were already running finish. Servers that updated in an earlier batch **stay on the new version**: nothing rolls them back, so the environment can be left on two versions until you fix the cause and deploy again. Each server's own sequential deploy still rolls back to its previous version when it can (see the outcomes above).
+
+An `inplace` environment ignores `parallelism`: it updates every server at once and reports `parallelism: 0`. A compose document that sets it gets a non-blocking warning from Preview and Deploy (*`deploy.update_config.parallelism` is ignored: this environment deploys inplace*); set the environment's `deployStrategy` to `sequential` to use it.
+
 <Callout type="info" title="Coming in 0.2.x">
   **Blue-green** deploys, which keep the old version serving until the new one is healthy and then
-  switch, and Swarm-style rolling updates read from a service's `deploy.update_config`, are not
-  built yet. Until they are, asking for `bluegreen` gives a sequential deploy.
+  switch, are not built yet. Until they are, asking for `bluegreen` gives a sequential deploy. The
+  other Swarm `update_config` settings are refused, as above.
 </Callout>
 
 ## Start, stop, restart, destroy

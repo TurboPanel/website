@@ -223,6 +223,11 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `recovery_required` | step error | Automatic rollback did not restore the control plane. Use the **Recovery command**. |
 | `step_timeout` | step error | No progress for 15 minutes. After 3 dispatches the step is `needs_attention`. |
 | `rolled_back` | step error | The host restored its previous build. One automatic retry, then `needs_attention`. |
+| `verify_timeout` | step error | The control-plane step restarted, and the daemon did not confirm the new build within `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default). The step is not retried, so a second install cannot land on a build still being checked; the run ends. Check the daemon log, then **Retry** or **Cancel update**. |
+| `dispatch_failed` | step error | The update command could not be delivered to the server, on every allowed attempt. The message carries the delivery error. |
+| `server_offline` | step error | The server stayed offline too long for its step to wait; the next batch still starts. |
+| `managed_upgrade_required` | step error | The control-plane step needs a daemon that advertises `managed-upgrade-v1`; the message holds the daemon-only update command to run first. |
+| `downgrade_refused` | step skipped | The server already runs a newer build than the target. Managed updates never downgrade a server. |
 | `control-plane update is not applicable on this runtime` | 422 | The legacy `POST /instance/updates/instance` on TurboPanel High Availability. The control plane is deploy-managed. |
 | `This control plane follows <channel>, which has no control-plane package…` | 422 | `trunk` (and `edge`) have no control-plane package. Use `canary`, `rc`, or `release`. |
 | `no co-located daemon connected to update the control plane` | 503 | The legacy control plane or daemon upgrade route needs this host's daemon connected. |

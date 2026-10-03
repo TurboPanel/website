@@ -72,7 +72,7 @@ Hosting Caddy also binds **80** while hosted sites are deployed. A control plane
 **Solutions:**
 
 1. Prefer the overlap path: on the control plane, keep the old CA in `ca-bundle.pem` and enqueue `server.tls.trust.reconcile` while the existing WSS session is still valid.
-2. If the session is already dead, re-run the installer with `--instance-ca` (or `--insecure-tls` for bootstrap fetch). `run.sh` pins `--cacert` first; on HTTP `000` it retries **once** unpinned and installs only if the fetched PEM validates the live leaf. Old and new fingerprints are printed when `$CA_PATH` is replaced.
+2. If the session is already dead, confirm the new CA's fingerprint out of band and re-run the installer with `--instance-ca <pem>`. Without it, `run.sh` fetches with the existing pin; when that cannot connect it retries **once** against the system trust store only and installs a PEM only if it validates the live leaf. It never retries with verification off, and when it cannot verify, it keeps the existing CA and prints both fingerprints. `--insecure-tls` makes the bootstrap fetch unverified; the run still stops unless the fetched CA validates the live leaf.
 3. If verification fails, keep the existing CA and fix the control plane URL / SAN list rather than blindly replacing the file.
 
 ## Postgres connection failures (self-hosted)
