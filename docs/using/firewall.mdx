@@ -8,7 +8,7 @@ description: The firewall TurboPanel manages on each server — what it opens by
 TurboPanel owns the firewall on every server that runs its daemon. The installer removes `ufw`, `firewalld` and the other tools that would compete with it, and the control plane works out which doors each server should have open from what you have deployed on it. You add your own rules on top.
 
 <Callout type="warn" title="Preview only today">
-  **Nothing is applied to any server yet.** Each server is sent a **preview** of
+  **Nothing is applied to a server unless an operator opts that one server in.** Each server is sent a **preview** of
   the firewall it would get: it renders the rules, asks the kernel to check
   them, loads nothing, and reports back. Switching enforcement on is a separate
   step that waits until the safety net below has been proven on a real host.
@@ -45,7 +45,7 @@ One rule that is not about the firewall at all: **TurboPanel does not touch a fi
 | Mode        | What the control plane does                                                                                                                           | Today                                                                                                                     |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Observe** | Sends the server a preview and applies nothing. The preview refreshes when you change a rule, the policy or the mode, and when the server reconnects. | The default and the useful one.                                                                                           |
-| **Managed** | Means you want this server to **enforce** its firewall.                                                                                               | Saved, but until enforcement is switched on it behaves exactly like **Observe**. The app says so on the server's tab. |
+| **Managed** | Means you want this server to **enforce** its firewall.                                                                                               | Saved. It behaves like **Observe** unless an operator has also named this server (see [Turn enforcement on for one server](#turn-enforcement-on-for-one-server)); then the rules are loaded with the safety net. |
 | **Off**     | Sends the server nothing and leaves its firewall alone.                                                                                               | Works as described.                                                                                                       |
 
 ## Look at a server's preview
@@ -117,6 +117,17 @@ To change the mode, use **Mode** on the same tab. Each choice explains itself be
 Edit, **Enabled** and **Delete** are on each row. Every change refreshes the previews of the servers it touches.
 
 How a rule reads on a published port: Docker keeps governing everything you did not restrict. An **Allow** from named sources means only those sources reach that port; an **Allow** from **Anyone** changes nothing, because that is already the case.
+
+## Turn enforcement on for one server
+
+Enforcement is off for every server and cannot be switched on for all of them yet. For a proof on a test host, it takes two keys, and either one alone leaves the server on **Observe**:
+
+1. The operator lists the server's id in `TURBOPANEL_FIREWALL_APPLY_SERVERS` (up to three server ids, separated by commas; a `*`, `all` or a malformed id empties the whole list). It is ignored on the hosted live environment.
+2. An organization owner or manager sets that server's **Mode** to **Managed**.
+
+The control plane then sends rules to that server under the safety net below. **Block by default** is still refused by the server whatever is sent. To undo it, set the mode back to **Observe** or **Off**, or take the id out of the variable: the control plane sends the server a teardown that removes TurboPanel's firewall chains and stored rulesets, and repeats it until the server confirms.
+
+**Reading the status.** **Preview** shows **Waiting for the server** until the server answers. If the server cannot do the job, for example because it could not arm the rollback timer, the status becomes **Failed** with the server's reason, instead of waiting forever; the next answer clears it. The app shows `applied` or `pending` for a ruleset the server may already have rolled back, because it does not learn about a confirm or a rollback on the server. To see what is really loaded, run `/opt/turbopanel/bin/turbopaneld firewall status` on the server.
 
 ## The safety net
 
