@@ -162,7 +162,7 @@ Without a working provider, sign-up skips email verification and invitations are
 
 ## Secrets
 
-**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the control plane stores — secret variables, TLS private keys, principal passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
+**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the control plane stores — secret variables, TLS private keys, system user passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
 
 ## Server metrics
 

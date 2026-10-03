@@ -17,7 +17,7 @@ The group appears once the daemon's first directory walk completes — a freshly
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Used | `storage.hostingUsedBytes` | Bytes under the hosting root — every site and app the panel hosts on this server. Operators can point this at a specific filesystem from the server's hardware profile; it defaults to the tenant home root |
+| Used | `storage.hostingUsedBytes` | Bytes under the hosting root — every site and app the panel hosts on this server. Operators can point this at a specific filesystem from the server's hardware profile; it defaults to the site owner home root |
 | Free on filesystem | `storage.hostingFreeBytes` | Space left on the filesystem the hosting root lives on |
 
 Read the pair as **can this grow**. Used climbing while free falls toward zero is the hosting volume filling; used flat while free falls is something *else* on the same filesystem eating it (logs, Docker, a database on `/`).

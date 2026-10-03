@@ -31,7 +31,7 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 
 - Symptom: `address already in use` in journal logs, or an apply that reports `port 80 is held by <process>`.
 - `:8443` is the control-plane listener and its port is fixed. Stop the conflicting process.
-- Port **80** is claimed for a control-plane name only while Let's Encrypt is issuing or renewing. `port 80 is held by nginx` (or another process name) means that process must release port 80 before the apply can continue. Hosting Caddy may already hold it for tenant sites; that holder is expected.
+- Port **80** is claimed for a control-plane name only while Let's Encrypt is issuing or renewing. `port 80 is held by nginx` (or another process name) means that process must release port 80 before the apply can continue. Hosting Caddy may already hold it for hosted sites; that holder is expected.
 - **Example (Unix):** `lsof -ti :8443 | xargs kill` (replace with the port from the error).
 
 ## Caddy 502 on https://localhost:8443
