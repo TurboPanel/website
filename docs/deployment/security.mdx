@@ -122,31 +122,37 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
-#### Docker gate
+The **Docker gate** narrows this route. It is a root-owned service, `turbopanel-docker-gate`, that the daemon's converge installs on a managed host wherever Docker runs. A failed gate install only prints a warning: it never stops a Docker install or a converge. It is still in **observe mode** on every host, so it blocks nothing yet. Enforcement is built but not switched on, and the daemon does not route its Docker traffic through the gate yet (coming in 0.2.x).
 
-The **Docker gate** is a root-owned service, `turbopanel-docker-gate`, that the daemon's converge installs on a managed host wherever Docker runs. A failed gate install only prints a warning: it never blocks a Docker install or a converge. It listens on two Unix sockets under `/run/turbopanel-gate/`:
+**What it would block.** The gate reads each request the way Docker does and judges it against a strict profile. A request for a container, volume, network or build that would hand out the host is a *finding*:
 
-| Socket | Who can open it | What it does today |
-| --- | --- | --- |
-| `/run/turbopanel-gate/docker.sock` (directory `root:tp 0750`, socket `root:tp 0660`) | The daemon account | **Observe only.** Forwards every request to the real Docker socket unchanged and logs what a strict profile would refuse as `docker-gate.would-deny` in the journal (`turbopanel-docker-gate`). It refuses only malformed requests (ambiguous framing, `Expect:` requests, bodies over 4 MiB, heads over 64 KiB). Nothing routes through it: the daemon still talks to the real Docker socket, so the gate blocks no policy violation. |
-| `/run/turbopanel-gate/ro/docker.sock` (directory `root:root 0750`, socket `root:root 0660`) | Root and a container's root; not the daemon account | A **read-only** listener for the Traefik ingress proxies. It answers `GET` and `HEAD` for `/_ping`, `/version`, `/events`, `/containers/json` and `/containers/{id}/json` and returns **403** for everything else. |
+- a privileged container, extra Linux capabilities, devices, and the host's network, process, IPC or user namespaces;
+- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside the site owners' homes (`/srv/users`) and TurboPanel's own storage;
+- volume drivers, log drivers and mount types that point somewhere the author picks, and any Docker setting the gate has not reviewed (a field a newer Docker adds is refused until someone reviews it);
+- a request whose framing is ambiguous, whose body is not strict JSON, or whose path Docker would rewrite;
+- a container request whose owner the gate cannot check (it fails closed when Docker does not answer within 5 seconds).
 
-**What the ingress switch protects.** Without it, each host's Traefik reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, Traefik mounts the read-only socket's directory instead and the proxy container is removed once no service Traefik file on the host still names it. A compromised Traefik then reaches the five read-only endpoints above, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for tenant containers or for the main socket.
+Platform containers (the database proxy, managed engines, backups) and Compose features a site owner has been approved for are allowed through. The control plane signs each approval for one exact request, and a changed request needs a new one.
 
-The switch is **off by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on` (`root:tp 0640`, written by the converge):
+**Observe and enforce.** In observe mode the gate forwards every request to Docker unchanged and writes `docker-gate.would-deny` to the journal (`turbopanel-docker-gate`) for each finding, so a host shows what would break before anything does. In enforce mode the same findings are refused with a `403` before Docker sees them, and a `docker-gate.denied` line is logged. The mode is set in the gate's unit file and is `observe` on every host today.
 
-- **Present** (and `/run/turbopanel-gate/ro` exists): the daemon renders Traefik against the read-only socket. If either is missing, it keeps the socket proxy.
-- **Absent**: Traefik keeps using the socket proxy.
+**Three sockets, under `/run/turbopanel-gate/`.**
 
-To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. Empty, the default, leaves the switch as it is, so an ordinary update never flips it. Any other value fails the converge before anything changes. The app has no control for it, and the root helper `tp-orchestrate` refuses extra variables that are not on its allowlist; this one is not, so neither the app nor a panel-driven update can change it. Turning it **on** writes the file and restarts the gate. With the switch on, the gate refuses to start if the read-only listener cannot open, and the converge fails unless that socket answers `/_ping`. Turning it **off** removes the file and restarts the gate. In both directions Traefik keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it. A TCP or UDP service that Traefik rendered before the switch keeps using the socket proxy until it is redeployed.
+| Socket | For | What it allows |
+| ------ | --- | -------------- |
+| `docker.sock` | The daemon account | Everything the profile allows. Build sessions (`/session`, `/grpc`) are a finding here. |
+| `ro/docker.sock` | The Traefik ingress proxies | Read only: ping, version, events and container details. Everything else is `403`. |
+| `build/docker.sock` (stage 4) | The daemon's own image builds | Build sessions open only here. |
 
-**Proof script.** `scripts/docker-gate-proof.sh` in the [turbopaneld](https://github.com/TurboPanel/turbopaneld) repository is the canary check. It is not installed on hosts, so run it from a checkout, as root, on a managed host that has Docker, ideally a test host:
+**Stage 4: builds.** A Docker build speaks a stream the gate cannot read, and every build choice (network, mounts, extra privileges) rides inside it. So builds are allowed on one socket only. Only the daemon account may open it: Linux checks the caller when it connects, the socket belongs to root and a group that holds nothing but the daemon account, and no header or token can stand in for it. Site builds that are not Docker builds run in the [build sandbox](/docs/security/site-isolation#builds), which has no Docker access at all. The daemon does not use this socket for its builds yet, so enforce mode stays off until it does.
 
-```bash
-sudo bash docker-gate-proof.sh
-```
+**The ingress switch.** Without it, each host's Traefik reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, Traefik mounts the read-only socket's directory instead, and the proxy container is removed once no service Traefik file on the host still names it. A compromised Traefik then reaches only the read-only endpoints, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for site and app containers or for the main socket.
 
-It starts and removes throwaway `true`/`echo` containers on pinned images and prints `PASS` or `FAIL` for each check; it exits non-zero if any fails. It proves that the gate service is active with the socket modes above, that real Docker traffic (run, exec, logs, events, a Compose deploy) passes through unchanged, that the root-equivalent shapes are logged as `would-deny` and still run, that nothing routes through the gate by default, and that the read-only socket answers the five endpoints and refuses everything else. With the switch on, it also checks that a Traefik mounts the read-only directory, that no socket-proxy container is running (or notes the one a pre-switch TCP/UDP service still uses), and that a new route works after a gate restart.
+The switch is **off by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on`, written by the converge. If the file is present and `/run/turbopanel-gate/ro` exists, the daemon renders Traefik against the read-only socket; if either is missing, it keeps the socket proxy.
+
+To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. Empty, the default, leaves the switch as it is, so an ordinary update never flips it. Any other value fails the converge before anything changes. In both directions Traefik keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it, and a TCP or UDP service that Traefik rendered before the switch keeps using the socket proxy until it is redeployed.
+
+**Proof script.** `scripts/docker-gate-proof.sh` in the [turbopaneld](https://github.com/TurboPanel/turbopaneld) repository is the canary check. It is not installed on hosts: run it from a checkout, as root, on a managed host that has Docker, ideally a test host (`sudo bash docker-gate-proof.sh`). It starts and removes throwaway containers on pinned images and prints `PASS` or `FAIL` for each check, and exits non-zero if any fails.
 
 ### Control-plane container hardening
 
@@ -317,7 +323,7 @@ Tenant principal accounts have homes at `/srv/users/<username>`. The host picks 
 
 ### Manifests, the Platform CA and secrets on the command line
 
-**Signed manifests.** The installer (`run.sh`), the daemon and the control plane verify each channel manifest's Ed25519 signature before they use it, and parse it strictly: a manifest that repeats a key is refused, and every field is read from the exact bytes the signature covered. The daemon and the control plane also refuse a validly signed manifest that is older than the build they already run; set `TURBOPANEL_ALLOW_DOWNGRADE=1` in the daemon's environment on the host to accept one deliberately. Key handling is in [Signing key rotation](/docs/security/signing-key-rotation).
+**Signed manifests.** The installer (`run.sh`), the daemon and the control plane verify each channel manifest's Ed25519 signature before they use it, and parse it strictly: a manifest that repeats a key is refused, and every field is read from the exact bytes the signature covered. The daemon and the control plane also refuse a validly signed manifest that is older than the build they already run; set `TURBOPANEL_ALLOW_DOWNGRADE=1` in the daemon's environment on the host to have the daemon accept one deliberately (the control plane's own check is not lifted by it). Key handling is in [Signing key rotation](/docs/security/signing-key-rotation).
 
 **The Platform CA pin.** On a self-hosted control plane the installer fetches the Platform CA from `GET /api/daemon/v1/instance/ca`, pins it as `/etc/turbopanel/instance-ca.pem` and the daemon trusts it alongside the system roots. An existing pin is never replaced over unverified TLS:
 
@@ -327,7 +333,7 @@ Tenant principal accounts have homes at `/srv/users/<username>`. The host picks 
 | `--instance-ca <pem>` | Installs the PEM you give it as `instance-ca.pem` and skips the fetch. This is how you apply a real CA rotation. |
 | `--insecure-tls` (or `TURBOPANEL_INSECURE_TLS=1`) | Skips certificate verification (`curl -k`) for the **self-hosted bootstrap fetches only**: the installer's own re-exec, the CA fetch and the private uploaded-issuer fetch. The run then stops unless the CA or issuer it fetched validates the certificate the control plane presents. Release and update downloads are always verified. Compare the printed fingerprint with the control plane's before relying on it. |
 
-`tp-orchestrate update`, the root helper behind a panel-driven daemon update, does not accept `--insecure-tls`, and the only CA it trusts beyond the system store is `/etc/turbopanel/instance-ca.pem`.
+`tp-orchestrate update`, the root helper behind a panel-driven daemon update, does not accept `--insecure-tls`, and the only CAs it trusts beyond the system store are `/etc/turbopanel/instance-ca.pem` and a pinned private uploaded issuer, if one is installed.
 
 **Secrets travel in the environment, not on the command line.** The installer's license and tunnel token reach its `sudo` re-run through the environment (`--preserve-env`), and the daemon starts `cloudflared` with the tunnel token in `TUNNEL_TOKEN`, so neither shows in `ps` or `/proc/<pid>/cmdline`. The daemon itself can read only `TURBOPANEL_*`, `HOME`, `PATH`, `USER` and `LOGNAME` from its environment, and the control plane only `TURBOPANEL_*`, `HOME`, `PATH`, `LANG`, `CADDY_TLS_CERT` and `SMTP_PORT`.
 

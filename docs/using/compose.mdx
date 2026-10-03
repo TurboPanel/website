@@ -69,29 +69,25 @@ Sites and Node apps are stripped out of the runtime compose the daemon runs; the
 
 A `site` service is served by one **engine** on the server, chosen with `engine`. Each engine runs under its own service account and serves files on the loopback address; the host's hosting Caddy fronts it.
 
-| `engine` | Engine account | PHP |
-| --- | --- | --- |
-| `caddy` (default) | `tpcaddysite` | php-fpm |
-| `nginx` | `tpnginx` | php-fpm |
-| `apache` | `tpapache` | php-fpm through `mod_proxy_fcgi`, never `mod_php` |
-| `openlitespeed` | `tpols` | LSAPI (`lsphp`) |
+| `engine` | Engine account |
+| --- | --- |
+| `caddy` (default) | `tpcaddysite` |
+| `nginx` | `tpnginx` |
+| `apache` | `tpapache` |
+| `openlitespeed` | `tpols` |
 
-There is no separate nginx-with-PHP engine: give an `nginx` or `apache` site a `php` block and the daemon installs php-fpm for the series it names (`8.3`, `8.4`; several run side by side). A request for a `.php` file that does not exist is never handed to PHP.
+There is no separate nginx-with-PHP engine: give a site a `php` block to run PHP. How that PHP is started (FastCGI, php-fpm or `lsphp`) is the site's [PHP mode](/docs/using/php), and Apache never uses `mod_php`.
 
-**Who runs what.** The engine process runs as its engine account and only reads the site's files. The files belong to the site's **system user** (the `principal`), with the engine's group allowed to read. PHP workers run as that system user (php-fpm pools for Caddy, nginx and Apache; LSAPI under suEXEC for OpenLiteSpeed), so what a site writes, it writes as its own account. A Node app is a systemd unit that runs as its system user. A Railpack service has no system user: it is an ordinary container. System users are created on first deploy; the host picks their UID and GID from **15001 to 60000** (an override must be 15001 or more), with homes under `/srv/users/<username>`. A site and a Node app both need exactly one; see [`site_principal_ambiguous`](#deploy-time-refusals-that-originate-in-the-document).
+**Who runs what.** The engine process runs as its engine account and only reads the site's files. The files belong to the **site owner's Linux user** (the `principal` alias in the document), with the engine's group allowed to read. PHP runs as that same Linux user, so what a site writes, it writes as its own account. A Node app is a systemd unit that runs as its owner's Linux user. A Railpack service has no Linux user of its own: it is an ordinary container. These users are created on first deploy; the host picks their UID and GID from **15001 to 60000** (an override must be 15001 or more), with homes under `/srv/users/<username>`. A site and a Node app each need exactly one owner; see [`site_principal_ambiguous`](#deploy-time-refusals-that-originate-in-the-document).
 
 **Where the content comes from.** A site has one of two sources:
 
 | `sourceKind` | Content | Writable by the site's account |
 | --- | --- | --- |
 | `release` (default) | A release built from the service's `source`. The site serves `sites/<service>/current`. | **No.** Releases are sealed read-only and owned by root. |
-| `managed-directory` | `sites/<service>/webroot/`, created for the system user the first time, with a placeholder `index.html` only while it is empty. | **Yes.** You upload over SFTP. |
+| `managed-directory` | `sites/<service>/webroot/`, created for the site owner's Linux user the first time, with a placeholder `index.html` only while it is empty. | **Yes.** You upload over SFTP. |
 
-A managed directory gives up the read-only guarantee: the tree the engine executes is writable by the account that runs it. That is the right trade for WordPress and other PHP applications that write to themselves, and the wrong one for a built application. It needs a system user (`site_managed_directory_unowned` otherwise), PHP is still confined to the site's own directory by `open_basedir`, and connecting a repository to the site later is a field change rather than a move: remove `sourceKind` and add `source`.
-
-<Callout type="warn" title="Known limit">
-  Applying an OpenLiteSpeed site can fail on a managed host because the daemon cannot read the engine's root-owned configuration and release directories. A fix is in review.
-</Callout>
+A managed directory gives up the read-only guarantee: the tree the engine executes is writable by the account that runs it. That is the right trade for WordPress and other PHP applications that write to themselves, and the wrong one for a built application. It needs a site owner's Linux user (`site_managed_directory_unowned` otherwise), PHP is still confined to the site's own directory by `open_basedir`, and connecting a repository to the site later is a field change rather than a move: remove `sourceKind` and add `source`.
 
 ## Import a `docker run` line
 
@@ -140,7 +136,7 @@ services:
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `sourceKind` | `site` | `release` (the default: the site serves a built, read-only release of its repository) or `managed-directory` (a writable `webroot/` you fill over SFTP; see [Sites: engines, files and users](#sites-engines-files-and-users)). Refused together with a `source`. |
 | `root` | `site` | Document root, relative to the account's site directory. |
-| `php` | `site` | `{ version?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
+| `php` | `site` | `{ version?, mode?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), the [PHP mode](/docs/using/php) (`fastcgi`, `fpm`, `lsphp-detached`, `lsphp-attached`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
 | `framework` | `node` | `auto` (default), `node`, `next`. |
 | `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range. |
 | `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
@@ -233,19 +229,15 @@ Reference a variable as `${KEY}` or `${scope.KEY}`. Non-secret values are writte
 
 ## Releases and rollback
 
-A service with a `source` produces a **release** on every deploy: the repository is checked out at the branch's current commit, built with `buildCommand`, and published atomically under the system user's home. The **Releases** panel on the Services tab lists them. A redeploy against an unchanged commit and unchanged compose is a no-op — the platform hashes both.
+A service with a `source` produces a **release** on every deploy: the repository is checked out at the branch's current commit, built with `buildCommand`, and published atomically under the site owner's home. The **Releases** panel on the Services tab lists them. A redeploy against an unchanged commit and unchanged compose is a no-op — the platform hashes both.
 
-**Native releases** (sites and Node apps, `buildKind: native`) are built on the server in a scratch directory, never in the live tree, with the daemon's credentials withheld from the build. The result is copied into `releases/<id>/`, sealed read-only (owned by root, mode `0550`), health-checked, and made live by re-pointing the `current` link in one step: a failure before that step leaves the old release serving. Each release has a writable `shared/` link for data that must survive releases. The newest five releases are kept, plus the live one.
+**Native releases** (sites and Node apps, `buildKind: native`) are built on the server in a scratch directory, never in the live tree, inside the [build sandbox](/docs/security/site-isolation#builds). The result is copied into `releases/<id>/`, sealed read-only (owned by root, mode `0550`), health-checked, and made live by re-pointing the `current` link in one step: a failure before that step leaves the old release serving. Each release has a writable `shared/` link for data that must survive releases. The newest five releases are kept, plus the live one.
 
-**Railpack releases** (`buildKind: railpack`, `container` services only) build a container image from the source with Railpack instead of a directory. The release is the image tag, run by Compose like any other container; there is no system user and nothing is sealed. Builds are cached per project.
+**Railpack releases** (`buildKind: railpack`, `container` services only) build a container image from the source with Railpack instead of a directory. The release is the image tag, run by Compose like any other container; there is no site owner's Linux user and nothing is sealed.
 
-<Callout type="warn" title="Known limit">
-  Railpack builds start a private BuildKit as the daemon account. On a host where that cannot start, the build fails with *buildkitd did not become ready*. A fix that builds on Docker's own BuildKit is in review.
-</Callout>
+**Rollback** re-publishes an earlier release without a rebuild: for a native release it re-points `current`, for a Railpack release it puts that image tag back into the compose. It rides an ordinary deploy, so compose, hostnames and certificates are applied as usual. A release is offered for rollback only if every server the environment deploys to has it. Rollback trusts only a **release record** that the daemon wrote on that server when the release was published, never the files in the site owner's home. Two consequences:
 
-**Rollback** re-publishes an earlier release without a rebuild: for a native release it re-points `current`, for a Railpack release it puts that image tag back into the compose. It rides an ordinary deploy, so compose, hostnames and certificates are applied as usual. A release is offered for rollback only if every server the environment deploys to has it. Rollback trusts only a **release record** that the daemon wrote on that server when the release was published, never the files in the system user's home. Two consequences:
-
-- A release published **before** the daemon began writing records (daemons older than 0.1.6) has no record on its server. A rollback to it fails with *this host has no release record for it — redeploy that release*; redeploy it once and it becomes a rollback target.
+- A release published **before** the daemon began writing records (a daemon that predates release records) has no record on its server. A rollback to it fails with *this host has no release record for it — redeploy that release*; redeploy it once and it becomes a rollback target.
 - A release that retention has removed from the server cannot be rolled back to, record or not (*not present on this host*).
 
 ## Reference

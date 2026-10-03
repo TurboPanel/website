@@ -79,6 +79,20 @@ jobs:
         # The pre-commit hook scans staged files only; CI scans the whole tree.
         run: sh scripts/scan-secrets.sh --all
 
+      # The commits a PR adds, not just its final tree: a secret committed and
+      # removed again inside the PR still sits in the history that gets merged.
+      # PRs into staging/live carry trunk commits that were already scanned on
+      # their own PRs, so only PRs into trunk are scanned by range.
+      - name: Scan pull request commits for secrets
+        if: github.event_name == 'pull_request' && github.base_ref == 'trunk'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: sh scripts/scan-secrets.sh --range "$BASE_SHA..$HEAD_SHA"
+
+      - name: Secret scanner self-test
+        run: sh scripts/scan-secrets.selftest.sh
+
       - name: Check vocabulary
         run: pnpm check:vocabulary
 
@@ -135,65 +149,6 @@ jobs:
         if: github.event_name == 'pull_request' && steps.sonar.outcome == 'success'
         uses: TurboPanel/dev/.github/actions/sonar-new-issues@2db1bbfa3cff89a52fac3ee4a53bd495dc1c79b1 # dev#47
 
-  # ClickHouse/Tabix metrics infrastructure is retired (DuckDB + Parquet /
-  # Analytics Engine replaced it). The guard lives in TurboPanel/turbopaneld
-  # (scripts/check-metrics-legacy.ts) and scans sibling checkouts when present,
-  # so check this repo out next to it — a clean single-repo turbopaneld CI run
-  # cannot see PRs made here. This job covers website/docs.
-  metrics-legacy:
-    runs-on: ubuntu-latest
-    concurrency:
-      group: website-metrics-legacy-${{ github.event_name }}-${{ (github.head_ref == 'trunk' || github.head_ref == 'staging') && github.run_id || github.ref }}
-      cancel-in-progress: ${{ github.event_name == 'pull_request' && github.head_ref != 'trunk' && github.head_ref != 'staging' }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: website
-
-      - name: Check out turbopaneld (metrics-legacy guard)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: TurboPanel/turbopaneld
-          # Always the sibling's trunk, whichever branch this run is on:
-          # staging/live of another repo move on their own release schedule.
-          ref: trunk
-          path: turbopaneld
-
-      # Three attempts, 15 s then 45 s apart: setup-deno has no retry input and
-      # a transient GitHub 5xx on the download must not turn the run red.
-      - name: Install Deno
-        id: deno-try-1
-        continue-on-error: true
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with:
-          # Keep in step with DENO_VERSION / deno_version / TP_DENO_VERSION (2.9.7).
-          deno-version: "2.9.7"
-      - name: Wait before retrying the Deno download
-        if: steps.deno-try-1.outcome == 'failure'
-        run: sleep 15
-      - name: Install Deno (retry 1 of 2)
-        id: deno-try-2
-        if: steps.deno-try-1.outcome == 'failure'
-        continue-on-error: true
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with:
-          # Keep in step with DENO_VERSION / deno_version / TP_DENO_VERSION (2.9.7).
-          deno-version: "2.9.7"
-      - name: Wait before retrying the Deno download again
-        if: steps.deno-try-2.outcome == 'failure'
-        run: sleep 45
-      - name: Install Deno (retry 2 of 2)
-        if: steps.deno-try-2.outcome == 'failure'
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with:
-          # Keep in step with DENO_VERSION / deno_version / TP_DENO_VERSION (2.9.7).
-          deno-version: "2.9.7"
-
-      - name: Check metrics legacy (no ClickHouse/Tabix references)
-        working-directory: turbopaneld
-        run: deno task check:metrics-legacy
-
   # Single aggregate check for the branch rulesets. It needs every job that
   # runs on pull_request and fails unless all of them succeeded. Required-check
   # contexts move from the individual job names to this one context so a job
@@ -210,7 +165,7 @@ jobs:
   # must not paint the commit red.
   ci-ok:
     name: ci-ok
-    needs: [verify, metrics-legacy]
+    needs: [verify]
     if: ${{ (github.event_name == 'pull_request' && always()) || (!cancelled() && !contains(needs.*.result, 'cancelled')) }}
     permissions: {}
     runs-on: ubuntu-latest

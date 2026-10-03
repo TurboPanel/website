@@ -17,18 +17,21 @@ Use a manual `run.sh` refresh when:
 - You want to **reconcile** after a bad upgrade (daemon disabled, wrong version, etc.)
 
 <Callout type="info" title="Co-located dev hosts">
-  This page covers **managed servers** (FHS tree). If your control-plane host was
-  provisioned with the [dev](https://github.com/TurboPanel/dev)
-  console, update it from the console (**Sync Dev Build** / **Upgrade System**)
-  instead — that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
+  This page covers **managed servers** (FHS tree). If your control-plane host
+  was provisioned with the [dev](https://github.com/TurboPanel/dev) console,
+  update it from the console (**Sync Dev Build** / **Upgrade System**) instead —
+  that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
   Those two actions exist only on that console. A managed self-hosted host
-  upgrades each unit from **Admin → Updates** (see
-  [Upgrade and rollback](/docs/deployment/upgrade)). This page is the path when
-  that button cannot reach the daemon.
+  upgrades each unit from **Admin → Updates** (see [Upgrade and
+  rollback](/docs/deployment/upgrade)). This page is the path when that button
+  cannot reach the daemon.
 </Callout>
 
 <Callout type="info" title="UI vs cell panel">
-  The server list reads a **Postgres projection** for online/offline. The **Cell** panel reads live WebSocket state. If those disagree, the daemon is usually fine — run an update to refresh both the installed binary and presence.
+  The server list reads a **Postgres projection** for online/offline. The
+  **Cell** panel reads live WebSocket state. If those disagree, the daemon is
+  usually fine — run an update to refresh both the installed binary and
+  presence.
 </Callout>
 
 ## One-command update (recommended)
@@ -81,17 +84,20 @@ It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. Th
 
 The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the control plane is driving the run):
 
-| Code | Meaning |
-| --- | --- |
-| `preflight_in_progress` | An install is already running on this host. The rejected attempt does not replace the one in progress. |
-| `preflight_disk` | Free space is below the minimum: 512 MiB on the install root, 128 MiB on the state directory, and 256 MiB on the temp directory (1 GiB on the install root and 1 GiB on the backup directory for a control-plane install). A failed measurement is the same code. |
-| `preflight_manifest` | The manifest could not be fetched or verified, the signature or schema failed, or `targetCommit` does not match the signed commit. |
-| `preflight_trust` | Automatic-update TLS is not public trust and not the configured Platform CA. Re-run the installer with `--instance-ca` to repair trust. The daemon does not disable verification for an automatic update. |
+| Code                    | Meaning                                                                                                                                                                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preflight_in_progress` | An install is already running on this host. The rejected attempt does not replace the one in progress.                                                                                                                                                            |
+| `preflight_disk`        | Free space is below the minimum: 512 MiB on the install root, 128 MiB on the state directory, and 256 MiB on the temp directory (1 GiB on the install root and 1 GiB on the backup directory for a control-plane install). A failed measurement is the same code. |
+| `preflight_manifest`    | The manifest could not be fetched or verified, the signature or schema failed, or `targetCommit` does not match the signed commit.                                                                                                                                |
+| `preflight_trust`       | Automatic-update TLS is not public trust and not the configured Platform CA. Re-run the installer with `--instance-ca` to repair trust. The daemon does not disable verification for an automatic update.                                                         |
 
 A control-plane install adds `preflight_backup` when `turbopanel-database` is not running. After the swap, `health_timeout`, `health_mismatch`, and `restart_failed` mean the previous generation was restored; `recovery_required` means that restore did not bring the control plane back. The recovery command is on [Upgrade and rollback](/docs/deployment/upgrade#recovery-command).
 
 <Callout type="warning" title="Run as root">
-  Pipe the installer to `sh` as **root** (`su -` or `sudo sh`). A non-root pipe will hang or fail when provisioning needs elevated privileges.
+  Run the commands on this page as **root** (a root shell, or `su -`): the
+  license files they read are readable by root only. Do not put `sudo` in front
+  of `sh` in the pipeline, because it would drop the `TURBOPANEL_*` values. The
+  installer escalates with `sudo` by itself when it is not already root.
 </Callout>
 
 ### Self-hosted control plane
@@ -129,9 +135,9 @@ curl -fsSL turbopanel.sh | \
 
 The refresh command reads:
 
-| File | Purpose |
-| ---- | ------- |
-| `/var/lib/turbopanel/license.id` | Organization license UUID |
+| File                                | Purpose                                           |
+| ----------------------------------- | ------------------------------------------------- |
+| `/var/lib/turbopanel/license.id`    | Organization license UUID                         |
 | `/var/lib/turbopanel/license.token` | Secret token (shown **once** at license creation) |
 
 Check on the server:
@@ -146,7 +152,7 @@ If those files are missing, create a **new license** in the app (**Servers → A
 
 ```bash
 sudo systemctl status turbopaneld
-curl -sS https://turbopanel.app/api/daemon/v1/version   # or your instance URL
+curl -sS https://turbopanel.app/api/health   # or https://<host>:8443/api/health (add -k for a Platform CA name)
 ```
 
 In the UI, refresh the servers page — the server should show **Online** with a current commit on the update row.

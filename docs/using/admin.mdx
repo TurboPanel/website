@@ -162,7 +162,7 @@ Without a working provider, sign-up skips email verification and invitations are
 
 ## Secrets
 
-**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the control plane stores — secret variables, TLS private keys, principal passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
+**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the control plane stores — secret variables, TLS private keys, system user passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
 
 ## Server metrics
 
@@ -227,7 +227,7 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `dispatch_failed` | step error | The update command could not be delivered to the server, on every allowed attempt. The message carries the delivery error. |
 | `server_offline` | step error | The server stayed offline too long for its step to wait; the next batch still starts. |
 | `managed_upgrade_required` | step error | The control-plane step needs a daemon that advertises `managed-upgrade-v1`; the message holds the daemon-only update command to run first. |
-| `downgrade_refused` | step error | The server already runs a newer build than the target. Managed updates never downgrade a server. |
+| `downgrade_refused` | step skipped | The server already runs a newer build than the target. Managed updates never downgrade a server. |
 | `control-plane update is not applicable on this runtime` | 422 | The legacy `POST /instance/updates/instance` on TurboPanel High Availability. The control plane is deploy-managed. |
 | `This control plane follows <channel>, which has no control-plane package…` | 422 | `trunk` (and `edge`) have no control-plane package. Use `canary`, `rc`, or `release`. |
 | `no co-located daemon connected to update the control plane` | 503 | The legacy control plane or daemon upgrade route needs this host's daemon connected. |

@@ -113,19 +113,19 @@ Every login and system user has two names: the **display name** you typed, and t
 | `partial` (default) | what you typed, then `_` and 11 random lowercase letters and digits | `bob_x7k2m9qpz1a` |
 | `random` | 12 random characters: a leading letter, then 11 lowercase letters and digits. It never starts with a `tp` prefix and carries no trace of the typed name. | `u7k2m9x4qpz1` |
 
-The scheme applies to every kind of principal: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
+The scheme applies to every kind of login or system user: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
 
 The typed name is at most 16 characters under `partial`, so the whole name stays within 28 characters and the Linux group `<name>-grp` fits in 32.
 
 Three places choose a scheme:
 
 - **Organization default.** An owner or manager sets it (default `partial`).
-- **Per principal.** Each new login or system user can pick a scheme; it starts at the organization default.
-- **Organization lock.** An owner or manager can force one scheme for every **new** principal. A request for a different scheme is refused with `principal_scheme_locked` (409). The lock can be turned off and on again.
+- **Per login or system user.** Each new login or system user can pick a scheme; it starts at the organization default.
+- **Organization lock.** An owner or manager can force one scheme for every **new** login or system user. A request for a different scheme is refused with `principal_scheme_locked` (409). The lock can be turned off and on again.
 
-Existing principals are never renamed by a default or a lock change. The chosen scheme is stored on the principal (`options.nameScheme`). An organization that predates schemes keeps its old behaviour: randomized usernames on means `partial`, off means `plain`, and unset means `partial`.
+Existing logins and system users are never renamed by a default or a lock change. The chosen scheme is stored on the login or system user (`options.nameScheme`). An organization that predates schemes keeps its old behaviour: randomized usernames on means `partial`, off means `plain`, and unset means `partial`.
 
-**API.** `GET` and `PUT /organizations/:id/principal-defaults` read and write `{ nameScheme, schemeLocked }`. Creating a principal or a managed user accepts an optional `nameScheme`; omit it to use the organization default.
+**API.** `GET` and `PUT /organizations/:id/principal-defaults` read and write `{ nameScheme, schemeLocked }`. Creating a login or a managed user accepts an optional `nameScheme`; omit it to use the organization default.
 
 ## Replicas, promotion and disaster recovery
 
@@ -133,7 +133,7 @@ Existing principals are never renamed by a default or a lock change. The chosen 
 
 | Replica class | Where | What it is for |
 | --- | --- | --- |
-| **Failover replica** | Same datacenter as the primary | A **switchover** on demand, and the only replica an automatic failover may promote (with the limits [below](#what-automatic-failover-does-and-does-not-do-today)). |
+| **Failover replica** | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand. |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 <Steps>
@@ -151,31 +151,41 @@ Existing principals are never renamed by a default or a lock change. The chosen 
   </Step>
 </Steps>
 
-A cluster accepts **one member per server**: adding a replica on a server that already holds a member of the cluster (the primary included) is refused with `managed_member_exists`.
+### Manual promote
 
-### What automatic failover does and does not do today
+**Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and points the endpoint at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind. The app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**.
 
-<Callout type="warn" title="Private alpha: do not rely on it">
-  A **manual Promote** works and is the dependable way to move the writer. Automatic failover is
-  only partly built: it has not yet been proven on a live cluster, it does not run for PostgreSQL,
-  and it does not recover from losing a whole server. Treat it as a bonus, not as your protection.
-</Callout>
+The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). A promote you start yourself goes ahead even when the old primary cannot be reached; an automatic failover does not.
 
-**Manual promote (works).** **Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and re-points the endpoint, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind; the app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**. The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`); a promote you start yourself goes ahead even when the old primary cannot be reached.
+### Automatic failover
 
-**Automatic failover (MySQL and MariaDB only, same datacenter only).** The detector is **Orchestrator**, which TurboPanel runs on the servers that host a primary or a failover replica. The daemon asks its local Orchestrator for a dead primary every 15 seconds and tells the control plane. The control plane then picks the lowest-numbered same-datacenter **failover** replica that passes the same streaming and lag check (a replica's **serves read traffic** setting makes no difference), **stops the old primary**, promotes the replica and re-points the endpoint. The steps and the reason for any refusal are kept as the cluster's latest recovery record.
+When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
 
-What it does **not** do:
+**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator. Losing a whole server is deliberately not detected: nothing can confirm the old primary is isolated, so that case stays manual (use **Promote** or disaster recovery).
 
-| Case | What happens |
-| --- | --- |
-| **PostgreSQL** | Nothing triggers. The bundled Orchestrator speaks only the MySQL protocol, so PostgreSQL clusters are not registered with it and no dead-primary signal exists. Promote by hand. A PostgreSQL detector is still in development. |
-| **Whole server lost** | Not automatic. Automatic failover goes ahead only once the old primary has been stopped; when its server cannot be reached, it cannot be stopped and the control plane refuses to promote (`Automatic failover blocked: unable to verify previous primary is fenced`) rather than risk two writers. Promote the replica yourself. |
-| **No usable replica** | It refuses and says why: no same-datacenter failover replica exists, or none is healthy enough. |
-| **Read replicas** | Never promoted automatically, whatever their health. |
-| **Another datacenter** | Never automatic. Orchestrator runs one **Raft group per datacenter**, made only of the servers hosting that datacenter's primaries and failover replicas, so a failover never crosses datacenters. Use **Promote for disaster recovery**. |
+**What the platform checks, in order.**
 
-Because it is a Raft group, a datacenter needs a majority of its Orchestrator servers up to elect a leader, and Orchestrator reports nothing without one. With two servers in the datacenter, losing either leaves no leader, so no event is sent at all.
+1. The report comes from the server that hosts the cluster's current primary, in the same organization.
+2. The per-environment switch below is on.
+3. No automatic failover for this cluster began in the last 15 minutes (the cooldown).
+4. A same-datacenter failover replica is healthy enough to promote: streaming, with a recent observation and little lag.
+5. The platform can queue commands to the servers.
+6. **Fencing first.** The old primary is drained and stopped before anything is promoted. If it cannot be confirmed stopped, for example because its server is unreachable, nothing is promoted.
+
+Only then is the replica promoted and the endpoint repointed. Because the old primary is stopped first, two writers never exist at the same time. Its data is resynced as a replica afterwards.
+
+**The switch.** `TURBOPANEL_AUTO_FAILOVER` turns this on or off for a whole deployment. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off, so a typo never promotes. Manual switchover and disaster recovery never read it. A self-hosted control plane reads it as an environment variable (see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services)) and, unset, has automatic failover on. On TurboPanel High Availability it is set per environment: on for testing, off for staging and live.
+
+**A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
+
+| Reason | Meaning | What to do |
+| --- | --- | --- |
+| `auto_failover_disabled` | The switch is off on this control plane. | Turn it on, or promote by hand. |
+| `cooldown` | An automatic failover started less than 15 minutes ago. A refusal does not extend the cooldown, and the report is sent again after it. | Wait, or promote by hand. |
+| `unfenced` | The old primary could not be confirmed stopped, so promoting would risk two writers. | Bring the old server back or confirm it is off, then promote by hand. |
+| `no_command_queue` | This control plane cannot send commands to servers. | A deployment fault; contact whoever runs the control plane. |
+
+A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
 
 ## Backups
 
@@ -243,6 +253,7 @@ What to know:
 | SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
 | Connection roles | `read-write` (default) · `read-only` |
 | Replica classes | `failover` (same datacenter) · `read` (anywhere) |
+| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; detects a dead engine on a live server, not a lost server |
 | Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
 | Applied login | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain` |
 | Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |

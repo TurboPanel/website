@@ -33,7 +33,7 @@ dev/console
 
 ### Dev vs production path model
 
-The dev console drives a **dev layout** where source repos live under `$HOME` (guest) and mutable data uses FHS paths owned by the dev user. Production uses the same FHS tree with dedicated service users. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
+The console drives a **dev layout** where source repos live under `$HOME` (guest) and mutable data uses FHS paths owned by the dev user. Production uses the same FHS tree with dedicated service users. The daemon's `src/paths/layout.ts` is the single source of truth and picks the mode automatically (`development` when a resolvable daemon checkout is present, otherwise `production`); every path is env-overridable.
 
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
@@ -56,7 +56,7 @@ The Ink console (`./console`, inside the guest) is the single operator surface:
 | Console area | What it drives |
 | ------------ | -------------- |
 | **Services** | Unit health, Deno vs Workers runtime switch |
-| **Developer** | Servers, database, shell, **Converge / re-converge**, cell trace |
+| **Developer** | Fleet, database, shell, **Converge / re-converge**, cell trace |
 | **Bootstrap** | Transient provisioning overlay (daemon install / converge) |
 
 ### Service graph (Deno mode, default)
@@ -75,11 +75,11 @@ graph TD
     ui --> caddy
 ```
 
-Caddy terminates TLS on **8443** and proxies `/api/*` and `/ws/*` to the control plane's Unix socket; everything else goes to Expo (dev) or static export (production build mode). Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** sit behind the same Caddy proxy. Every hostname is `https://<host>:8443`. Trust the Platform CA for a name that presents that leaf.
+Caddy terminates TLS on **8443** and proxies `/api/*` and `/ws/*` to the instance Unix socket; everything else goes to Expo (dev) or static export (production build mode). Both **`TURBOPANEL_INSTANCE_RUNTIME=deno`** and **`=workers`** sit behind the same Caddy proxy. Every hostname is `https://<host>:8443`. Trust the Platform CA for a name that presents that leaf.
 
-### Control plane runtime switch
+### Instance runtime switch
 
-`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` is `deno` (default) or `workers`. Switch via the **Services** area in the dev console. In Workers mode the same `turbopanel-instance.service` unit runs wrangler dev (`scripts/workers-serve.sh` in the instance checkout) with Postgres on TCP.
+`TURBOPANEL_INSTANCE_RUNTIME` in the daemon `.env` is `deno` (default) or `workers`. Switch via the **Services** area in the console. In Workers mode the same `turbopanel-instance.service` unit runs wrangler dev (`scripts/workers-serve.sh` in the instance checkout) with Postgres on TCP.
 
 ## Database schema (development)
 
@@ -95,7 +95,7 @@ Drizzle Studio must bind to **loopback only** (`localhost` / `127.0.0.1` / `::1`
 
 ### Local-Console developer API auth
 
-The Ink console authenticates to `/api/developer/v1/*` over the control plane's Unix socket with an HMAC **Local-Console** credential (shared root secret at `/etc/turbopanel/instance/.instance_secrets`). The signed payload covers method, full request target (path **and** query), and a SHA-256 content digest header so captured tokens cannot be replayed against altered requests. Cookie-authenticated browser writes to the developer surface are also same-origin gated (alongside client/admin/install).
+The Ink console authenticates to `/api/developer/v1/*` over the instance Unix socket with an HMAC **Local-Console** credential (shared root secret at `/etc/turbopanel/instance/.instance_secrets`). The signed payload covers method, full request target (path **and** query), and a SHA-256 content digest header so captured tokens cannot be replayed against altered requests. Cookie-authenticated browser writes to the developer surface are also same-origin gated (alongside client/admin/install).
 
 See [Database troubleshooting](/docs/getting-started/database-troubleshooting) for resets and connection issues.
 
@@ -105,8 +105,8 @@ Every table and non-obvious column has a one-sentence description applied to the
 
 | Service | Default port | Host forward | Notes |
 | ------- | ------------ | ------------ | ----- |
-| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant sites, and the control-plane Let's Encrypt window |
-| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (tenant sites) |
+| Hosting Caddy HTTP | 80 | `0.0.0.0` | Hosted sites, and the control-plane Let's Encrypt window |
+| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (hosted sites) |
 | Caddy HTTPS | 8443 | `0.0.0.0` | Always. Control plane (Platform CA catch-all) |
 | Website | 19820 | `0.0.0.0` | Next.js (optional) |
 | Wrangler (Workers mode) | 18787 | — | Internal only |
@@ -118,7 +118,7 @@ Every table and non-obvious column has a one-sentence description applied to the
 | Redis Insight | 5540 | `127.0.0.1` | Unauthenticated |
 | DuckDB UI | 4213 | `127.0.0.1` | On-demand, development build only |
 
-Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while tenant sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
+Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while hosted sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
 
 ## Technology choices
 
@@ -127,7 +127,7 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
 - **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
 - **Caddy** — TLS termination and reverse proxy in dev and self-hosted production.
-- **Ansible (daemon)** — Installs and updates runtimes, the control plane, UI, and Caddy on managed hosts.
+- **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
 - **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/commands/`.

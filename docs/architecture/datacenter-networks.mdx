@@ -70,10 +70,10 @@ flowchart TD
 The tiebreak is `priority asc`, then `datacenterId asc`. Two datacenters with
 the same priority therefore still produce a deterministic answer, and the
 app can name the winner before anything is created: the datacenter Routing
-app reads *"Backhaul (priority 10) currently wins over Primary LAN (100) for
+panel reads *"Backhaul (priority 10) currently wins over Primary LAN (100) for
 db-1 ↔ db-2"*, and a managed member row reads `Datacenter LAN · Backhaul
 (priority 10)`. Those hints are derived client-side from the same rule; the
-the control plane's answer is authoritative.
+instance's answer is authoritative.
 
 `local → datacenter → fabric → public` is the same order the [managed database
 ingress](/docs/architecture/managed-database-ingress) page describes for

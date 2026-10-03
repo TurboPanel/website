@@ -19,7 +19,7 @@ Four nouns carry everything in the app. Knowing which one owns a setting saves m
 
 | Noun | What it is | What it owns |
 | --- | --- | --- |
-| **Organization** | The tenant. Everything you see is scoped to the organization selected in the header. | Servers, licenses, the network registry, the TLS library, access grants, and organization-wide defaults (the default environment name, the Let's Encrypt opt-in, managed-database defaults). |
+| **Organization** | The account that owns everything. Everything you see is scoped to the organization selected in the header. | Servers, licenses, the network registry, the TLS library, access grants, and organization-wide defaults (the default environment name, the Let's Encrypt opt-in, managed-database defaults). |
 | **Workspace** | A folder for projects inside an organization. | Nothing but grouping; the **Filter** on the Projects list is a workspace filter. |
 | **Project** | One application or stack, described by one compose document. | The compose file, the services in it, the default server, the container-naming rule, project-scoped variables and system users. |
 | **Environment** | One deployable copy of a project — *Production*, *Staging*, a per-customer copy. | The server it runs on, an optional overlay on the project's compose, hostnames and TLS, storage, environment-scoped variables, and the running containers. |

@@ -9,7 +9,7 @@ The **daemon cell** is TurboPanel's low-latency coordination layer for remote da
 
 <Callout type="info" title="Canonical source">
   This page mirrors shipped behavior documented in the TurboPanel repo. For agent maintenance and
-  anti-regression rules, see <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md">control plane AGENTS.md</File> (Daemon Cell section).
+  anti-regression rules, see <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md">instance/AGENTS.md</File> (Daemon Cell section).
 </Callout>
 
 ## Overview and parity
@@ -113,7 +113,7 @@ Remote daemons authenticate over REST before upgrading to `/ws/daemon/v1`. First
 <Steps>
   <Step>
     **Enrollment (first time)** — `POST /api/daemon/v1/auth/challenge` → sign enrollment payload →
-    `POST /api/daemon/v1/enroll` with license + public JWK. The control plane stores the daemon public key on the
+    `POST /api/daemon/v1/enroll` with license + public JWK. Instance stores daemon public key on the
     `server` row.
   </Step>
   <Step>
@@ -242,9 +242,9 @@ On Workers:
 1. **`webSocketClose` / `webSocketError`** → `#cleanupWebSocket` marks offline and releases the socket lease **in-memory** (no lease-row delete, no `last_seen_at` write — column gone) on clean disconnect. Postgres demotion still runs via `#projectDisconnected`.
 2. **No periodic stale-sweep alarm** — silent half-open sockets self-heal on reconnect (lease force-detach) or command dispatch (outbox requeue → consumer timeout).
 3. **`#collectStaleDemotions`** — opportunistic backstop only when `alarm()` already fired for deliverable/retry/inflight request rows, expiry, or terminal retention work.
-4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one Analytics Engine SQL read across all servers** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost. Ticks are serialized by a durable Postgres `setting` lease (`expiresAt` covers the enforced live runtime so a slow phase cannot be stolen by the next cron) and bounded by a per-tick **hard** wall-clock deadline: timed-out phases log and skip later work rather than overlapping the next invocation.
+4. **AE-driven offline-sweep cron** (`"* * * * *"`) — each tick runs **one fleet-wide Analytics Engine SQL read** (`queryRecentlyActiveServerIds`, 180 s window). Connected servers present in the recent-host-sample set are provably alive and **skip** `checkLiveness` DO wakes; only **AE suspects** (absent from the set) are probed. Recently-offline self-heal can apply AE-direct heal without a wake. When AE config is missing or the query fails, the sweep falls back to check-all so offline detection is never lost. Ticks are serialized by a durable Postgres `setting` lease (`expiresAt` covers the enforced live runtime so a slow phase cannot be stolen by the next cron) and bounded by a per-tick **hard** wall-clock deadline: timed-out phases log and skip later work rather than overlapping the next invocation.
 
-**WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Control plane half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the control plane-side max-age check remains only as that suspect-path backstop.
+**WebSocket watchdog / max-age:** the absolute connection max-age cap (`MAX_WS_CONNECTION_AGE_MS` = 2 h) is now enforced **daemon-side** (self-recycle via `MAX_CONNECTION_AGE_MS` in IdlePresence). Instance half-open reaping (`#reapUnhealthySockets` / `evaluateSocketHealth`) runs only on AE-flagged suspects still visited by `checkLiveness`; the control plane-side max-age check remains only as that suspect-path backstop.
 
 On Redis (self-hosted), timer-driven `maintain()` + `sweepStalePresence` remain the offline path — cost-safe because there is no DO billing.
 
@@ -354,7 +354,7 @@ sequenceDiagram
     participant Cell as Daemon Cell
     participant Daemon
 
-    Note over Caller,Daemon: Control plane to daemon (delivery on request row)
+    Note over Caller,Daemon: Instance to daemon (delivery on request row)
 
     Caller->>Cell: enqueue deliveryId on request row
     Note right of Cell: write request row · schedule alarm
@@ -365,7 +365,7 @@ sequenceDiagram
     Daemon->>Cell: ack deliveryId
     Note right of Cell: mark delivery_status=acked (retained)
 
-    Note over Caller,Daemon: Daemon to control plane (correlation on same row)
+    Note over Caller,Daemon: Daemon to instance (correlation on same row)
 
     Caller->>Cell: createRequest requestId
     Note right of Cell: write request row status=queued
@@ -409,7 +409,7 @@ Daemon JWTs are **EdDSA (Ed25519)**, 15-minute lifetime.
 
 ```mermaid
 sequenceDiagram
-    participant Instance as Control plane
+    participant Instance
     participant Daemon
     participant JWKS as GET /api/daemon/v1/jwks.json
 
@@ -440,7 +440,7 @@ Setting `TURBOPANEL_DAEMON_DEBUG=1` (via `isDaemonDebugEnabled()`) surfaces per-
 - DO: incremented by `#sql(callSite,…)` / `#setAlarm` / `#deleteAlarm` wrappers (thin pass-through when debug is off)
 - Redis: equivalent counters via `#bumpMethodRoute` / `#bumpDiag`
 
-Greppable trace lines use the `daemon-cell` component tag in control plane logs. The dev console **Cell trace** viewer tails these lines — see [dev AGENTS.md](https://github.com/TurboPanel/dev/blob/trunk/AGENTS.md).
+Greppable trace lines use the `daemon-cell` component tag in instance logs. The dev console **Cell trace** viewer tails these lines — see [dev AGENTS.md](https://github.com/TurboPanel/dev/blob/trunk/AGENTS.md).
 
 ## Billing audit checklist
 
