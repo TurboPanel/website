@@ -64,12 +64,22 @@ A `PUT` never changes a running site. Narrowing the list answers with `affectedS
 
 ## What each site gets
 
-- **Its own PHP process, as its owner.** The site's PHP unit runs as the site owner's Linux user with no extra privileges, so it reaches only what that owner can. Its configuration lives under `/etc/turbopanel/php/sites/<site>/`, where the owner can read it but not change it.
+- **Its own PHP process, as its owner** (nginx and Apache). The site's PHP unit runs as the site owner's Linux user with no extra privileges, so it reaches only what that owner can. Its configuration lives under `/etc/turbopanel/php/sites/<site>/`, where the owner can read it but not change it.
 - **A private temporary directory.** `/tmp` inside the site's PHP is the owner's own `tmp/` directory (for example `/srv/users/alice/tmp`), so uploads and sessions from different owners never share a directory. See [Site owner accounts and isolation](/docs/security/site-isolation).
 - **Its own OPcache, 128 MB by default.** A site's compiled scripts are cached in memory for that site alone, so a busy neighbour cannot evict them.
 - **Writes only inside the owner's home.** The rest of the host is read-only to the site's PHP.
 
-The per-site runtime that starts these units from a deploy is coming in 0.2.x; policy and mode selection above are available now.
+## How a deploy starts and switches PHP
+
+On **nginx and Apache**, each deploy starts the site's own PHP from the mode it resolved: `fastcgi` is `php-cgi` on a socket, with four workers, started on demand; `fpm` is one php-fpm master for the site. The web server reaches it on `/run/turbopanel-php-<id>/php.sock`. Each runtime has the owner's PHP version in its name, so a change of mode or PHP version starts a second runtime next to the first:
+
+1. The new runtime is written, tested as the site owner, and started, all before the web server's configuration changes.
+2. The web server is pointed at the new socket with the usual safe rollout: stage the config, test it, reload, probe the site over HTTP, and switch back if the probe fails.
+3. The old runtime is removed only after the probe passes. If the rollout fails, the new runtime is removed and the old one keeps serving.
+
+A runtime that is down when the daemon starts is started again. Removing the site removes its runtimes. The PHP binaries are limited to owners who are entitled to that PHP version, and the deploy grants that entitlement.
+
+A site with no mode keeps the shared php-fpm pool it already has. A site that moves to its own runtime leaves its old pool behind on the shared php-fpm; nothing is migrated. A mode is refused for a site that has no Linux user of its own, and `lsphp-*` is refused on nginx and Apache. **OpenLiteSpeed** and Caddy do not read the mode in this release: OpenLiteSpeed keeps its existing PHP setup (`lsphp-detached` and `lsphp-attached` are policy values for it) and Caddy serves no PHP.
 
 ## Errors
 
