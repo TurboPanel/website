@@ -92,7 +92,8 @@ Promotion changes the ProxySQL **writer hostgroup**, never the host or port
 operators and apps dial. The advertised endpoint stays `host:15432` /
 `host:13306` on the placement server (member or bound consumer). There is no
 DNS or floating-IP primary discovery and no ProxySQL-to-ProxySQL chaining.
-Promote stays operator-triggered — there is no automatic failover.
+A promotion can be operator-triggered or, when a dead primary is reported and the
+safeguards pass, automatic — see [Automatic failover](/docs/using/managed-databases#automatic-failover).
 
 ## Lazy placement and teardown
 

@@ -6,6 +6,7 @@
     "compose",
     "deploy",
     "hosting",
+    "php",
     "storage-and-variables",
     "managed-databases",
     "git",

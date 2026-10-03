@@ -64,7 +64,7 @@ The bind is frozen into the host's Caddy at deploy time, so changing it — or a
 
 ### Hosting variables and PHP options
 
-Once a row is saved, it carries its own **Variables** panel — the hosting scope of the variable cascade, for values that differ per hostname (a `SITE_URL`, a per-host feature flag). For a site served by a host engine, the row also exposes **PHP** options: series (`8.3`, `8.4`), `memory_limit`, `max_execution_time`, and up to 64 static environment entries (`web.env`) of at most 4096 characters each.
+Once a row is saved, it carries its own **Variables** panel — the hosting scope of the variable cascade, for values that differ per hostname (a `SITE_URL`, a per-host feature flag). For a site served by a host engine, the row also exposes **PHP** options: series (`8.3`, `8.4`), the [PHP mode](/docs/using/php), `memory_limit`, `max_execution_time`, and up to 64 static environment entries (`web.env`) of at most 4096 characters each.
 
 ### WordPress sites
 
@@ -210,6 +210,7 @@ x-turbopanel:
 
 ## Related
 
+- [PHP modes](/docs/using/php) — FastCGI, php-fpm and lsphp, and who may allow which.
 - [Deploying and running an environment](/docs/using/deploy) — the deploy-time refusals in full.
 - [Writing compose](/docs/using/compose) — the `x-turbopanel.hosting[]` declaration.
 - [Hostnames and TLS](/docs/deployment/hostnames-and-tls) — the operator view of Let's Encrypt on the serving host.
