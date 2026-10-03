@@ -122,10 +122,12 @@ How a rule reads on a published port: Docker keeps governing everything you did 
 
 Enforcement is off for every server and cannot be switched on for all of them yet. For a proof on a test host, it takes two keys, and either one alone leaves the server on **Observe**:
 
-1. The operator lists the server's id in `TURBOPANEL_FIREWALL_APPLY_SERVERS` (up to three server ids, separated by commas; a `*`, `all` or a malformed id empties the whole list). It is ignored on the hosted live environment.
+1. The operator lists the server's id in `TURBOPANEL_FIREWALL_APPLY_SERVERS` (up to three server UUIDs, separated by commas; a `*`, `all` or a malformed id empties the whole list). It is ignored on the hosted live environment.
 2. An organization owner or manager sets that server's **Mode** to **Managed**.
 
 The control plane then sends rules to that server under the safety net below. **Block by default** is still refused by the server whatever is sent. To undo it, set the mode back to **Observe** or **Off**, or take the id out of the variable: the control plane sends the server a teardown that removes TurboPanel's firewall chains and stored rulesets, and repeats it until the server confirms.
+
+**Rules are provisional.** Rules a server loads are provisional: unless they are confirmed, the server rolls them back after 120 seconds and returns to the last confirmed rules. Today, confirming is manual: run `/opt/turbopanel/bin/turbopaneld firewall confirm` on the server within those 120 seconds, after checking that you can still reach it. Automatic confirmation by the server's own daemon is planned, but it is not available yet.
 
 **Reading the status.** **Preview** shows **Waiting for the server** until the server answers. If the server cannot do the job, for example because it could not arm the rollback timer, the status becomes **Failed** with the server's reason, instead of waiting forever; the next answer clears it. The app shows `applied` or `pending` for a ruleset the server may already have rolled back, because it does not learn about a confirm or a rollback on the server. To see what is really loaded, run `/opt/turbopanel/bin/turbopaneld firewall status` on the server.
 
@@ -133,7 +135,7 @@ The control plane then sends rules to that server under the safety net below. **
 
 Enforcement is built to be undone automatically if it goes wrong. This is built and tested; it is being proven on a real host before enforcement is switched on.
 
-- **A new ruleset is provisional.** When enforcement is on, a server loads new rules for two minutes. They become permanent only when someone confirms them from **outside** the server — the control plane testing that SSH and the control plane's port still answer, or you running `turbopaneld firewall confirm`. A server's own link to the control plane proves nothing, because outbound traffic is always open.
+- **A new ruleset is provisional.** When enforcement is on, a server loads new rules for two minutes. They become permanent only when someone confirms them from **outside** the server — you running `turbopaneld firewall confirm` on the server today, with automatic confirmation planned. A server's own link to the control plane proves nothing, because outbound traffic is always open.
 - **Unconfirmed rules are undone.** A timer run by root, independent of the daemon, takes TurboPanel's rules out and puts back the last confirmed ones. If those cannot be loaded, the server ends up **open**, never half-restored.
 - **Confirmed rules survive a reboot.** They are loaded at boot before Docker starts. Rules that were still provisional are not.
 - **Nothing is applied if the safety net cannot be armed.**
