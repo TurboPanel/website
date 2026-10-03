@@ -151,7 +151,35 @@ Existing principals are never renamed by a default or a lock change. The chosen 
   </Step>
 </Steps>
 
-Automatic failover is fenced: the platform promotes a same-datacenter failover replica when the primary dies and it can confirm the old primary is isolated; when it cannot, it refuses and says so rather than risk two writers.
+### Automatic failover
+
+When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
+
+**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator. Losing a whole server is deliberately not detected: nothing can confirm the old primary is isolated, so that case stays manual (use **Promote** or disaster recovery).
+
+**What the platform checks, in order.**
+
+1. The report comes from the server that hosts the cluster's current primary, in the same organization.
+2. The per-environment switch below is on.
+3. No automatic failover for this cluster began in the last 15 minutes (the cooldown).
+4. A same-datacenter failover replica is healthy enough to promote: streaming, with a recent observation and little lag.
+5. The platform can queue commands to the servers.
+6. **Fencing first.** The old primary is drained and stopped before anything is promoted. If it cannot be confirmed stopped, for example because its server is unreachable, nothing is promoted.
+
+Only then is the replica promoted and the endpoint repointed. Because the old primary is stopped first, two writers never exist at the same time. Its data is resynced as a replica afterwards.
+
+**The switch.** `TURBOPANEL_AUTO_FAILOVER` turns this on or off for a whole deployment. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off, so a typo never promotes. Manual switchover and disaster recovery never read it. A self-hosted control plane reads it as an environment variable (see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services)) and, unset, has automatic failover on. On TurboPanel High Availability it is set per environment: on for testing, off for staging and live.
+
+**A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
+
+| Reason | Meaning | What to do |
+| --- | --- | --- |
+| `auto_failover_disabled` | The switch is off on this control plane. | Turn it on, or promote by hand. |
+| `cooldown` | An automatic failover started less than 15 minutes ago. A refusal does not extend the cooldown, and the report is sent again after it. | Wait, or promote by hand. |
+| `unfenced` | The old primary could not be confirmed stopped, so promoting would risk two writers. | Bring the old server back or confirm it is off, then promote by hand. |
+| `no_command_queue` | This control plane cannot send commands to servers. | A deployment fault; contact whoever runs the control plane. |
+
+A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
 
 ## Backups
 
@@ -219,6 +247,7 @@ What to know:
 | SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
 | Connection roles | `read-write` (default) · `read-only` |
 | Replica classes | `failover` (same datacenter) · `read` (anywhere) |
+| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; detects a dead engine on a live server, not a lost server |
 | Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
 | Applied login | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain` |
 | Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |

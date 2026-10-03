@@ -111,7 +111,7 @@ services:
 | `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `deployOnPush: false` keeps a git push from deploying the service (an app deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `root` | `site` | Document root, relative to the account's site directory. |
-| `php` | `site` | `{ version?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
+| `php` | `site` | `{ version?, mode?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), the [PHP mode](/docs/using/php) (`fastcgi`, `fpm`, `lsphp-detached`, `lsphp-attached`), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
 | `framework` | `node` | `auto` (default), `node`, `next`. |
 | `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range. |
 | `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
