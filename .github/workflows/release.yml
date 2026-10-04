@@ -50,13 +50,19 @@ jobs:
     steps:
       - name: Resolve version and channel
         id: resolve
+        # Event values reach the shell through env, never spliced into the
+        # script: a tag name may hold $ ( ) ; and quotes.
+        env:
+          INPUT_CHANNEL: ${{ inputs.channel }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -eu
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-            echo "channel=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version=${INPUT_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "channel=${INPUT_CHANNEL}" >> "$GITHUB_OUTPUT"
           else
-            _ref="${{ github.ref_name }}"
+            _ref="$REF_NAME"
             echo "version=${_ref#v}" >> "$GITHUB_OUTPUT"
             echo "channel=release" >> "$GITHUB_OUTPUT"
           fi

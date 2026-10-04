@@ -13,6 +13,37 @@ const WORKFLOWS = fileURLToPath(
 const files = readdirSync(WORKFLOWS).filter((name) => name.endsWith(".yml"));
 const read = (name: string) => readFileSync(path.join(WORKFLOWS, name), "utf8");
 
+/**
+ * The text of every `run:` step in a workflow file (single-line and block
+ * scalars), found by indentation so no YAML parser is needed.
+ */
+function runBodies(source: string): string[] {
+  const lines = source.split("\n");
+  const bodies: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = /^(\s*)(?:- )?run:\s*(.*)$/.exec(lines[i]);
+    if (!match) continue;
+    const indent = match[1].length;
+    if (!/^[|>][+-]?$/.test(match[2].trim())) {
+      bodies.push(match[2]);
+      continue;
+    }
+    const body: string[] = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      const line = lines[j];
+      if (line.trim() !== "" && line.length - line.trimStart().length <= indent)
+        break;
+      body.push(line);
+    }
+    bodies.push(body.join("\n"));
+  }
+  return bodies;
+}
+
+/** Values an outsider can shape (a tag name, a dispatch input, a job output built from one). */
+const SHELL_UNSAFE =
+  /\$\{\{\s*(inputs\.|github\.ref_name|github\.head_ref|needs\.[\w-]+\.outputs\.)/;
+
 // Words that stay lower case inside a Title Case name.
 const SMALL_WORDS = new Set([
   "a",
@@ -142,4 +173,14 @@ describe("versions from tags", () => {
     }
     expect([...pins]).toHaveLength(1);
   });
+});
+
+describe("shell safety", () => {
+  it.each(files)(
+    "%s passes inputs, the ref name and job outputs through env:",
+    (f) => {
+      for (const body of runBodies(read(f)))
+        expect(body).not.toMatch(SHELL_UNSAFE);
+    },
+  );
 });
