@@ -5,7 +5,7 @@ description: Host metrics storage, embedded DuckDB, Parquet archive, retention, 
 
 # Server metrics operations
 
-Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For what each console chart means, see [Server metrics](/docs/metrics) — including [Pressure Stall Information (PSI)](/docs/metrics#pressure-stall-information), the five stall-time percentages on CPU, memory, and disk. For the wire contract, family catalog, backend mappings, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
+Host/server metrics are a **core** control-plane feature — always on, **disposable**, and stored outside Postgres. There is no enable/disable switch. For what each chart in the app means, see [Server metrics](/docs/metrics) — including [Pressure Stall Information (PSI)](/docs/metrics#pressure-stall-information), the five stall-time percentages on CPU, memory, and disk. For the wire contract, family catalog, backend mappings, and the dated Cloudflare cost model, see [Server metrics architecture](/docs/architecture/server-metrics).
 
 ## Configuration
 
@@ -21,11 +21,11 @@ Host/server metrics are a **core** control-plane feature — always on, **dispos
 
 The self-hosted Deno path constructs the DuckDB store directly against an internal path (`resolveMetricsDir()`), so it needs no operator-supplied credentials — it falls back to a temporary no-op store (with a one-time boot warning) only when the metrics directory cannot be created or opened.
 
-**Workers (hosted):** add the `SERVER_METRICS` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the hosted query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
+**Workers (hosted):** add the `SERVER_METRICS` binding + `CLOUDFLARE_ACCOUNT_ID` + `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN` (Account Analytics Read) for chart queries. Missing either the account id or the token → soft `available: false` on reads, not a hard failure. Optionally tune the High Availability query window with `TURBOPANEL_SERVER_METRICS_AE_MAX_RANGE_SECONDS`.
 
 **Deno (self-hosted):** metrics persist to embedded DuckDB + Parquet automatically. Query failures return **503** `metrics_backend_unavailable`.
 
-There is no analytics Ansible role — the daemon provisions nothing for metrics beyond the instance's own state directory; the instance creates and manages the DuckDB metrics directory itself on first use.
+There is no analytics Ansible role — the daemon provisions nothing for metrics beyond the control plane's own state directory; the control plane creates and manages the DuckDB metrics directory itself on first use.
 
 ### Temperature display unit
 
@@ -35,8 +35,8 @@ Organizations set a display unit independent of storage: `GET`/`PUT /api/client/
 
 Two backend-neutral models replace v3's hardware-profile/sensors round trip:
 
-- **Topology** (daemon-side, `turbopaneld/src/metrics/topology/`) assigns every NIC, GPU, filesystem, block device, and hardware signal a stable logical id and tracks generation bumps — a `topologyGeneration` counter that advances only when the enumerated entity set's shape actually changes, plus a `bootGeneration` for daemon restarts. The control plane resolves a `SlotMapping` from a sample's `topologyGeneration` (`client/servers/topology-slot-mapping.ts`) and threads it through packing so paged families stay identity-addressed instead of positional.
-- **`MetricsCapabilityPlan`** (control-plane, `src/daemon/metrics/capability-plan.ts`) is the backend-neutral entitlement model for how much of the contract a server is allowed to report/store — slot counts and feature toggles only, no pricing-tier names. On **TurboPanel High Availability** the base plan resolves from the server's **license → tier**: the `tier` row's entitlement columns (`nic_slots`, `drive_slots`, `gpu_slots`, `filesystem_slots`, plus its rank) map onto `normalNicSlots`, `detailedBlockDeviceSlots`, `gpuSlots`, `extraFilesystemSlots`, and `managedDockerEnabled`; the entry tier (rank 1) carves extra filesystems to `0`, physical sensor slots to `11`, and Docker off. An unassigned seat falls back to the platform default (`normalNicSlots: 2`, `detailedBlockDeviceSlots: 2`, `gpuSlots: 1`, `physicalHardwareSignalSlots: 19` on physical / `0` on virtual, every feature toggle on). An org-wide override in `organization.options.metricsCapabilityPlan` and an optional per-server override in `server.options.metricsCapabilityPlan` still layer on top of that base. `POST /api/daemon/v1/metrics` resolves the effective plan for the reporting server and calls `truncateSampleToCapabilityPlan` on the incoming sample **before** it reaches the store — a plan or tier change takes effect on the very next ingested sample, no daemon restart required. **Self-hosted is uncapped:** the branch happens before truncation, so a self-hosted instance stores whatever the daemon reports — no truncation, no decimation, and the monitored-NIC default is the ceiling (11) rather than the hosted 2. There is no `cpuDetailEnabled`/`memoryDetailEnabled` any more: diagnostics ride the always-on `host.diagnostics` family at every tier, hosted or self-hosted. See [License tiers](/docs/deployment/tiers) for what each tier entitles and how a server is placed.
+- **Topology** (daemon-side, `turbopaneld/src/metrics/topology/`) assigns every NIC, GPU, filesystem, block device, and hardware signal a stable logical id and tracks generation bumps — a `topologyGeneration` counter that advances only when the enumerated entity set's shape actually changes, plus a `bootGeneration` for daemon restarts. The control plane resolves a `SlotMapping` from a sample's `topologyGeneration` (`src/contracts/topology-slot-mapping.ts`) and threads it through packing so paged families stay identity-addressed instead of positional.
+- **`MetricsCapabilityPlan`** (control-plane, `src/contracts/capability-plan.ts`) is the backend-neutral entitlement model for how much of the contract a server is allowed to report/store — slot counts and feature toggles only, no pricing-tier names. On **TurboPanel High Availability** the base plan resolves from the server's **license → tier**: the `tier` row's entitlement columns (`nic_slots`, `drive_slots`, `gpu_slots`, `filesystem_slots`, plus its rank) map onto `normalNicSlots`, `detailedBlockDeviceSlots`, `gpuSlots`, `extraFilesystemSlots`, and `managedDockerEnabled`; the entry tier (rank 1) carves extra filesystems to `0`, physical sensor slots to `11`, and Docker off. A server with no tier assigned falls back to the platform default (`normalNicSlots: 2`, `detailedBlockDeviceSlots: 2`, `gpuSlots: 1`, `physicalHardwareSignalSlots: 19` on physical / `0` on virtual, every feature toggle on). An org-wide override in `organization.options.metricsCapabilityPlan` and an optional per-server override in `server.options.metricsCapabilityPlan` still layer on top of that base. `POST /api/daemon/v1/metrics` resolves the effective plan for the reporting server and calls `truncateSampleToCapabilityPlan` on the incoming sample **before** it reaches the store — a plan or tier change takes effect on the very next ingested sample, no daemon restart required. **Self-hosted is uncapped:** the branch happens before truncation, so a self-hosted control plane stores whatever the daemon reports — no truncation, no decimation, and the monitored-NIC default is the ceiling (11) rather than the High Availability 2. There is no `cpuDetailEnabled`/`memoryDetailEnabled` any more: diagnostics ride the always-on `host.diagnostics` family at every tier, TurboPanel High Availability or self-hosted. See [License tiers](/docs/deployment/tiers) for what each tier entitles and how a server is placed.
 
 `machineClass` (`"physical"` | `"virtual"`) is required, not defaulted, specifically so a virtual server can never silently inherit the physical hardware-signal baseline. The declared `server.machine_class` column wins; only while it is null does the daemon's topology snapshot (any host-level sensor discovered → physical) decide.
 
@@ -56,13 +56,13 @@ Three further host-wide readings are collected on their own slow timers and read
 
 ## Self-hosted schema
 
-On every open the self-hosted store checks the sidecar `schema-version` marker against `DUCKDB_SCHEMA_MARKER_VERSION` (**8**). That number is the on-disk **layout generation** of the self-hosted store, not the metrics wire schema: the daemon ↔ instance contract is **v6** (`METRICS_SCHEMA_VERSION = 6`), and v6 samples are stored in layout **8**. The two counters are independent by design — the marker bumps whenever DDL adds or widens a table (the `managed.storage` / `managed.docker` tables took it from 7 to 8, which is why a v6 store is marker 8), while the wire version only moves when the sample shape changes. A missing, corrupt, or non-matching marker discards `metrics.duckdb`, `parquet/`, `tmp/`, and `schema-version` before creating the current layout. There is no in-place migration and no supported operator path for older DuckDB files. Layout 8 is the first carrying the `server_storage_samples`, `server_docker_samples`, and `server_router_samples` tables, the merged diagnostics columns, and the widened ingress and database-proxy tables.
+On every open the self-hosted store checks the sidecar `schema-version` marker against `DUCKDB_SCHEMA_MARKER_VERSION` (**8**). That number is the on-disk **layout generation** of the self-hosted store, not the metrics wire schema: the daemon ↔ control plane contract is **v6** (`METRICS_SCHEMA_VERSION = 6`), and v6 samples are stored in layout **8**. The two counters are independent by design — the marker bumps whenever DDL adds or widens a table (the `managed.storage` / `managed.docker` tables took it from 7 to 8, which is why a v6 store is marker 8), while the wire version only moves when the sample shape changes. A missing, corrupt, or non-matching marker discards `metrics.duckdb`, `parquet/`, `tmp/`, and `schema-version` before creating the current layout. There is no in-place migration and no supported operator path for older DuckDB files. Layout 8 is the first carrying the `server_storage_samples`, `server_docker_samples`, and `server_router_samples` tables, the merged diagnostics columns, and the widened ingress and database-proxy tables.
 
 Configured retention still expires old points (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`, default 90). The sidecar `schema-version` marker is written after a successful open of the current store.
 
 ## DuckDB + Parquet resources (self-hosted)
 
-The self-hosted metrics store is **embedded in the instance process** — no container, no port, no separate daemon process, no credentials, and no analytics database service to install or monitor.
+The self-hosted metrics store is **embedded in the control plane process** — no container, no port, no separate daemon process, no credentials, and no analytics database service to install or monitor.
 
 Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`):
 
@@ -82,7 +82,7 @@ Resource caps come from the env vars above: `TURBOPANEL_SERVER_METRICS_DUCKDB_TH
 | DuckDB hot tables + Parquet archive | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | **90** days |
 | Analytics Engine (hosted) | Cloudflare platform | **3 months** — UI cannot exceed this on Workers |
 
-The same daily archive tick prunes both expired Parquet partitions and any hot/status rows past the cutoff, independently per family — change retention via env on the instance unit and it applies on the next tick.
+The same daily archive tick prunes both expired Parquet partitions and any hot/status rows past the cutoff, independently per family — change retention via env on the control plane unit and it applies on the next tick.
 
 **Live samples are never stored.** While a live lease (10 s cadence) is active, each sample is held in a short-lived buffer the live chart reads from and the durable write is skipped on both backends. Retention, archive sizes, and the cost figures in the architecture doc therefore describe **baseline-cadence data only** — a long live session adds nothing to disk or to the Analytics Engine write count.
 
@@ -90,9 +90,9 @@ The same daily archive tick prunes both expired Parquet partitions and any hot/s
 
 | Symptom | Likely cause | Action |
 | ------- | ------------ | ------ |
-| No samples at all | Metrics directory unusable (self-hosted) or AE not wired (Workers) | Check the instance boot log for the no-op store warning and verify the metrics directory is creatable; on Workers verify the AE binding + SQL credentials |
-| API 503 on charts | DuckDB/filesystem error | Check the metrics directory is writable and the disk is not full; see instance logs for the underlying DuckDB error |
-| Interrupted daily archive | Instance stopped mid-export | Nothing to do — the in-flight `.tmp` Parquet file for that family is ignored and swept on the next tick, and the day is re-exported; hot rows are only deleted after the sealed file validates, so samples are never lost |
+| No samples at all | Metrics directory unusable (self-hosted) or AE not wired (Workers) | Check the control plane boot log for the no-op store warning and verify the metrics directory is creatable; on Workers verify the AE binding + SQL credentials |
+| API 503 on charts | DuckDB/filesystem error | Check the metrics directory is writable and the disk is not full; see control plane logs for the underlying DuckDB error |
+| Interrupted daily archive | Control plane stopped mid-export | Nothing to do — the in-flight `.tmp` Parquet file for that family is ignored and swept on the next tick, and the day is re-exported; hot rows are only deleted after the sealed file validates, so samples are never lost |
 | Workers charts empty | AE SQL credentials missing | Set `CLOUDFLARE_ACCOUNT_ID` and `TURBOPANEL_ANALYTICS_ENGINE_API_TOKEN`; store reports `available: false` when either is absent |
 | Workers charts 503 `metrics_backend_unavailable` | AE SQL API rejected the query or token | Token must be **Account → Account Analytics → Read**. Check Worker logs for `metrics queryHostSeries failed …` (includes the Cloudflare/SQL error). Confirm `CLOUDFLARE_ACCOUNT_ID` matches the TurboPanel account |
 | Daemon connected, no metrics | Unsupported OS collector | Internal to `turbopaneld`: logs `metrics unsupported: unsupported_os:<os>`, stops periodic metrics for that attach, and does **not** send a metrics sample — check daemon logs |
@@ -101,8 +101,8 @@ The same daily archive tick prunes both expired Parquet partitions and any hot/s
 | GPU family missing despite `gpuSlots` entitlement | Entitlement is not presence | A capability plan granting `gpuSlots` only raises the cap on how many GPUs *may* be reported — it does not fabricate a `gpu` row when `gpus[]` is empty |
 | Ingress/router/database-proxy family missing | Sidecar not running or its metrics endpoint unreachable | Each source resolves independently — check the site Caddy admin listener (`127.0.0.1:2039`, global `metrics` option set), the hosting Traefik's `metrics` entrypoint, and the ProxySQL REST API (`admin-restapi_enabled`, `127.0.0.1:6070`) separately; one being down never blocks another |
 | Storage usage group empty on a fresh daemon | Walker has not completed | `managed.storage` is absent until the daemon's first 15-minute directory walk lands; a hosting root that hits the walk bound reports `null` rather than a partial total |
-| Docker group replaced by a notice | Entry-tier license | `managed.docker` is granted from S2; on S1 the console shows a one-line notice instead of the group. Self-hosted and unassigned seats keep it (platform default) |
-| More devices than the tier watches | Recommended tier above the license | Extra NICs/drives/GPUs are dropped by hosted truncation, never refused; org owners get a daily note naming the unwatched devices — see [License tiers](/docs/deployment/tiers) |
+| Docker group replaced by a notice | Entry-tier license | `managed.docker` is granted from S2; on S1 the app shows a one-line notice instead of the group. Self-hosted and unassigned servers keep it (platform default) |
+| More devices than the tier watches | Recommended tier above the license | Extra NICs/drives/GPUs are dropped by High Availability truncation, never refused; org owners get a daily note naming the unwatched devices — see [License tiers](/docs/deployment/tiers) |
 | Chart segments unexpectedly at a point in time | Topology generation changed | A NIC/GPU/filesystem/block-device/hardware-signal set actually changed shape (added/removed/replaced) — not a bug; the UI intentionally breaks the line rather than drawing a misleading continuous series across a topology change |
 | Tier or plan change not reflected | Stale expectation, not a bug | The effective plan (tier base plus any org/server override) is resolved per ingested sample at `POST /api/daemon/v1/metrics` time — a change takes effect on the very next sample, but nothing retroactively reshapes already-stored rows. Self-hosted has no plan to change: it is uncapped |
 
@@ -115,7 +115,7 @@ Writes are fire-and-forget at the ingest boundary — ingestion errors do not bl
 | "No metrics yet" | Daemon offline or still connecting (first sample is immediate; rates follow in ~2 s) |
 | Storage still starting | DuckDB metrics directory not yet created (self-hosted) or AE binding/credentials (Workers) not ready yet — re-run instance-launch / converge |
 | Unsupported OS | Server OS metadata from daemon hello (`server.os.family !== 'linux'`) — not a metrics wire signal; Linux collector failures appear as no data/gaps instead |
-| Empty range | Selected window beyond retention (90 d API cap; 3 mo on hosted AE) |
+| Empty range | Selected window beyond retention (90 d API cap; 3 mo on High Availability AE) |
 | Backend unavailable | DuckDB 503 on self-hosted |
 | Gaps in lines | `sampleCount` &lt; `expectedSampleCount` — missing samples, not zero usage |
 | Stale appearance | Charts are not real-time below the ~60 s baseline collection interval |
@@ -134,8 +134,8 @@ Metrics does **not** store organization names, account emails, hostnames, client
 
 ## Related
 
-- [Server metrics](/docs/metrics) — what each console chart means
+- [Server metrics](/docs/metrics) — what each chart in the app means
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, mappings, cost model
 - [License tiers](/docs/deployment/tiers) — the S1–S7/SX ladder, placement rules, and what each tier watches
 - [Control plane deployment](/docs/deployment/control-plane) — instance + co-located daemon
-- [Daemon setup](/docs/deployment/daemon-setup) — remote node install
+- [Daemon setup](/docs/deployment/daemon-setup) — remote server install

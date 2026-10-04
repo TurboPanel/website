@@ -42,7 +42,9 @@ candidate is replaced, not abandoned.
 2. Wait for `ci-ok`, then merge it with a **merge commit**. `live` takes merge commits only.
 3. A workflow takes the **newest** candidate of that version and publishes it as `vx.y.z`, marks
    it the latest release and moves `live`. It pauses for your approval on the **`release`
-   environment**; approve it on the run page.
+   environment**; approve it on the run page. That approval stays until the first release has
+   gone through this exact path end to end; the plan is to drop it afterwards, so that merging
+   **Release x.y.z** is the only act.
 
 Nothing else opens: the next canary is the next patch by itself.
 
@@ -69,6 +71,9 @@ A **patch** needs nothing. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the fi
 the one deliberate step: run **Start Next Version** in the `turbopaneld` repository (Actions →
 _Start Next Version_ → _Run workflow_, pick `minor` or `major`). Only people with write access to
 that repository can run it. Tick **dry-run** first to see what each repository would get.
+
+This button is the only way to start a minor or a major. There is no label on a pull request that
+bumps the version, and no "Start x.y.z" pull request to merge.
 
 It pushes a `start/vx.y.0` tag at the head of `trunk` in `turbopaneld`, `turbopanel`, `ui` and
 the website, each one the next minor (or major) after that repository's own newest release, and

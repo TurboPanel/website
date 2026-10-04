@@ -27,16 +27,16 @@ Behind an entry are its **copies** — where the bytes actually are. A copy has 
     Select the environment and open **Storage** (from the gear on the Services document, or the surface tab). At project scope the tab stacks one panel per environment.
   </Step>
   <Step>
-    **Name** the entry; choose the **Kind** — *volume*, *directory* or *file*.
+    **Name** the entry; choose the **Kind** — *Volume*, *Directory* or *File* — and the **Server** it lives on.
   </Step>
   <Step>
-    For a directory or file, give the **Host path**; for a file, optionally paste its **content** (up to 256 KiB — larger files belong in a volume or a build).
+    For a directory or file, give the **Host path**. A file's **content** (up to 256 KiB — larger files belong in a volume or a build) can be set through the API; the app form has no field for it.
   </Step>
   <Step>
     Pick the **Mount service** and the **Destination path** inside it. Two entries cannot mount at the same destination in one service.
   </Step>
   <Step>
-    Set access mode and retention if the defaults do not fit, and save. The mount is live on the next deploy.
+    **Create storage**. The mount is live on the next deploy. The app form has no access mode or retention field, so a new entry takes the defaults (`single_writer`, `retain`); change them through the API.
   </Step>
 </Steps>
 
@@ -55,6 +55,45 @@ Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is
 | File content | ≤ 256 KiB |
 | Parent | workspace, project, environment or service — one of them |
 
+### Volume backups
+
+A storage entry's copy can be backed up on a schedule or on demand, and restored from any of its backups. **This is API-only today: the app has no screen for it yet.** (Managed databases have the app's Backups tab: see [Managed databases](/docs/using/managed-databases#backups).)
+
+**What can be backed up.** A copy on a server of your own that is either a **Docker volume** (`docker` provider), or a **host directory** (`path` provider) under `/srv/users/` (a system user's volumes) or under the server's own default storage directory. Copies on remote providers (NFS, S3 and the like), `file` and `object` entries, and copies with no server are refused with `backup_target_unsupported`. Only organization **owners** and **managers** may back up or restore.
+
+**How a backup is made.** A live archive: the data is read while the app keeps running, so nothing is paused or stopped and nothing is down. A database or other file that is being written at that moment can be captured mid-write, so for data like that prefer a managed database or take the backup while the app is quiet. The server archives the copy in a short-lived helper container with no network access that mounts the data read-only, writes a `.tar.gz` file under its backup directory (`/backup`, or the directory set with `TURBOPANEL_BACKUP_DIR`), and records its size and SHA-256 checksum. Backups stay on that server's own disk, so they do not protect against losing the server.
+
+All of these are under `/api/client/v1/storage/{id}/copies/{copyId}`:
+
+| Route | What it does |
+| --- | --- |
+| `GET …/backups` | Lists the copy's backups, newest first: manual and scheduled, with `policyId` (null for a manual backup), `sizeBytes`, `checksum` and `path`. |
+| `POST …/backups` | **Back up now.** Queues the backup on the copy's server, which must be online; the record appears when it succeeds. |
+| `DELETE …/backups/{backupId}` | Queues removal of the archive; the record goes when it succeeds. |
+| `POST …/backups/{backupId}/restore` | **Restore** (below). |
+| `GET` / `POST …/backup-policies` | Lists or creates **schedules** for the copy. |
+| `PATCH` / `DELETE …/backup-policies/{policyId}` | Edits or deletes a schedule. Deleting stops its timer; backups it already made stay on the server. |
+| `GET …/backup-policies/{policyId}/runs` | A schedule's recent runs, newest first (`limit` 1–100, default 20). |
+
+**Schedules** use the same shape as a managed database's (see [Schedules](/docs/using/managed-databases#schedules)): a `name` (up to 64 characters), a `schedule` that is either a preset object (`{"preset":"hourly"}`, `{"preset":"daily","time":"03:00"}`, `{"preset":"weekly","day":"mon","time":"02:00"}`) or cron text in five fields, an optional IANA `timezone` (server time when left out), `retentionKeep` (`1`–`100`: how many of that schedule's archives to keep) and `enabled`. A copy can have at most **20** schedules. The server runs them from a timer of its own, even while the control plane is unreachable, and a run missed while the server was off happens once when it is back. A schedule prunes only its own archives. Unlike a new managed database, a volume gets **no** automatic schedule: you add them.
+
+```json
+{
+  "name": "Nightly",
+  "schedule": { "preset": "daily", "time": "02:30" },
+  "retentionKeep": 14
+}
+```
+
+**Restore replaces the copy's contents with the backup's.** In order:
+
+1. The server checks that the archive is on that server and that its checksum matches the one recorded. If either check fails, nothing is touched and the apps keep running.
+2. It stops the running containers that mount the copy (and only those). A container that was already stopped stays stopped. If one cannot be stopped, the others are started again and the restore is called off.
+3. It unpacks the archive next to the data first, then swaps: the old contents move aside, the new ones move in, the old ones are deleted. If the swap fails part-way, the old contents are moved back. Files created since the backup are gone; files deleted since it come back. The swap needs room for both the old and the new contents on the same disk.
+4. It starts every container it stopped, **even if the restore failed**. If one will not start, the restore is reported as failed and names it.
+
+Each affected container is down for its normal stop time (up to about ten seconds) plus the time to unpack: seconds for a small volume, minutes for many gigabytes. Two limits to know: an app that is not a container (for example a native app reading a `/srv/users/` folder) keeps running while its files are swapped, and a deploy or restart of the same app during a restore can start a container again part-way through. A copy that has moved to another server fails with *not on this host* and changes nothing.
+
 ## Variables
 
 ### The model
@@ -65,13 +104,13 @@ A **variable** is a key and a value at one **scope**. Scopes nest, and a service
 organization → workspace → project → environment → service → hosting
 ```
 
-A key set at a narrower scope overrides the same key set wider. **Server**-scoped variables are the seventh scope, resolved per server at deploy rather than inherited down the project tree, so a value can differ by host. The console edits three of the scopes today: the **project's** and the **environment's** on their **Settings** tabs (**Add Variable**), and a **hosting row's** on the **Hosting** tab once the row is saved. Organization, workspace, service and server scopes exist in the API (`POST /variables` with the matching parent id) and resolve in the cascade, but have no console panel yet.
+A key set at a narrower scope overrides the same key set wider. **Server**-scoped variables are the seventh scope, resolved per server at deploy rather than inherited down the project tree, so a value can differ by host. The app edits three of the scopes today: the **project's** and the **environment's** on their **Settings** tabs (**Add Variable**), and a **hosting row's** on the **Hosting** tab once the row is saved. Organization, workspace, service and server scopes exist in the API (`POST /variables` with the matching parent id) and resolve in the cascade, but have no app screen yet.
 
 Each variable carries four switches:
 
 | Switch | Meaning |
 | --- | --- |
-| **Secret** | The value is stored sealed and is **write-only** — the API returns `null` for it, the console shows a placeholder, and at deploy it travels sealed to the daemon and lands as a file, never in YAML or in the generated `.env`. |
+| **Secret** | The value is stored sealed and is **write-only** — the API returns `null` for it, the app shows a placeholder, and at deploy it travels sealed to the daemon and lands as a file, never in YAML or in the generated `.env`. |
 | **Literal** | The value is used exactly as typed — a `$` in it is escaped so Docker Compose does not try to interpolate it. Off, a `${OTHER}` inside the value is left for Compose to expand. |
 | **For build** | Passed as a build argument to services that build an image. Off by default. |
 | **For runtime** | Passed to the running container. On by default. |
@@ -119,6 +158,11 @@ services:
 | `scratch_copy_not_mountable` | 409 | A `scratch` copy cannot be mounted. |
 | `conflict` | 409 | A storage write hit a uniqueness rule not otherwise classified; retry with a different name or destination. |
 | `storage_location_unavailable` | 422 (deploy) | The entry's primary copy is on another server and its access mode forbids that; move the copy or relax the mode. |
+| `backup_target_unsupported` | 400 | The copy cannot be backed up: a remote provider, a `file` or `object` entry, or no server. |
+| `backup_policy_invalid`, `backup_schedule_invalid`, `backup_timezone_invalid` | 400 | A schedule field, the schedule or the timezone is wrong; the response says which. |
+| `backup_policy_limit` | 409 | The copy already has 20 schedules. |
+| `backup_policy_not_found`, `backup_not_found` | 404 | No schedule or backup with that id on this copy. |
+| `server_placement_required`, `server_offline` | 409 | The copy has no server, or its server is offline: a manual backup, delete or restore needs it online. |
 | `binding_key_conflict` | 409 | The key collides with one a database binding owns. |
 | `binding_owned_variable` | 409 | The variable is written by a binding; sever the binding to change it. |
 | `variable_unresolved` | 422 (deploy) | A `{$KEY}` reference has no value at any scope in reach. |

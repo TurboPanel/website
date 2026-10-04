@@ -1,0 +1,80 @@
+---
+title: Site owner accounts and isolation
+description: How a site owner's Linux user, home directory, SSH and SFTP access, builds and web servers are kept apart from each other and from the host
+---
+
+# Site owner accounts and isolation
+
+Every site runs as a Linux user of its own, the **site owner's Linux user** (for example `alice`, with files in `/srv/users/alice`). Several sites and several owners share one host, so the host keeps them apart. This page says how: the layout of the home, how SSH access works, how builds run, which account the web servers use, and what happens to symlinks.
+
+## The home layout
+
+Each owner has one directory, `/srv/users/<owner>`, which **root owns**. An owner can rename or delete anything inside a directory they own, so the directories that hold files the platform owns are not the owner's. The owner writes only into the folders marked below.
+
+| Path                                      | Owned by | The owner may                                                        |
+| ----------------------------------------- | -------- | -------------------------------------------------------------------- |
+| `/srv/users/alice`                        | root     | Read it through the group; not change it                             |
+| `home/`                                   | alice    | Write. This is alice's login home (`$HOME`).                         |
+| `data/`                                   | alice    | Write. Files that must outlive a deploy.                             |
+| `tmp/`                                    | alice    | Write. The private temporary directory; PHP's `/tmp` is this folder. |
+| `sites/` and `sites/<site>/`              | root     | Not change                                                           |
+| `sites/<site>/releases/` and each release | root     | Not change                                                           |
+| `sites/<site>/webroot/` and `shared/`     | alice    | Write                                                                |
+| `volumes/`                                | root     | Not change; each volume inside it is alice's                         |
+
+Because `sites/` and `releases/` are root's, a release cannot be swapped or edited after it is published, and a site owner cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
+
+## SSH and SFTP keys
+
+The panel manages every key. Keys are written to `/etc/ssh/turbopanel/authorized_keys/<owner>`, a root-owned directory the owner cannot reach, and the SSH server reads them only from there.
+
+- An `authorized_keys` file inside the home (`~/.ssh/authorized_keys`) is **ignored**, so a planted key does not log in.
+- Port forwarding is off for every site owner: no TCP, Unix-socket or remote forwarding, so an SSH login cannot be used as a tunnel into the host's own network.
+- An owner with no SSH access level cannot sign in by key or password at all. Files-only owners get SFTP and no shell.
+
+## Builds
+
+Every native and static project build on a managed host runs in a sandbox, not as the platform or as the owner. Docker and Railpack image builds are not part of this sandbox: they run through Docker and are governed by the [Docker gate](/docs/deployment/security#docker-socket-security).
+
+- They run as an **unprivileged build user** with no home, which belongs to neither the Docker nor the TurboPanel group.
+- There is **no Docker** inside the sandbox: the Docker socket and the platform's own files are not reachable.
+- The network is **public internet only**. Loopback, private, link-local and carrier-grade NAT addresses are blocked, so a build cannot reach the host, other servers on its network, or cloud metadata. There is no exception for the host's own DNS: the build gets its own list of public nameservers (the host's public ones, else the ones its resolver uses, else `1.1.1.1` and `8.8.8.8`), so a private or router DNS server is not reachable either.
+- Limits per build: **4 GB of memory, 2 CPUs and 30 minutes**.
+- **One build runs at a time** on a server; others wait.
+- Each build has a private `/tmp` and no access to other owners' homes, and the finished files are handed back to the owner afterwards. A build that leaves a link out of its own folder is refused when it is handed back.
+- A build that runs over 30 minutes, or whose client goes away, is stopped.
+
+A development install builds as the developer instead. The sandbox needs systemd 247 or newer; on hosts older than 255 it runs with a reduced but still unprivileged set of restrictions.
+
+## SFTP jail
+
+An owner with files-only access (SFTP, no shell) can be locked into their own home. The jail is **off by default** and is turned on for one server at a time by an operator on that server, once the home layout above is in place:
+
+```bash
+sudo /opt/turbopanel/lib/tp-host sftp-chroot on
+```
+
+`on` first checks the layout and refuses if anything is wrong: a folder on the way to the home that root does not own or that others can write to, an owner with no `home/` of their own, a login home other than `home/`, or a user in both the SFTP and the shell groups. `off` removes the jail and is never refused; `status` shows the state.
+
+With the jail on, a files-only owner signs in to `home/` and sees only `home/`, `data/`, `tmp/`, `sites/` and `volumes/`. They can write their own folders, `webroot/` and `shared/`, cannot change `sites/` or any release, and cannot see `/etc` or another owner's home. A shell login gets "This service allows sftp connections only". Owners with shell access are never jailed. The check runs again at every SSH update; if the layout has drifted, that one owner's login closes and the jail stays on for everyone.
+
+## Web server accounts
+
+The web servers do not run as root. Apache runs as its own unprivileged account (`tpapache`) from start to finish, including its master process. The hosting Caddy runs as its own unprivileged account too, with only the permission to bind ports 80 and 443. PHP runs as the site owner, never as a web server. See [PHP modes](/docs/using/php).
+
+## Symlinks across sites
+
+The web servers share a group with every owner, so a symlink in one site that points at another owner's files could otherwise be served. All three engines follow a symlink only when its owner is the same as the owner of the file it points to.
+
+- **nginx** uses `disable_symlinks if_not_owner`.
+- **OpenLiteSpeed** uses "follow if owner matches".
+- **Apache** uses `Options SymLinksIfOwnerMatch`, and an `.htaccess` file may no longer change the symlink option except to that value. A line such as `Options +FollowSymLinks` now fails with an error (a `500` for the page) because Apache refuses the option there. Use `Options +SymLinksIfOwnerMatch` instead.
+- **At publish time** a link in a new release that resolves into another owner's home refuses the release; it is never made live.
+
+A link between two files of one owner works as before.
+
+## Related
+
+- [PHP modes](/docs/using/php) — how a site's PHP is started and what it gets of its own.
+- [Trust boundaries](/docs/security/trust-boundaries) — what each part can reach if it is compromised.
+- [Daemon trust model](/docs/security/daemon-trust-model) — what the host-side helper allows.

@@ -5,7 +5,7 @@ description: How organizations, teams, workspaces and grants fit together, the f
 
 # Organizations, teams and access
 
-Everything you run belongs to an **organization**; the people who may act on it are members of its **teams**; what each of them may do is a small set of **grants**. This chapter is the user's side of that model: creating and switching organizations, inviting teammates, and assigning the four permissions from **Access** (`/<org>/access`). The operator's instance-wide roles are in [Administering an instance](/docs/using/admin).
+Everything you run belongs to an **organization**; the people who may act on it are members of its **teams**; what each of them may do is a small set of **grants**. This chapter is the user's side of that model: creating and switching organizations, inviting teammates, and assigning the four permissions from **Access** (`/<org>/access`). The operator's control-plane-wide roles are in [Administering the control plane](/docs/using/admin).
 
 ## The model
 
@@ -24,7 +24,7 @@ organization ─┬─ teams ──── teammates (people)
 
 ### The four permissions
 
-| Permission | Console name | What it unlocks |
+| Permission | App name | What it unlocks |
 | --- | --- | --- |
 | `organization:own` | Organization owner | Everything a manager can, plus the owner-only acts: server capacity, registration keys, TLS opt-ins and the Compose opt-ins under Manage Organization, invitations that carry explicit grants, and creating or revoking grants. |
 | `organization:manage` | Organization manager | Day-to-day work on anything in the organization — projects, environments, deploys, servers, networks, managed databases, variables — and inviting to any team. |
@@ -36,22 +36,22 @@ How they combine:
 - **Owner implies manager.** A check for `organization:manage` passes with either grant; a check for `organization:own` needs the owner grant itself.
 - **Organization grants reach every team.** An organization owner or manager may act on any team in the organization; a team grant reaches only its team.
 - **Grants flow through membership.** A grant to a *team* applies to everyone in it; a grant to the *organization* as subject applies to everyone in any of its teams. Most organizations need nothing beyond the grant an invitation carries.
-- **Instance administrators bypass all of this.** A user whose instance role is `superadmin` or `admin` (see [Administering an instance](/docs/using/admin)) passes every organization check without a grant row.
+- **Administrators bypass all of this.** A user whose control plane role is `superadmin` or `admin` (see [Administering the control plane](/docs/using/admin)) passes every organization check without a grant row.
 - **The last owner cannot be removed.** Revoking the only `organization:own` grant on an organization is refused.
 
-Visibility follows the same rules in the database, not in the console: a list shows what your grants reach, and nothing else.
+Visibility follows the same rules in the database, not in the app: a list shows what your grants reach, and nothing else.
 
 ## Before you begin
 
 - To invite: manager rights on the team (a team owner or manager, or an organization owner or manager).
 - To attach explicit grants to an invitation, or to add and revoke grants: **organization owner**.
-- Outbound email configured on the instance — an invitation is an email, and without a mailer it is refused rather than created silently ([Control plane](/docs/deployment/control-plane)).
+- Outbound email configured on the control plane — an invitation is an email, and without a mailer it is refused rather than created silently ([Control plane](/docs/deployment/control-plane)).
 
 ## Create or switch an organization
 
 <Steps>
   <Step>
-    Header organization menu → **New**, or `/organizations` → **New**. Name it. On a hosted instance the first organization from sign-up is called **My Organization**; on self-hosted, install creates **Root Organization**.
+    Header organization menu → **New**, or `/organizations` → **New**. Name it. On TurboPanel High Availability the first organization from sign-up is called **My Organization**; on self-hosted, install creates **Root Organization**.
   </Step>
   <Step>
     You become its **owner** (`organization:own`) and the owner of its **Default Team**, with a **Default Workspace** ready for projects.
@@ -61,7 +61,7 @@ Visibility follows the same rules in the database, not in the console: a list sh
   </Step>
 </Steps>
 
-Renaming is **Manage Organization → Organization** (managers may save). Names follow the display-name rule: no control characters, bounded length. Organizations are not deleted from the console in this release.
+Renaming is **Manage Organization → Organization** (managers may save). Names follow the display-name rule: no control characters, bounded length. Organizations are not deleted from the app in this release.
 
 ## Invite a teammate
 
@@ -75,7 +75,12 @@ Renaming is **Manage Organization → Organization** (managers may save). Names 
     The invitee receives a link good for **7 days**. **Pending invitations** lists every unexpired one across the organization's teams with who sent it and when it expires; **Revoke invitation** ends it before it is used.
   </Step>
   <Step>
-    The invitee opens the link at `/accept-invitation`. Signed in with the invited address, they land in the organization at once. Not signed in, the screen offers **Sign in** and **Sign up**; sign-up carries the invitation, so it works **even while public sign-up is disabled**, as long as the email matches. Email verification runs as for any sign-up; then they return to the accept screen and join.
+    The invitee opens the emailed link, which lands on **Accept invitation** and never accepts by itself. What it shows depends on who is opening it:
+
+    - **Already has an account on the invited address:** they are taken to sign in, return to the page, and press **Accept invitation**.
+    - **No account on that address yet:** the page asks them to **Create a password** and press **Join** (the button reads *Join* plus the organization's name). That one step creates the account (the address counts as verified, because the emailed link proves it), accepts the invitation and signs them in, with no confirmation step and no personal organization of their own. It works **even while public sign-up is disabled**.
+    - **Signed in as someone else:** the page says *This invitation is for another account* and offers **Switch account**, which signs them out and returns to sign in with the invited address.
+    - **Link already accepted:** the page says so and points to sign in. **Expired or withdrawn:** it says which and asks them to request a new invitation from whoever sent it. A link replaced by a re-sent invitation says it is *not valid anymore*: use the newest email.
   </Step>
 </Steps>
 
@@ -84,6 +89,30 @@ The accepted invitation creates the team membership and, by default, an **organi
 <Callout type="warn" title="The address must match">
   An invitation is accepted only by an account whose email equals the invited address (case-insensitively). Forwarding the link to another address does not work; revoke and re-invite instead.
 </Callout>
+
+## Members
+
+**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member**, the highest organization permission the person holds) and *Joined* date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
+
+<Steps>
+  <Step>
+    **Remove** on a row asks *Remove \<person\> from this organization? They lose all access.* Confirm.
+  </Step>
+  <Step>
+    The person's team memberships and every grant they hold inside the organization are deleted in one step. Their next request is refused and the organization drops out of their list. Their account, their sessions and their other organizations are untouched.
+  </Step>
+</Steps>
+
+To leave yourself, use **Leave organization** on your own row (*Leave this organization? You lose all access to it.*). Anyone can leave.
+
+| Rule | What happens |
+| --- | --- |
+| Owners and managers may remove people | Anyone else is refused (`Forbidden`, 403). |
+| Only an owner can remove an owner | A manager removing an owner is refused (`Only an owner can remove an owner`, 403). |
+| The last owner cannot be removed or leave | Refused (`Cannot remove the last owner of an organization`, 409). Make another person an owner first. |
+| Removal is recorded | The audit log records `member.remove`, and the person is told their access was revoked. |
+
+When the organization has turned on **Ask people to confirm it is them before permanent actions**, removing a person (and leaving) first asks you to confirm your password; see [Account security](/docs/using/account-security#permanent-actions).
 
 ## Assign a permission
 
@@ -101,7 +130,7 @@ The accepted invitation creates the team membership and, by default, an **organi
   </Step>
 </Steps>
 
-Subject IDs are the account, team or organization ids. The console does not yet list members with their ids — the teams are in the **Team** picker, and a user's id comes from the API (`GET /api/client/v1/authn/session` shows your own). Grants are allow-only — there is no deny row, and team membership is not removed from the console in this release; take access away by revoking the grant.
+Subject IDs are the account, team or organization ids. The teams are in the **Team** picker, and a person's id is in the **Members** list (`GET /organizations/:id/members`); your own is in `GET /api/client/v1/authn/session`. Grants are allow-only — there is no deny row. To take a person's access away entirely, remove them under **Members** rather than revoking grants one by one.
 
 ## Reference
 
@@ -113,14 +142,14 @@ Subject IDs are the account, team or organization ids. The console does not yet 
 | Invitation lifetime | 7 days; one pending per team + address |
 | Default invitation grant | `organization:manage` on the organization |
 | Defaults on creation | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own` |
-| Instance roles | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering an instance](/docs/using/admin) |
+| Control plane roles | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering the control plane](/docs/using/admin) |
 
 ## Errors
 
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `invitation_pending` | 409 | That address already has a live invitation to that team. |
-| `email_unavailable` | 503 | The instance cannot send mail, so the invitation was not created. |
+| `email_unavailable` | 503 | The control plane cannot send mail, so the invitation was not created. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
 | `Invalid invitation grants` | 400 | A grant in the invitation names a permission or target that does not fit (for example a team permission on the organization). |
 | `Forbidden` | 403 (accept) | The signed-in account's email is not the invited address. |
@@ -129,12 +158,13 @@ Subject IDs are the account, team or organization ids. The console does not yet 
 | `Not found` | 404 | No pending invitation, or no grant, with that id. |
 | `Entity not found` | 404 | The grant target is not in this organization. |
 | `… may only be granted on organization entities` / `… on team entities` | 400 | The permission does not fit the target kind. |
-| `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. |
+| `Cannot remove the last owner of an organization` | 409 | Revoke would leave no `organization:own`. A team has the same rule: `Cannot remove the last owner of a team`. |
+| `Only an owner can remove an owner` | 403 | A manager tried to remove an owner from **Members**. Ask an owner. |
 | `You don't have permission to manage access on this scope.` | 403 | Grant management needs `organization:own` on the target. |
 
 ## Related
 
 - [Account security](/docs/using/account-security) — the account that holds these memberships.
 - [Projects and environments](/docs/using/projects) — workspaces and what a manager does with them.
-- [Administering an instance](/docs/using/admin) — instance roles and sign-up policy.
+- [Administering the control plane](/docs/using/admin) — control plane roles and sign-up policy.
 - [Accounts and access](/docs/getting-started/accounts-and-access) — the invitation sequence diagram and provider configuration.

@@ -5,7 +5,7 @@ description: Manually update a TurboPanel daemon when the UI update button does 
 
 # Refresh a stuck daemon
 
-Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the node is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — it reads license state from disk and reconciles the FHS tree in place.
+Sometimes a managed server **looks offline in the UI** even though the daemon is still running, or the **Update button fails** because the server is on an old build. Re-run the same **`run.sh`** installer used for first-time setup — the command below builds the license from state on disk, and the installer reconciles the FHS tree in place.
 
 ## When to use this
 
@@ -17,18 +17,21 @@ Use a manual `run.sh` refresh when:
 - You want to **reconcile** after a bad upgrade (daemon disabled, wrong version, etc.)
 
 <Callout type="info" title="Co-located dev hosts">
-  This page covers **managed servers** (FHS tree). If your control-plane host was
-  provisioned with the [dev](https://github.com/TurboPanel/dev)
-  console, update it from the console (**Sync Dev Build** / **Upgrade System**)
-  instead — that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
+  This page covers **managed servers** (FHS tree). If your control-plane host
+  was provisioned with the [dev](https://github.com/TurboPanel/dev) console,
+  update it from the console (**Sync Dev Build** / **Upgrade System**) instead —
+  that host runs the daemon from a source checkout, not `/opt/turbopanel/bin`.
   Those two actions exist only on that console. A managed self-hosted host
-  upgrades each unit from **Admin → Updates** (see
-  [Upgrade and rollback](/docs/deployment/upgrade)). This page is the path when
-  that button cannot reach the daemon.
+  upgrades each unit from **Admin → Updates** (see [Upgrade and
+  rollback](/docs/deployment/upgrade)). This page is the path when that button
+  cannot reach the daemon.
 </Callout>
 
 <Callout type="info" title="UI vs cell panel">
-  The server list reads a **Postgres projection** for online/offline. The **Cell** panel reads live WebSocket state. If those disagree, the daemon is usually fine — run an update to refresh both the installed binary and presence.
+  The server list reads a **Postgres projection** for online/offline. The
+  **Cell** panel reads live WebSocket state. If those disagree, the daemon is
+  usually fine — run an update to refresh both the installed binary and
+  presence.
 </Callout>
 
 ## One-command update (recommended)
@@ -53,13 +56,13 @@ curl -fsSL turbopanel.sh | \
   sh
 ```
 
-The command reads the node's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote node. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `trunk`. A self-hosted node refreshed without them would be moved to the hosted control plane and the `trunk` channel.
+The command reads the server's current control plane and channel out of `daemon.env` and passes them back. The installer does not read either from `daemon.env` on a remote server. Without `TURBOPANEL_HOST` it enrols against the control plane named in the release manifest, which is TurboPanel High Availability. Without `TURBOPANEL_UPDATE_CHANNEL` it uses `release`. A self-hosted server refreshed without them would be moved to the TurboPanel High Availability control plane and the `release` channel.
 
 The installer:
 
 1. Uses your **license** from `TURBOPANEL_LICENSE` (built from `/var/lib/turbopanel/license.id` + `license.token` above)
-2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `trunk`
-3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's hosted control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
+2. Uses the **update channel** from `TURBOPANEL_UPDATE_CHANNEL` / `--channel`, else `release`
+3. Uses the **control plane URL** from `TURBOPANEL_HOST` / `--host`, else the release manifest's TurboPanel High Availability control plane. For TLS it reuses the Platform CA already on disk at `/etc/turbopanel/instance-ca.pem`
 4. Reinstalls the host-arch native binary + orchestration tree (and `turbopaneld.js` + vendored Deno **only** when the native binary cannot execute on that host)
 5. Re-runs Ansible and restarts `turbopaneld.service`
 
@@ -79,19 +82,22 @@ It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. Th
 
 ## Pre-flight errors
 
-The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the panel is driving the run):
+The daemon refuses the install before it swaps files. The code is on `update-result` (and on the upgrade step when the control plane is driving the run):
 
-| Code | Meaning |
-| --- | --- |
-| `preflight_in_progress` | An install is already running on this host. The rejected attempt does not replace the one in progress. |
-| `preflight_disk` | Free space is below the minimum: 512 MiB on the install root, 128 MiB on the state directory, and 256 MiB on the temp directory (1 GiB on the install root and 1 GiB on the backup directory for a control-plane install). A failed measurement is the same code. |
-| `preflight_manifest` | The manifest could not be fetched or verified, the signature or schema failed, or `targetCommit` does not match the signed commit. |
-| `preflight_trust` | Automatic-update TLS is not public trust and not the configured Platform CA. Re-run the installer with `--instance-ca` to repair trust. The daemon does not disable verification for an automatic update. |
+| Code                    | Meaning                                                                                                                                                                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preflight_in_progress` | An install is already running on this host. The rejected attempt does not replace the one in progress.                                                                                                                                                            |
+| `preflight_disk`        | Free space is below the minimum: 512 MiB on the install root, 128 MiB on the state directory, and 256 MiB on the temp directory (1 GiB on the install root and 1 GiB on the backup directory for a control-plane install). A failed measurement is the same code. |
+| `preflight_manifest`    | The manifest could not be fetched or verified, the signature or schema failed, or `targetCommit` does not match the signed commit.                                                                                                                                |
+| `preflight_trust`       | Automatic-update TLS is not public trust and not the configured Platform CA. Re-run the installer with `--instance-ca` to repair trust. The daemon does not disable verification for an automatic update.                                                         |
 
 A control-plane install adds `preflight_backup` when `turbopanel-database` is not running. After the swap, `health_timeout`, `health_mismatch`, and `restart_failed` mean the previous generation was restored; `recovery_required` means that restore did not bring the control plane back. The recovery command is on [Upgrade and rollback](/docs/deployment/upgrade#recovery-command).
 
 <Callout type="warning" title="Run as root">
-  Pipe the installer to `sh` as **root** (`su -` or `sudo sh`). A non-root pipe will hang or fail when provisioning needs elevated privileges.
+  Run the commands on this page as **root** (a root shell, or `su -`): the
+  license files they read are readable by root only. Do not put `sudo` in front
+  of `sh` in the pipeline, because it would drop the `TURBOPANEL_*` values. The
+  installer escalates with `sudo` by itself when it is not already root.
 </Callout>
 
 ### Self-hosted control plane
@@ -115,8 +121,8 @@ non-pre-release on the daemon's
 follows the rolling `rc` pre-release there, `canary` follows the rolling
 `canary` pre-release — the newest green build of `trunk`, replaced on every
 merge (see [Canary environment](/docs/development/canary)) — and `trunk` is
-the per-merge build drop the hosted platform follows. `edge` is reserved with
-no built-in location. The example below stays on `trunk` (the default):
+the per-merge build drop TurboPanel High Availability follows. `edge` is reserved with
+no built-in location. The example below sets `trunk` explicitly (the default is `release`):
 
 ```bash
 curl -fsSL turbopanel.sh | \
@@ -129,9 +135,9 @@ curl -fsSL turbopanel.sh | \
 
 The refresh command reads:
 
-| File | Purpose |
-| ---- | ------- |
-| `/var/lib/turbopanel/license.id` | Organization license UUID |
+| File                                | Purpose                                           |
+| ----------------------------------- | ------------------------------------------------- |
+| `/var/lib/turbopanel/license.id`    | Organization license UUID                         |
 | `/var/lib/turbopanel/license.token` | Secret token (shown **once** at license creation) |
 
 Check on the server:
@@ -140,16 +146,16 @@ Check on the server:
 sudo ls -la /var/lib/turbopanel/
 ```
 
-If those files are missing, create a **new license** in the TurboPanel UI (**Servers → Licenses**), copy the install command immediately, and run it on the server.
+If those files are missing, create a **new license** in the app (**Servers → Add server**), copy the install command immediately, and run it on the server.
 
 ## Verify after update
 
 ```bash
 sudo systemctl status turbopaneld
-curl -sS https://turbopanel.app/api/daemon/v1/version   # or your instance URL
+curl -sS https://turbopanel.app/api/health   # or https://<host>:8443/api/health (add -k for a Platform CA name)
 ```
 
-In the UI, refresh the servers page — the node should show **Online** with a current commit on the update row.
+In the UI, refresh the servers page — the server should show **Online** with a current commit on the update row.
 
 ## Related
 

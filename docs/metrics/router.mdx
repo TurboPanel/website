@@ -8,7 +8,7 @@ description: The shared hosting router — backends reachable, retries, containe
 The **Router** group is the shared **hosting Traefik** on this host: the loopback proxy behind the hosting Caddy that routes each request to the right container. Every Docker-hosted site on the server passes through it once, so there is exactly one row per sample regardless of how many sites the host runs. It appears when the daemon can scrape that router's metrics entrypoint; a host not running the shared hosting ingress has no group.
 
 <Callout type="info" title="Only the hosting router is metered">
-  The path is **hosting Caddy → Traefik → container**. This group is the middle hop. Any other Traefik on the host — a per-service proxy inside a tenant's own stack — is not read here. The site-level Caddy is on [Ingress](/docs/metrics/ingress).
+  The path is **hosting Caddy → Traefik → container**. This group is the middle hop. Any other Traefik on the host — a per-service proxy inside an app's own stack — is not read here. The site-level Caddy is on [Ingress](/docs/metrics/ingress).
 </Callout>
 
 The group header shows **backends reachable** as `N of M` whether or not the section is expanded — a low figure, not a high one, is the fault.

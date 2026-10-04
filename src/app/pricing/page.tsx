@@ -43,8 +43,8 @@ const COST_OF_OWN = [
 
 /**
  * Planned per-server tier ladder for TurboPanel High Availability. Values
- * mirror the control-plane catalogue (`turbopanel/src/lib/billing/catalogue.ts`
- * + `src/lib/tiers/tier-placement.ts`). Informational only — see
+ * mirror the control-plane catalogue (`turbopanel/src/features/tiers/ladder.ts`
+ * + `src/features/tiers/tier-placement.ts`). Informational only — see
  * `AGENTS.md` → Pricing: the CTA stays the waitlist, never a purchase path.
  */
 const TIERS = [

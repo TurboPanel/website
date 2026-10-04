@@ -1,6 +1,6 @@
 ---
 title: Network addressing
-description: Reserved ranges and Docker address pools, worked against a multi-NIC fleet with two datacenters, a corporate VPN allocation, and dockerd pools moved off it
+description: Reserved ranges and Docker address pools, worked against a multi-NIC set of servers with two datacenters, a corporate VPN allocation, and dockerd pools moved off it
 ---
 
 # Network addressing
@@ -10,9 +10,9 @@ This page is the operator walkthrough for the two address-policy knobs under
 how they sit next to datacenters. The model (priority, trust, the ladder, the
 collision codes) is on [Datacenter
 networks](/docs/architecture/datacenter-networks); this page applies it to one
-concrete fleet.
+concrete set of servers.
 
-## The example fleet
+## The example servers
 
 Five servers. All five sit on the office LAN, which hands out addresses by
 DHCP. Three of them also have a second NIC on a statically addressed backhaul
@@ -87,7 +87,7 @@ Under **Network → Reserved ranges**, add:
 From then on the range is off-limits to every allocator and every operator
 write. A later attempt to add a `10.8.20.0/24` site subnet, register a Docker
 network on it, or point an address pool at it is refused with `409
-cidr_overlaps_reserved`, and the console shows the reserved range it hit.
+cidr_overlaps_reserved`, and the app shows the reserved range it hit.
 Reserved ranges are org-wide and carry no datacenter or host: the VPN is
 reachable from every office segment, so it has to be avoided everywhere.
 

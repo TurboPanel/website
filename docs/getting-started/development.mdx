@@ -83,7 +83,7 @@ Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote t
 | Port | Service | Host bind |
 | ---- | ------- | --------- |
 | **80** | Hosting HTTP, and Let's Encrypt issuance or renewal | `0.0.0.0` (LAN) |
-| **443** | Hosting HTTPS (tenant sites) | `0.0.0.0` (LAN) |
+| **443** | Hosting HTTPS (hosted sites) | `0.0.0.0` (LAN) |
 | **8443** | Control plane HTTPS (always) | `0.0.0.0` (LAN) |
 | **8081** | Expo / Metro (native + direct; Caddy also proxies this) | `0.0.0.0` (LAN) |
 | **8088** | Optional extra forward (guest must listen) | `0.0.0.0` (LAN) |
@@ -94,9 +94,9 @@ Vagrant forwards these guest ports. Use them from the IDE, browsers, or remote t
 | **4213** | DuckDB UI (on-demand, dev build only) | `127.0.0.1` only |
 
 - **Local browsing / VS Code / Cursor:** `https://localhost:8443`.
-- **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. The control plane is always `https://<host>:8443`. Port **80** answers only while Let's Encrypt is issuing or renewing (and while tenant sites are deployed). Port **443** is hosting. Ports `80` / `443` / `8443` / `8081` / `8088` / `19820` listen on all host interfaces. Trust the Platform CA. LAN names can use `curl -k` for a one-off health check.
+- **Remote test machines / extra daemons:** give your development host a hostname (for example `https://dev.lan:8443` or your LAN IP) so clients are not stuck on `localhost`. The control plane is always `https://<host>:8443`. Port **80** answers only while Let's Encrypt is issuing or renewing (and while hosted sites are deployed). Port **443** is hosting. Ports `80` / `443` / `8443` / `8081` / `8088` / `19820` listen on all host interfaces. Trust the Platform CA. LAN names can use `curl -k` for a one-off health check.
 - **Studio / Mailpit / Redis Insight / DuckDB UI** stay loopback-only on purpose — those UIs are unauthenticated. Open Drizzle Studio at `https://local.drizzle.studio?host=localhost&port=4983`.
-- **Tenant sites:** `http://localhost` and `https://localhost` (ports **80** / **443**) reach hosting Caddy after a deploy. On Linux those host binds are privileged — the libvirt tunnel supervisor uses passwordless `sudo -n`, or you can lower `net.ipv4.ip_unprivileged_port_start`.
+- **Hosted sites:** `http://localhost` and `https://localhost` (ports **80** / **443**) reach hosting Caddy after a deploy. On Linux those host binds are privileged — the libvirt tunnel supervisor uses passwordless `sudo -n`, or you can lower `net.ipv4.ip_unprivileged_port_start`.
 
 ## Dev console areas
 
@@ -105,9 +105,9 @@ Use **←** / **→** to switch areas in `./console` (`ActiveArea = "developer" 
 | Area | Contents |
 | ---- | -------- |
 | **Services** | Service list/detail, restart, runtime switch (Deno/Workers) |
-| **Developer** | Fleet, database, shell, **Converge / re-converge**, cell trace |
+| **Developer** | **Repair install**, **Converge / re-converge development environment**, **Optional services…**, **Reset development environment**, **Reset dev database**, **Run tests…**, cell trace, **Purge completely** |
 
-In the **Developer** area: **↑↓** picks a section, **Enter** opens it, **Esc** returns to the section list.
+In the **Developer** area: **↑↓** picks an action and **Enter** runs it (destructive actions ask for confirmation first).
 
 ## Instance runtime modes
 
@@ -144,7 +144,7 @@ TurboPanel ships versioned SQL migrations in `turbopanel/migrations/`. Co-locate
 ./scripts/introspect.sh    # pull live DB → instance schema.ts
 ```
 
-For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). The dev console **Database** section can reset the dev instance or start Drizzle Studio.
+For errors and resets, see [Database troubleshooting](/docs/getting-started/database-troubleshooting). Developer → **Reset dev database** wipes the dev schema and re-applies the migrations; Drizzle Studio is on the **Services** list.
 
 ### Formatting
 

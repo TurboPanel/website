@@ -9,7 +9,7 @@ The TurboPanel daemon (`turbopaneld`) is a **high-privilege** service on every m
 
 ## Enrollment
 
-1. Operator creates a **one-shot license** in the console.
+1. Operator creates a **one-shot license** in the app.
 2. Installer runs `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`.
 3. Daemon proves possession of a generated Ed25519 key via challenge/response (`turbopanel-daemon-enroll-v1`).
 4. Control plane attaches daemon identity to a `server` row; license is consumed.
@@ -25,7 +25,7 @@ Re-enrollment requires the persisted `serverId` or a fresh license.
 | Trust | Platform CA **bundle** on self-hosted (`GET /api/daemon/v1/instance/ca` → `/etc/turbopanel/instance-ca.pem`) or system roots (public TLS) — **no skip-verify mode**. Control-plane identity is the JWKS/Ed25519 JWT; the CA is a transport anchor only. |
 | Presence | Heartbeats project `timeSync`, addresses, and online state to Postgres |
 
-Co-located dev may dial a Unix socket when configured; remote nodes always use WSS to the public URL.
+Co-located dev may dial a Unix socket when configured; servers always use WSS to the public URL.
 
 ## Commands the daemon can run
 
@@ -53,13 +53,13 @@ WireGuard PSK files are deleted after apply; they never appear in Ansible extra-
 
 ## Updates
 
-Channel manifest from CDN → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS** from the published CDN origin; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. There is no separate cryptographic signature on manifests or artifacts today — treat TLS to the CDN plus checksum verification as the current trust boundary. Artifact signing may be added in a future release.
+Channel manifest from CDN or GitHub Releases → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS**; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. Every production manifest also carries an **Ed25519 signature** made with the release signing key. The installer, the daemon, and the control plane each verify it against one pinned public key and refuse a missing, malformed, or foreign signature; the daemon and the control plane also refuse a validly signed manifest that is older than the build they already know about. The key is a single trusted key today: see [Signing key rotation](/docs/security/signing-key-rotation) for what changing it involves.
 
 ## Data sent to the control plane
 
 | Data | Purpose |
 | --- | --- |
-| Hostname, OS, addresses, time sync | Fleet UI and automation |
+| Hostname, OS, addresses, time sync | Servers UI and automation |
 | Host metrics samples | Charts and alerting (see [server metrics](/docs/architecture/server-metrics)) |
 | Command results / logs (on demand) | Operator actions |
 | Public daemon key fingerprint | Authentication |
@@ -78,7 +78,7 @@ The daemon trust model is **identical** — only the control plane URL and TLS t
 
 ## Platform CA rotation (self-hosted)
 
-The instance-wide platform CA lives under `/var/lib/turbopanel/tls/` (`ca.crt`, `ca.key`, `ca-bundle.pem`). It is **not** the per-organization TLS library (`/api/client/v1/tls`). Public-URL apply regenerates **only the leaf**; rotating the root requires an explicit `TURBOPANEL_TLS_CA_ROTATE=1` on the generator.
+The control-plane-wide platform CA lives under `/var/lib/turbopanel/tls/` (`ca.crt`, `ca.key`, `ca-bundle.pem`). It is **not** the per-organization TLS library (`/api/client/v1/tls`). Public-URL apply regenerates **only the leaf**; rotating the root requires an explicit `TURBOPANEL_TLS_CA_ROTATE=1` on the generator.
 
 Rotation procedure:
 
@@ -95,6 +95,7 @@ Organization CA rotation (managed-database / ProxySQL / replication leaves — n
 
 ## Related
 
+- [Signing key rotation](/docs/security/signing-key-rotation)
 - [Trust boundaries](/docs/security/trust-boundaries) — what each part reaches if it is compromised
 
 - [Daemon setup](/docs/deployment/daemon-setup)

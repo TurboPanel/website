@@ -99,14 +99,14 @@ The Ink console authenticates to `/api/developer/v1/*` over the instance Unix so
 
 See [Database troubleshooting](/docs/getting-started/database-troubleshooting) for resets and connection issues.
 
-Every table and column, with its type, constraints and a one-sentence description, is in the generated [Database data dictionary](/docs/database) — the same sentences are applied to the live database as `COMMENT ON` metadata.
+Every table and non-obvious column has a one-sentence description applied to the live database as `COMMENT ON` metadata; see [Database](/docs/database) for how to read them with `psql`.
 
 ## Port allocation
 
 | Service | Default port | Host forward | Notes |
 | ------- | ------------ | ------------ | ----- |
-| Hosting Caddy HTTP | 80 | `0.0.0.0` | Tenant sites, and the control-plane Let's Encrypt window |
-| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (tenant sites) |
+| Hosting Caddy HTTP | 80 | `0.0.0.0` | Hosted sites, and the control-plane Let's Encrypt window |
+| Hosting Caddy HTTPS | 443 | `0.0.0.0` | Hosting only (hosted sites) |
 | Caddy HTTPS | 8443 | `0.0.0.0` | Always. Control plane (Platform CA catch-all) |
 | Website | 19820 | `0.0.0.0` | Next.js (optional) |
 | Wrangler (Workers mode) | 18787 | — | Internal only |
@@ -118,11 +118,11 @@ Every table and column, with its type, constraints and a one-sentence descriptio
 | Redis Insight | 5540 | `127.0.0.1` | Unauthenticated |
 | DuckDB UI | 4213 | `127.0.0.1` | On-demand, development build only |
 
-Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while tenant sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
+Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname is `https://<host>:8443`. Trust the Platform CA. Port **80** answers only while Let's Encrypt is issuing or renewing, and while hosted sites are deployed. Port **443** is hosting. Prefer a LAN hostname when attaching remote test machines to the forwarded `0.0.0.0` ports.
 
 ## Technology choices
 
-- **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app.ts`).
+- **Hono** — Shared HTTP app for Workers and Deno (`turbopanel/src/app/app.ts`).
 - **Expo / React Native** — Cross-platform UI (`ui/`).
 - **Next.js + Fumadocs** — Marketing and documentation (`website/`).
 - **Drizzle + Postgres** — Schema in `turbopanel/src/db/schema.ts`; Hyperdrive in Workers production.
@@ -130,6 +130,6 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 - **Ansible (daemon)** — Installs and updates runtimes, instance, UI, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
-- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/instance/commands/`.
+- **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).
