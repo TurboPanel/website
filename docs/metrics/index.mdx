@@ -46,7 +46,7 @@ The **Uptime** tile is not a plotted series. It is time this server was connecte
 
 ## A chart is missing
 
-Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. The one group hidden by **license tier** rather than by presence is **Docker**: on an S1 license the console shows a one-line notice in its place, since the Docker breakdown is granted from S2 (see [License tiers](/docs/deployment/tiers)). Self-hosted servers see every group their hardware supports.
+Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. The one group hidden by **license tier** rather than by presence is **Docker**: on an S1 license the app shows a one-line notice in its place, since the Docker breakdown is granted from S2 (see [License tiers](/docs/deployment/tiers)). Self-hosted servers see every group their hardware supports.
 
 Empty is not the same as zero. A metric the host cannot measure stays blank; a metric that is legitimately zero (no swap configured, no retransmits) plots at 0%.
 
@@ -105,7 +105,7 @@ PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; 
 
 ## Stable links [#stable-links]
 
-Each heading below uses the same `id` as the console chart. A later console click can open `/docs/metrics/<group>#<chart-id>`.
+Each heading below uses the same `id` as the app chart. A later click in the app can open `/docs/metrics/<group>#<chart-id>`.
 
 | Console chart id | Docs |
 | ---------------- | ---- |

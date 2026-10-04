@@ -33,7 +33,7 @@ Self-hosted Caddy listens on **:8443**. Every hostname is served there. The cert
 | **Uploaded** | `:8443` | 404 for that name | omitted when the certificate chains to a public root |
 | **Let's Encrypt** | `:8443` | 404 for that name | no |
 
-Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is hosting. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-tls-modes) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is hosting. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
@@ -42,7 +42,7 @@ baseline response-header set on every response: `Strict-Transport-Security`
 are a separate Caddy config the daemon generates and do not inherit these
 headers.
 
-Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the instance socket:
+Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the control plane socket:
 
 ```nginx
 # nginx example — proxy to Caddy HTTPS or upstream HTTP
@@ -87,6 +87,7 @@ The control plane implements:
 - Passkeys (WebAuthn, user-verification required, browser-only)
 - GitHub / Google sign-in with **identity persisted only, no provider tokens, and no automatic linking by email**
 - Re-authentication (password, or a session younger than 15 minutes) for enroll/disable 2FA, passkey add/remove, and provider unlink
+- Optional **step-up re-authentication** before permanent actions (delete a project, environment, server or managed database, remove a member, revoke a license or server key). An organization owner turns it on; it is off by default and recommended. See [Account security](/docs/using/account-security#permanent-actions)
 - Host PAM gate for the Deno install wizard (not for routine sign-in)
 - WSS registration for daemons at `/ws/daemon/v1` (network-layer access control recommended)
 
@@ -94,7 +95,7 @@ Operator flows: [Accounts and access](/docs/getting-started/accounts-and-access)
 
 ### Initial install endpoint
 
-On Deno self-hosted, install endpoints are only available while the instance is uninitialized. The wizard verifies host PAM (`root` or sudo user) then creates a **superadmin** credential account. Host accounts cannot sign in for routine use — only the superadmin email/password works after install.
+On Deno self-hosted, install endpoints are only available while the control plane is uninitialized. The wizard verifies host PAM (`root` or sudo user) then creates a **superadmin** credential account. Host accounts cannot sign in for routine use — only the superadmin email/password works after install.
 
 ### Network Isolation
 
@@ -121,6 +122,38 @@ Mitigation strategies:
 - Monitor Docker daemon logs for suspicious activity
 - Consider Docker context restrictions
 
+The **Docker gate** narrows this route. It is a root-owned service, `turbopanel-docker-gate`, that the daemon's converge installs on a managed host wherever Docker runs. A failed gate install only prints a warning: it never stops a Docker install or a converge. It is still in **observe mode** on every host, so it blocks nothing yet. Enforcement is built but not switched on, and the daemon does not route its Docker traffic through the gate yet (coming in 0.2.x).
+
+**What it would block.** The gate reads each request the way Docker does and judges it against a strict profile. A request for a container, volume, network or build that would hand out the host is a *finding*:
+
+- a privileged container, extra Linux capabilities, devices, and the host's network, process, IPC or user namespaces;
+- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside the site owners' homes (`/srv/users`) and TurboPanel's own storage;
+- volume drivers, log drivers and mount types that point somewhere the author picks, and any Docker setting the gate has not reviewed (a field a newer Docker adds is refused until someone reviews it);
+- a request whose framing is ambiguous, whose body is not strict JSON, or whose path Docker would rewrite;
+- a container request whose owner the gate cannot check (it fails closed when Docker does not answer within 5 seconds).
+
+Platform containers (the database proxy, managed engines, backups) and Compose features a site owner has been approved for are allowed through. The control plane signs each approval for one exact request, and a changed request needs a new one.
+
+**Observe and enforce.** In observe mode the gate forwards every request to Docker unchanged and writes `docker-gate.would-deny` to the journal (`turbopanel-docker-gate`) for each finding, so a host shows what would break before anything does. In enforce mode the same findings are refused with a `403` before Docker sees them, and a `docker-gate.denied` line is logged. The mode is set in the gate's unit file and is `observe` on every host today.
+
+**Three sockets, under `/run/turbopanel-gate/`.**
+
+| Socket | For | What it allows |
+| ------ | --- | -------------- |
+| `docker.sock` | The daemon account | Everything the profile allows. Build sessions (`/session`, `/grpc`) are a finding here. |
+| `ro/docker.sock` | The Traefik ingress proxies | Read only: ping, version, events and container details. Everything else is `403`. |
+| `build/docker.sock` (stage 4) | The daemon's own image builds | Build sessions open only here. |
+
+**Stage 4: builds.** A Docker build speaks a stream the gate cannot read, and every build choice (network, mounts, extra privileges) rides inside it. So builds are allowed on one socket only. Only the daemon account may open it: Linux checks the caller when it connects, the socket belongs to root and a group that holds nothing but the daemon account, and no header or token can stand in for it. Site builds that are not Docker builds run in the [build sandbox](/docs/security/site-isolation#builds), which has no Docker access at all. The daemon does not use this socket for its builds yet, so enforce mode stays off until it does.
+
+**The ingress switch.** Without it, each host's Traefik reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, Traefik mounts the read-only socket's directory instead, and the proxy container is removed once no service Traefik file on the host still names it. A compromised Traefik then reaches only the read-only endpoints, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for site and app containers or for the main socket.
+
+The switch is **off by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on`, written by the converge. If the file is present and `/run/turbopanel-gate/ro` exists, the daemon renders Traefik against the read-only socket; if either is missing, it keeps the socket proxy.
+
+To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. Empty, the default, leaves the switch as it is, so an ordinary update never flips it. Any other value fails the converge before anything changes. In both directions Traefik keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it, and a TCP or UDP service that Traefik rendered before the switch keeps using the socket proxy until it is redeployed.
+
+**Proof script.** `scripts/docker-gate-proof.sh` in the [turbopaneld](https://github.com/TurboPanel/turbopaneld) repository is the canary check. It is not installed on hosts: run it from a checkout, as root, on a managed host that has Docker, ideally a test host (`sudo bash docker-gate-proof.sh`). It starts and removes throwaway containers on pinned images and prints `PASS` or `FAIL` for each check, and exits non-zero if any fails.
+
 ### Control-plane container hardening
 
 TurboPanel's own system-compose stack — the Postgres holding every organization's
@@ -137,12 +170,12 @@ open.
 
 ### Tenant compose field gate
 
-On a self-hosted server, every tenant app on that host shares the same Docker daemon and the same Docker socket the panel itself talks to. A compose service that uses a **host-level feature** gets root-equivalent access to that shared host, compromising every other tenant co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too. Host-level features are:
+On a self-hosted server, every tenant app on that host shares the same Docker daemon and the same Docker socket the control plane itself talks to. A compose service that uses a **host-level feature** gets root-equivalent access to that shared host, compromising every other tenant co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too. Host-level features are:
 
 - the gated fields `privileged`, `cap_add`, `devices`, `device_cgroup_rules`, `network_mode`, `pid`, `ipc`, `uts`, `cgroup`, `cgroup_parent`, `userns_mode`, `security_opt`, `sysctls`, `runtime`, `use_api_socket`, and `volumes_from`;
 - any path that reaches outside the service's own directory: an absolute or `~` bind (the Docker socket included), a `..` escape, an interpolated path, a `driver_opts` bind, `configs` / `secrets` / `env_file` files outside the directory, a build context outside it, `extends.file`, and `include`.
 
-They are **deny-by-default** for every organization. An organization owner turns them on explicitly (`PUT /organizations/:id/compose-privileged-fields`). A document that uses one without that opt-in is refused with `403 compose_field_requires_org_opt_in`, naming each field and path. With the opt-in on, only an organization manager or owner may deploy such a document (`403 compose_host_access_requires_manager`). A Git-triggered deploy needs a manager or owner to have deployed the same host-level content once from the console (`403 compose_host_access_requires_approval`). Relative binds inside the service directory, named volumes, published ports (`ports`), a non-root user (`user`), and dropping a capability (`cap_drop`) are unaffected.
+They are **deny-by-default** for every organization. An organization owner turns them on explicitly (`PUT /organizations/:id/compose-privileged-fields`). A document that uses one without that opt-in is refused with `403 compose_field_requires_org_opt_in`, naming each field and path. With the opt-in on, only an organization manager or owner may deploy such a document (`403 compose_host_access_requires_manager`). A Git-triggered deploy needs a manager or owner to have deployed the same host-level content once from the app (`403 compose_host_access_requires_approval`). Relative binds inside the service directory, named volumes, published ports (`ports`), a non-root user (`user`), and dropping a capability (`cap_drop`) are unaffected.
 
 The daemon checks again before `docker compose up`. It resolves each bind and file source to its real path on the host and refuses one that escapes the deployment directory through a symbolic link, even with the opt-in on. It also refuses a source nested inside another writable bind, where a running container could swap part of the path for a link. The control plane's check reads only the document; this one reads the host.
 
@@ -152,11 +185,11 @@ Every flip of this gate is recorded in the organization's audit trail (`organiza
 
 Two rules protect the connection between an organization and its forge.
 
-**One GitHub installation, one organization.** On an instance-wide GitHub App (the hosted service, or a self-hosted instance whose App is shared by every organization), the App's private key can mint a token for *any* installation — so recording the same installation under two organizations would let the second read the first one's private repositories. The database refuses that outright (`uniq_connection_forge_external_github`), and the install callback proves the person finishing an install actually approved the installation they are naming: the App **requests user authorization during installation**, GitHub sends a one-shot `code` beside `installation_id`, and TurboPanel checks that the authorizing GitHub user can see that installation before recording anything. The user token is used for that one read and discarded. The callback is also rate-limited per user, so guessing installation numbers is slow as well as pointless.
+**One GitHub installation, one organization.** On an control-plane-wide GitHub App (TurboPanel High Availability, or a self-hosted control plane whose App is shared by every organization), the App's private key can mint a token for *any* installation — so recording the same installation under two organizations would let the second read the first one's private repositories. The database refuses that outright (`uniq_connection_forge_external_github`), and the install callback proves the person finishing an install actually approved the installation they are naming: the App **requests user authorization during installation**, GitHub sends a one-shot `code` beside `installation_id`, and TurboPanel checks that the authorizing GitHub user can see that installation before recording anything. The user token is used for that one read and discarded. The callback is also rate-limited per user, so guessing installation numbers is slow as well as pointless.
 
-Apps created through TurboPanel's manifest wizard get this for free. **An App registered before this rule — including one you created by hand — needs two settings changed on GitHub** (*Settings → Developer settings → GitHub Apps → your App*): enable **Request user authorization (OAuth) during installation**, and set the **Callback URL** to `https://<your instance>/api/client/v1/repositories/github/callback` (GitHub disables the Setup URL once user authorization is requested; the `installation_repositories` webhook covers later repository-selection changes). Until then, every install ends with *"GitHub did not send an authorization code"* in the console.
+Apps created through TurboPanel's manifest wizard get this for free. **An App registered before this rule — including one you created by hand — needs two settings changed on GitHub** (*Settings → Developer settings → GitHub Apps → your App*): enable **Request user authorization (OAuth) during installation**, and set the **Callback URL** to `https://<your instance>/api/client/v1/repositories/github/callback` (GitHub disables the Setup URL once user authorization is requested; the `installation_repositories` webhook covers later repository-selection changes). Until then, every install ends with *"GitHub did not send an authorization code"* in the app.
 
-**A forge address must be a public https host.** A self-hosted GitLab or GitHub Enterprise address is typed by an organization admin and later fetched by the control plane with credentials attached, so an address pointing back inside the box — `127.0.0.1`, `169.254.169.254`, a private range, `localhost`, `*.internal` — is refused on write (`400 forge_url_rejected`) and again before every fetch. On the self-hosted instance the name is also resolved at write time and refused if any answer is a private address. Plain `http://` forges are not supported.
+**A forge address must be a public https host.** A self-hosted GitLab or GitHub Enterprise address is typed by an organization admin and later fetched by the control plane with credentials attached, so an address pointing back inside the box — `127.0.0.1`, `169.254.169.254`, a private range, `localhost`, `*.internal` — is refused on write (`400 forge_url_rejected`) and again before every fetch. On the self-hosted control plane the name is also resolved at write time and refused if any answer is a private address. Plain `http://` forges are not supported.
 
 ### Token Management
 
@@ -176,7 +209,7 @@ TurboPanel uses a **single root of trust** — the versioned `TURBOPANEL_SECRETS
 | `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and principal passwords |
 | `tpdaemon.v<n>.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
 
-A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the instance and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
+A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the control plane and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
 
 **Encrypt-only client boundary:** the client/UI surface seals secrets (`encryptSecret` / `generateSealedSecret`) and may show a generated plaintext once. It never decrypts at-rest envelopes for display or reuse.
 
@@ -199,8 +232,8 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 #### Rotation (self-hosted runbook)
 
-1. **Add a key version** — re-run the instance converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the instance `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
-2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the instance, whose in-process email consumer decrypts `MAILGUN_API_KEY` / `SMTP_PASS` with it.
+1. **Add a key version** — re-run the control plane converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the control plane `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
+2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the control plane, whose in-process email consumer decrypts `MAILGUN_API_KEY` / `SMTP_PASS` with it.
 3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version.
 4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep covers every table holding `tpsecret` material — variables, TLS private keys, principal passwords, storage content, the `secret` table, git forge app envelopes (private key / client secret / webhook secret), GitLab connection OAuth token pairs, the TOTP secret, and the stored auth-provider/email client secrets — so a key cannot be retired before all of it is re-sealed.
 5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min; daemon enroll/auth challenges (`tpchallenge`) ≤60 s; account-security challenges (`tp2fa` / `tpwebauthn`) ≤5 min; OAuth state (`tpoauth`) ≤10 min. Waiting 10 minutes covers every current stateless auth envelope. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
@@ -211,7 +244,7 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 **Self-hosted.** The keyring lives in exactly one place, `/etc/turbopanel/instance/.instance_secrets` on the control-plane host, and nothing copies it anywhere by default. Set the `instance-launch` role's `turbopanel_instance_secret_escrow_path` extra-var to a path **on the machine running the Ansible playbook** — never a path on the control-plane host itself, or it isn't actually a backup — and every converge pulls a fresh copy there via `ansible.builtin.fetch`, including after a rotation. Point it at removable media, an encrypted volume, or wherever your own backup policy already keeps secrets; the task copies the file as-is and applies no additional encryption of its own, the same trust model the file already has on the source host. Left unset (the default), no backup exists and losing the host is unrecoverable.
 
-**Hosted (Cloudflare Workers).** There is no equivalent automatable step: `wrangler secret put` is write-only, and Cloudflare has no API to read a secret's value back once set. The value has to be preserved by whoever generates it, at generation time — store it the same way you would any other credential with no recovery path (a password manager, an offline printed copy, your organization's secrets-management tooling) before it is typed into `wrangler secret put` and the local copy is discarded.
+**TurboPanel High Availability (Cloudflare Workers).** There is no equivalent automatable step: `wrangler secret put` is write-only, and Cloudflare has no API to read a secret's value back once set. The value has to be preserved by whoever generates it, at generation time — store it the same way you would any other credential with no recovery path (a password manager, an offline printed copy, your organization's secrets-management tooling) before it is typed into `wrangler secret put` and the local copy is discarded.
 
 ### Backup and disaster recovery
 
@@ -228,7 +261,7 @@ A dump-and-restore of a real control-plane database (2026-09-18, a fresh
 install: 67 tables, 289 indexes, 749 constraints, 224 KB compressed dump)
 took **0.3 s to dump and 2.1 s to restore**, and the restored copy matched
 the source object-for-object. Those figures are the floor, not a promise:
-they scale with your data, and an empty instance is the smallest case there
+they scale with your data, and an empty control plane is the smallest case there
 is. What the rehearsal does establish is that the mechanism works end to end
 — `pg_dump -Fc` out, `pg_restore` into a fresh database, everything back.
 
@@ -254,21 +287,21 @@ A restore that has never been run is a backup you do not have.
   2. Confirm the dump you're restoring from is intact — `pg_restore --list <dump>` should enumerate its contents without error before you touch the live database.
   3. Bring the database container back up on its own (`docker compose -p turbopanel-system -f /etc/turbopanel/system/docker-compose.yml up -d database`), then drop and recreate the target database: `docker exec turbopanel-database dropdb -U turbopanel turbopanel && docker exec turbopanel-database createdb -U turbopanel turbopanel`.
   4. Restore: `docker exec -i turbopanel-database pg_restore -U turbopanel -d turbopanel < <dump>`.
-  5. Restart the full stack (`systemctl start turbopanel-system-stack`) and confirm the instance comes up and can read a known row before considering the restore complete.
-  - A rotation performed after the dump was taken means the restored database's secrets are sealed under an old key version the running instance may no longer trust for signing — re-run the [rotation runbook](#rotation-self-hosted-runbook)'s sweep step after a restore if the dump predates a rotation, rather than assuming the restored data is immediately consistent with the current keyring.
+  5. Restart the full stack (`systemctl start turbopanel-system-stack`) and confirm the control plane comes up and can read a known row before considering the restore complete.
+  - A rotation performed after the dump was taken means the restored database's secrets are sealed under an old key version the running control plane may no longer trust for signing — re-run the [rotation runbook](#rotation-self-hosted-runbook)'s sweep step after a restore if the dump predates a rotation, rather than assuming the restored data is immediately consistent with the current keyring.
 
-**Hosted (Cloudflare Workers).** Workers route through Hyperdrive, a connection pooler in front of an origin Postgres — Hyperdrive itself takes no snapshots and isn't a backup service. What backs that origin, and who owns its backup/restore procedure, isn't settled yet; treat the self-hosted backup story above as the reference until this is documented here.
+**TurboPanel High Availability (Cloudflare Workers).** Workers route through Hyperdrive, a connection pooler in front of an origin Postgres — Hyperdrive itself takes no snapshots and isn't a backup service. What backs that origin, and who owns its backup/restore procedure, isn't settled yet; treat the self-hosted backup story above as the reference until this is documented here.
 
 ### Firewall Rules
 
 <Callout type="info" title="TurboPanel owns the host firewall">
-  The installer **removes `ufw`, `firewalld`, `iptables-persistent` and `netfilter-persistent`** from every host it installs on — the control-plane host and every daemon'd server — and disables `nftables.service`, on every converge. `ufw` and Docker do not compose (published container ports traverse `DOCKER-USER`, which `ufw`'s `INPUT` rules never see), and a host that shipped with `ufw` active kept the control plane's **8443** closed until an operator opened it by hand. Removal only ever moves the kernel toward *accept*, so it cannot lock a host out; after it, the host is exactly as open as a fresh image until TurboPanel's own rules arrive. Those rules are derived from what the panel deployed (the control-plane entrypoint, hosting, ProxySQL, WireGuard, sshd, compose `ports:`), with organization defaults and per-server rules on top, inbound only — outbound stays open. They land through the first 0.1.x pushes; until they do, the recommendations below are yours to apply *outside* the host (cloud security groups, a provider firewall) rather than with a host front-end the installer will remove.
+  The installer **removes `ufw`, `firewalld`, `iptables-persistent` and `netfilter-persistent`** from every host it installs on — the control-plane host and every daemon'd server — and disables `nftables.service`, on every converge. `ufw` and Docker do not compose (published container ports traverse `DOCKER-USER`, which `ufw`'s `INPUT` rules never see), and a host that shipped with `ufw` active kept the control plane's **8443** closed until an operator opened it by hand. Removal only ever moves the kernel toward *accept*, so it cannot lock a host out; after it, the host is exactly as open as a fresh image until TurboPanel's own rules arrive. Those rules are derived from what the control plane deployed (the control-plane entrypoint, hosting, ProxySQL, WireGuard, sshd, compose `ports:`), with organization defaults and per-server rules on top, inbound only — outbound stays open. Each server shows them as a **preview** today and nothing is applied yet (see [Firewall](/docs/using/firewall)); until enforcement is switched on, the recommendations below are yours to apply *outside* the host (cloud security groups, a provider firewall) rather than with a host front-end the installer will remove.
 </Callout>
 
 Recommended:
 
 - Allow inbound **8443** only from trusted networks. Allow **80** from the internet only while Let's Encrypt is issuing or renewing. **443** is hosting
-- Restrict outbound to necessary services only. **The control-plane process itself places no outbound restriction on a self-hosted instance** (decided 2026-09-18): earlier builds ran the compiled binary under a fixed list of hosts it could reach, which made every operator-configured destination — an alert webhook, a chat integration, a push relay, a self-managed forge — impossible. That list is gone; the boundary is your host firewall, so shape egress there if the instance should reach only known hosts. Operator-supplied URLs are still checked at write and at fetch: `https` only, no credentials in the URL, no reserved names, a publicly routable address.
+- Restrict outbound to necessary services only. **The control-plane process itself places no outbound restriction on a self-hosted control plane** (decided 2026-09-18): earlier builds ran the compiled binary under a fixed list of hosts it could reach, which made every operator-configured destination — an alert webhook, a chat integration, a push relay, a self-managed forge — impossible. That list is gone; the boundary is your host firewall, so shape egress there if the control plane should reach only known hosts. Operator-supplied URLs are still checked at write and at fetch: `https` only, no credentials in the URL, no reserved names, a publicly routable address.
 - Block direct Docker socket access from external networks
 - Use fail2ban or similar for brute-force protection
 - Implement rate limiting on API endpoints
@@ -278,15 +311,31 @@ Recommended:
 
 Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
-Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Choose an option](/docs/deployment/uninstall#choose-an-option).
+Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
 
 ## Daemon Security
 
 ### Authentication
 
 - Daemons register over WSS; restrict who can reach `/ws/daemon/v1` and `/api/daemon/v1/*` at the network layer
-- Use TLS with the Platform CA (or a public certificate) for all daemon ↔ instance traffic. A Let's Encrypt name, and an uploaded certificate that chains to a public root, use the system trust store and omit `--insecure-tls`.
-- Rotate the instance root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
+- Use TLS with the Platform CA (or a public certificate) for all daemon ↔ control plane traffic. A Let's Encrypt name, and an uploaded certificate that chains to a public root, use the system trust store and omit `--insecure-tls`.
+- Rotate the control plane root keyring with the self-hosted [Rotation runbook](#rotation-self-hosted-runbook); run the admin at-rest secret re-encrypt sweep before dropping old key versions
+
+### Manifests, the Platform CA and secrets on the command line
+
+**Signed manifests.** The installer (`run.sh`), the daemon and the control plane verify each channel manifest's Ed25519 signature before they use it, and parse it strictly: a manifest that repeats a key is refused, and every field is read from the exact bytes the signature covered. The daemon and the control plane also refuse a validly signed manifest that is older than the build they already run; set `TURBOPANEL_ALLOW_DOWNGRADE=1` in the daemon's environment on the host to have the daemon accept one deliberately (the control plane's own check is not lifted by it). Key handling is in [Signing key rotation](/docs/security/signing-key-rotation).
+
+**The Platform CA pin.** On a self-hosted control plane the installer fetches the Platform CA from `GET /api/daemon/v1/instance/ca`, pins it as `/etc/turbopanel/instance-ca.pem` and the daemon trusts it alongside the system roots. An existing pin is never replaced over unverified TLS:
+
+| You pass | What the installer does with the pin |
+| --- | --- |
+| Nothing | Fetches the CA verifying against the existing pin. If that fails to connect, it asks once more using only the system trust store: a `404` means the control plane now presents a publicly trusted certificate and the pin is dropped; a PEM that parses and validates the live certificate replaces it. Otherwise it **keeps the existing CA**, prints the old and new fingerprints, and tells you to confirm the new fingerprint out of band and re-run with `--instance-ca`. It never retries with verification off. |
+| `--instance-ca <pem>` | Installs the PEM you give it as `instance-ca.pem` and skips the fetch. This is how you apply a real CA rotation. |
+| `--insecure-tls` (or `TURBOPANEL_INSECURE_TLS=1`) | Skips certificate verification (`curl -k`) for the **self-hosted bootstrap fetches only**: the installer's own re-exec, the CA fetch and the private uploaded-issuer fetch. The run then stops unless the CA or issuer it fetched validates the certificate the control plane presents. Release and update downloads are always verified. Compare the printed fingerprint with the control plane's before relying on it. |
+
+`tp-orchestrate update`, the root helper behind a panel-driven daemon update, does not accept `--insecure-tls`, and the only CAs it trusts beyond the system store are `/etc/turbopanel/instance-ca.pem` and a pinned private uploaded issuer, if one is installed.
+
+**Secrets travel in the environment, not on the command line.** The installer's license and tunnel token reach its `sudo` re-run through the environment (`--preserve-env`), and the daemon starts `cloudflared` with the tunnel token in `TUNNEL_TOKEN`, so neither shows in `ps` or `/proc/<pid>/cmdline`. The daemon itself can read only `TURBOPANEL_*`, `HOME`, `PATH`, `USER` and `LOGNAME` from its environment, and the control plane only `TURBOPANEL_*`, `HOME`, `PATH`, `LANG`, `CADDY_TLS_CERT` and `SMTP_PORT`.
 
 ### Network Security
 
@@ -345,7 +394,7 @@ graph TD
 
 # Remote managed server — the one installer, pointed at your control plane.
 # The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;
-# pass TURBOPANEL_INSTANCE_CA=<path> to supply it yourself instead.
+# pass --instance-ca <path> to supply the PEM yourself instead.
 curl -fsSL turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
     TURBOPANEL_HOST=https://turbopanel.example.com:8443 sh
@@ -365,7 +414,7 @@ curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 </Tabs>
 
 <Callout type="info" title="Daemon hardening">
-  Daemons dial outbound to the instance — no inbound listener is required on managed
+  Daemons dial outbound to the control plane — no inbound listener is required on managed
   server hosts for control-plane connectivity. Mount the Docker socket read-only (`:ro`) only when the daemon truly
   needs read-only inspection; orchestration requires full socket access.
 </Callout>

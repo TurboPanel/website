@@ -39,7 +39,7 @@ desired reconcile state.
    skipped as if the pair did not share it.
 2. Try **NAT direct** (`direct_nat`) when a public/LAN endpoint is not enough.
    NAT rendezvous is already implemented in the control plane
-   (`turbopanel/src/lib/fabric/rendezvous.ts`) and applied on the daemon with
+   (`turbopanel/src/features/fabric/rendezvous.ts`) and applied on the daemon with
    kernel-only probes (`wg set … endpoint` + `wg show dump` — never a userspace
    STUN socket). **Arbitrary symmetric NAT is not guaranteed to punch.**
 3. Fall back to a **datacenter gateway** (`gateway`) — typically leaf →
@@ -86,7 +86,7 @@ sequenceDiagram
 - `preferredGatewayIds` must reference gateway-role relays in the same fabric
   (**422** `preferred_gateway_invalid` otherwise).
 
-Relay copy in the console: *Relay is a degraded fallback path and must be
+Relay copy in the app: *Relay is a degraded fallback path and must be
 explicitly enabled. A datacenter gateway is not the same as an unrelated
 relay.*
 

@@ -1,29 +1,29 @@
 ---
-title: Administering an instance
-description: The instance roles, and the Admin area — Access, Updates, outbound email, sign-in providers, instance-wide Git applications, public sign-up, the tier catalogue, re-encrypting secrets, live-metrics session length — and every refusal
+title: Administering the control plane
+description: The control plane roles, and the Admin area — Access, Updates, outbound email, sign-in providers, shared Git applications, public sign-up, the tier catalogue, re-encrypting secrets, live-metrics session length — and every refusal
 ---
 
-# Administering an instance
+# Administering the control plane
 
-An **instance** is one control plane and everything signed into it. A handful of settings belong to the instance rather than to any organization: how it is reached, how it sends mail, who may sign up, which providers can sign people in, and the encryption of what it stores. Those live in the **Admin** area (`/admin/*`), open to users with an instance role. This chapter is the console side; the environment variables that back the same settings on a managed host are in [Instance configuration](/docs/deployment/instance-configuration).
+A handful of settings belong to the control plane rather than to any organization: how it is reached, how it sends mail, who may sign up, which providers can sign people in, and the encryption of what it stores. Those live in the **Admin** area (`/admin/*`), open to users with a control plane role. This chapter is the app side; the environment variables that back the same settings on a managed host are in [Control plane configuration](/docs/deployment/instance-configuration).
 
 ## The model
 
-### Instance roles
+### Control plane roles
 
-Every account carries an instance role — `user`, `admin` or `superadmin` — that is separate from the organization grants in [Organizations, teams and access](/docs/using/access):
+Every account carries a control plane role — `user`, `admin` or `superadmin` — that is separate from the organization grants in [Organizations, teams and access](/docs/using/access):
 
 | Role | What it means |
 | --- | --- |
 | `user` | The default. Acts only through organization and team grants. |
-| `admin` | Opens the Admin area, and bypasses every organization check — an admin sees and may act on every organization on the instance. |
+| `admin` | Opens the Admin area, and bypasses every organization check — an admin sees and may act on every organization on the control plane. |
 | `superadmin` | Everything `admin` can, plus the superadmin-only acts: **Re-encrypt secrets** and the **tier catalogue**. On self-hosted, the account created at install is the superadmin. |
 
-Roles are not assigned from the console in this release; self-hosted has exactly the superadmin install created, and hosted instances assign roles operationally.
+Roles are not assigned from the app in this release; self-hosted has exactly the superadmin install created, and TurboPanel High Availability assigns roles operationally.
 
 ### Where a setting comes from
 
-Most Admin settings can be set in two places: the panel, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the panel, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the panel reports that one is present and never shows it; leaving the field untouched keeps the stored value.
+Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
 
 ## Before you begin
 
@@ -41,8 +41,8 @@ Most Admin settings can be set in two places: the panel, or an environment varia
 | Source | What the name presents |
 | --- | --- |
 | **Platform CA** | The `:8443` leaf. `https://<host>:8443` stays bound even when no name uses this source. |
-| **Uploaded certificate** | That hostname on `:443`, with a pair from **Certificates**. |
-| **Let's Encrypt** | That hostname on `:443`, after Caddy obtains the certificate. Needs port 80 to reach the solver on `:8880`. |
+| **Uploaded certificate** | That hostname on `:8443`, with a pair from **Certificates**. |
+| **Let's Encrypt** | That hostname on `:8443`, once the certificate is issued. Port 80 opens only while Let's Encrypt issues or renews — see [Hostnames and TLS](/docs/deployment/hostnames-and-tls). |
 
 <Steps>
   <Step>
@@ -58,7 +58,7 @@ Most Admin settings can be set in two places: the panel, or an environment varia
 
 <Callout type="info" title="Apply drops the connection on purpose">
   Applying reloads the proxy your browser is talking through, so the request usually ends in a
-  gateway error while the apply in fact succeeded. The console waits for the control plane to answer
+  gateway error while the apply in fact succeeded. The app waits for the control plane to answer
   again and reports **applied** / **reconnected**; reload if in doubt — the list was saved before the
   apply was dispatched. On High Availability the button is absent (*cert apply is not applicable on
   this runtime*).
@@ -77,11 +77,11 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 
 ## Updates
 
-**Admin → Updates** (`/admin/updates`). One platform upgrade for this instance. The run installs a pinned build: the manifest and commit resolved when the run started, so a channel that moves mid-rollout does not change a later batch.
+**Admin → Updates** (`/admin/updates`). One platform upgrade for this control plane. The run installs a pinned build: the manifest and commit resolved when the run started, so a channel that moves mid-rollout does not change a later batch.
 
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-hosted">
-    Order is fixed. **Co-located daemon** (this host), then **Control plane** (the panel and the web export on that host), then every other server. The fleet table stays waiting until both earlier steps are on the target build. A `trunk` channel has no control-plane package, so that step is skipped and only this host's daemon has to be on target first.
+    Order is fixed. **Co-located daemon** (this host), then **Control plane** (and the web app it serves, on that host), then every other server. The servers table stays waiting until both earlier steps are on the target build. A `trunk` channel has no control-plane package, so that step is skipped and only this host's daemon has to be on target first.
 
     The status line is **TurboPanel is up to date**, **Update available**, **Updating…**, or **Needs attention**.
 
@@ -93,19 +93,23 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
         **Start update**. **Cancel** leaves the run unstarted. A second start while one is `pending` or `running` is refused.
       </Step>
       <Step>
-        Watch **Progress**: Preparing → Downloading → Installing → Restarting → Verifying → Done, first for **Co-located daemon**, then **Control plane**. The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
+        Watch **Progress**: *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*, first for the **Daemon step**, then the **Control plane step**. The **Web app step** is the same step as the control plane's (the web app is installed together with it). The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
       </Step>
       <Step>
-        The fleet wave lists each other server. **Retry** on a row that failed or needs attention. A failed row does not hold the next batch.
+        The servers list shows each other server. **Retry** on a row that failed or needs attention. A failed row does not hold the next batch.
       </Step>
     </Steps>
 
-    **Automatic updates.** **Auto-update fleet** is off until you turn it on. Automatic runs start only when a newer build is published, no run is active, and — when **Maintenance window** is on — only inside that UTC window. **Batch size** is **Percent** (default 100) or **Count**, then **Apply**.
+    **Versions** lists **Control plane**, **Web app** and **Co-located daemon**. Each shows *Installed on disk* and *Running now* separately, because until the restart the old version is still the one answering, and the newest build on the channel. An update that only changes the web app still lights **Update available** and the **Update** button. Under **Progress**, *Server updates* lists each other server (**Server**, **Component**, **Status**, **Installed**, **Target**, **Step**, **Error**); each server's daemon updates after the control plane is on target.
+
+    One **update** is one press of **Update TurboPanel**; the **steps** (daemon, control plane, then each server) are the parts of it. Only one update runs at a time: pressing it again while one is in progress is refused with *Another update is already in progress* (`upgrade_run_active`). The control-plane step is finished only when the daemon has checked the new version, not when the new version first answers, so a second update cannot start on top of one that could still be rolled back.
+
+    **Automatic updates.** **Auto-update servers** is off until you turn it on. Automatic runs start only when a newer build is published, no run is active, and — when **Maintenance window** is on — only inside that UTC window. **Batch size** is **Percent** (default 100) or **Count**, then **Apply**.
 
     The first upgrade onto this release needs a co-located daemon that can take the backup. If pre-flight says it cannot, re-run the installer once, then come back here. See [Upgrade and rollback](/docs/deployment/upgrade).
   </Tab>
   <Tab value="TurboPanel High Availability">
-    The control plane is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update fleet** toggle. Connected daemons roll out in batches on their own.
+    The control plane is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update servers** toggle. Connected daemons roll out in batches on their own.
 
     **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** is still **Percent** or **Count**, then **Apply**. **Maintenance window** limits when an automatic wave may start. **Retry** is on a row that needs it.
 
@@ -115,7 +119,7 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 
 ## Email
 
-**Admin → Email → Email settings.** The instance's outbound mail — sign-up verification, invitations, alerts.
+**Admin → Email → Email settings.** The control plane's outbound mail — sign-up verification, invitations, alerts.
 
 | Field | Value |
 | --- | --- |
@@ -136,7 +140,7 @@ Without a working provider, sign-up skips email verification and invitations are
 
 ## Sign-up
 
-**Admin → Sign-up → Public sign-up.** On, guests see **Create account** and `/sign-up` is open; off, only invited people and existing accounts get in (an invitation's sign-up still works — see [Organizations, teams and access](/docs/using/access#invite-a-teammate)). When `TURBOPANEL_IS_SIGNUP_ENABLED` is set on the host, the toggle is locked: *Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED; clear that env var to use the panel toggle* (409).
+**Admin → Sign-up → Public sign-up.** On, guests see **Create account** and `/sign-up` is open; off, only invited people and existing accounts get in (an invitation's sign-up still works — see [Organizations, teams and access](/docs/using/access#invite-a-teammate)). When `TURBOPANEL_IS_SIGNUP_ENABLED` is set on the host, the toggle is locked: *Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED; clear that env var to use the app toggle* (409).
 
 ## Tiers
 
@@ -158,18 +162,18 @@ Without a working provider, sign-up skips email verification and invitations are
 
 ## Secrets
 
-**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the instance stores — secret variables, TLS private keys, principal passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
+**Admin → Secrets → At-rest encryption.** Superadmin only. Every secret the control plane stores — secret variables, TLS private keys, system user passwords, provider secrets — is sealed under the current data-encryption key. After rotating the root secret (`TURBOPANEL_SECRETS`, [Security](/docs/deployment/security)), **Re-encrypt secrets** re-seals everything onto the new key version in bounded batches; **Resume sweep** continues one that stopped. A second sweep while one runs is refused (`reencrypt_in_progress`). Only after a sweep completes may the old key be dropped from the keyring.
 
 ## Server metrics
 
 **Admin → Server metrics → Live metrics sessions.** How long one live metrics session on a server's Metrics tab may stream before it must be reopened: **Max session length (minutes)** — `0` turns live sessions off, otherwise **5–240**. **Save session length.**
 
-## Also in the instance API
+## Also in the control plane API
 
-Two instance settings have no panel yet and are set through `/api/admin/v1`:
+Two settings have no screen yet and are set through `/api/admin/v1`:
 
-- **Instance notification channels** — `GET`/`POST`/`PATCH`/`DELETE /notification-channels[/:id]`: the operator's own receivers, which hear every event on the instance (same shapes as a person's channels; an email address must be an administrator's). The older `PUT /settings/alert-webhook` `{ url }` (or `null`) still works ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)): it edits the instance channel called **Operator alert webhook**, which an instance configured before the notifications system existed is folded into automatically. It may point at a LAN address. See [Notifications](/docs/using/notifications).
-- **Daemon console** — `GET /daemon/connections`, `/daemon/commands`, `/daemon/addresses`: what every connected daemon reports, for support.
+- **Control plane notification channels** — `GET`/`POST`/`PATCH`/`DELETE /notification-channels[/:id]`: the operator's own receivers, which hear every event on the control plane (same shapes as a person's channels; an email address must be an administrator's). The older `PUT /settings/alert-webhook` `{ url }` (or `null`) still works ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)): it edits the control plane channel called **Operator alert webhook**, which a control plane configured before the notifications system existed is folded into automatically. It may point at a LAN address. See [Notifications](/docs/using/notifications).
+- **Daemon diagnostics** — `GET /daemon/connections`, `/daemon/commands`, `/daemon/addresses`: what every connected daemon reports, for support.
 
 The interactive reference is at `/api/admin/v1/reference`.
 
@@ -184,7 +188,7 @@ The interactive reference is at `/api/admin/v1/reference`.
 | Public URL entry | scheme + host + optional port; scheme-less entries expand to port 8443 in install commands. Each hostname has a source: Platform CA, uploaded, or Let's Encrypt. |
 | Live metrics session | 0 (off) or 5–240 minutes |
 | Sign-up override | `TURBOPANEL_IS_SIGNUP_ENABLED` locks the toggle |
-| Upgrade order (self-hosted) | co-located daemon → control plane → other servers; fleet waits until the first two are on target |
+| Upgrade order (self-hosted) | co-located daemon → control plane → other servers; servers wait until the first two are on target |
 | Upgrade batch | Percent 1–100 (default 100) or Count 1–10000 |
 | Upgrade run statuses | `pending` · `running` · `succeeded` · `partially_failed` · `failed` · `cancelled` |
 | Upgrade step statuses | `pending` · `waiting` · `dispatched` · `preparing` · `downloading` · `installing` · `restarting` · `verifying` · `done` · `failed` · `rolled_back` · `needs_attention` · `skipped` |
@@ -204,10 +208,11 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the toggle. |
 | `maxMinutes must be 0 or an integer between 5 and 240` | 400 | Live session length out of range. |
 | `reencrypt_in_progress` | 409 | A sweep is already running; wait or **Resume sweep**. |
-| `Encryption unavailable — no encryption key configured` | 503 | The instance has no root secret, so nothing can be sealed. |
+| `Encryption unavailable — no encryption key configured` | 503 | The control plane has no root secret, so nothing can be sealed. |
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
-| `control_plane_upgrade_required` | 409 | Self-hosted `POST /servers/:id/update` and `POST /servers/updates` while the fleet gate is shut. The server badge reads **Waiting for the control plane upgrade**. Finish **Admin → Updates** first. |
+| `control_plane_upgrade_required` | 409 | Self-hosted `POST /servers/:id/update` and `POST /servers/updates` while the server-update gate is shut. The server badge reads **Waiting for the control plane upgrade**. Finish **Admin → Updates** first. |
+| `upgrade_run_active` | 409 | An update is already `pending` or `running`. Wait for it to finish or **Cancel update**. |
 | `updates_managed` | 409 | The same routes on TurboPanel High Availability. Per-server **Update** stays hidden; the rollout is **Admin → Updates**. |
 | `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
 | `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
@@ -218,14 +223,19 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `recovery_required` | step error | Automatic rollback did not restore the control plane. Use the **Recovery command**. |
 | `step_timeout` | step error | No progress for 15 minutes. After 3 dispatches the step is `needs_attention`. |
 | `rolled_back` | step error | The host restored its previous build. One automatic retry, then `needs_attention`. |
+| `verify_timeout` | step error | The control-plane step restarted, and the daemon did not confirm the new build within `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default). The step is not retried, so a second install cannot land on a build still being checked; the run ends. Check the daemon log, then **Retry** or **Cancel update**. |
+| `dispatch_failed` | step error | The update command could not be delivered to the server, on every allowed attempt. The message carries the delivery error. |
+| `server_offline` | step error | The server stayed offline too long for its step to wait; the next batch still starts. |
+| `managed_upgrade_required` | step error | The control-plane step needs a daemon that advertises `managed-upgrade-v1`; the message holds the daemon-only update command to run first. |
+| `downgrade_refused` | step skipped | The server already runs a newer build than the target. Managed updates never downgrade a server. |
 | `control-plane update is not applicable on this runtime` | 422 | The legacy `POST /instance/updates/instance` on TurboPanel High Availability. The control plane is deploy-managed. |
 | `This control plane follows <channel>, which has no control-plane package…` | 422 | `trunk` (and `edge`) have no control-plane package. Use `canary`, `rc`, or `release`. |
-| `no co-located daemon connected to update the control plane` | 503 | The legacy instance or daemon upgrade route needs this host's daemon connected. |
+| `no co-located daemon connected to update the control plane` | 503 | The legacy control plane or daemon upgrade route needs this host's daemon connected. |
 | `co-located daemon disconnected` | 503 | The daemon dropped while that legacy route was dispatching. |
 
 ## Related
 
-- [Instance configuration](/docs/deployment/instance-configuration) — the environment variables behind these settings.
+- [Control plane configuration](/docs/deployment/instance-configuration) — the environment variables behind these settings.
 - [First-run tier catalogue](/docs/deployment/tier-catalogue) — the products to create before binding tiers.
 - [Security](/docs/deployment/security) — secret rotation and the egress boundary.
 - [Organizations, teams and access](/docs/using/access) — organization-level roles.

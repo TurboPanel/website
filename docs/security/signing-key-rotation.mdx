@@ -1,0 +1,69 @@
+---
+title: Signing key rotation
+description: How the release signing key is trusted, what rotating it changes on every server, and the dual-key overlap planned for 0.2.x
+---
+
+# Signing key rotation
+
+Every update TurboPanel installs is described by a **channel manifest**: the list of artifacts (daemon, control plane, web export) with their SHA-256 checksums. The release process signs each manifest with one Ed25519 **release signing key**. The installer, the daemon, and the control plane all check that signature before they use the manifest, and refuse a manifest that is unsigned, malformed, or signed by any other key. See [Daemon trust model](/docs/security/daemon-trust-model#updates) for where the check sits in an update.
+
+This page covers what happens when that key has to change: a planned rotation, or a suspected leak.
+
+<Callout type="info" title="Private alpha: today's behavior and the 0.2.x target">
+  Everything marked **Today** describes the current build. Everything marked **0.2.x target** is planned and **coming in 0.2.x**; it is not available yet. This page never contains a key: the public key lives in the released installer and binaries, and the private key is held offline by the project owner.
+</Callout>
+
+## Today: one trusted key
+
+Each component carries exactly **one** trusted public key, compiled in or pinned at install time:
+
+| Component | Where the trusted public key lives |
+| --- | --- |
+| Installer (`run.sh`) | Pinned in the script that you download from the install URL |
+| Daemon (`turbopaneld`) | Compiled into the binary |
+| Control plane | Compiled into the binary (it verifies manifests before it offers or schedules an update) |
+
+Because there is no second slot and no signed way to hand out a new key, **a server cannot learn a new trusted key from a manifest**. A manifest signed with a new key is refused by every server that still trusts the old one. In practice, rotating the key means every server is reinstalled with an installer that carries the new public key. The control plane is rebuilt with it too.
+
+## Today: the safe rotation procedure
+
+Use this for a planned rotation, or after a suspected leak of the signing key.
+
+1. **Generate the new key offline.** Create a fresh Ed25519 key pair on a machine you trust. Keep the private key out of the repository, chat, and CI logs; store it in a password manager or hardware token. Record only the public key.
+2. **Update the trusted public key everywhere it is pinned**, in one coordinated change: the installer, the daemon, the control plane, and the release signing secret that holds the private key. A test in the daemon repository pins the installer and daemon keys against each other; keep them in step.
+3. **Cut a release on every channel** (canary, rc, release) signed with the new key, so every channel's manifest verifies against the new public key.
+4. **Verify before you announce.** On a spare server, run the new installer against the release channel and confirm that the install and a following update succeed. Confirm that a manifest signed with the old key is now refused.
+5. **Reinstall each server** from the new installer: re-run the install command for that server. Servers still running the old binaries keep trusting the old key until they are reinstalled; they will refuse the new manifests and park their update with a signature error rather than installing anything. Move the control plane first, then the servers.
+6. **Retire the old key.** Destroy the old private key, and delete the old public key from every build once no server trusts it.
+
+<Callout type="warn" title="After a leak, the old key stays dangerous until a server is reinstalled">
+  Until a server is reinstalled, anyone holding the leaked private key can sign a manifest that this server accepts. Reinstall from a copy of the installer that you obtained from a trusted source and compared against the published release, and prefer reaching servers directly over relying on the in-app update.
+</Callout>
+
+## What changes during a rotation
+
+| Thing | Changes? |
+| --- | --- |
+| Public key in the installer, daemon, and control plane | Yes: replaced |
+| Private signing key and its CI secret | Yes: replaced, old one destroyed |
+| Servers, organizations, projects, and data | No |
+| Server enrollment and daemon identity keys | No: those are separate keys; rotation does not re-enroll a server |
+| Platform CA and Organization CA | No: see [Platform CA rotation](/docs/security/daemon-trust-model#platform-ca-rotation-self-hosted) |
+
+## 0.2.x target: dual-key overlap
+
+The planned design removes the reinstall. Each component trusts **two** slots: the **current** key and a **next** key. Rotation becomes an ordinary update:
+
+1. **Introduce.** A release signed by the current key ships the next public key into every component's second slot. Servers update normally and now trust both keys.
+2. **Switch.** The release process starts signing with the next key. Servers accept it because it is in their trust list.
+3. **Retire.** A later release, signed with the next key, drops the old key and opens a fresh next slot. Only after every server reports the new trust list is the old private key destroyed.
+
+The same overlap gives an incident path: if the current key leaks, the next key signs a release that removes the leaked key. That step is still an update, so it can be reached over the app. Whether a server can be asked to drop a key remotely before it has updated is part of the design work and is not promised here.
+
+This mirrors how the [Platform CA rotation](/docs/security/daemon-trust-model#platform-ca-rotation-self-hosted) already works: mint, overlap, confirm every server, then retire. Never retire first.
+
+## Related
+
+- [Daemon trust model](/docs/security/daemon-trust-model): enrollment, commands, and the update path
+- [Trust boundaries](/docs/security/trust-boundaries): what each part reaches if it is compromised
+- [Reporting a vulnerability](/docs/security/reporting)

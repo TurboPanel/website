@@ -5,7 +5,7 @@ description: PostgreSQL, MySQL and MariaDB clusters TurboPanel provisions on you
 
 # Managed databases
 
-A **managed database** is a database cluster TurboPanel provisions, secures and connects for you on your own servers: PostgreSQL, MySQL or MariaDB, in a container the platform owns, behind a shared listener that every consumer dials, with replication, promotion and backups handled from the console. You choose the engine, a version series and a server; the platform does the rest and hands you an endpoint and a first user. This chapter is written for the person creating and using one; the wiring underneath is in [Managed database ingress](/docs/architecture/managed-database-ingress).
+A **managed database** is a database cluster TurboPanel provisions, secures and connects for you on your own servers: PostgreSQL, MySQL or MariaDB, in a container the platform owns, behind a shared listener that every consumer dials, with replication, promotion and backups handled from the app. You choose the engine, a version series and a server; the platform does the rest and hands you an endpoint and a first user. This chapter is written for the person creating and using one; the wiring underneath is in [Managed database ingress](/docs/architecture/managed-database-ingress).
 
 ## The model
 
@@ -67,11 +67,11 @@ The **Connect** tab is the one place to read the endpoint from; never dial an en
     Note the **effective SSL policy** and its DSN parameter (`sslmode=` for PostgreSQL, `ssl-mode=` for MySQL and MariaDB). For `verify-ca` or `verify-full`, download the **Organization CA** from the same tab and point your driver at it.
   </Step>
   <Step>
-    Use a login from the **Data** tab. Applied usernames carry a random suffix (`app_x7…`), so copy the applied name, not the short one you typed.
+    Use a login from the **Data** tab. Under the default `partial` scheme applied usernames carry a random suffix (`app_x7…`), so copy the applied name, not the short one you typed.
   </Step>
 </Steps>
 
-For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings).
+For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings-credentials--compose).
 
 ### SSL modes
 
@@ -103,6 +103,30 @@ Resolution is three-layer — the cluster's own override, then the organization 
 
 A login's name must be unique across every cluster on servers the same organization owns — `username_in_use` if another cluster has it, `managed_user_exists` if this one does. `postgres`, `root`, `mysql` and `superadmin` are reserved.
 
+## Name schemes
+
+Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the *applied* name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
+
+| Scheme | System name | Example |
+| --- | --- | --- |
+| `plain` | exactly what you typed | `bob` |
+| `partial` (default) | what you typed, then `_` and 11 random lowercase letters and digits | `bob_x7k2m9qpz1a` |
+| `random` | 12 random characters: a leading letter, then 11 lowercase letters and digits. It never starts with a `tp` prefix and carries no trace of the typed name. | `u7k2m9x4qpz1` |
+
+The scheme applies to every kind of login or system user: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
+
+The typed name is at most 16 characters under `partial`, so the whole name stays within 28 characters and the Linux group `<name>-grp` fits in 32.
+
+Three places choose a scheme:
+
+- **Organization default.** An owner or manager sets it (default `partial`).
+- **Per login or system user.** Each new login or system user can pick a scheme; it starts at the organization default.
+- **Organization lock.** An owner or manager can force one scheme for every **new** login or system user. A request for a different scheme is refused with `principal_scheme_locked` (409). The lock can be turned off and on again.
+
+Existing logins and system users are never renamed by a default or a lock change. The chosen scheme is stored on the login or system user (`options.nameScheme`). An organization that predates schemes keeps its old behaviour: randomized usernames on means `partial`, off means `plain`, and unset means `partial`.
+
+**API.** `GET` and `PUT /organizations/:id/principal-defaults` read and write `{ nameScheme, schemeLocked }`. Creating a login or a managed user accepts an optional `nameScheme`; omit it to use the organization default.
+
 ## Replicas, promotion and disaster recovery
 
 **Overview** tab — the topology.
@@ -120,26 +144,97 @@ A login's name must be unique across every cluster on servers the same organizat
     **Promote** a failover replica for a planned switchover: the old primary becomes a replica, the endpoint does not change.
   </Step>
   <Step>
-    **Promote for DR** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
+    **Promote for disaster recovery** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
   </Step>
   <Step>
     **Remove** a replica that is no longer needed. The primary cannot be removed.
   </Step>
 </Steps>
 
-Automatic failover is fenced: the platform promotes a same-datacenter failover replica when the primary dies and it can confirm the old primary is isolated; when it cannot, it refuses and says so rather than risk two writers.
+### Manual promote
+
+**Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and points the endpoint at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind. The app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**.
+
+The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). A promote you start yourself goes ahead even when the old primary cannot be reached; an automatic failover does not.
+
+### Automatic failover
+
+When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
+
+**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator. Losing a whole server is deliberately not detected: nothing can confirm the old primary is isolated, so that case stays manual (use **Promote** or disaster recovery).
+
+**What the platform checks, in order.**
+
+1. The report comes from the server that hosts the cluster's current primary, in the same organization.
+2. The per-environment switch below is on.
+3. No automatic failover for this cluster began in the last 15 minutes (the cooldown).
+4. A same-datacenter failover replica is healthy enough to promote: streaming, with a recent observation and little lag.
+5. The platform can queue commands to the servers.
+6. **Fencing first.** The old primary is drained and stopped before anything is promoted. If it cannot be confirmed stopped, for example because its server is unreachable, nothing is promoted.
+
+Only then is the replica promoted and the endpoint repointed. Because the old primary is stopped first, two writers never exist at the same time. Its data is resynced as a replica afterwards.
+
+**The switch.** `TURBOPANEL_AUTO_FAILOVER` turns this on or off for a whole deployment. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off, so a typo never promotes. Manual switchover and disaster recovery never read it. A self-hosted control plane reads it as an environment variable (see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services)) and, unset, has automatic failover on. On TurboPanel High Availability it is set per environment: on for testing, off for staging and live.
+
+**A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
+
+| Reason | Meaning | What to do |
+| --- | --- | --- |
+| `auto_failover_disabled` | The switch is off on this control plane. | Turn it on, or promote by hand. |
+| `cooldown` | An automatic failover started less than 15 minutes ago. A refusal does not extend the cooldown, and the report is sent again after it. | Wait, or promote by hand. |
+| `unfenced` | The old primary could not be confirmed stopped, so promoting would risk two writers. | Bring the old server back or confirm it is off, then promote by hand. |
+| `no_command_queue` | This control plane cannot send commands to servers. | A deployment fault; contact whoever runs the control plane. |
+
+A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
 
 ## Backups
 
-**Backups** tab — PostgreSQL today; the other engines say *backups unsupported* until their executor lands.
+**Backups** tab, for all three engines. A backup is a logical dump of one database, stored on the server that runs the cluster's primary.
+
+| Engine | Dump | File |
+| --- | --- | --- |
+| PostgreSQL | `pg_dump` custom format, per database | `.dump` |
+| MySQL, MariaDB | `mysqldump`, per database | `.sql` |
+
+### Back up now, restore, delete
 
 | Action | What happens |
 | --- | --- |
-| **Back up now** | `pg_dump` in custom format, per database, stored on the primary's server. Retention prunes to the newest N on every successful backup. |
-| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. |
+| **Back up now** | Dumps the database on the primary's server and records it in the list. |
+| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
 | **Delete** | Two presses. Removes the backup. |
 
-Backups are metadata in the console — there is no download; the artifact lives on the server. Scheduled backups are not built yet: back up before a risky change and after a good one.
+Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
+
+### Schedules
+
+The **Schedules** panel on the Backups tab makes backups on a timetable. Only organization **owners** and **managers** see it. The server runs them on its own, even while the control plane is unreachable, and a run that was missed because the server was off happens once when it is back.
+
+Every **new** managed database starts with one schedule named **Daily**: every day at 03:MM server time (the minute is spread per database so databases on one server do not all start together), keeping the most recent `7`. It carries an **Automatic** badge. Databases that existed before schedules were added do not get one; add a schedule to those yourself.
+
+<Steps>
+  <Step>
+    **Add schedule**, give it a **Name** (up to 64 characters) and choose **Schedule**: **Hourly**, **Daily** (a time, `HH:MM`, 24-hour), **Weekly** (a day and a time) or **Advanced: cron** (five fields: minute, hour, day of month, month, day of week).
+  </Step>
+  <Step>
+    Pick a **Timezone** or leave **Server time** to follow the server's own clock.
+  </Step>
+  <Step>
+    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add schedule** saves it.
+  </Step>
+</Steps>
+
+Each row shows the schedule in words (for example *Daily at 03:12*), how many it keeps, when it runs next, and the last run (*Succeeded* or *Failed*, with the error). **Enabled** / paused switches it off without losing it, **Edit** changes it, **Run history** lists recent runs (newest first), and **Delete** removes the schedule and stops its timer: **backups it already made stay on the server**.
+
+What to know:
+
+- A schedule's count prunes **only that schedule's own** backups, so an hourly schedule keeping 24 never removes a daily schedule's backups or a manual one. Each schedule's files live in their own folder on the server.
+- A database can have at most **20** schedules.
+- A schedule that cannot run on the server is refused when you save it: `@reboot`, a cron line that fixes both a day of the month and a day of the week (cron would treat that as either, which is rarely what you mean), and a step in the day-of-week field such as every other Tuesday.
+- After a save the app says when the server could not be reached; it picks the change up when it reconnects.
+- A run is refused (and recorded as failed) when another backup or restore of the same cluster is running, or when the server is short of disk space (less than twice the previous backup's size, and never under 256 MiB).
+- Backups stay on the server's own disk: they do not protect against losing the whole server. Offsite storage is not built yet.
+- Schedules for **storage volumes** are separate and API-only today: see [Storage and variables](/docs/using/storage-and-variables#volume-backups).
 
 ## Lifecycle and organization settings
 
@@ -158,9 +253,10 @@ Backups are metadata in the console — there is no download; the artifact lives
 | SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
 | Connection roles | `read-write` (default) · `read-only` |
 | Replica classes | `failover` (same datacenter) · `read` (anywhere) |
+| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; detects a dead engine on a live server, not a lost server |
 | Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
-| Applied login | `<short>_<11 random>` when the organization's randomized usernames are on (default); root is always suffixed |
-| Backups | PostgreSQL `pg_dump -Fc`, per database; retention-pruned; no download; no schedule yet |
+| Applied login | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain` |
+| Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |
 
 ## Errors
 
@@ -172,7 +268,7 @@ Backups are metadata in the console — there is no download; the artifact lives
 | `server_placement_required` | 409 | No server chosen for the primary. |
 | `server_offline` | 409 | The action needs the member's daemon connected. |
 | `managed_busy` | 409 | The cluster is provisioning or applying; wait for it. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists; the primary cannot be removed; the cluster has no primary. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary. |
 | `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
 | `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport` | 422 | A failover replica needs a trusted datacenter and a datacenter path to the primary. |
 | `fabric_address_required` | 422 | A remote replica or consumer needs a TurboFabric address on its server. |
@@ -182,10 +278,16 @@ Backups are metadata in the console — there is no download; the artifact lives
 | `managed_user_exists`, `database_exists` | 409 | The user or database already exists on this cluster. |
 | `username_in_use` | 409 | A login with that name exists on another cluster in the organization's servers. |
 | `username_reserved` | 400 | `postgres`, `root`, `mysql`, `superadmin`. |
+| `principal_scheme_locked` | 409 | The organization locks the name scheme and the request asked for a different one. |
 | `managed_user_has_bindings`, `managed_database_has_bindings` | 409 | Sever the service bindings first. |
 | `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**. |
-| `managed_backup_unsupported` | 400 | The engine has no backup executor yet. |
+| `managed_backup_unsupported` | 400 | The engine does not support backups. |
 | `backup_not_found` | 404 | No backup with that id. |
+| `backup_policy_invalid` | 400 | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset. |
+| `backup_schedule_invalid`, `backup_timezone_invalid` | 400 | The schedule or timezone cannot be used; the response says why. |
+| `backup_target_unsupported` | 400 | This target cannot have a schedule through this route. |
+| `backup_policy_not_found` | 404 | No schedule with that id on this database. |
+| `backup_policy_limit` | 409 | The database already has 20 schedules. |
 | `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults; not something a form change fixes. |

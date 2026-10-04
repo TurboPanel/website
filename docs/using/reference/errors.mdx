@@ -5,9 +5,9 @@ description: Every stable error code the client API returns, by area — the HTT
 
 # Error codes
 
-Every refusal from the client API carries a stable `error` code — a lower-case identifier that never changes wording — and, where it helps, a `message` for people and a few fields naming the thing at fault. The console maps these codes to sentences; this appendix is the same map, in one place, so a code you see in a response, a log or a deploy transcript can be looked up.
+Every refusal from the client API carries a stable `error` code — a lower-case identifier that never changes wording — and, where it helps, a `message` for people and a few fields naming the thing at fault. The app maps these codes to sentences; this appendix is the same map, in one place, so a code you see in a response, a log or a deploy transcript can be looked up.
 
-Codes are grouped by the area of the console that raises them. Each row gives the HTTP status the code is sent with; where a code can be sent with more than one status, both are listed. Chapters that explain the situation in more depth are linked at the top of each group.
+Codes are grouped by the area of the app that raises them. Each row gives the HTTP status the code is sent with; where a code can be sent with more than one status, both are listed. Chapters that explain the situation in more depth are linked at the top of each group.
 
 Two codes appear everywhere and are not repeated in the tables: `Unauthorized` (401 — no session, or it expired) and `Not found` (404 — the record does not exist or is not visible to your organization). A plain `Invalid request` (400) means a body field had the wrong shape; the chapter's reference table for that route says what is expected.
 
@@ -22,8 +22,10 @@ See [Projects and environments](/docs/using/projects).
 | `tag_name_in_use` | 409 | A tag with this name already exists in the organization. |
 | `project_has_running_services` | 409 | Delete refused: an environment still has running containers. Stop or destroy it first. |
 | `managed_runtime_present` | 409 | Delete refused: the environment still hosts a managed database cluster. Destroy the cluster first. |
+| `environment_running` | 409 | Delete refused: the environment still has a running container or a deploy in progress. **Stop** it, wait for it to stop, then delete it. |
 | `compose_invalid` | 400 | The compose document failed validation at save; `issues[]` lists path and message for each finding. |
 | `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it under `x-turbopanel.source`. |
+| `deploy_options_invalid` | 400 | The deploy options on an environment (strategy, migration or related settings) are malformed or contradict each other; `message` names the field. |
 
 ## Compose, services and the docker run importer
 
@@ -48,7 +50,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `compose_field_unsupported` | 422 | The document sets a key the platform has no behaviour for; the reason is quoted. |
 | `compose_field_requires_org_opt_in` | 403 | The document uses a host-level feature — a gated field (`privileged`, `cap_add`, `use_api_socket`, …) or a path outside the service's directory (an absolute bind, the Docker socket, `extends.file`, …) — and the organization has not turned them on under **Manage Organization → Compose**. |
 | `compose_host_access_requires_manager` | 403 | Host-level Compose features are on, but the person deploying is not an organization manager or owner. |
-| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level Compose content that no manager or owner has deployed in this exact form. Deploy it once from the console to approve it. |
+| `compose_host_access_requires_approval` | 403 | A Git-triggered deploy of host-level Compose content that no manager or owner has deployed in this exact form. Deploy it once from the app to approve it. |
 | `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default — or the planner found no eligible server. |
 | `health_check_missing` | 409 | Services with no `healthcheck`: `required: true` refuses; `required: false` is the *warn* prompt, acknowledged with `acknowledgeHealthCheckWarnings: true`. |
 | `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |
@@ -64,6 +66,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `source_ref_unsupported` | 501 | A `ref` was sent on the deploy body; omit it. |
+| `deploy_strategy_unsupported` | 501 | A per-deploy `strategy` of `bluegreen`, or any per-deploy `migration`, was sent. `inplace` and `sequential` are accepted; blue-green is coming in 0.2.x. Omit the field and the deploy runs as the environment is configured. |
 | `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value, is malformed, or interpolates a secret into a plain field. |
 | `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker**. |
 | `datacenter_ip_required` | 422 | A `datacenter` bind on a server with no datacenter address. |
@@ -73,7 +76,7 @@ See [Deploying and running an environment](/docs/using/deploy), which groups the
 | `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 | The pinned library certificate is gone, does not cover the hostnames, or is not ready. |
 | `acme_requires_public_bind`, `acme_requires_org_opt_in` | 400 | Let's Encrypt needs a `public` bind and the organization's opt-in. |
 | `tls_material_missing` | 400 | A pinned certificate row has no material to deliver. |
-| `tls_key_not_sealed`, `tls_decrypt_failed` | 500 | The certificate's private key could not be sealed for, or unsealed by, the daemon — an instance secrets problem, not a document one. |
+| `tls_key_not_sealed`, `tls_decrypt_failed` | 500 | The certificate's private key could not be sealed for, or unsealed by, the daemon — a control plane secrets problem, not a document one. |
 | `release_not_found` | 404 | No succeeded release with that id exists for the service in this environment. |
 | `release_not_materialized` | 409 | The release was not published on every server the environment deploys to, so it cannot be rolled back to. |
 
@@ -89,10 +92,12 @@ See [Hosting](/docs/using/hosting).
 | `invalid_hosting_options` | 400 | A hosting field has the wrong shape. |
 | `lets_encrypt_not_enabled` | 403 | The organization has not turned on **Allow Let's Encrypt certificates**. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` name, or a DNS-01 challenge, on a Let's Encrypt row. |
+| `private_hostname_unsupported` | 400 | A loopback or private name (`localhost`, `.local`, `.internal`, `.lan`, a private IP) on a Let's Encrypt row. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. |
+| `invalid_certificate` | 400 | The certificate or key you supplied could not be read; `detail` carries the parser's reason. |
 | `organization_ca_exists` | 409 | An organization CA already exists. |
 | `organization_ca_retire_required` | 409 | The current CA must be retired before a new one is minted. |
-| `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the fleet has not yet picked up the new root. |
+| `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409 | The CA rotation state machine refuses the step: one is already running, none is pending, or the servers have not yet picked up the new root. |
 
 ## Storage, variables and bindings
 
@@ -108,6 +113,11 @@ See [Hosting](/docs/using/hosting).
 | `binding_key_prefix_in_use` | 409 | Another binding in the environment already uses that key prefix. |
 | `binding_engine_defaults_in_use` | 409 | The binding's default keys are already taken. |
 | `binding_owned_variable` | 409 | The variable is written by a binding and cannot be edited directly. |
+| `binding_engine_unsupported` | 400 | The managed database's engine does not support bindings. |
+| `database_not_found` | 404 | The named database is not one of the cluster's databases. |
+| `binding_password_unavailable` | 422 | The binding's database user has no stored password to deliver, so the binding was not created. |
+| `binding_not_found`, `binding_principal_invalid`, `binding_ca_unavailable`, `binding_cluster_invalid` | 400 | The binding could not be built: it no longer exists, it does not point at a database user, the organization's certificate authority could not be made ready, or the cluster's options could not be read. |
+| `backup_target_unsupported` | 400 | The storage copy cannot be backed up from where it lives; `detail` says why (for example it has no local folder or Docker volume on its server). |
 
 ## System users (principals)
 
@@ -115,6 +125,7 @@ See [Hosting](/docs/using/hosting).
 | --- | --- | --- |
 | `username_in_use` | 409 | The username is taken on a server this project reaches. |
 | `username_reserved` | 400 | The username is a reserved system account. |
+| `principal_scheme_locked` | 409 | The organization locks the name scheme and the request asked for a different one. |
 | `username_too_long` | 400 | The username exceeds the Unix limit. |
 | `invalid_password` | 400 | Password outside 8–128 characters. |
 | `invalid_public_key` | 400 | The SSH public key could not be parsed. |
@@ -126,12 +137,12 @@ See [Hosting](/docs/using/hosting).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No GitHub App or GitLab OAuth application is configured for this organization or the instance. |
-| `gitlab_redirect_uri_unknown` | 503 | The instance's public URL is not configured, so a GitLab redirect cannot be built. |
-| `public_url_not_configured` | 503 | The instance has no public URL; the GitHub App manifest flow needs one. |
+| `github_app_not_configured`, `gitlab_oauth_not_configured` | 503 | No GitHub App or GitLab OAuth application is configured for this organization or the control plane. |
+| `gitlab_redirect_uri_unknown` | 503 | The control plane's public URL is not configured, so a GitLab redirect cannot be built. |
+| `public_url_not_configured` | 503 | The control plane has no public URL; the GitHub App manifest flow needs one. |
 | `webhook_origin_not_published` | 400 | The application's webhook origin is not reachable from the provider. |
 | `git_app_required` | 400 | The repository needs a Git application to be read. |
-| `git_app_not_writable` | 403 | The application is instance-wide and cannot be edited from an organization. |
+| `git_app_not_writable` | 403 | The application is shared and cannot be edited from an organization. |
 | `git_app_sync_failed` | 502 | The provider refused or failed the sync. |
 | `git_app_sync_unsupported` | 400 | Sync exists for GitHub Apps only. |
 | `forge_url_rejected` | 400 | A self-managed forge URL failed the safety check: it must be `https`, carry no credentials, name no reserved host, and resolve to a public address. |
@@ -162,17 +173,20 @@ See [Servers](/docs/using/servers).
 | `license_has_attached_server` | 409 | The license is still bound to a server. |
 | `server_has_blockers` | 409 | Networks, containers or addresses still reference the server; the response counts each. |
 | `server_offline` | 409 | The action needs the server's daemon connected. |
-| `live_metrics_disabled` | 409 | Live metrics are turned off on this instance. |
+| `live_metrics_disabled` | 409 | Live metrics are turned off on this control plane. |
 | `metrics_backend_unavailable` | 503 | The metrics store is not reachable. |
 | `unknown_system_component`, `system_component_not_provisioned`, `system_reconcile_unavailable` | 400 / 404 / 503 | The platform's own system project on a server is unknown, not yet provisioned, or cannot be reconciled right now. |
 | `system_resource_immutable` | 403 | The row belongs to the platform's system project and cannot be edited. |
 | `container_id_unavailable` | 409 | The container has no id yet; the daemon has not reported it. |
+| `updates_managed` | 409 | TurboPanel High Availability: daemon updates are rolled out from **Admin → Updates**, not per server. |
+| `control_plane_upgrade_required` | 409 | Self-hosted: update the control plane from **Admin → Updates** before updating other servers. |
+| `upgrade_gate_unavailable` | 503 | TurboPanel could not confirm that the control plane is ready for server updates. Retry shortly. |
 
 ## Datacenters and networking
 
 See [Datacenters and networking](/docs/using/network).
 
-The console renders one sentence per code from these; the sentences here are the same.
+The app renders one sentence per code from these; the sentences here are the same.
 
 | Code | Status | Meaning |
 | --- | --- | --- |
@@ -182,6 +196,8 @@ The console renders one sentence per code from these; the sentences here are the
 | `datacenter_has_members`, `datacenter_has_networks` | 409 | A datacenter with servers or networks cannot be deleted. |
 | `address_in_use` | 409 | That address is already pinned. |
 | `address_not_in_any_subnet` | 400 | The address falls outside every subnet in the datacenter. |
+| `invalid_address` | 400 | The pinned address is not a valid IP address. |
+| `address_not_in_cidr` | 400 | The pinned address falls outside the CIDR of the group it was pinned in. |
 | `address_cidr_unreported`, `address_not_reported` | 400 | That server has not reported a private IP; pick one it reports. |
 | `ip_in_use`, `ip_address_in_use` | 409 | The IP is bound to a hosting, or the address already exists in the registry. |
 | `cidr_overlaps_fabric`, `cidr_overlaps_fabric_pool` | 409 | That range overlaps the TurboFabric range or its container pool. |
@@ -204,7 +220,7 @@ The console renders one sentence per code from these; the sentences here are the
 | `managed_series_immutable` | 422 | A cluster's version series cannot change after provisioning. |
 | `managed_version_unsupported` | 422 | The requested series or variant is not in the catalog. |
 | `managed_busy` | 409 | The cluster is provisioning or applying; wait. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists, the member is the primary, or the cluster has no primary. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server), the member is the primary, or the cluster has no primary. |
 | `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
 | `managed_no_read_targets` | 422 | No replica serves read traffic. |
 | `managed_listener_bind_conflict` | 422 | The listener port is already bound on that server. |
@@ -215,6 +231,11 @@ The console renders one sentence per code from these; the sentences here are the
 | `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | The root account, the initial database and the replication user are platform-managed; rotate root through its own route. |
 | `managed_backup_unsupported` | 400 | The engine does not support backups yet. |
 | `backup_not_found` | 404 | No backup with that id. |
+| `backup_policy_invalid` | 400 | A backup schedule's name, keep count or enabled flag is invalid; `field` names it and `detail` says why. |
+| `backup_schedule_invalid` | 400 | The schedule is not a preset or a cron expression a host can run (for example it restricts both day-of-month and day-of-week, or is `@reboot`); `detail` says why. |
+| `backup_timezone_invalid` | 400 | The time zone is not an IANA zone name (plain `UTC` is accepted); `detail` says why. |
+| `backup_policy_limit` | 409 | The database already has its maximum of 20 backup schedules; `limit` is sent. |
+| `backup_policy_not_found` | 404 | No backup schedule with that id on this database (also sent when the id is not a UUID). |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down. |
 | `managed_credential_not_sealed`, `root_principal_missing`, `managed_settings_invalid`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults — a credential could not be sealed, the root principal or the daemon key is missing, the stored settings are corrupt. |
 | `not_managed_environment` | 400 | The environment is not a managed project's. |
@@ -236,13 +257,27 @@ See [Account security](/docs/using/account-security) and [Organizations, teams a
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `invitation_pending` | 409 | A pending invitation for that email and team already exists. |
-| `email_unavailable` | 503 | The instance cannot send email, so the invitation was not created. |
+| `email_unavailable` | 503 | The control plane cannot send email, so the invitation was not created. |
+| `email_send_failed` | 502 | The verification email could not be sent. A newly created email channel is rolled back; try again. |
+| `not_an_email_channel` | 400 | Resend verification was asked for a channel that is not an email channel. |
+| `already_verified` | 409 | Resend verification was asked for an email channel that is already verified. |
+| `address_unreadable` | 409 | Resend verification could not read the channel's stored address (it cannot be unsealed), so no link was sent. |
+| `too_soon` | 429 | A verification link was already sent in the last minute; `retryAfterSeconds` and `Retry-After` say how long to wait. |
+| `Only an owner can remove an owner` | 403 | A manager tried to remove an owner from the organization's **Members**. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
 | `invalid_grant` | 400 | A grant names an unknown permission or an entity outside the organization. |
 | `gone` | 410 | The invitation's team or organization no longer exists. |
 | `two_factor_enabled` | 409 | Two-factor is already enrolled; disable it before enrolling again. |
 | `passkey_exists` | 409 | That credential is already registered. |
 | `last_sign_in_method` | 409 | The provider cannot be unlinked; it is the account's only way to sign in. |
+| `invitation_unavailable` | 410 | The invitation link was already used, has expired or was revoked; `status` says which. |
+| `account_exists` | 409 | The invitation's email already has an account: sign in, then accept the invitation. |
+| `reauth_required` | 403 | The organization asks for confirmation before a permanent action (delete a project, environment, server or managed database, remove a member, revoke a key). The body names the `action` and the `methods` accepted; prove it with `POST /auth/reauth`, then repeat. |
+| `reauth_unavailable` | 400 | `POST /auth/reauth` on an account with no password and no authenticator; sign in again. |
+| `incorrect_current_password` | 400 | Change password: the current password is wrong. |
+| `password_unchanged` | 400 | Change password: the new password equals the current one. |
+| `password_breached` | 400 | The new password appears in a known data breach (sign-up, invitation sign-up, password reset, change password). The check fails open if the lookup is unreachable. |
+| `no_password` | 409 | Change password on an account that signs in without a password. |
 | `oauth_reauth_required` | redirect (`?error=`) | Linking a provider needs a session younger than 15 minutes. |
 
 ## Notifications
@@ -258,6 +293,25 @@ See [Notifications](/docs/using/notifications).
 | `signing_secret_not_applicable`, `signing_secret_invalid` | 400 | Only a webhook signs; 1–256 characters. |
 | `rule_event_unknown`, `rule_severity_invalid`, `rules_invalid` | 400 | The rule list names an unknown event or is malformed. |
 | `kind_invalid`, `scope_invalid` | 400 | Not a channel kind that can be typed in, or not `user` / `organization`. |
+| `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or `disabled` is not true or false. |
+| `digest_cadence_invalid` | 400 | The digest setting is not one of the offered cadences. |
+| `quiet_hours_invalid` | 400 | Quiet hours need a start and an end as 24-hour `HH:MM`, and they must differ. |
+| `time_zone_invalid` | 400 | Not a time zone the app knows. |
+| `timing_email_only` | 422 | Digests and quiet hours exist only on email channels. |
+| `time_zone_user_channels_only` | 422 | A time zone can be set only on a personal channel; organization and instance channels read their windows in UTC. |
+
+## Firewall
+
+See [Firewall](/docs/using/firewall). All of these are for organization owners and managers.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `firewall_policy_invalid` | 400 | The organization's firewall policy is malformed; `message` says which part. |
+| `firewall_rule_invalid` | 400 | A rule is malformed (label, action, protocol, ports or sources); `message` says which part. |
+| `firewall_rule_limit` | 409 | The organization already has its maximum of 200 firewall rules. |
+| `firewall_mode_invalid` | 400 | The mode must be `observe`, `managed` or `off`. |
+| `firewall_probe_unavailable` | 503 | This control plane cannot run the outside reachability check. |
+| `firewall_probe_rate_limited` | 429 | The outside check runs at most once every 30 seconds per server; `retryAfterSeconds` is sent, also as `Retry-After`. |
 
 ## Billing (TurboPanel High Availability)
 
@@ -265,7 +319,7 @@ See [Billing and licenses](/docs/using/billing).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `billing_not_configured` | 503 | The instance has no billing provider configured. |
+| `billing_not_configured` | 503 | The control plane has no billing provider configured. |
 | `subscription_exists`, `no_subscription` | 409 | The organization already has a subscription, or has none. |
 | `checkout_pending` | 409 | A checkout is already in progress. |
 | `subscription_past_due` | 409 | The subscription is past due; settle it in the customer portal. |
@@ -276,17 +330,26 @@ See [Billing and licenses](/docs/using/billing).
 | `tier_not_purchasable` | 400 | The tier has no product bound to it. |
 | `stripe_error` | 502 / 503 | The billing provider refused (502) or did not answer (503); nothing was applied. |
 
-## Administering an instance
+## Administering the control plane
 
-See [Administering an instance](/docs/using/admin).
+See [Administering the control plane](/docs/using/admin).
 
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `reencrypt_in_progress` | 409 | A re-encrypt sweep is already running; wait or resume it. |
 | `tier_invalid` | 400 | The tier row or product patch failed validation; `message` names the field. |
+| `tier_exists` | 409 | A tier with that label or provider product already exists. |
+| `tier_has_no_product` | 400 | A custom tier has no provider product to verify. |
+| `product_verification_failed` | 400 | The provider product does not match the tier's price ladder; `verification` lists the differences. |
+| `product_lookup_failed` | 400 | The provider could not be asked about the product; `status` is what it answered. |
+| `invalid_settings` | 400 | The control plane update settings are malformed. |
+| `upgrade_run_not_found` | 404 | No update run has that id. |
+| `upgrade_run_active` | 409 | An update is already `pending` or `running`, so a second one cannot start. Wait for it or cancel it. Answered before the manifest host is contacted. |
+| `upgrade_not_active` | 409 | No update run is active, so there is nothing to retry or cancel. |
+| `upgrade_step_not_found`, `upgrade_step_not_retryable` | 409 | A retry named a step that does not exist, or one that is not waiting on attention, failed or rolled back. |
 | `cert apply is not applicable on this runtime` | 422 | Public-URL apply is self-hosted only. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
-| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the panel toggle. |
+| `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the app toggle. |
 
 ## Related
 

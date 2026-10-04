@@ -1,0 +1,95 @@
+---
+title: PHP modes
+description: How a site's PHP runs — FastCGI, php-fpm and OpenLiteSpeed's lsphp, which modes an organization and a server allow, how a site picks one, and what each site gets of its own
+---
+
+# PHP modes
+
+A **site** service can run PHP. The **PHP mode** is how that PHP is started and how the web server reaches it. Every site runs PHP as the site owner's Linux user (for example `alice`, with files in `/srv/users/alice`), never as the web server's account and never as root. PHP is not run as an Apache module (`mod_php`) or as classic one-process-per-request CGI.
+
+This chapter covers the four modes, where an organization owner or manager chooses which are allowed, how a site picks one in its compose document, and what a site gets of its own.
+
+## The modes
+
+| Mode                | What runs                                                                     | Web servers that can use it  |
+| ------------------- | ----------------------------------------------------------------------------- | ---------------------------- |
+| `fastcgi` (default) | `php-cgi` for the site, started on demand on a socket                         | nginx, Apache, OpenLiteSpeed |
+| `fpm`               | A php-fpm master of the site's own, with its own pool                         | nginx, Apache, OpenLiteSpeed |
+| `lsphp-detached`    | OpenLiteSpeed's `lsphp` as a separate process on a socket, started on its own | OpenLiteSpeed only           |
+| `lsphp-attached`    | Accepted for compatibility; runs as `lsphp-detached`                          | OpenLiteSpeed only           |
+
+A Caddy site has no mode to choose. Its PHP setup is unchanged.
+
+OpenLiteSpeed never starts PHP itself: it runs as its own unprivileged account and only connects to each site's socket, while the PHP runs as the site owner's Linux user. There is no attached mode and no setuid launcher. A site that asks for `lsphp-attached` is run as `lsphp-detached`, and the daemon logs a warning once.
+
+## Which mode a site gets
+
+At each deploy a PHP site gets the first of these:
+
+1. The mode it asks for in its compose document (`x-turbopanel.php.mode`).
+2. The mode it ran on its last deploy on that server.
+3. The default: `fastcgi`, or if the policy does not allow that, `fpm`, then `lsphp-detached`.
+
+A site deployed before modes existed keeps `fpm` until it asks for something else. A mode is only available when the organization, the server and the site's web server all allow it.
+
+```yaml
+services:
+  shop:
+    x-turbopanel:
+      serviceKind: site
+      engine: openlitespeed
+      php:
+        version: "8.4"
+        mode: lsphp-detached
+```
+
+Asking for a mode the policy or the web server does not allow stops the deploy with `422 php_mode_unavailable`. The response names the site, the `reason` (`engine_unsupported`, `not_allowed` or `none_allowed`), the mode asked for and the modes that are `allowed` there.
+
+## Allowed modes per organization and per server
+
+An organization owner or manager chooses which modes the organization offers. They can narrow that further for each server. Nothing set means every mode is offered, so an organization that never opens this page sees no change.
+
+- **Organization:** `GET` and `PUT /organizations/:id/php-modes`.
+- **Server:** `GET` and `PUT /servers/:id/php-modes`.
+
+The body of a `PUT` is `{ "phpModes": ["fastcgi", "fpm"] }`. Send `{ "phpModes": null }` to offer every mode again. A server can only offer what its organization offers too. Both `GET`s answer with the stored list (`null` when unset) and, for each web server, the modes a site may pick under the current policy and the default a new PHP site would get.
+
+```bash
+curl -X PUT https://panel.example.com/api/organizations/$ORG_ID/php-modes \
+  -H 'content-type: application/json' --cookie "$SESSION" \
+  -d '{ "phpModes": ["fastcgi", "fpm"] }'
+```
+
+A `PUT` never changes a running site. Narrowing the list answers with `affectedSites`: the sites whose last deploy used a mode that is no longer offered. Each keeps that mode and deploys with the warning `php_mode_not_allowed`, until someone picks another mode. Switching a site to a mode the policy leaves out is refused.
+
+## What each site gets
+
+- **Its own PHP process, as its owner** (nginx and Apache). The site's PHP unit runs as the site owner's Linux user with no extra privileges, so it reaches only what that owner can. Its configuration lives under `/etc/turbopanel/php/sites/<site>/`, where the owner can read it but not change it.
+- **A private temporary directory.** `/tmp` inside the site's PHP is the owner's own `tmp/` directory (for example `/srv/users/alice/tmp`), so uploads and sessions from different owners never share a directory. See [Site owner accounts and isolation](/docs/security/site-isolation).
+- **Its own OPcache, 128 MB by default.** A site's compiled scripts are cached in memory for that site alone, so a busy neighbour cannot evict them.
+- **Writes only inside the owner's home.** The rest of the host is read-only to the site's PHP.
+
+## How a deploy starts and switches PHP
+
+On **nginx and Apache**, each deploy starts the site's own PHP from the mode it resolved: `fastcgi` is `php-cgi` on a socket, with four workers, started on demand; `fpm` is one php-fpm master for the site. The web server reaches it on `/run/turbopanel-php-<id>/php.sock`. Each runtime has the owner's PHP version in its name, so a change of mode or PHP version starts a second runtime next to the first:
+
+1. The new runtime is written, tested as the site owner, and started, all before the web server's configuration changes.
+2. The web server is pointed at the new socket with the usual safe rollout: stage the config, test it, reload, probe the site over HTTP, and switch back if the probe fails.
+3. The old runtime is removed only after the probe passes. If the rollout fails, the new runtime is removed and the old one keeps serving.
+
+A runtime that is down when the daemon starts is started again. Removing the site removes its runtimes. The PHP binaries are limited to owners who are entitled to that PHP version, and the deploy grants that entitlement.
+
+A site with no mode keeps the shared php-fpm pool it already has. A site that moves to its own runtime leaves its old pool behind on the shared php-fpm; nothing is migrated. A mode is refused for a site that has no Linux user of its own, and `lsphp-*` is refused on nginx and Apache. On **OpenLiteSpeed** the mode picks which runtime the site's socket connects to (`fastcgi`, `fpm` or `lsphp-detached`). Caddy runs no per-site PHP and does not read the mode.
+
+## Errors
+
+| Code                   | Status       | Meaning                                                                                                         | What to do                                                               |
+| ---------------------- | ------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `invalid_php_modes`    | 400          | The body is not a list of known modes, or `null`.                                                               | Use `fastcgi`, `fpm`, `lsphp-detached`, `lsphp-attached`.                |
+| `php_mode_unavailable` | 422 (deploy) | The site asked for a mode its web server cannot run or the policy does not offer, or no mode is allowed at all. | Pick one of the `allowed` modes, or ask an owner or manager to allow it. |
+
+## Related
+
+- [Hosting](/docs/using/hosting) — the PHP options on a hosting row.
+- [Writing compose](/docs/using/compose) — the `x-turbopanel.php` block.
+- [Site owner accounts and isolation](/docs/security/site-isolation) — the home layout, builds, symlinks and the web server accounts.

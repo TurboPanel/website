@@ -10,7 +10,7 @@ On **TurboPanel High Availability**, every connected server sits on one tier, **
 <Callout type="info" title="Self-hosted buys nothing">
   A self-hosted control plane is free and uncapped. It never truncates a sample and never sends a
   tier notice, and there is nothing to buy: every server it licenses is entitled to **SX**
-  automatically, which is why nothing on this page ever appears in a self-hosted console. The
+  automatically, which is why nothing on this page ever appears in a self-hosted app. The
   prices, the purchasing and the placement across S1–S7 are TurboPanel High Availability. See
   [Self-hosted](/docs/deployment/self-hosted).
 </Callout>
@@ -28,7 +28,7 @@ On **TurboPanel High Availability**, every connected server sits on one tier, **
 | S7 | ≤ 256 | ≤ 1 TiB | 11 | 20 | 8 | 18 |
 | SX | more | more | 11 | 24 | 8 | 18 |
 
-The catalogue that sells these labels is typed in once per hosted instance — see
+The catalogue that sells these labels is typed in once per TurboPanel High Availability — see
 [First-run tier catalogue](/docs/deployment/tier-catalogue).
 
 The first two columns are the **hard floor**. The rest are **watched-device counts** — the slot entitlements the ladder grants each label, mapped onto the server's metrics capability plan. The ladder is fixed in the control plane's code; what a superadmin sets is only which billing product each label sells through, and the price lives with the product.
@@ -41,7 +41,7 @@ Two details on the watched counts: the NIC column is bounded by the daemon's own
 
 **NICs, drives, and GPUs only raise the recommended tier.** Each has its own soft band (NICs follow the ladder's own NIC column — ≤ 2 / 2 / 5 / 5 / 8 / 8 / 11 for S1…S7; drives ≤ 2 / 4 / 6 / 8 / 12 / 16 / 20; GPUs ≤ 2 / 4 / 6 / 8, else SX). The *recommended* tier is the higher of the required tier and those device bands, so the NIC band always lands on a tier that watches that many NICs. Reducing a device count can lower the recommendation; it can never lower the requirement.
 
-**NICs count what the server monitors, not what it has.** The NIC band reads the operator's monitored-NIC selection (the NIC slots pinned in the server's hardware profile, or the default-route uplink when none is pinned) — the same list the daemon samples and hosted ingest truncates. A six-port machine watching only its gateway NIC is recommended by that one NIC; pinning more slots than the license watches raises the recommendation, and the slots beyond the license's count are reported as unwatched until the tier covers them. Drives and GPUs have no operator selection, so their bands count every device discovered.
+**NICs count what the server monitors, not what it has.** The NIC band reads the operator's monitored-NIC selection (the NIC slots pinned in the server's hardware profile, or the default-route uplink when none is pinned) — the same list the daemon samples and High Availability ingest truncates. A six-port machine watching only its gateway NIC is recommended by that one NIC; pinning more slots than the license watches raises the recommendation, and the slots beyond the license's count are reported as unwatched until the tier covers them. Drives and GPUs have no operator selection, so their bands count every device discovered.
 
 | Machine | Required | Recommended | Why |
 | ------- | -------- | ----------- | --- |
@@ -60,11 +60,11 @@ The two rules fail differently, on purpose.
 
 **Below the required tier — access is refused.** When a server connects and reports its hardware, the control plane re-places every licensed server in the organization: servers are taken in the order they were added, each on the smallest purchased tier that covers its cores and RAM, and a server that fits under nothing is left uncovered — always the newest, so adding a machine never knocks an earlier one off its tier. An uncovered server is refused at its next **session issuance** with `License tier below required` (an organization that has bought nothing is refused at enroll with `License tier not assigned`); the daemon treats both as permanent and parks. A server whose cores or RAM grow past what is purchased after a resize loses access on its next session rather than mid-stream — the metrics ingest path and the WebSocket hello never apply the floor, because refusing samples would hide an incident rather than bill for it. Buying a license at a tier that covers the machine restores access on the next session.
 
-**Above the recommended tier — nothing blocks.** A server with more NICs, drives, or GPUs than its tier watches still connects and still reports. Hosted ingest simply truncates each family to the tier's slot count; the devices beyond it are **unwatched**, and the server's detail page names them. This is a metrics-depth question, not an access question.
+**Above the recommended tier — nothing blocks.** A server with more NICs, drives, or GPUs than its tier watches still connects and still reports. High Availability ingest simply truncates each family to the tier's slot count; the devices beyond it are **unwatched**, and the server's detail page names them. This is a metrics-depth question, not an access question.
 
 ## The daily notice
 
-Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — placed a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The console shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
+Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — placed a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The app shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
 
 Nothing is sent for a server that satisfies its recommendation, and nothing is sent on self-hosted.
 
@@ -72,7 +72,7 @@ Nothing is sent for a server that satisfies its recommendation, and nothing is s
 
 Depth is the same at every tier. Host CPU, memory, storage I/O, network health, the merged diagnostics row, storage accounting, the ingress and router rows, and the database-proxy row are all on from S1. What the tier changes is **cardinality** — how many per-device charts exist — plus three entry-tier carve-outs:
 
-- **S1 has no Docker breakdown.** The Docker data-root total still shows under [Storage usage](/docs/metrics/managed-storage); the layer / container / volume / build-cache split ([Docker](/docs/metrics/managed-docker)) is granted from S2, and the console shows a one-line notice in its place on S1.
+- **S1 has no Docker breakdown.** The Docker data-root total still shows under [Storage usage](/docs/metrics/managed-storage); the layer / container / volume / build-cache split ([Docker](/docs/metrics/managed-docker)) is granted from S2, and the app shows a one-line notice in its place on S1.
 - **S1 watches no extra filesystems.** Root capacity is always reported; additional mounts appear from S2.
 - **S1 physical machines get 11 sensor slots** instead of 19 — enough for the CPU package, board, and a couple of drives.
 
@@ -82,5 +82,5 @@ The row-by-row inventory each tier produces, and what it costs to store, is in [
 
 - [Server metrics operations](/docs/deployment/metrics) — capability plan resolution, adapters, troubleshooting
 - [Server metrics architecture](/docs/architecture/server-metrics) — the v6 contract, per-tier row inventory, cost model
-- [Server metrics](/docs/metrics) — what each console chart means
+- [Server metrics](/docs/metrics) — what each chart in the app means
 - [Pricing](https://turbopanel.io/pricing) — the planned per-tier prices

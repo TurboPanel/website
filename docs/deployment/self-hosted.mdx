@@ -21,7 +21,7 @@ Self-hosted TurboPanel delivers the **same product** as TurboPanel High Availabi
 | Data residency you control | Panel data stays on infrastructure you provision |
 | Predictable infra cost | Control plane is planned to be **free, unlimited servers** — you pay for VMs and ops time |
 
-TurboPanel High Availability is the planned default when you prefer TurboPanel to operate the panel. **Both paths are in private alpha and not yet publicly available.**
+TurboPanel High Availability is the planned default when you prefer TurboPanel to operate the control plane. **Both paths are in private alpha and not yet publicly available.**
 
 ## What you run
 
@@ -30,7 +30,7 @@ TurboPanel High Availability is the planned default when you prefer TurboPanel t
 | **Control plane** | Hono API on Deno (Unix socket) + Postgres + Caddy TLS |
 | **UI** | Static export at `/opt/turbopanel/share/ui` (or Expo dev proxy during contributor development) |
 | **Daemon** | `turbopaneld` on every managed server, including the control-plane host (co-located) |
-| **Managed DB ingress** | Per-server ProxySQL on **5432** / **3306** — [architecture](/docs/architecture/managed-database-ingress) |
+| **Managed DB ingress** | Per-server ProxySQL on **15432** (PostgreSQL) / **13306** (MySQL and MariaDB) by default; an organization can override both — [architecture](/docs/architecture/managed-database-ingress) |
 
 ## Install path (preview)
 
@@ -38,7 +38,7 @@ When self-hosted is publicly available, operators follow this sequence:
 
 <Steps>
   <Step>
-    **[Control plane deployment](/docs/deployment/control-plane)** — provision the panel on Debian
+    **[Control plane deployment](/docs/deployment/control-plane)** — provision the control plane on Debian or Raspbian
     (the bootstrap refuses other distributions) with `curl -fsSL turbopanel.sh | sh` (a managed FHS install from the
     release packages, converged by the daemon's Ansible roles; private alpha preview).
   </Step>
@@ -60,13 +60,13 @@ When you run managed databases, hosts that serve SQL clients also converge Proxy
 
 ## Compose projects: compiled runtime file
 
-When you deploy a Docker Compose project from the panel, TurboPanel stores a **project** base compose and an **environment** overlay, then compiles them into a **single** `compose.yaml` the daemon runs:
+When you deploy a Docker Compose project from the app, TurboPanel stores a **project** base compose and an **environment** overlay, then compiles them into a **single** `compose.yaml` the daemon runs:
 
 `docker compose -p <project-id> -f compose.yaml`
 
 Layer merge follows the [Compose Spec merge rules](https://docs.docker.com/reference/compose-file/merge/): mapping keys merge recursively (later layers win per key), most sequences (`ports`, `volumes`, `env_file`, …) **append** with key-based de-duplication, and `command` / `entrypoint` / `healthcheck.test` **fully replace**. Use **`!reset`** to delete a key on the overlay and **`!override`** to force full replacement instead of append/merge.
 
-The console **Merged compose** preview is a readability aid; **Prepared compose** and the real deploy path use that compiled `compose.yaml`. Operator detail: [Control plane — Compose deploys](/docs/deployment/control-plane#compose-deploys-compiled-runtime-file). Architecture: [API — compiled compose](/docs/architecture/api#compiled-compose-composeyaml).
+The app's **Merged compose** preview is a readability aid; **Prepared compose** and the real deploy path use that compiled `compose.yaml`. Operator detail: [Control plane — Compose deploys](/docs/deployment/control-plane#compose-deploys-compiled-runtime-file). Architecture: [API — compiled compose](/docs/architecture/api#compiled-compose-composeyaml).
 
 <Callout type="warn" title="Contributors only — Vagrant workflow">
   Contributor development uses Vagrant and sibling checkouts — not a production

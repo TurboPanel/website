@@ -18,23 +18,23 @@ describe('ciGateDecision', () => {
 
   it('is pending while a required check is missing or still running', () => {
     expect(ciGateDecision([]).decision).toBe('pending')
-    const { decision, detail } = ciGateDecision([run(1, 'verify', 'in_progress'), allPassed[1]!])
+    const { decision, detail } = ciGateDecision([run(1, 'verify', 'in_progress')])
     expect(decision).toBe('pending')
     expect(detail).toContain('verify')
   })
 
   it('fails when a required check concluded anything but success', () => {
     for (const conclusion of ['failure', 'cancelled', 'timed_out', 'skipped', null]) {
-      const { decision, detail } = ciGateDecision([run(1, 'verify', 'completed', conclusion), allPassed[1]!])
+      const { decision, detail } = ciGateDecision([run(1, 'verify', 'completed', conclusion)])
       expect(decision).toBe('fail')
       expect(detail).toContain('verify')
     }
   })
 
   it('judges a re-run by its newest run (highest id), whatever the list order', () => {
-    const rerunPassed = [run(5, 'verify', 'completed', 'success'), run(2, 'verify', 'completed', 'failure'), allPassed[1]!]
+    const rerunPassed = [run(5, 'verify', 'completed', 'success'), run(2, 'verify', 'completed', 'failure')]
     expect(ciGateDecision(rerunPassed).decision).toBe('pass')
-    const rerunFailed = [run(2, 'verify', 'completed', 'success'), run(5, 'verify', 'completed', 'failure'), allPassed[1]!]
+    const rerunFailed = [run(2, 'verify', 'completed', 'success'), run(5, 'verify', 'completed', 'failure')]
     expect(ciGateDecision(rerunFailed).decision).toBe('fail')
   })
 })
