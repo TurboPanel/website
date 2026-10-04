@@ -151,6 +151,12 @@ Existing logins and system users are never renamed by a default or a lock change
   </Step>
 </Steps>
 
+### Manual promote
+
+**Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and points the endpoint at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind. The app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**.
+
+The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). A promote you start yourself goes ahead even when the old primary cannot be reached; an automatic failover does not.
+
 ### Automatic failover
 
 When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
@@ -262,7 +268,7 @@ What to know:
 | `server_placement_required` | 409 | No server chosen for the primary. |
 | `server_offline` | 409 | The action needs the member's daemon connected. |
 | `managed_busy` | 409 | The cluster is provisioning or applying; wait for it. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The replica already exists; the primary cannot be removed; the cluster has no primary. |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary. |
 | `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
 | `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport` | 422 | A failover replica needs a trusted datacenter and a datacenter path to the primary. |
 | `fabric_address_required` | 422 | A remote replica or consumer needs a TurboFabric address on its server. |

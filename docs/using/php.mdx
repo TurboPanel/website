@@ -16,11 +16,11 @@ This chapter covers the four modes, where an organization owner or manager choos
 | `fastcgi` (default) | `php-cgi` for the site, started on demand on a socket                         | nginx, Apache, OpenLiteSpeed |
 | `fpm`               | A php-fpm master of the site's own, with its own pool                         | nginx, Apache, OpenLiteSpeed |
 | `lsphp-detached`    | OpenLiteSpeed's `lsphp` as a separate process on a socket, started on its own | OpenLiteSpeed only           |
-| `lsphp-attached`    | `lsphp` started by OpenLiteSpeed itself through a launcher                    | OpenLiteSpeed only           |
+| `lsphp-attached`    | Accepted for compatibility; runs as `lsphp-detached`                          | OpenLiteSpeed only           |
 
 A Caddy site has no mode to choose. Its PHP setup is unchanged.
 
-`lsphp-attached` can be allowed in a policy and named in a document, but it is never picked automatically, and its launcher is still being reviewed: it is coming in 0.2.x. Use `lsphp-detached` on OpenLiteSpeed until then.
+OpenLiteSpeed never starts PHP itself: it runs as its own unprivileged account and only connects to each site's socket, while the PHP runs as the site owner's Linux user. There is no attached mode and no setuid launcher. A site that asks for `lsphp-attached` is run as `lsphp-detached`, and the daemon logs a warning once.
 
 ## Which mode a site gets
 
@@ -79,7 +79,7 @@ On **nginx and Apache**, each deploy starts the site's own PHP from the mode it 
 
 A runtime that is down when the daemon starts is started again. Removing the site removes its runtimes. The PHP binaries are limited to owners who are entitled to that PHP version, and the deploy grants that entitlement.
 
-A site with no mode keeps the shared php-fpm pool it already has. A site that moves to its own runtime leaves its old pool behind on the shared php-fpm; nothing is migrated. A mode is refused for a site that has no Linux user of its own, and `lsphp-*` is refused on nginx and Apache. **OpenLiteSpeed** and Caddy do not read the mode in this release: OpenLiteSpeed keeps its existing PHP setup (`lsphp-detached` and `lsphp-attached` are policy values for it) and Caddy serves no PHP.
+A site with no mode keeps the shared php-fpm pool it already has. A site that moves to its own runtime leaves its old pool behind on the shared php-fpm; nothing is migrated. A mode is refused for a site that has no Linux user of its own, and `lsphp-*` is refused on nginx and Apache. On **OpenLiteSpeed** the mode picks which runtime the site's socket connects to (`fastcgi`, `fpm` or `lsphp-detached`). Caddy runs no per-site PHP and does not read the mode.
 
 ## Errors
 

@@ -88,6 +88,7 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 | `TURBOPANEL_DAEMON_DEBUG` | unset | `1` / `true` turns on debug logging. |
 | `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | `14` | How long a finished successful upgrade step (`done` or `skipped`) is kept. Blank, non-integer, or out of range (not 1–3650) falls back to 14. Failed steps (`failed`, `rolled_back`, `needs_attention`) stay 90 days. Terminal upgrade runs stay 365 days, and the newest 50 are kept past that. *High Availability too.* |
 | `TURBOPANEL_UPDATE_HEALTH_TIMEOUT_SECONDS` | `600` | How long this host's daemon waits for the new control plane to pass `GET /api/health` after an update restarts it, before it restores the previous build. Whole seconds, 30 to 3600; anything else keeps 600. Set it in `/etc/turbopanel/daemon.env` and restart `turbopaneld`. |
+| `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` | `20` | How long a control-plane update step may stay *Restarting* or *Verifying* with no word from the daemon before it becomes `needs_attention` with `verify_timeout`. Whole minutes, 5 to 180; anything else keeps 20. Keep it longer than `TURBOPANEL_UPDATE_HEALTH_TIMEOUT_SECONDS` on the host. |
 
 ## Development only
 

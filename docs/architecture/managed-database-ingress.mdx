@@ -35,7 +35,7 @@ TurboPanel allocates the Docker network that carries managed engine traffic —
 one per organization — and the ProxySQL compose project on each managed server.
 Both names are assigned by the platform and are not meant to be typed, guessed,
 or referenced by an operator: you reach a managed database through its
-connection panel or a binding, and you manage the stack through TurboPanel, not
+connection details in the app or a binding, and you manage the stack through TurboPanel, not
 through `docker` on the host. Nothing on a managed server is expected to carry a
 human-readable Docker name. The one exception is the self-hosted TurboPanel
 control plane stack itself, whose compose project stays `turbopanel-system` because
@@ -115,7 +115,7 @@ every deploy — after this ingress port move, consuming environments must be
 - Managed engines default to TLS on; Postgres connection strings use
   **`sslmode=verify-full`** (and MySQL-family equivalents with server verification).
 - ProxySQL frontend certificates are **Organization CA** leaves. SANs include the
-  **advertised listener host** (connection panel / binding host), bind IP when
+  **advertised listener host** (connection details / binding host), bind IP when
   applicable, and private peer endpoints used as backends — not only synthetic
   container names.
 - Operators download the **Organization CA trust bundle** (active + retired) from
@@ -146,7 +146,8 @@ A **binding** connects a managed database user to a compose service:
 | **Placement** | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas stop at `datacenter` — an untrusted-only pair is **422** `failover_requires_trusted_datacenter`, never a silent fallback; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
 | **Read split** | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup |
 | **Apply** | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer) |
-| **Promote** | Fence (stop) old primary, then promote replica — promote command is chained only after successful fence |
+| **Promote** | Stop the old primary when its server is online, then promote the replica; the promote command follows the stop. A promote an operator starts continues when the old primary cannot be reached (that member is marked `needs_resync`); automatic failover refuses instead |
+| **Members per server** | One member of a cluster per server (`managed_member_exists`) |
 | **Remove replica** | Member stays `applying` until `managed.destroy` succeeds; destroy failure leaves the row `failed` and retryable |
 
 ## Commands
