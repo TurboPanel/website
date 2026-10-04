@@ -24,7 +24,7 @@ Four nouns carry everything in the app. Knowing which one owns a setting saves m
 | **Project** | One application or stack, described by one compose document. | The compose file, the services in it, the default server, the container-naming rule, project-scoped variables and system users. |
 | **Environment** | One deployable copy of a project — *Production*, *Staging*, a per-customer copy. | The server it runs on, an optional overlay on the project's compose, hostnames and TLS, storage, environment-scoped variables, and the running containers. |
 
-A project always has at least one environment; the first is created for you with the organization's default name (*Production* unless changed under **Projects → Settings**). Deploying happens at the environment, never at the project: the project holds the description, the environment is where it runs.
+A project always has at least one environment; the first is created for you with the organization's default name (*production* unless changed under **Projects → Settings**). Deploying happens at the environment, never at the project: the project holds the description, the environment is where it runs.
 
 ## The areas of the app
 
