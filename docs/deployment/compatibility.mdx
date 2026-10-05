@@ -22,11 +22,12 @@ It is not a version floor, and it does not drop a socket. See
 ## Channels
 
 `canary`, `rc`, and `release` are GitHub Releases on each package's own repository
-(redirects, no API calls). Daemon `trunk` is the per-merge CDN drop at
-`dl.trbp.nl/channels/trunk/manifest.json`. The control plane and the UI publish only
-on `canary`, `rc`, and `release` — they have no CDN drop — so a control plane whose
-channel is `trunk` has no control-plane package target. **Admin → Updates** leaves
-that row's Upgrade disabled and still resolves the daemon from the CDN. See
+(redirects, no API calls). The daemon's per-merge `trunk` build drop on the CDN was
+retired, so `trunk` and the reserved `edge` have no built-in location. A host or
+control plane that still follows `trunk` cannot find an update target: the daemon's
+update status says the channel was retired and to set `TURBOPANEL_UPDATE_CHANNEL` to
+`canary`, `rc` or `release`, and **Admin → Updates** shows the target as unknown. Only
+contributors' development overlay hosts still use the name. See
 [Canary environment](/docs/development/canary).
 
 | Channel | What it points at | Daemon | Control plane and UI |
@@ -34,7 +35,7 @@ that row's Upgrade disabled and still resolves the daemon from the CDN. See
 | `canary` | The newest green build of `trunk` | `releases/download/canary/manifest.json` on [turbopaneld](https://github.com/TurboPanel/turbopaneld/releases) | The same path on [turbopanel](https://github.com/TurboPanel/turbopanel/releases) and [ui](https://github.com/TurboPanel/ui/releases) |
 | `rc` | The current release candidate — a rolling pre-release tag | `releases/download/rc/manifest.json` | The same path on each repository |
 | `release` | The latest promoted release | `releases/latest/download/manifest.json` | The same path on each repository |
-| `trunk` | Every merge to `trunk` — contributors only | `dl.trbp.nl/channels/trunk/manifest.json` | No package |
+| `trunk` | Retired — no built-in location | None | None |
 
 Promotion is a pointer move — the bytes that soaked on `rc` are the bytes `release` serves.
 
