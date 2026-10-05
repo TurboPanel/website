@@ -290,7 +290,7 @@ What to know:
 | `backup_policy_limit` | 409 | The database already has 20 schedules. |
 | `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
-| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults; not something a form change fixes. |
+| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Control plane faults; not something a form change fixes. |
 
 ## Related
 

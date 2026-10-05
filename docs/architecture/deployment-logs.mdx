@@ -25,7 +25,7 @@ sequenceDiagram
     participant S as spool file
     participant CP as Control plane
     participant ST as ExecutionLogStore
-    participant UI as Console
+    participant UI as App
     D->>D: run docker / hooks, tee stdout+stderr per line
     D->>D: redact against this command's deny-set
     D->>S: append NDJSON event (monotonic sequence)
