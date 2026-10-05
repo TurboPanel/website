@@ -155,8 +155,8 @@ A **Node app** (**How is this served? → Node app**) is run by the server's ser
 | --- | --- |
 | Plain variables | Every variable with **For runtime** on is passed. **For build** only is never passed to the running process. |
 | Secrets | Passed when the app's `environment:` references them with `{$KEY}`, when a database **binding** owns them, or when the secret was set **on the app itself** (service or hostname scope). A secret set higher up — organization, workspace, project, environment or server — is **not** passed until the app asks for it, so a credential set for a whole organization never lands in an app that did not ask. |
-| Names TurboPanel sets itself | `HOST`, `NODE_ENV`, `PORT`, `PATH`, `HOME`, `TMPDIR`, `XDG_CACHE_HOME` and names starting `COREPACK_` are never taken from your variables. |
-| Names and values the server refuses | A name that is not `[A-Za-z_][A-Za-z0-9_]*`, a value over 64 KiB or holding a null character, and anything past 256 variables are held back and listed with the reason. They do not fail the deploy. |
+| Names TurboPanel sets itself | `HOST`, `NODE_ENV`, `PORT`, `PATH`, `HOME`, `TMPDIR`, `XDG_CACHE_HOME`, `COREPACK_HOME` and `COREPACK_ENABLE_DOWNLOAD_PROMPT` are never taken from your variables. |
+| Names and values the server refuses | A name that is not `[A-Za-z_][A-Za-z0-9_]*` or is over 128 characters, a value over 64 KiB or holding a null character, and anything past 256 variables are held back and listed with the reason. They do not fail the deploy. |
 | Value | Passed as typed: trimmed, not Compose-escaped, and a `${...}` inside it is not expanded. |
 
 **See what the app will get.** Open **Preview ▾ → Prepared compose** (see [Preview](/docs/using/deploy#preview)). Each Node app has a **Node app variables** block with one line per variable: `NAME = value (where it was set)`. A secret shows as *hidden (secret)*. The place it was set is one of *organization variable*, *workspace variable*, *project variable*, *environment variable*, *service variable*, *hostname variable*, *server variable*, *managed database* or *set by TurboPanel*. A variable that is set but not passed says why, for example:
