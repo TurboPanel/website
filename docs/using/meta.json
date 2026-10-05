@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "projects",
+    "configuration",
     "compose",
     "deploy",
     "activity",
