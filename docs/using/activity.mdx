@@ -63,7 +63,8 @@ The answer is `{ ok, items, total, hasMore }`. Each item has the command `id`, `
 | --- | --- | --- |
 | `Not found` | 404 | The organization id is not valid, or you are not a member of it. |
 | `Forbidden` | 403 | You are a member but not an owner or manager. |
-| (message names the field) | 400 | A `filter` the feed does not serve (including `crashing` and `crashed`). |
+| `Invalid filter` | 400 | A `filter` the feed does not serve, including `crashing` and `crashed`. |
+| `Invalid limit`, `Invalid offset` | 400 | A `limit` or `offset` that is not a number. |
 
 ## Related
 
