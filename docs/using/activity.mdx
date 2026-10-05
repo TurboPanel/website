@@ -1,0 +1,72 @@
+---
+title: Activity
+description: The organization's running and recently failed deploys, restarts and stops in one list, the three filters, who can see it, how it refreshes, and the API behind it
+---
+
+# Activity
+
+**Activity** is one list of what is happening right now across the whole organization: every deploy, start, restart and stop that is still running, and every one that failed in the last seven days, from all projects and environments. Use it to see what is in flight and what needs a second look, without opening each environment.
+
+It is a list of **work**, not a history. A deploy that succeeded leaves it as soon as it finishes; the full record of every attempt stays in each environment's [Deployment history](/docs/using/deploy#deployment-history).
+
+## Before you begin
+
+- You are an **owner** or **manager** of the organization. For other members the API answers `403` and the page shows an error line instead of a list.
+- You see only work on servers you can see.
+
+## Read the list
+
+<Steps>
+  <Step>
+    Open **Activity** in the sidebar (the second entry, after **Projects**; on the phone it is the second tab).
+  </Step>
+  <Step>
+    Pick a filter: **All**, **In progress** or **Failed**. The range under the title (for example *1–25 of 237*) counts the rows that match.
+  </Step>
+  <Step>
+    Read a row. Each one shows the **project / environment**, the action (**Deploy**, **Start**, **Restart** or **Stop**), a state badge, when it started, how long it has run, and for a failed one the reason.
+  </Step>
+  <Step>
+    Move through the list with **Previous** and **Next**, 25 rows at a time, newest first.
+  </Step>
+</Steps>
+
+The page refreshes by itself every two seconds while it is open and pauses while the browser tab is hidden. Nothing is pushed to you: if the page is closed, nothing is sent.
+
+| State | Meaning |
+| --- | --- |
+| **In progress** | Waiting for the server, sent to it, or running. This covers every action, not only deploys. |
+| **Failed** | It failed or timed out in the last seven days. The row carries the reason. |
+
+When nothing is running and nothing failed, the page says *Nothing running or failed right now.*
+
+<Callout type="info" title="Not shown yet">
+  Crash states, restart counts and per-step progress are not recorded yet, so there are no filters
+  or columns for them. A request for a `crashing` or `crashed` filter is refused with `400`.
+</Callout>
+
+## Reference
+
+### `GET /organizations/:id/activity`
+
+| Query | Values | Meaning |
+| --- | --- | --- |
+| `filter` | `all` (default), `deploying`, `failed` | `deploying` is any action still in progress. |
+| `limit` | 1 to 100, default 50 | Larger values are clamped to 100. |
+| `offset` | 0 or more, default 0 | Where the page starts. |
+
+The answer is `{ ok, items, total, hasMore }`. Each item has the command `id`, `projectId` and `projectName`, `environmentId` and `environmentName`, `serverId`, `action` (`deploy`, `start`, `restart`, `stop`), `state` (`deploying`, `failed`), `startedAt`, `durationSecs` and `errorMessage` (set when the state is `failed`). `step`, `totalSteps` and `crashCount` are always `null` for now. The project and environment names can be empty for work that is not tied to one. The organization comes from the path, never from the organization you last switched to.
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `Not found` | 404 | The organization id is not valid, or you are not a member of it. |
+| `Forbidden` | 403 | You are a member but not an owner or manager. |
+| (message names the field) | 400 | A `filter` the feed does not serve (including `crashing` and `crashed`). |
+
+## Related
+
+- [Deploying and running an environment](/docs/using/deploy) — Cancel deploy, deployment history and what a failed deploy shows.
+- [Notifications](/docs/using/notifications) — being told when something fails, instead of looking.
+- [Servers](/docs/using/servers) — what is running where.
