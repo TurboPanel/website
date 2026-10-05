@@ -147,6 +147,28 @@ services:
 
 `{$KEY}` takes the effective value from the cascade; `{$scope.KEY}` (`organization`, `workspace`, `project`, `environment`, `service`, `hosting`, `server`; `org` is accepted for `organization`) pins a scope. A reference to a **secret** is compiled into a Compose `secrets:` entry backed by a file the daemon materializes under `/run/turbopanel/deployments/<project>/<environment>/secrets/`, plus a courtesy `<KEY>_FILE` variable holding that path — interpolating a secret directly into a plain field is refused (`variable_secret_interpolation`), because that would write it into YAML.
 
+### Variables on a Node app
+
+A **Node app** (**How is this served? → Node app**) is run by the server's service manager, not by Docker, so a compose `environment:` block never reaches it. TurboPanel passes its variables a different way, and shows exactly what the process will get.
+
+| Rule | Meaning |
+| --- | --- |
+| Plain variables | Every variable with **For runtime** on is passed. **For build** only is never passed to the running process. |
+| Secrets | Passed when the app's `environment:` references them with `{$KEY}`, when a database **binding** owns them, or when the secret was set **on the app itself** (service or hostname scope). A secret set higher up — organization, workspace, project, environment or server — is **not** passed until the app asks for it, so a credential set for a whole organization never lands in an app that did not ask. |
+| Names TurboPanel sets itself | `HOST`, `NODE_ENV`, `PORT`, `PATH`, `HOME`, `TMPDIR`, `XDG_CACHE_HOME` and names starting `COREPACK_` are never taken from your variables. |
+| Names and values the server refuses | A name that is not `[A-Za-z_][A-Za-z0-9_]*`, a value over 64 KiB or holding a null character, and anything past 256 variables are held back and listed with the reason. They do not fail the deploy. |
+| Value | Passed as typed: trimmed, not Compose-escaped, and a `${...}` inside it is not expanded. |
+
+**See what the app will get.** Open **Preview ▾ → Prepared compose** (see [Preview](/docs/using/deploy#preview)). Each Node app has a **Node app variables** block with one line per variable: `NAME = value (where it was set)`. A secret shows as *hidden (secret)*. The place it was set is one of *organization variable*, *workspace variable*, *project variable*, *environment variable*, *service variable*, *hostname variable*, *server variable*, *managed database* or *set by TurboPanel*. A variable that is set but not passed says why, for example:
+
+- *not passed: it was set above this app, so the app has to ask for it*, with the hint to add `{$NAME}` to the app's environment;
+- *not passed: TurboPanel sets this one itself*;
+- *not passed: not a valid variable name*, *the value is too long or holds a null character*, or *an app can take at most 256 variables*.
+
+The same list is `nativeAppVariables` in the answer of `GET /environments/:id/deploy-preview`: one list per Node app, with the value `null` for a secret.
+
+**On the server.** The values are written to a private file that only the server's root account can read, and the app's service unit loads it. The app gets the values in its environment but cannot read the file. A secret is never in the unit, the command line or the deploy transcript. A changed value reaches the process with the restart every deploy already does, and an app with no variables has no file. If a secret an app references has no stored value, the deploy fails and names the variable, never its value.
+
 ## Errors
 
 | Code | Status | Meaning |
