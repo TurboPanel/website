@@ -17,7 +17,7 @@ What you get instead is a **live tail**: the app calls `GET /api/client/v1/conta
 
 ```mermaid
 sequenceDiagram
-    participant UI as Console
+    participant UI as App
     participant CP as Control plane
     participant D as turbopaneld
     UI->>CP: GET /containers/:id/logs
@@ -36,7 +36,7 @@ If you need history, search, alerts, or a copy that survives the container, **yo
 Typical operator-owned patterns:
 
 - A Docker **logging driver** on the compose service (`json-file` with rotation is Docker's default; `syslog`, `fluentd`, `awslogs`, `gcplogs`, and similar drivers send elsewhere)
-- A **host agent or sidecar** (Vector, Fluent Bit, Promtail, …) reading Docker's json-file, journald, or a bind-mounted log directory
+- A **host log shipper or sidecar** (Vector, Fluent Bit, Promtail, …) reading Docker's json-file, journald, or a bind-mounted log directory
 - An **application logger** that already talks to your aggregator
 
 Pin the destination, credentials, and retention on **your** sink. Those bytes never enter the control plane.

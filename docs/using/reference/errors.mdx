@@ -237,7 +237,7 @@ The app renders one sentence per code from these; the sentences here are the sam
 | `backup_policy_limit` | 409 | The database already has its maximum of 20 backup schedules; `limit` is sent. |
 | `backup_policy_not_found` | 404 | No backup schedule with that id on this database (also sent when the id is not a UUID). |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down. |
-| `managed_credential_not_sealed`, `root_principal_missing`, `managed_settings_invalid`, `daemon_key_unavailable` | 500 / 503 | Instance-side faults — a credential could not be sealed, the root principal or the daemon key is missing, the stored settings are corrupt. |
+| `managed_credential_not_sealed`, `root_principal_missing`, `managed_settings_invalid`, `daemon_key_unavailable` | 500 / 503 | Control plane faults — a credential could not be sealed, the root principal or the daemon key is missing, the stored settings are corrupt. |
 | `not_managed_environment` | 400 | The environment is not a managed project's. |
 
 ## Scheduled tasks

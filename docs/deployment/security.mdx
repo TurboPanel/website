@@ -13,7 +13,7 @@ TurboPanel's security model spans the control plane (management interface and AP
 
 ## Control Plane Security
 
-Tenant **hosting** certificates (sites on :80/:443) are separate from the
+Site **hosting** certificates (sites on :80/:443) are separate from the
 control-plane leaf. Operators pin a library cert, use Caddy `tls internal`, or
 pin a Let's Encrypt row that Caddy issues on the serving host. See
 [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
@@ -38,7 +38,7 @@ Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is
 Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
 (one year, `includeSubDomains`), `X-Content-Type-Options: nosniff`, and
-`X-Frame-Options: DENY`. This is control-plane only — per-tenant hosting sites
+`X-Frame-Options: DENY`. This is control-plane only — per-site hosting sites
 are a separate Caddy config the daemon generates and do not inherit these
 headers.
 
@@ -63,7 +63,7 @@ server {
 
 ### ACME issuance failure visibility
 
-A `tlsMode: 'acme'` tenant hosting relies entirely on Caddy's automatic HTTPS
+A `tlsMode: 'acme'` site hosting relies entirely on Caddy's automatic HTTPS
 to obtain and renew a Let's Encrypt certificate on the serving host. The
 daemon's `AcmeIssuanceObserver` live-probes every such hostname every 60
 seconds (a `fetch()` against the system trust store — any HTTP response at
@@ -164,13 +164,13 @@ process writes already lives on its named volume), a memory/pids ceiling
 (overridable per install), and a `healthcheck` reusing the exact readiness
 commands (`pg_isready`, `rabbitmq-diagnostics -q ping`) the daemon already uses —
 so a container that is running but degraded is now visibly unhealthy rather than
-indistinguishable from a healthy one. Tenant compose services do not get a
+indistinguishable from a healthy one. Compose services that site owners deploy do not get a
 default resource ceiling yet; that default is a separate, larger decision still
 open.
 
-### Tenant compose field gate
+### Compose field gate
 
-On a self-hosted server, every tenant app on that host shares the same Docker daemon and the same Docker socket the control plane itself talks to. A compose service that uses a **host-level feature** gets root-equivalent access to that shared host, compromising every other tenant co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too. Host-level features are:
+On a self-hosted server, every app deployed by a site owner on that host shares the same Docker daemon and the same Docker socket the control plane itself talks to. A compose service that uses a **host-level feature** gets root-equivalent access to that shared host, compromising every other site owner co-hosted on it, and on the documented co-located topology, potentially the control plane's own root secret too. Host-level features are:
 
 - the gated fields `privileged`, `cap_add`, `devices`, `device_cgroup_rules`, `network_mode`, `pid`, `ipc`, `uts`, `cgroup`, `cgroup_parent`, `userns_mode`, `security_opt`, `sysctls`, `runtime`, `use_api_socket`, and `volumes_from`;
 - any path that reaches outside the service's own directory: an absolute or `~` bind (the Docker socket included), a `..` escape, an interpolated path, a `driver_opts` bind, `configs` / `secrets` / `env_file` files outside the directory, a build context outside it, `extends.file`, and `include`.
@@ -185,7 +185,7 @@ Every flip of this gate is recorded in the organization's audit trail (`organiza
 
 Two rules protect the connection between an organization and its forge.
 
-**One GitHub installation, one organization.** On an control-plane-wide GitHub App (TurboPanel High Availability, or a self-hosted control plane whose App is shared by every organization), the App's private key can mint a token for *any* installation — so recording the same installation under two organizations would let the second read the first one's private repositories. The database refuses that outright (`uniq_connection_forge_external_github`), and the install callback proves the person finishing an install actually approved the installation they are naming: the App **requests user authorization during installation**, GitHub sends a one-shot `code` beside `installation_id`, and TurboPanel checks that the authorizing GitHub user can see that installation before recording anything. The user token is used for that one read and discarded. The callback is also rate-limited per user, so guessing installation numbers is slow as well as pointless.
+**One GitHub installation, one organization.** On a control-plane-wide GitHub App (TurboPanel High Availability, or a self-hosted control plane whose App is shared by every organization), the App's private key can mint a token for *any* installation — so recording the same installation under two organizations would let the second read the first one's private repositories. The database refuses that outright (`uniq_connection_forge_external_github`), and the install callback proves the person finishing an install actually approved the installation they are naming: the App **requests user authorization during installation**, GitHub sends a one-shot `code` beside `installation_id`, and TurboPanel checks that the authorizing GitHub user can see that installation before recording anything. The user token is used for that one read and discarded. The callback is also rate-limited per user, so guessing installation numbers is slow as well as pointless.
 
 Apps created through TurboPanel's manifest wizard get this for free. **An App registered before this rule — including one you created by hand — needs two settings changed on GitHub** (*Settings → Developer settings → GitHub Apps → your App*): enable **Request user authorization (OAuth) during installation**, and set the **Callback URL** to `https://<your instance>/api/client/v1/repositories/github/callback` (GitHub disables the Setup URL once user authorization is requested; the `installation_repositories` webhook covers later repository-selection changes). Until then, every install ends with *"GitHub did not send an authorization code"* in the app.
 
@@ -206,7 +206,7 @@ TurboPanel uses a **single root of trust** — the versioned `TURBOPANEL_SECRETS
 
 | Envelope | When | Scope |
 | -------- | ---- | ----- |
-| `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and principal passwords |
+| `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and site owner Linux user passwords |
 | `tpdaemon.v<n>.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
 
 A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the control plane and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
@@ -219,7 +219,7 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 | Scheme | Shape | Where |
 | --- | --- | --- |
-| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, principal passwords, email secrets, TOTP secret, OAuth client secrets) |
+| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, site owner Linux user passwords, email secrets, TOTP secret, OAuth client secrets) |
 | `tpdaemon` | `tpdaemon.v<n>.<serverId>.<keyId>.<payload>` | Daemon delivery only |
 | `tpsession` | `tpsession.v<n>.<token>.<sig>` | Session cookie value |
 | `tpotp` | `tpotp.v<n>.<hmacHex>` | Email OTP verifier at rest |
@@ -235,7 +235,7 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 1. **Add a key version** — re-run the control plane converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the control plane `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
 2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the control plane, whose in-process email consumer decrypts `MAILGUN_API_KEY` / `SMTP_PASS` with it.
 3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version.
-4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep covers every table holding `tpsecret` material — variables, TLS private keys, principal passwords, storage content, the `secret` table, git forge app envelopes (private key / client secret / webhook secret), GitLab connection OAuth token pairs, the TOTP secret, and the stored auth-provider/email client secrets — so a key cannot be retired before all of it is re-sealed.
+4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep covers every table holding `tpsecret` material — variables, TLS private keys, site owner Linux user passwords, storage content, the `secret` table, git forge app envelopes (private key / client secret / webhook secret), GitLab connection OAuth token pairs, the TOTP secret, and the stored auth-provider/email client secrets — so a key cannot be retired before all of it is re-sealed.
 5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min; daemon enroll/auth challenges (`tpchallenge`) ≤60 s; account-security challenges (`tp2fa` / `tpwebauthn`) ≤5 min; OAuth state (`tpoauth`) ≤10 min. Waiting 10 minutes covers every current stateless auth envelope. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
 
 #### Backup and escrow
@@ -309,9 +309,9 @@ Recommended:
 
 ### Service users (self-hosted)
 
-Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, instance/UI), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [instance AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
+Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, control plane and app), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [Control plane AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
-Tenant principal accounts have homes at `/srv/users/<username>`. The host picks their UID/GID from **15001–60000**. An override set on the principal must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The uninstall purge finds principals by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
+Each site owner's Linux user has a home at `/srv/users/<username>`, laid out as described in [Site isolation](/docs/security/site-isolation#the-home-layout). The host picks its UID/GID from **15001–60000**. An override set on the user must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The purge finds site owners' Linux users by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
 
 ## Daemon Security
 

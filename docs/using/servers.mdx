@@ -71,7 +71,7 @@ Open a server for six tabs: **Overview · Control · Time · Network · Firewall
 ### Control
 
 - **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. *Not provisioned* means no hosting has been deployed to this server yet.
-- **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the app shows each command's outcome and log.
+- **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the app shows each command's outcome and log. A command that fails shows the one line that names the cause, not the whole block of daemon output.
 - **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
