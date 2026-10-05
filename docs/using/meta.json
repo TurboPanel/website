@@ -6,6 +6,7 @@
     "configuration",
     "compose",
     "deploy",
+    "activity",
     "hosting",
     "php",
     "storage-and-variables",

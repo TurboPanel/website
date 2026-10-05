@@ -53,6 +53,8 @@ Any connected server is a valid target, including the host a self-hosted control
   </Step>
 </Steps>
 
+For a Node app the prepared preview also lists every variable its process will get and where each one was set; see [Variables on a Node app](/docs/using/storage-and-variables#variables-on-a-node-app).
+
 Prepared preview runs the same validation Deploy does, so a refusal shows up here first — same code, same message.
 
 ## Deploy, redeploy, cacheless
@@ -144,6 +146,35 @@ An `inplace` environment ignores `parallelism`: it updates every server at once 
   other Swarm `update_config` settings are refused, as above.
 </Callout>
 
+## Cancel a deploy
+
+A deploy that is still waiting or running can be stopped. The previous version keeps serving and nothing is changed.
+
+<Steps>
+  <Step>
+    While a deploy is going, a notice above **Deployment history** shows **Cancel deploy**. Only people who can manage the environment see it.
+  </Step>
+  <Step>
+    Press it and confirm. The app asks once: *Cancel this deploy? The current version keeps running and nothing is changed. You can deploy again any time.* Choose **Cancel deploy**, or **Keep deploying** to carry on.
+  </Step>
+  <Step>
+    The notice reads **Cancelling…** while the server stops. The history row then ends as **Cancelled**, with a note that nothing changed and the previous version is still running.
+  </Step>
+</Steps>
+
+What a cancel does depends on how far the deploy got:
+
+| The deploy is | What happens |
+| --- | --- |
+| Queued, nothing sent to a server yet | Cancelled at once. |
+| Running, before the server switches anything over | The server is told to stop. Git, the build and image pulls are stopped and the scratch files are cleaned up. The deploy reads **Cancelling** until the server reports back, then **Cancelled**. |
+| Running, already switching over | Too late. The deploy finishes normally and the history row says *Finished before it could be cancelled.* |
+| Finished | Nothing to cancel: *This deploy has already finished.* |
+
+The switch-over starts at the first step that changes what is being served: swapping a site or Node app release, running pre-deploy hooks, or stopping the old containers. A deploy with several Git services is past that point at its first release switch, so a cancel during the second service's build answers too late. A cancel stops the **whole** deploy, on every server of that deploy and any rollout batch still waiting. Cancelling a deploy that is already cancelled changes nothing.
+
+Cancelling asks for no extra sign-in, because deploying again fully reverses it. It needs the same permission as deploying and stopping, and it is recorded in the audit log as `deployment.cancel`. A server whose daemon is too old to cancel refuses with `cancel_unsupported` and nothing changes; update the daemon first.
+
 ## Start, stop, restart, destroy
 
 | Action | Where | What it does | Data volumes |
@@ -161,9 +192,29 @@ The environment's Overview lists each service's containers with a status badge f
 
 **Logs** on a container opens a live tail of its stdout and stderr, streamed from the host on demand. It is never stored: close the panel and it is gone. For the record of what a *deploy* did, see the next section.
 
+### Service run state
+
+Besides each container's badge, the daemon reports **one run state per service**, so a service that starts and then dies shows as a crash and not as a healthy deploy. It is the latest report, not a history, and it is not there until the service's server has reported it. Read it as `runState` on `GET /services` and `GET /services/:id`:
+
+| State | Meaning |
+| --- | --- |
+| `starting` | The container was just created, has been up for less than 60 seconds, or its health check has not passed yet. |
+| `running` | It has stayed up for 60 seconds. Only this state sets `running: true`. |
+| `unhealthy` | It is up and its health check is failing. |
+| `crashing` | Docker keeps restarting it. |
+| `stopped` | The container is down (exited, dead or paused) and has not crashed over and over. |
+| `stopped_after_crashes` | It is down after a failed exit and 10 or more restarts. |
+| `unknown` | Docker reported a state the daemon does not recognise. |
+
+`restartCount` is how many times Docker has restarted it, `lastError` is the last log line of the failing container (at most 400 characters) and `asOf` is when the state last changed. A service that runs on several servers or containers reports its **worst** state. A deploy that dies ten seconds in is never shown as running.
+
+This is reporting only. It does not change any restart policy: a service deployed with `restart: always` is reported `crashing` for as long as it keeps looping.
+
 ## Deployment history
 
 **Deployment history** on the environment's Overview lists past deploy attempts with their outcome, who or what started them (a person, the system, or **Push to `<branch>`** with the short commit when a git push did) and, for each, the transcript the daemon produced — image pulls, builds, the Compose output — kept for 90 days by default (an operator can change `TURBOPANEL_EXECUTION_LOG_RETENTION_DAYS`).
+
+A deploy or command that fails shows **one line that names the cause** as the headline of its row, taken from the end of the daemon's output (a playbook failure ends with the failed task's own message). **Show full error** opens the rest. Signed download links in an error are removed before the text is stored.
 
 A sequential deploy also names the engine it ran (**Sequential** or **In place**) and, when it did not finish, **Rolled back** or **Needs attention** with the reason; see [Deploy strategies](#deploy-strategies).
 
@@ -191,6 +242,10 @@ Response: the queued command's id and the URL to poll. `GET /environments/:id/de
 ### `POST /environments/:id/lifecycle`
 
 `{ "action": "start" | "stop" | "restart" }`. Operates on existing containers only.
+
+### `POST /environments/:id/deployments/:deploymentId/cancel`
+
+Cancels a queued or running deploy. `:deploymentId` is the deploy's command id from the history. The answer is `200` with `state` set to `cancelled` (it was queued), `cancelling` (the server was asked to stop) or `already_cancelled`. It needs the same permission as deploy (manage on the environment). Refusals are listed under [Cancel](#cancel).
 
 ### `POST /environments/:id/stop`
 
@@ -262,6 +317,15 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `binding_endpoint_unavailable` | 422 | A bound managed database has no listener endpoint yet; wait for its cluster to finish applying. |
 | `source_ref_unsupported` | 501 | A `ref` was sent. Omit it. |
 | `deploy_strategy_unsupported` | 501 | `strategy: bluegreen` or a per-deploy `migration` was sent. Use `inplace` or `sequential` and omit `migration`. |
+
+### Cancel
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `deploy_not_cancellable` | 409 | The deploy has already finished. |
+| `deploy_too_late` | 409 | The server is already switching over and will finish the deploy. |
+| `cancel_unsupported` | 409 | The server's daemon is too old to cancel deploys. Update it. |
+| `daemon_unavailable` | 503 | The control plane has no link to the server. |
 
 ## Related
 
