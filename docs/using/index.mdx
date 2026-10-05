@@ -34,6 +34,7 @@ The left navigation is the organization's. Each row below names the area, its ad
 | --- | --- | --- |
 | **Overview** | `/<org>/overview` | All servers at a glance: servers, cores, memory. |
 | **Projects** | `/<org>/projects` | Create projects; open one to edit its compose, deploy environments, manage hostnames, storage, bindings and settings. Sub-pages: **Git sources** (the GitHub Apps and GitLab connections the organization owns) and **Repositories** (every repository a project reads from). |
+| **Activity** | `/<org>/activity` | What is deploying, restarting or stopping right now across every project, and what failed in the last seven days. Owners and managers. |
 | **Workspaces** | `/<org>/workspaces` | Create and rename workspaces; see which projects sit in each. |
 | **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenters**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
 | **Managed** | `/<org>/managed` | Every managed database cluster in the organization, and the organization's managed defaults (client TLS mode, listener ports). |
@@ -84,6 +85,7 @@ The app is the same on both. Three things differ, and each page in this part say
 | [Projects and environments](/docs/using/projects) | Workspaces, the six ways to create a project, environments, settings, delete. |
 | [Writing compose](/docs/using/compose) | The compose document — what TurboPanel reads, adds and refuses; the Services view. |
 | [Deploying and running an environment](/docs/using/deploy) | Placement, preview, deploy, redeploy, lifecycle, logs, refusals. |
+| [Activity](/docs/using/activity) | What is running or recently failed across the organization, in one list. |
 | [Hosting — hostnames, ports and TLS](/docs/using/hosting) | Hosting rows, certificates, the Let's Encrypt opt-in. |
 | [Storage, variables and secrets](/docs/using/storage-and-variables) | Persistent storage; the variable cascade; secrets and `{$KEY}` references. |
 | [Managed databases](/docs/using/managed-databases) | PostgreSQL, MySQL and MariaDB clusters: create, connect, users, replicas, backups and backup schedules. |
