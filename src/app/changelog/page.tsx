@@ -41,7 +41,7 @@ const ENTRIES: readonly ChangelogEntry[] = [
           'The Base is the compose document that environments share. The Environments tab shows it first, then one card per environment: what is running now, the last deploy, a small map, the git branch, the server, and whether it "Follows the Base" with a number of changes or "Stands alone". New environment starts from the Base or from nothing and asks for a server.',
           'Environment Overview draws the map of the environment, lists its services and latest deploys, and shows the "Changes from Base" card. The map is in the web app; the phone keeps its earlier Overview.',
           'Configuration shows what an environment really runs, with a switch for only the changes from the Base, and lets you edit and save. The merged result is checked before it is saved, so a change that could not deploy is refused up front. The Base tab edits the shared compose document.',
-          'New Navy and Paper looks, with a Light, Dark or Match switcher.',
+          'New Navy and Paper looks in the web app, with a Light, Dark or Match switcher.',
         ],
       },
       {
@@ -49,7 +49,7 @@ const ENTRIES: readonly ChangelogEntry[] = [
         items: [
           'Cancel a deploy that is queued or running. It stops every server of that deploy, including servers still waiting their turn; once a deploy has switched over it can no longer be cancelled.',
           'A failed deploy or command shows the line that says why, including which step of a server setup failed.',
-          'Each service shows whether it is running, starting or stopped. Crash handling is not part of this release.',
+          'The control plane now records one run state per service (starting, running, unhealthy, crashing or stopped) and serves it through the API. The app does not show it yet, and crash handling is not part of this release.',
           'A new environment deploys one step at a time: stop the old version, start the new one, wait for every service to be healthy, and roll back on its own if it is not. Deployment history says Sequential or In place, and Rolled back or Needs attention when a deploy did not finish. The strategy and the number of servers updated at once are set through the API; there is no screen for them yet.',
           'Each environment picks its git branch, a push deploys the environments that build that branch, and history shows which push started a deploy.',
           'A Node app receives the variables you set on it in its running process, and the app lists where each variable comes from. Node 26 is offered, and pnpm comes with every Node series. Secret site variables are sent to the server sealed.',
@@ -60,7 +60,7 @@ const ENTRIES: readonly ChangelogEntry[] = [
       {
         heading: 'Domains and certificates',
         items: [
-          'One-click Let\'s Encrypt for each domain. The app checks DNS first and shows the certificate state (test certificate, issuing, ready, renewal failed); the expiry date is recorded from the server.',
+          'One-click Let\'s Encrypt for each domain. The app checks DNS first and shows the certificate state (Test certificate, Waiting for DNS, Getting a certificate, Secure, Renewal failed); the expiry date is recorded from the server.',
           '"Also redirect www to this domain" serves the www name as a permanent redirect.',
           'The Hosting tab lets you pick a hostname and shows only that hostname\'s settings.',
         ],
@@ -71,7 +71,7 @@ const ENTRIES: readonly ChangelogEntry[] = [
           'Sites can be served by Caddy, nginx, Apache or OpenLiteSpeed, or by nginx in front of Apache.',
           'PHP runs in one of three modes: FastCGI (the default), php-fpm, or OpenLiteSpeed\'s lsphp as a process of its own. Every site\'s PHP runs as the site owner\'s Linux user, with its own memory limit.',
           'An organization owner or manager chooses which PHP modes the organization offers and can narrow that for each server. A site picks its mode in the visual editor or in its compose document; a mode the policy does not allow stops the deploy with a clear message.',
-          'Remote build sources (building from an address on the internet) are off until the organization allows them, and risky build options in a compose document are refused.',
+          'Remote build sources (building from an address on the internet) are off until the organization allows them, and risky build options in a compose document are refused unless the organization allows them.',
           'A site owner\'s Linux user can be named in plain, partial or random form, with an organization default that can be locked.',
         ],
       },
@@ -82,14 +82,14 @@ const ENTRIES: readonly ChangelogEntry[] = [
           'Native and static builds run in a sandbox as an unprivileged build user with public internet access only, 4 GB of memory, 2 CPUs and 30 minutes, one build at a time per server.',
           'SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners can be locked into their own home with an SFTP jail, which is off by default and turned on for one server at a time by an operator.',
           'The web servers run as their own unprivileged accounts, and a link inside one site is followed only when its owner matches the file it points to.',
-          'The Docker gate is installed wherever Docker runs on a managed server. It is in observe mode: it records what it would refuse and blocks nothing yet.',
+          'The Docker gate is installed wherever Docker runs on a managed server. It is in observe mode: it records what it would refuse and only turns away malformed requests.',
         ],
       },
       {
         heading: 'Firewall',
         items: [
           'Firewall pages for the organization policy, your own rules, and each server\'s mode and preview. Nothing is applied to a server unless an operator opts that one server in.',
-          'When a firewall is applied, a safety net rolls it back unless the server confirms it still works, and it is restored after a reboot. Saving an SSH list that leaves you out is warned about and refused.',
+          'When a firewall is applied, a safety net rolls it back unless the server confirms it still works, and it is restored after a reboot. Saving an SSH list that leaves you out asks you to confirm first.',
         ],
       },
       {
