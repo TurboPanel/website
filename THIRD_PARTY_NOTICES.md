@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51baaab16
+pnpm-lock.yaml sha256:72b67a25c4147280affc53d88692767b1cf75e7b07e7cc699ce5798430e3e113
 -->
 
 ## Production dependencies
@@ -55,13 +55,13 @@ pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51b
 - Copyright: The Babel Team
 - Homepage: https://github.com/babel/babel#readme
 
-### @babel/parser@7.29.7
+### @babel/parser@7.29.9
 
 - License: MIT
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-parser
 
-### @babel/types@7.29.7
+### @babel/types@7.29.8
 
 - License: MIT
 - Copyright: The Babel Team
@@ -986,55 +986,55 @@ pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51b
 - License: Apache-2.0
 - Homepage: https://vercel.com
 
-### @vue/compiler-core@3.5.35
+### @vue/compiler-core@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/compiler-core#readme
 
-### @vue/compiler-dom@3.5.35
+### @vue/compiler-dom@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/compiler-dom#readme
 
-### @vue/compiler-sfc@3.5.35
+### @vue/compiler-sfc@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/compiler-sfc#readme
 
-### @vue/compiler-ssr@3.5.35
+### @vue/compiler-ssr@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/compiler-ssr#readme
 
-### @vue/reactivity@3.5.35
+### @vue/reactivity@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/reactivity#readme
 
-### @vue/runtime-core@3.5.35
+### @vue/runtime-core@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/runtime-core#readme
 
-### @vue/runtime-dom@3.5.35
+### @vue/runtime-dom@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/runtime-dom#readme
 
-### @vue/server-renderer@3.5.35
+### @vue/server-renderer@3.5.43
 
 - License: MIT
 - Copyright: Evan You
 - Homepage: https://github.com/vuejs/core/tree/main/packages/server-renderer#readme
 
-### @vue/shared@3.5.35
+### @vue/shared@3.5.43
 
 - License: MIT
 - Copyright: Evan You
@@ -2744,7 +2744,7 @@ pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51b
 - Copyright: Nick Fitzgerald
 - Homepage: https://github.com/mozilla/source-map
 
-### source-map-js@1.2.1
+### source-map-js@1.2.2
 
 - License: BSD-3-Clause
 - Copyright: Valentin 7rulnik Semirulnik
@@ -3019,7 +3019,7 @@ pnpm-lock.yaml sha256:7b69d408d4827441130dff612180baf6971cc6c9a9c5bafd54910ca51b
 - Copyright: Titus Wormer
 - Homepage: https://github.com/vfile/vfile-message#readme
 
-### vue@3.5.35
+### vue@3.5.43
 
 - License: MIT
 - Copyright: Evan You
@@ -3087,12 +3087,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/quick-lru#readme
 
-### @ampproject/remapping@2.3.0
-
-- License: Apache-2.0
-- Copyright: Justin Ridgewell
-- Homepage: https://github.com/ampproject/remapping#readme
-
 ### @babel/code-frame@7.29.7
 
 - License: MIT
@@ -3153,6 +3147,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-helpers
 
+### @babel/parser@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-parser
+
 ### @babel/template@7.29.7
 
 - License: MIT
@@ -3164,6 +3164,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-traverse
+
+### @babel/types@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-types
 
 ### @bcoe/v8-coverage@1.0.2
 
@@ -3275,18 +3281,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @isaacs/cliui@8.0.2
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/yargs/cliui#readme
-
-### @istanbuljs/schema@0.1.6
-
-- License: MIT
-- Copyright: Corey Farrell
-- Homepage: https://github.com/istanbuljs/schema#readme
-
 ### @jridgewell/gen-mapping@0.3.13
 
 - License: MIT
@@ -3351,11 +3345,6 @@ These packages are used for development, test, or build tooling and are not bund
 
 - License: MIT
 - Homepage: https://github.com/SukkaW/nolyfill#readme
-
-### @pkgjs/parseargs@0.11.0
-
-- License: MIT
-- Homepage: https://github.com/pkgjs/parseargs#readme
 
 ### @rollup/rollup-linux-x64-gnu@4.62.4
 
@@ -3484,46 +3473,46 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/unrs/unrs-resolver
 
-### @vitest/coverage-v8@3.2.7
+### @vitest/coverage-v8@4.1.11
 
 - License: MIT
 - Copyright: Anthony Fu
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/coverage-v8#readme
+- Homepage: https://vitest.dev/guide/coverage
 
-### @vitest/expect@3.2.7
-
-- License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/expect#readme
-
-### @vitest/mocker@3.2.7
+### @vitest/expect@4.1.11
 
 - License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/mocker#readme
+- Homepage: https://vitest.dev/api/expect
 
-### @vitest/pretty-format@3.2.7
-
-- License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/utils#readme
-
-### @vitest/runner@3.2.7
+### @vitest/mocker@4.1.11
 
 - License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/runner#readme
+- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/mocker
 
-### @vitest/snapshot@3.2.7
-
-- License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/snapshot#readme
-
-### @vitest/spy@3.2.7
+### @vitest/pretty-format@4.1.11
 
 - License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/spy#readme
+- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/pretty-format
 
-### @vitest/utils@3.2.7
+### @vitest/runner@4.1.11
 
 - License: MIT
-- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/utils#readme
+- Homepage: https://vitest.dev/api/advanced/runner
+
+### @vitest/snapshot@4.1.11
+
+- License: MIT
+- Homepage: https://vitest.dev/guide/snapshot
+
+### @vitest/spy@4.1.11
+
+- License: MIT
+- Homepage: https://vitest.dev/api/mock
+
+### @vitest/utils@4.1.11
+
+- License: MIT
+- Homepage: https://github.com/vitest-dev/vitest/tree/main/packages/utils
 
 ### ajv@6.15.0
 
@@ -3531,25 +3520,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Evgeny Poberezkin
 - Homepage: https://github.com/ajv-validator/ajv
 
-### ansi-regex@5.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-regex#readme
-
-### ansi-regex@6.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-regex#readme
-
 ### ansi-styles@4.3.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/ansi-styles#readme
-
-### ansi-styles@6.2.3
 
 - License: MIT
 - Copyright: Sindre Sorhus
@@ -3621,7 +3592,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: kyldvs
 - Homepage: https://github.com/kyldvs/ast-types-flow#readme
 
-### ast-v8-to-istanbul@0.3.12
+### ast-v8-to-istanbul@1.0.7
 
 - License: MIT
 - Copyright: Ari Perkkiö
@@ -3665,11 +3636,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/juliangruber/brace-expansion#readme
 
-### brace-expansion@2.1.7
-
-- License: MIT
-- Homepage: https://github.com/juliangruber/brace-expansion#readme
-
 ### brace-expansion@5.0.12
 
 - License: MIT
@@ -3691,12 +3657,6 @@ These packages are used for development, test, or build tooling and are not bund
 
 - License: MIT
 - Homepage: https://github.com/LinusU/buffer-from#readme
-
-### cac@6.7.14
-
-- License: MIT
-- Copyright: egoist
-- Homepage: https://github.com/egoist/cac#readme
 
 ### call-bind@1.0.9
 
@@ -3722,7 +3682,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/callsites#readme
 
-### chai@5.3.3
+### chai@6.3.0
 
 - License: MIT
 - Copyright: Jake Luer
@@ -3732,12 +3692,6 @@ These packages are used for development, test, or build tooling and are not bund
 
 - License: MIT
 - Homepage: https://github.com/chalk/chalk#readme
-
-### check-error@2.1.3
-
-- License: MIT
-- Copyright: Jake Luer
-- Homepage: https://github.com/chaijs/check-error#readme
 
 ### color-convert@2.0.1
 
@@ -3805,12 +3759,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Josh Junon
 - Homepage: https://github.com/debug-js/debug#readme
 
-### deep-eql@5.0.2
-
-- License: MIT
-- Copyright: Jake Luer
-- Homepage: https://github.com/chaijs/deep-eql#readme
-
 ### deep-is@0.1.4
 
 - License: MIT
@@ -3846,23 +3794,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/es-shims/dunder-proto#readme
 
-### eastasianwidth@0.2.0
-
-- License: MIT
-- Copyright: Masaki Komagata
-- Homepage: https://github.com/komagata/eastasianwidth#readme
-
 ### electron-to-chromium@1.5.428
 
 - License: ISC
 - Copyright: Kilian Valkhof
 - Homepage: https://github.com/Kilian/electron-to-chromium#readme
-
-### emoji-regex@8.0.0
-
-- License: MIT
-- Copyright: Mathias Bynens
-- Homepage: https://mths.be/emoji-regex
 
 ### emoji-regex@9.2.2
 
@@ -3900,7 +3836,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/es-shims/iterator-helpers#readme
 
-### es-module-lexer@1.7.0
+### es-module-lexer@2.3.2
 
 - License: MIT
 - Copyright: Guy Bedford
@@ -4103,12 +4039,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Raynos
 - Homepage: https://github.com/Raynos/for-each
 
-### foreground-child@3.3.1
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/tapjs/foreground-child#readme
-
 ### function-bind@1.1.2
 
 - License: MIT
@@ -4162,12 +4092,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Hiroki Osame
 - Homepage: https://github.com/privatenumber/get-tsconfig#readme
-
-### glob@10.5.0
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-glob#readme
 
 ### glob-parent@5.1.2
 
@@ -4364,12 +4288,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/inspect-js/is-finalizationregistry#readme
 
-### is-fullwidth-code-point@3.0.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/is-fullwidth-code-point#readme
-
 ### is-generator-function@1.1.2
 
 - License: MIT
@@ -4484,12 +4402,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Krishnan Anantheswaran
 - Homepage: https://istanbul.js.org/
 
-### istanbul-lib-source-maps@5.0.6
-
-- License: BSD-3-Clause
-- Copyright: Krishnan Anantheswaran
-- Homepage: https://istanbul.js.org/
-
 ### istanbul-reports@3.2.0
 
 - License: BSD-3-Clause
@@ -4501,12 +4413,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/Iterator.prototype#readme
-
-### jackspeak@3.4.3
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/jackspeak#readme
 
 ### jiti@2.7.0
 
@@ -4520,12 +4426,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Homepage: https://github.com/lydell/js-tokens#readme
 
 ### js-tokens@4.0.0
-
-- License: MIT
-- Copyright: Simon Lydell
-- Homepage: https://github.com/lydell/js-tokens#readme
-
-### js-tokens@9.0.1
 
 - License: MIT
 - Copyright: Simon Lydell
@@ -4624,25 +4524,13 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Andres Suarez
 - Homepage: https://github.com/zertosh/loose-envify
 
-### loupe@3.2.1
-
-- License: MIT
-- Copyright: Veselin Todorov
-- Homepage: https://github.com/chaijs/loupe
-
-### lru-cache@10.4.3
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/node-lru-cache#readme
-
 ### lru-cache@5.1.1
 
 - License: ISC
 - Copyright: Isaac Z. Schlueter
 - Homepage: https://github.com/isaacs/node-lru-cache#readme
 
-### magicast@0.3.5
+### magicast@0.5.5
 
 - License: MIT
 - Homepage: https://github.com/unjs/magicast#readme
@@ -4682,23 +4570,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Isaac Z. Schlueter
 - Homepage: https://github.com/isaacs/minimatch#readme
 
-### minimatch@9.0.9
-
-- License: ISC
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minimatch#readme
-
 ### minimist@1.2.8
 
 - License: MIT
 - Copyright: James Halliday
 - Homepage: https://github.com/minimistjs/minimist
-
-### minipass@7.1.3
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/minipass#readme
 
 ### napi-postinstall@0.3.4
 
@@ -4772,6 +4648,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/es-shims/Object.values#readme
 
+### obug@2.2.1
+
+- License: MIT
+- Copyright: Kevin Deng
+- Homepage: https://github.com/sxzz/obug#readme
+
 ### optionator@0.9.4
 
 - License: MIT
@@ -4796,12 +4678,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/p-locate#readme
 
-### package-json-from-dist@1.0.1
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/package-json-from-dist#readme
-
 ### parent-module@1.0.1
 
 - License: MIT
@@ -4825,18 +4701,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Javier Blanco
 - Homepage: https://github.com/jbgutierrez/path-parse#readme
-
-### path-scurry@1.11.1
-
-- License: BlueOak-1.0.0
-- Copyright: Isaac Z. Schlueter
-- Homepage: https://github.com/isaacs/path-scurry#readme
-
-### pathval@2.0.1
-
-- License: MIT
-- Copyright: Veselin Todorov
-- Homepage: https://github.com/chaijs/pathval
 
 ### picomatch@2.3.2
 
@@ -5028,12 +4892,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Emil Bay
 - Homepage: https://github.com/emilbayes/siginfo#readme
 
-### signal-exit@4.1.0
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://github.com/tapjs/signal-exit#readme
-
 ### source-map@0.6.1
 
 - License: BSD-3-Clause
@@ -5057,7 +4915,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Roman Shtylman
 - Homepage: https://github.com/shtylman/node-stackback#readme
 
-### std-env@3.10.0
+### std-env@4.3.0
 
 - License: MIT
 - Homepage: https://github.com/unjs/std-env#readme
@@ -5067,18 +4925,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/stop-iteration-iterator#readme
-
-### string-width@4.2.3
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/string-width#readme
-
-### string-width@5.1.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/sindresorhus/string-width#readme
 
 ### string.prototype.includes@2.0.1
 
@@ -5116,18 +4962,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/es-shims/String.prototype.trimStart#readme
 
-### strip-ansi@6.0.1
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/strip-ansi#readme
-
-### strip-ansi@7.2.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/strip-ansi#readme
-
 ### strip-bom@3.0.0
 
 - License: MIT
@@ -5139,12 +4973,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/strip-json-comments#readme
-
-### strip-literal@3.1.0
-
-- License: MIT
-- Copyright: Anthony Fu
-- Homepage: https://github.com/antfu/strip-literal#readme
 
 ### supports-color@10.2.2
 
@@ -5176,37 +5004,15 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Mihai Bazon
 - Homepage: https://terser.org
 
-### test-exclude@7.0.2
-
-- License: ISC
-- Copyright: Ben Coe
-- Homepage: https://istanbul.js.org/
-
 ### tinybench@2.9.0
 
 - License: MIT
 - Homepage: https://github.com/tinylibs/tinybench#readme
 
-### tinyexec@0.3.2
-
-- License: MIT
-- Copyright: James Garbutt
-- Homepage: https://github.com/tinylibs/tinyexec#readme
-
-### tinypool@1.1.1
-
-- License: MIT
-- Homepage: https://github.com/tinylibs/tinypool#readme
-
-### tinyrainbow@2.0.0
+### tinyrainbow@3.2.0
 
 - License: MIT
 - Homepage: https://github.com/tinylibs/tinyrainbow#readme
-
-### tinyspy@4.0.6
-
-- License: MIT
-- Homepage: https://github.com/tinylibs/tinyspy#readme
 
 ### to-regex-range@5.0.1
 
@@ -5301,17 +5107,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Evan You
 - Homepage: https://vite.dev
 
-### vite-node@3.2.4
+### vitest@4.1.11
 
 - License: MIT
 - Copyright: Anthony Fu
-- Homepage: https://github.com/vitest-dev/vitest/blob/main/packages/vite-node#readme
-
-### vitest@3.2.7
-
-- License: MIT
-- Copyright: Anthony Fu
-- Homepage: https://github.com/vitest-dev/vitest#readme
+- Homepage: https://vitest.dev
 
 ### which@2.0.2
 
@@ -5354,18 +5154,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jon Schlinkert
 - Homepage: https://github.com/jonschlinkert/word-wrap
-
-### wrap-ansi@7.0.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/wrap-ansi#readme
-
-### wrap-ansi@8.1.0
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/wrap-ansi#readme
 
 ### yallist@3.1.1
 
