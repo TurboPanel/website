@@ -49,7 +49,7 @@ const ENTRIES: readonly ChangelogEntry[] = [
         items: [
           'Cancel a deploy that is queued or running. It stops every server of that deploy, including servers still waiting their turn; once a deploy has switched over it can no longer be cancelled.',
           'A failed deploy or command shows the line that says why, including which step of a server setup failed.',
-          'The control plane now records one run state per service (starting, running, unhealthy, crashing or stopped) and serves it through the API. The app does not show it yet, and crash handling is not part of this release.',
+          'The control plane now records one run state per service (starting, running, unhealthy, crashing or stopped) and serves it through the API. The web Overview shows an app that is failing, with a Crash sheet and a Retry button, and a service that keeps crashing is stopped after 10 restarts in a row. Crash alerts are not part of this release.',
           'A new environment deploys one step at a time: stop the old version, start the new one, wait for every service to be healthy, and roll back on its own if it is not. Deployment history says Sequential or In place, and Rolled back or Needs attention when a deploy did not finish. The strategy and the number of servers updated at once are set through the API; there is no screen for them yet.',
           'Each environment picks its git branch, a push deploys the environments that build that branch, and history shows which push started a deploy.',
           'A Node app receives the variables you set on it in its running process, and the app lists where each variable comes from. Node 26 is offered, and pnpm comes with every Node series. Secret site variables are sent to the server sealed.',
