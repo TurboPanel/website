@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:72b67a25c4147280affc53d88692767b1cf75e7b07e7cc699ce5798430e3e113
+pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d415f1948
 -->
 
 ## Production dependencies
@@ -3269,13 +3269,13 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/lovell/colour#readme
 
-### @img/sharp-libvips-linux-x64@1.3.3
+### @img/sharp-libvips-linux-x64@1.3.4
 
 - License: LGPL-3.0-or-later
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @img/sharp-linux-x64@0.35.4
+### @img/sharp-linux-x64@0.35.5
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
@@ -4844,7 +4844,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/set-proto#readme
 
-### sharp@0.35.4
+### sharp@0.35.5
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
