@@ -1,15 +1,29 @@
 ---
 title: Docker metrics
-description: Docker's own disk breakdown — image layers, containers, volumes, and build cache, with what a prune would reclaim
+description: Container health and totals, plus Docker's own disk breakdown — image layers, containers, volumes, and build cache, with what a prune would reclaim
 ---
 
 # Docker metrics
 
 The **Docker** group is Docker's own accounting of its data root: layers, images, containers, volumes, and build cache, each with the share a prune would free. It is read from the Engine's disk-usage report every five minutes on the daemon's own timer, never on the sample tick, and the whole breakdown sums to the Docker total on [Storage usage](/docs/metrics/managed-storage#managed-storage-docker).
 
-<Callout type="info" title="Granted from S2">
-  On TurboPanel High Availability this family is part of the **S2 and higher** entitlement. An S1 server still shows the Docker data-root total under Storage usage; in place of this group the app shows a one-line notice saying the tier does not include it. Self-hosted servers and servers with no tier assigned keep the group. See [License tiers](/docs/deployment/tiers).
+<Callout type="info" title="On every plan">
+  Docker metrics are on every plan, S1 included. Plans limit how big a server may be and how many devices are watched; they do not gate this group.
 </Callout>
+
+## Container health and totals [#docker-container-health]
+
+A v7 daemon also reports how the containers themselves are doing. These come from the Engine's own container list and cgroup counters, and each is absent (not zero) when the daemon cannot read it.
+
+| Chart | Wire name | What it is |
+| ----- | --------- | ---------- |
+| Container health | `extended.docker.containersRunning`, `containersUnhealthy`, `containersRestarting` | Containers running, failing their health check, and restarting. A non-zero unhealthy or restarting count keeps the worst reading in the bucket |
+| Containers that stopped unexpectedly | `extended.docker.containerDieEvents`, `containerOomEvents` | Exits that were not a deploy or a TurboPanel stop, and containers the kernel killed for memory, summed over the bucket |
+| Containers CPU | `extended.docker.containersCpuPercent` | All containers together, as a share of the whole host |
+| Containers memory | `extended.docker.containersMemoryBytes` | Memory in use by all containers (cgroup usage minus inactive file cache) |
+| Reclaimable | `extended.docker.reclaimableBytes` | What a prune would free: images, volumes and build cache, summed |
+
+The names of unhealthy containers appear under "About this host".
 
 A host with no Docker socket, or whose Engine is unhealthy this minute, reports nothing — absent, not zero.
 

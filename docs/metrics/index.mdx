@@ -46,7 +46,7 @@ The **Uptime** tile is not a plotted series. It is time this server was connecte
 
 ## A chart is missing
 
-Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. The one group hidden by **license tier** rather than by presence is **Docker**: on an S1 license the app shows a one-line notice in its place, since the Docker breakdown is granted from S2 (see [License tiers](/docs/deployment/tiers)). Self-hosted servers see every group their hardware supports.
+Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. No group is hidden by license tier: Docker metrics are on every plan. Self-hosted servers see every group their hardware supports. **Host health** (processes killed for memory, process limit, root disk queue, failed services, RAID, soonest TLS expiry) and the **About this host** card appear once the daemon is new enough to report them.
 
 Empty is not the same as zero. A metric the host cannot measure stays blank; a metric that is legitimately zero (no swap configured, no retransmits) plots at 0%.
 
@@ -91,7 +91,7 @@ PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; 
   <Card title="Memory" description="Used vs cached, swap, PSI, paging, and memory diagnostics" href="/docs/metrics/memory" />
   <Card title="Storage" description="I/O PSI, disk throughput and latency, root filesystem" href="/docs/metrics/storage" />
   <Card title="Storage usage" description="Hosting, backup, Docker, and log usage with free space; managed-database census" href="/docs/metrics/managed-storage" />
-  <Card title="Docker" description="Image layers, containers, volumes, build cache, and what a prune reclaims (S2+)" href="/docs/metrics/managed-docker" />
+  <Card title="Docker" description="Container health, image layers, containers, volumes, build cache, and what a prune reclaims" href="/docs/metrics/managed-docker" />
   <Card title="Network" description="TCP retransmits, softnet drops, kernel tables, extra NICs" href="/docs/metrics/network" />
   <Card title="GPU" description="Utilization, memory, PCIe, throttle" href="/docs/metrics/gpu" />
   <Card title="Filesystems" description="Non-root mounts — available bytes and free inodes" href="/docs/metrics/filesystems" />

@@ -37,7 +37,7 @@ A backup root on its own attached disk reads straight from the filesystem, so th
 
 The wire carries no Docker free-bytes field. The app joins the free side at render time from the filesystem that carries the **docker** role in the server's inventory (root when Docker lives on `/`), which is exactly what the other three free series mean. With no docker-role filesystem known, the chart shows used only.
 
-On **S1** this total is all the Docker accounting you get — the layer / container / volume / build-cache split is a separate family granted from S2. See [Docker](/docs/metrics/managed-docker).
+The layer / container / volume / build-cache split behind this total, and container health, are on the [Docker](/docs/metrics/managed-docker) page; they are on every plan.
 
 ## Logs [#managed-storage-logs]
 
@@ -80,7 +80,7 @@ Bytes are only half of "can this grow". The app also shows **free inodes** for e
 
 ## Related
 
-- [Docker](/docs/metrics/managed-docker) — the breakdown behind the Docker total (S2 and up)
+- [Docker](/docs/metrics/managed-docker) — the breakdown behind the Docker total, container health and what a prune reclaims
 - [Storage](/docs/metrics/storage) — I/O pressure, throughput, latency, root capacity
 - [Filesystems](/docs/metrics/filesystems) — available bytes and inodes per extra mount
 - [License tiers](/docs/deployment/tiers) — what S1 does and does not include
