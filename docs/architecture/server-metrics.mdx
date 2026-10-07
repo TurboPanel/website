@@ -1,6 +1,6 @@
 ---
 title: Server metrics architecture
-description: Shared host-metrics contract (schema v7, v6 still accepted), per-sample sizes, Analytics Engine and DuckDB + Parquet storage, retention windows, the per-tier row inventory, and the dated Cloudflare cost model
+description: Shared host-metrics contract (schema v8, v6 still accepted), per-sample sizes, Analytics Engine and DuckDB + Parquet storage, retention windows, the per-tier row inventory, and the dated Cloudflare cost model
 ---
 
 # Server metrics architecture
@@ -15,11 +15,11 @@ TurboPanel collects **host metrics** from connected daemons via authenticated `P
 
 ## Overview
 
-One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 7`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest accepts wire versions `6` and `7` and rejects any other; a v7 daemon adds one optional `extended` section (see [Metrics v7 additions](#metrics-v7-additions)) once the control plane has negotiated the `metrics-v7` feature. There is no migration of stored metrics. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 8`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest accepts wire versions `6` and `8` and rejects any other; a v8 daemon adds one optional `extended` section (see [Metrics layout v8](#metrics-v8-additions)) once the control plane has negotiated the `metrics-v8` feature. There is no migration of stored metrics. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
 
 | Runtime | Store | Backend |
 | ------- | ----- | ------- |
-| Cloudflare Workers | Analytics Engine | `SERVER_METRICS` binding → `turbopanel_server_metrics_v7` dataset |
+| Cloudflare Workers | Analytics Engine | `SERVER_METRICS` binding → `turbopanel_server_metrics_v8` dataset |
 | Self-hosted Deno | DuckDB + Parquet | one typed table per family (embedded, no port) |
 
 Store selection: `resolveServerMetricsStore` (always on — Workers → Analytics Engine, Deno → DuckDB + Parquet).
@@ -113,7 +113,7 @@ The contract has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics ar
 | `managed.router` | Presence-gated + `managedIngressEnabled` | host (no entity id) — the shared hosting Traefik | 12 — backends up/total, services, routers, retries, backend 5xx, backend latency avg + requests, open connections, config reloads + age, soonest TLS expiry (7 spare slots) |
 | `managed.database_proxy` | Presence-gated + `databaseProxyMetricsEnabled` | one unpaged row per `databaseProxies[]` entry (ProxySQL) | 17 — queries, slow queries, query/backend latency avg, active transactions, client connections + created/aborted, rejected at max-connections, backend connections + created/aborted, connection errors, backends up/total, bytes from/to backends (2 spare slots) |
 | `managed.storage` | Presence-gated, **granted at every tier** | host (no entity id) | 19 — hosting/backup/Docker/logs used bytes, hosting/backup/logs free bytes, then a postgres/mysql/mariadb census (instances running + healthy, connections used + max per engine). Absent until the daemon's first directory walk completes |
-| `managed.docker` | Presence-gated + `managedDockerEnabled` (**every plan** since v7) | host (no entity id) | 10 — layer bytes, image count + reclaimable bytes, container bytes + count, volume bytes + count + reclaimable, build-cache bytes + reclaimable (9 spare slots) |
+| `managed.docker` | Presence-gated + `managedDockerEnabled` (**every plan** since v8) | host (no entity id) | 10 — layer bytes, image count + reclaimable bytes, container bytes + count, volume bytes + count + reclaimable, build-cache bytes + reclaimable (9 spare slots) |
 
 **Entitlement vs. emission are distinct.** A capability-plan slot count (`gpuSlots: 2`) is what a server is *allowed* to report; whether it emits rows depends entirely on whether the daemon found that hardware. A server entitled to two GPUs with none installed emits zero `gpu` rows. Entitlement caps *how many* entities may be reported; presence decides *whether* a family is emitted at all this tick. The same split applies everywhere — `physicalHardwareSignalSlots` is 19 on a physical machine (11 on the entry tier) and 0 on a VM, but a physical host with no working sensors still emits nothing for `hardware.physical`. Hosted ingest enforces the ceiling with `truncateSampleToCapabilityPlan`; self-hosted ingest skips truncation entirely.
 
@@ -157,7 +157,7 @@ The memory half of `host.diagnostics` is the **Memory detail** group — what RA
 
 ## Metrics layout v8 [#metrics-v8-additions]
 
-Layout v8 (the stamp every hosted row carries) is what the control plane stores. A current daemon sends the v6 sample plus one optional **`extended`** section, only once the control plane has negotiated the `metrics-v7` feature (the control plane deploys first; it rejects unknown keys). Every key is optional and an unknown value is left out, never sent as `0`.
+Layout v8 (the stamp every hosted row carries) is what the control plane stores. A current daemon sends the v6 sample plus one optional **`extended`** section, only once the control plane has negotiated the `metrics-v8` feature (the control plane deploys first; it rejects unknown keys). Every key is optional and an unknown value is left out, never sent as `0`.
 
 | `extended` key | What it carries |
 | -------------- | --------------- |
@@ -189,7 +189,7 @@ Each device's own size rides as plain text on that device's own row (a filesyste
 
 ### What layout v8 does not store [#v8-layout-amendment]
 
-The hosted rows are full (19 numbers each), so carrying the sizes without adding rows meant leaving out nine less useful points on the Analytics Engine store: cores saturated, hosting free space, Docker used space, logs used space, major page faults per second, unreclaimable kernel slab, Caddy 2xx responses, the router's backends up and the router's request count. Everything else stays, including soft-interrupt time, memory pressure "full", the router's 5xx and latency, NIC 2 problems and GPU memory activity. Self-hosted DuckDB still stores all nine. Pressure is kept together: CPU pressure, then interrupt pressure ("full" only; the whole-host CPU "full" is always zero and is not stored), then memory pressure (some and full), and disk pressure (some and full) sits with disk IO. Filesystem rows hold nine filesystems each. The full slot tables are in the maintainer notes (`V7-LAYOUT.md`).
+The hosted rows are full (19 numbers each), so carrying the sizes without adding rows meant leaving out nine less useful points on the Analytics Engine store: cores saturated, hosting free space, Docker used space, logs used space, major page faults per second, unreclaimable kernel slab, Caddy 2xx responses, the router's backends up and the router's request count. Everything else stays, including soft-interrupt time, memory pressure "full", the router's 5xx and latency, NIC 2 problems and GPU memory activity. Self-hosted DuckDB still stores all nine. Pressure is kept together: CPU pressure, then interrupt pressure ("full" only; the whole-host CPU "full" is always zero and is not stored), then memory pressure (some and full), and disk pressure (some and full) sits with disk IO. Filesystem rows hold nine filesystems each. The full slot tables are in the maintainer notes (`V8-LAYOUT.md`).
 
 ## Hardware and device identity
 
@@ -226,7 +226,7 @@ One AE data point holds only 20 doubles, so a sample writes **two or more** data
 
 `managed.ingress` and `managed.database_proxy` have no paging concept — one unpaged row per source entry, since a managed-service sidecar count is small and unbounded paging would add no value. `host.diagnostics`, `managed.router`, `managed.storage`, and `managed.docker` are **single fixed-shape rows** per sample — one hosting root, one Docker daemon, one shared router per host — and carry no entity identity.
 
-The dataset name is **`turbopanel_server_metrics_v7`**. The Wrangler binding is **`SERVER_METRICS`**.
+The dataset name is **`turbopanel_server_metrics_v8`**. The Wrangler binding is **`SERVER_METRICS`**.
 
 | Slot | Content |
 | ---- | ------- |
@@ -254,7 +254,7 @@ AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -
 
 ### Connection-status event stream (`blob1 = "status"`)
 
-Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v7` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
+Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v8` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
 
 <Callout type="warn" title="History-only — never authoritative for liveness">
   This event stream (and the `/metrics/connection` endpoint built on it) exists purely for
@@ -269,7 +269,7 @@ Every genuine online/offline transition on a `server` row also writes **one stat
 
 ## DuckDB + Parquet schema (self-hosted)
 
-The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION` **10**). The marker number is intentionally **not** the wire schema version: `METRICS_SCHEMA_VERSION = 7` counts contract revisions, while the marker counts on-disk layout generations of the self-hosted store and bumps whenever DDL widens or adds a table (every statement is `CREATE TABLE IF NOT EXISTS`, so an unbumped marker would silently keep an older, narrower table). v6 and v7 wire samples land in layout **10** — the two numbers are expected to differ and are never reconciled. A missing, corrupt, or non-matching marker discards those files and the current store is created on the next open — there is no in-place migration. See [Metrics deployment](/docs/deployment/metrics).
+The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION` **10**). The marker number is intentionally **not** the wire schema version: `METRICS_SCHEMA_VERSION = 8` counts contract revisions, while the marker counts on-disk layout generations of the self-hosted store and bumps whenever DDL widens or adds a table (every statement is `CREATE TABLE IF NOT EXISTS`, so an unbumped marker would silently keep an older, narrower table). v6 and v8 wire samples land in layout **10** — the two numbers are expected to differ and are never reconciled. A missing, corrupt, or non-matching marker discards those files and the current store is created on the next open — there is no in-place migration. See [Metrics deployment](/docs/deployment/metrics).
 
 **One real typed table per family — no positional layout, no sentinel.** Missing metrics are genuine SQL `NULL`s. DuckDB writes one row per entity with named nullable columns — 24 drives is 24 rows, not 12 packed pages; AE paging is a Cloudflare-only concern. The current layout:
 
@@ -344,12 +344,12 @@ Metrics ingestion runs on the normal Worker isolate (or Deno process) and **incu
 ### Rows per sample by tier
 
 <Callout type="warn" title="These tables are the v6 inventory">
-  Layout v8 packs the host-wide families into four fixed rows (`host.system`, `host.io`, `host.network`, `host.web`) and folds Caddy, the router and the storage accounting into them. A v8 sample is **4 rows on a VM and 6 on a physical machine** with no managed database, one more with managed databases, plus one page per three extra drives, NICs or GPUs and one per nine extra filesystems; the counts for every plan and hardware shape are pinned in the maintainer notes (`V7-LAYOUT.md`). The v6 figures below are kept for the cost arithmetic and overstate a v8 sample.
+  Layout v8 packs the host-wide families into four fixed rows (`host.system`, `host.io`, `host.network`, `host.web`) and folds Caddy, the router and the storage accounting into them. A v8 sample is **4 rows on a VM and 6 on a physical machine** with no managed database, one more with managed databases, plus one page per three extra drives, NICs or GPUs and one per nine extra filesystems; the counts for every plan and hardware shape are pinned in the maintainer notes (`V8-LAYOUT.md`). The v6 figures below are kept for the cost arithmetic and overstate a v8 sample.
 </Callout>
 
 Every sample writes `rowsPerSample` data points, every minute, with no cadence discount: `rowsPerSample` starts at **2** (the universal baseline) and grows by one row per populated family page. What scales with the tier is **entity cardinality** — how many NICs, drives, GPUs, and extra filesystems a server may report — not depth: `host.diagnostics` and `managed.storage` are on at every tier because doubles inside a row are free.
 
-The table assumes a **fully loaded** server: every entitled slot filled, a site Caddy (`managed.ingress`), the shared hosting router (`managed.router`), a ProxySQL sidecar (`managed.database_proxy`), the storage-accounting row, and the Docker breakdown (v6 withheld it on the entry tier; v7 grants it on every plan). Two NICs embed in `host.io`; the daemon's monitored-NIC ceiling is 11, so S7 and SX page at most nine NICs. A physical machine adds one `hardware.physical` page (11 signal slots on S1, 19 above); a VM never emits that family.
+The table assumes a **fully loaded** server: every entitled slot filled, a site Caddy (`managed.ingress`), the shared hosting router (`managed.router`), a ProxySQL sidecar (`managed.database_proxy`), the storage-accounting row, and the Docker breakdown (v6 withheld it on the entry tier; v8 grants it on every plan). Two NICs embed in `host.io`; the daemon's monitored-NIC ceiling is 11, so S7 and SX page at most nine NICs. A physical machine adds one `hardware.physical` page (11 signal slots on S1, 19 above); a VM never emits that family.
 
 | Tier | Entitlement (NIC / drive / GPU / extra fs) | Rows/sample (VM) | Rows/sample (physical) | Writes/mo (VM / physical) | AE cost/mo (VM / physical) |
 | ---- | ------------------------------------------ | ---------------- | ---------------------- | ------------------------- | -------------------------- |
