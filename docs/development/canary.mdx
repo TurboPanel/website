@@ -162,7 +162,7 @@ canary package is the same shape as a release package — only its version and i
 
 | Repository | Trigger | Build | Publishes |
 | --- | --- | --- | --- |
-| [`turbopaneld`](https://github.com/TurboPanel/turbopaneld) | Every push to `trunk` (`publish-daemon-trunk.yml`, after `verify`) | Native `linux-amd64` and `linux-arm64` daemon, JS fallback, orchestration tree | The rolling `canary` release **and** the `trunk` CDN drop the hosted platform follows |
+| [`turbopaneld`](https://github.com/TurboPanel/turbopaneld) | Every push to `trunk` (`publish-daemon-trunk.yml`, after `verify`) | Native `linux-amd64` and `linux-arm64` daemon, JS fallback, orchestration tree | The rolling `canary` release |
 | [`turbopanel`](https://github.com/TurboPanel/turbopanel) | A green **Build** on `trunk` (`canary.yml` → `release.yml` with `channel=canary`) | Native `linux-amd64` and `linux-arm64` instance packages | The rolling `canary` release |
 | [`ui`](https://github.com/TurboPanel/ui) | A green **Verify** on `trunk` (`canary.yml` → `release.yml` with `channel=canary`) | The web export | The rolling `canary` release |
 

@@ -113,21 +113,21 @@ curl -fsSL turbopanel.sh | \
 
 ## Change update channel
 
-Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`trunk`,
-`canary`, `rc`, `release`, …) are technical identifiers — not product branding.
+Set `TURBOPANEL_UPDATE_CHANNEL` on the same command. Channel names (`canary`,
+`rc`, `release`, …) are technical identifiers — not product branding.
 Each channel has a built-in location: `release` follows the latest
 non-pre-release on the daemon's
 [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases), `rc`
 follows the rolling `rc` pre-release there, `canary` follows the rolling
 `canary` pre-release — the newest green build of `trunk`, replaced on every
-merge (see [Canary environment](/docs/development/canary)) — and `trunk` is
-the per-merge build drop TurboPanel High Availability follows. `edge` is reserved with
-no built-in location. The example below sets `trunk` explicitly (the default is `release`):
+merge (see [Canary environment](/docs/development/canary)). `trunk` (the former
+per-merge build drop on the CDN) is retired and `edge` is reserved: neither has a
+built-in location. The example below sets `canary` explicitly (the default is `release`):
 
 ```bash
 curl -fsSL turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
-  TURBOPANEL_UPDATE_CHANNEL=trunk \
+  TURBOPANEL_UPDATE_CHANNEL=canary \
   sh
 ```
 
