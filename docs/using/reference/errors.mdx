@@ -171,7 +171,7 @@ See [Servers](/docs/using/servers).
 | `server_capacity_exceeded` | 409 | The organization's server capacity is reached. |
 | `no_license_available` | 409 | TurboPanel High Availability: no license is free for a new server. |
 | `license_has_attached_server` | 409 | The license is still bound to a server. |
-| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server; the response counts each. |
+| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server; the response counts each. While the host is online, tear those down first. When it shows **Offline**, **Delete server** can forget those records instead. |
 | `server_offline` | 409 | The action needs the server's daemon connected. |
 | `live_metrics_disabled` | 409 | Live metrics are turned off on this control plane. |
 | `metrics_backend_unavailable` | 503 | The metrics store is not reachable. |
