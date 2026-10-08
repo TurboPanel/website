@@ -127,7 +127,7 @@ There is one path and nothing to choose. `q` is not offered; the only way out is
 | `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-purge.bak` copy is saved first; site owner homes are removed whole) | Removed             |
 | Service accounts and groups (IDs 9900–9999)                                                                                                                            | Removed             |
 | Config, state, log and backup folders; `/etc/ssh/turbopanel`                                                                                                           | Removed             |
-| Site owner accounts, `<user>-grp` groups, homes                                                                                                                         | Removed             |
+| Site owner accounts, their own groups (`<user>`, ids 15001–60000), homes                                                                                                | Removed             |
 | Docker Engine: containers, volumes, images, packages, its apt repo and key                                                                                             | Removed             |
 | PHP packages and the sury key that TurboPanel installed                                                                                                                | Removed (see below) |
 | Any other apt package                                                                                                                                                  | Never touched       |
