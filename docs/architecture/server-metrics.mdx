@@ -199,7 +199,7 @@ The wire sample still carries `metadata.topologyGeneration` and `metadata.bootGe
 - **The server keeps only its latest hardware facts**, as one record on the server (`server.metadata.hardware`), overwritten at most every 5 minutes. It answers "what hardware does this server have now" (device names, layout paths, machine class) and nothing historical.
 - `host.network`'s two embedded NIC slots still follow the slot mapping computed from those latest facts (`SlotMapping.normalNicSlots`), and a TurboFabric mesh interface (`SlotMapping.fabricDeviceIds`) never pages as a `network` row. Before the first hardware report arrives, packing falls back to positional order rather than dropping data.
 - **Sizes are not hardware facts.** A RAM or CPU resize or a balloon changes the sizes on the next sample (see [Sizes ride every sample](#sizes-ride-every-sample)).
-- The report is bounded: an out-of-range number is refused, the snapshot is capped at 64 KiB, a changed report inside the 5-minute window is dropped with a durable alert (`topologyChurnLimitedAt`), and a report burst over four a minute per server is dropped before it touches the database.
+- The report is bounded: an out-of-range number is refused, the snapshot is capped at 64 KiB, and a changed report inside the 5-minute window is dropped.
 
 ## Limits on what a server may send
 
@@ -344,7 +344,7 @@ Metrics ingestion runs on the normal Worker isolate (or Deno process) and **incu
 ### Rows per sample by tier
 
 <Callout type="warn" title="These tables are the v6 inventory">
-  Layout v8 packs the host-wide families into four fixed rows (`host.system`, `host.io`, `host.network`, `host.web`) and folds Caddy, the router and the storage accounting into them. A v8 sample is **4 rows on a VM and 6 on a physical machine** with no managed database, one more with managed databases, plus one page per three extra drives, NICs or GPUs and one per nine extra filesystems; the counts for every plan and hardware shape are pinned in the maintainer notes (`V8-LAYOUT.md`). The v6 figures below are kept for the cost arithmetic and overstate a v8 sample.
+  Layout v8 packs the host-wide families into four fixed rows (`host.system`, `host.io`, `host.network`, `host.web`) and folds Caddy, the router and the storage accounting into them. A v8 sample is **4 rows on a VM, 5 rows on a physical machine with one drive, and 6 rows on a physical machine with two or three drives**, all with no managed database, one more with managed databases, plus one page per three extra drives, NICs or GPUs and one per nine extra filesystems; the counts for every plan and hardware shape are pinned in the maintainer notes (`V8-LAYOUT.md`). The v6 figures below are kept for the cost arithmetic and overstate a v8 sample.
 </Callout>
 
 Every sample writes `rowsPerSample` data points, every minute, with no cadence discount: `rowsPerSample` starts at **2** (the universal baseline) and grows by one row per populated family page. What scales with the tier is **entity cardinality** — how many NICs, drives, GPUs, and extra filesystems a server may report — not depth: `host.diagnostics` and `managed.storage` are on at every tier because doubles inside a row are free.
