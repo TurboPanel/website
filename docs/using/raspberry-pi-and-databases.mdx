@@ -58,7 +58,7 @@ To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. Yo
 - The page size is already 4 KiB.
 - `/boot/firmware/config.txt` already chooses another kernel. It is left as it is, and `status` says `blocked`.
 - The 4 KiB kernel modules (`*-rpi-v8`) are not installed, and `status` says `blocked`.
-- `config.txt` turns on `auto_initramfs` and `initramfs8` is missing from the boot partition, and `status` says `blocked`.
+- `config.txt` has `auto_initramfs=1` but `initramfs8` is missing from the boot partition, and `status` says `blocked`.
 
 ## Undo
 
