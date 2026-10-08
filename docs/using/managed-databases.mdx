@@ -236,6 +236,19 @@ What to know:
 - Backups stay on the server's own disk: they do not protect against losing the whole server. Offsite storage is not built yet.
 - Schedules for **storage volumes** are separate and API-only today: see [Storage and variables](/docs/using/storage-and-variables#volume-backups).
 
+## External access
+
+One setting, per server: **Allow external access to the databases on this server**. The default is **No**.
+
+A server runs one listener for every database on it, so who can reach it from outside is a fact about the server, not about one database.
+
+| Setting | Who can connect |
+| --- | --- |
+| **No** (default) | Only services on that server: sites run by a site owner's Linux user (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect. |
+| **Yes** | The same ports are also published on all of the server's addresses. The server's firewall and your network rules decide who can then reach them. It covers **every** database on that server. |
+
+Find the switch in the **create database** form (it shows the chosen server's current value and warns when other databases already run there), in the database's **Settings** tab (one row per server that serves it, with how many other databases share it), and over the API at `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access` (organization owners and managers). Saving tells the server at once; if the server is offline or the change cannot be delivered yet, it is saved and retried automatically, and the app shows it as waiting for the server. The **Connect** tab shows the host clients outside the server should use only while the setting is **Yes**.
+
 ## Lifecycle and organization settings
 
 - **Start / Stop / Restart** act on the containers; stop keeps everything. **Apply** re-converges the cluster after a settings change.

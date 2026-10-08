@@ -41,6 +41,15 @@ human-readable Docker name. The one exception is the self-hosted TurboPanel
 control plane stack itself, whose compose project stays `turbopanel-system` because
 operators do inspect it directly.
 
+## External access
+
+One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no per-login source rule, so this is deliberately a server-level fact rather than a per-database one.
+
+- **No:** the listener is published on `127.0.0.1` only. Sites run by a site owner's Linux user connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
+- **Yes:** the same ports are published on every address of the server (`0.0.0.0`). The firewall and network rules decide who can reach them, and every database on the server is reachable that way.
+
+The control plane sends the daemon a single bind address (`127.0.0.1` or `0.0.0.0`) in `bindAddresses`; the daemon contract is unchanged. A change is queued to the server at once and kept as "waiting" until the server confirms it, then retried automatically if the server was offline. The API is `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access`.
+
 ## Ports and firewall
 
 On each server that hosts a managed member or a **placed compose service bound to a managed cluster**:
@@ -55,7 +64,7 @@ On each server that hosts a managed member or a **placed compose service bound t
 Firewall guidance:
 
 - Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
-- Restrict public exposure of 15432/13306 to operator IP ranges when exposure is `public`.
+- Restrict 15432/13306 to operator IP ranges when external access is on for the server.
 - Engine containers themselves never publish host ports for SQL.
 
 ### Public replication transport
