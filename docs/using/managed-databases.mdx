@@ -115,7 +115,7 @@ Every login and system user has two names: the **display name** you typed, and t
 
 The scheme applies to every kind of login or system user: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
 
-The typed name is at most 16 characters under `partial`, so the whole name stays within 28 characters and the Linux group `<name>-grp` fits in 32.
+The typed name is at most 16 characters under `partial`, so the whole name stays within 28 characters. On the server each Linux user gets a group of the same name, so a name that matches a system or administrator group (such as `sudo`, `admin`, `wheel` or `staff`) is not allowed.
 
 Three places choose a scheme:
 

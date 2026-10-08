@@ -147,6 +147,11 @@ A **binding** connects a managed database user to a compose service:
 3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
    consumer server and cluster member servers so frontend users and servers stay
    aligned with sealed system user passwords.
+4. Binding create, change and delete are recorded in the organization's audit
+   trail as `binding.create`, `binding.update` and `binding.delete`. An entry
+   names who did it and which binding, never a password or any variable value.
+   Deleting a binding asks the person to confirm it is them first when the
+   organization has turned on that option.
 
 ## Replicas and failover
 
