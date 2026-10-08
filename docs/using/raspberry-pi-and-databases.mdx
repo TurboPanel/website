@@ -1,0 +1,80 @@
+---
+title: Raspberry Pi and databases
+description: Why a Raspberry Pi needs the 4 KiB kernel before apps can reach managed databases, how to switch it with one command or at install time, and how to undo it
+---
+
+# Raspberry Pi and databases
+
+Every server whose apps use a managed database runs a small database proxy. Apps connect to `localhost:13306` (MySQL and MariaDB) or `localhost:15432` (Postgres), and the proxy sends each connection to the right database server, using the login name. This is true even when no database runs on that server.
+
+The proxy needs a **4 KiB** memory page size. A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a **16 KiB** kernel by default, and the proxy cannot start on it. Until the Pi boots the 4 KiB kernel, apps on it cannot reach their databases.
+
+## Switch an existing server
+
+Run this on the server. It needs `sudo`. The installer only restarts on a first install; on a server that is already installed or already enrolled, you run this yourself:
+
+```bash
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features status
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-4k-pagesize --reboot
+```
+
+`status` prints three tab-separated columns: feature id, state, and reason. Tabs are shown as spaces here. When the server can switch:
+
+```
+pi-4k-pagesize    switchable    this server can switch to the 4 KiB kernel (a restart is needed)
+```
+
+The state is one of `not-applicable`, `switchable`, `restart-needed`, `ready`, or `blocked`.
+
+<Steps>
+  <Step>
+    When `status` prints `switchable` for `pi-4k-pagesize`, the server can switch.
+  </Step>
+  <Step>
+    `apply` copies `/boot/firmware/config.txt` to `config.txt.tp-backup-<date and time>` in the same directory, then adds the line `kernel=kernel8.img` at the top of `config.txt`.
+  </Step>
+  <Step>
+    With `--reboot`, it waits until the server has finished enrolling with TurboPanel, then shows a countdown (`Restarting in 10 second(s)…`). Press Ctrl-C to cancel and restart yourself later.
+  </Step>
+  <Step>
+    When the server is back, `getconf PAGESIZE` prints `4096` and `status` prints `ready`. The database proxy then starts by itself.
+  </Step>
+</Steps>
+
+Leave out `--reboot` to save the change and restart on your own schedule. `status` then reads `restart-needed`.
+
+## At install time
+
+On a Raspberry Pi running Raspberry Pi OS on Debian 13, the installer does the same switch as its **last** step, after everything else is installed — but only on a **first** install. It records whether the server was already enrolled, waits for fresh enrolment files, then explains what is about to happen, saves the change, counts down, and restarts the server.
+
+On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
+
+To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. You can run the command above later instead.
+
+## When it does nothing
+
+- The server is not a Raspberry Pi.
+- The OS is not Raspberry Pi OS on Debian 13 ("trixie").
+- The page size is already 4 KiB.
+- `/boot/firmware/config.txt` already chooses another kernel. It is left as it is, and `status` says `blocked`.
+- The 4 KiB kernel modules (`*-rpi-v8`) are not installed, and `status` says `blocked`.
+- `config.txt` has `auto_initramfs=1` but `initramfs8` is missing from the boot partition, and `status` says `blocked`.
+
+## Undo
+
+```bash
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features undo pi-4k-pagesize
+sudo reboot
+```
+
+`undo` removes the `kernel=kernel8.img` line only when TurboPanel added it. If you wrote `kernel=kernel8.img` yourself, it prints `Nothing to undo` and you remove the line by hand. `undo` never restarts the server. The backup copy is left in place.
+
+## If a Pi does not come back
+
+Take the SD card out and mount its boot partition on another computer. Delete the `kernel=kernel8.img` line from `config.txt`, or copy the `config.txt.tp-backup-…` file over it, then put the card back.
+
+## Related
+
+- [Managed databases](/docs/using/managed-databases) — creating a cluster on a server.
+- [Servers](/docs/using/servers) — the server control panel, including reboot.
+- [Daemon setup](/docs/deployment/daemon-setup#supported-platforms) — which hosts the installer supports.
