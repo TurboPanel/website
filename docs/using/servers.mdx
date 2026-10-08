@@ -9,13 +9,13 @@ A **server** is a Linux host running the TurboPanel daemon, enrolled into one or
 
 ## The model
 
-| Term                  | Meaning                                                                                                                                                                                                                                             |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Registration key**  | A one-shot credential the app mints when you add a server. It is embedded in the install command; the daemon consumes it at enrollment and it is bound to that server from then on. An unconsumed key is a **pending key**.                         |
-| **Daemon**            | `turbopaneld` on the host: enrolls with the key, holds a signed key pair, streams facts and metrics, and executes the commands the control plane queues (deploys, reboots, updates). It connects **out** to the control plane; nothing connects in. |
-| **Co-located server** | On self-hosted, the control plane's own host is also a server — enrolled at install and badged **Platform Server**. It cannot be deleted, its key cannot be revoked, and it updates with the control plane rather than through the app.             |
-| **Capacity**          | An owner-set ceiling on how many servers the organization may hold (**Servers → Settings → Server capacity**); enrolled servers and pending keys both count. On High Availability the purchased [licenses](/docs/using/billing) bound it as well.   |
-| **Machine class**     | Physical or virtual. Decides whether hardware-sensor slots are used; inferred from discovered sensors unless pinned.                                                                                                                                |
+| Term | Meaning |
+| --- | --- |
+| **Registration key** | A one-shot credential the app mints when you add a server. It is embedded in the install command; the daemon consumes it at enrollment and it is bound to that server from then on. An unconsumed key is a **pending key**. |
+| **Daemon** | `turbopaneld` on the host: enrolls with the key, holds a signed key pair, streams facts and metrics, and executes the commands the control plane queues (deploys, reboots, updates). It connects **out** to the control plane; nothing connects in. |
+| **Co-located server** | On self-hosted, the control plane's own host is also a server — enrolled at install and badged **Platform Server**. It cannot be deleted, its key cannot be revoked, and it updates with the control plane rather than through the app. |
+| **Capacity** | An owner-set ceiling on how many servers the organization may hold (**Servers → Settings → Server capacity**); enrolled servers and pending keys both count. On High Availability the purchased [licenses](/docs/using/billing) bound it as well. |
+| **Machine class** | Physical or virtual. Decides whether hardware-sensor slots are used; inferred from discovered sensors unless pinned. |
 
 Two rules:
 
@@ -34,27 +34,18 @@ Two rules:
 
 <Steps>
   <Step>
-    **Server name (optional)** — how the row will be labelled; the daemon's
-    hostname is used otherwise. **Continue** mints the key. Refused when
-    capacity is exhausted (`server_capacity_exceeded`) or, on High Availability,
-    when every license is held (`no_license_available` — **Open billing**).
+    **Server name (optional)** — how the row will be labelled; the daemon's hostname is used otherwise. **Continue** mints the key. Refused when capacity is exhausted (`server_capacity_exceeded`) or, on High Availability, when every license is held (`no_license_available` — **Open billing**).
   </Step>
   <Step>
-    **Install command**: `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`,
-    with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy
-    install command** and run it as root on the host. It installs the daemon,
-    enrolls with the key, and starts the service.
+    **Install command**: `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`, with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
   </Step>
   <Step>
-    **Connect** waits for the daemon's first heartbeat, then opens the server.
-    The key disappears from **Keys** the moment it is consumed.
+    **Connect** waits for the daemon's first heartbeat, then opens the server. The key disappears from **Keys** the moment it is consumed.
   </Step>
 </Steps>
 
 <Callout type="info" title="The install command carries a secret">
-  The key inside the command enrolls one host; treat the command as a password
-  until it has been used. A key you will not use is deleted under **Servers →
-  Pending keys**.
+  The key inside the command enrolls one host; treat the command as a password until it has been used. A key you will not use is deleted under **Servers → Pending keys**.
 </Callout>
 
 **Servers → Pending keys** lists the unconsumed keys (owner-only). **Delete** is two-press. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
@@ -74,12 +65,12 @@ Open a server for seven tabs: **Overview · Control · Services · Time · Netwo
 - **Details** — hostname, machine id, OS, daemon build, last seen, addresses.
 - **Labels** — key/value labels on the server (**Add label**, **Save**). A service can pin itself to servers by label with plain Compose: `deploy.placement.constraints: ["node.labels.tier == db"]` (`==` / `!=`).
 - **License** (High Availability) — the tier the server sits on, the tier its hardware requires, and what is unwatched if they differ; **Daily notice** shows the last tier notice. See [License tiers](/docs/deployment/tiers).
-- **Machine class** — **Auto** (default), **Physical** or **Virtual**. _The pin sets entitlement, not what the daemon collects_: Physical unlocks the sensor slots the tier includes; Virtual suppresses them; Auto infers Physical once sensors are discovered and never infers Virtual.
+- **Machine class** — **Auto** (default), **Physical** or **Virtual**. *The pin sets entitlement, not what the daemon collects*: Physical unlocks the sensor slots the tier includes; Virtual suppresses them; Auto infers Physical once sensors are discovered and never infers Virtual.
 - **Hardware profile** — which sensors feed CPU, drive and GPU temperature, which physical NICs are monitored, the **hosting storage path** (the mount that should hold application storage; empty auto-detects), and manual **CPU TDP** / **Tjmax** overrides. Drive temperature reporting (`drivetemp`) is opt-in. What each choice changes on the Metrics tab is in [Server metrics](/docs/metrics).
 
 ### Control
 
-- **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. _Not provisioned_ means no hosting has been deployed to this server yet.
+- **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. *Not provisioned* means no hosting has been deployed to this server yet.
 - **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the app shows each command's outcome and log. A command that fails shows the one line that names the cause, not the whole block of daemon output.
 - **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
@@ -90,16 +81,15 @@ Open a server for seven tabs: **Overview · Control · Services · Time · Netwo
 
 Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete server** might refuse, without leaving the control panel.
 
-**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. Typical reasons: apps still running here, a managed database or database member placed here, networks, addresses, or this being the co-located **Platform Server**. When the card says **Yes**, delete is available on **Control**.
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records instead of asking you to stop or move apps first. When the card says **Yes**, delete is available on **Control**.
 
-Below the card, each section is a list, or one quiet line when empty:
+Below the card, each section is a list, or one quiet line when empty. If a list is long, the tab cuts it off with **and N more**:
 
-- **Apps** — environments whose containers run here: project, environment, container name and status, and the domains they publish.
+- **Apps** — environments whose containers run here: project, environment, container name and status, and the domains they publish. Containers and domains on each app are capped the same way.
 - **Databases** — managed-database members on this host (primary or replica), their engine and status.
-- **Apps using databases through this host** — apps on this server that reach a managed database through this host's listener. The database itself may live on another server.
-- **Backups** — managed-database backups stored on this host, how many, and when the latest was taken.
+- **Apps bound to databases** — one row per app on this server that is bound to a managed database, with the databases it uses. The database itself may live on another server.
+- **Backups** — backups of databases that have a member on this server, how many, and when the latest was taken.
 - **Networks and addresses** — networks this server is in, and how many addresses are assigned here.
-- **Host services** — platform processes the daemon already reports on this host (the site proxy, the database listener, and similar) and whether each is up, down, or unknown.
 - **Runtimes** — language runtimes the daemon has reported, and the versions it found.
 
 The tab uses one request and refreshes while you keep it open.
@@ -140,24 +130,24 @@ Forgetting removes only the app's records. It does not touch the machine. It is 
 
 **Servers → Settings.**
 
-| Panel                       | What it sets                                                                                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Default server timezone** | The organization's timezone default, and **Enforce org default on every server**.                                                                                                          |
-| **Temperature display**     | °C or °F on every Metrics tab.                                                                                                                                                             |
-| **Host defaults**           | The organization-level **SSH port**, **NTP client enabled**, **NTP servers**, **Fallback NTP servers** — the top of the _organization → datacenter → server_ cascade (most specific wins). |
-| **Server capacity**         | **Max servers** or **Unlimited servers** (owner-only). Enrolled servers and pending keys count.                                                                                            |
+| Panel | What it sets |
+| --- | --- |
+| **Default server timezone** | The organization's timezone default, and **Enforce org default on every server**. |
+| **Temperature display** | °C or °F on every Metrics tab. |
+| **Host defaults** | The organization-level **SSH port**, **NTP client enabled**, **NTP servers**, **Fallback NTP servers** — the top of the *organization → datacenter → server* cascade (most specific wins). |
+| **Server capacity** | **Max servers** or **Unlimited servers** (owner-only). Enrolled servers and pending keys count. |
 
 ## Reference
 
-| Item               | Value                                                                                                                                                                 |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Install command    | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
-| Key                | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one                                                                                              |
-| Reserved name      | `this server` (the co-located server)                                                                                                                                 |
-| Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics                                                                                                   |
-| Machine class      | `auto` (default) · `physical` · `virtual`                                                                                                                             |
-| Cascades           | timezone, SSH port, NTP: organization → datacenter → server                                                                                                           |
-| Daemon session     | 15-minute signed tokens; revocation takes effect at the next one at the latest                                                                                        |
+| Item | Value |
+| --- | --- |
+| Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
+| Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
+| Reserved name | `this server` (the co-located server) |
+| Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics |
+| Machine class | `auto` (default) · `physical` · `virtual` |
+| Cascades | timezone, SSH port, NTP: organization → datacenter → server |
+| Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
 
 ## Errors
 
