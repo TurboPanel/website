@@ -17,7 +17,7 @@ A managed database is a **managed project** — one project whose environment ho
 
 Two facts shape everything below:
 
-- **The version series is chosen once.** A cluster is created as PostgreSQL 18, MySQL 9.7 or MariaDB 12.3 (the currently tested series) with a base-OS variant; the series never changes afterwards (`managed_series_immutable`). Only the variant may.
+- **The version series is chosen once.** A cluster is created as PostgreSQL 18, MySQL 9.7 or 8.4, or MariaDB 12.3 or 11.8 (the currently tested series) with a base-OS variant; the series never changes afterwards (`managed_series_immutable`). Only the variant may.
 - **TLS between the listener and the engine is always on.** The **SSL mode** you set is a client-facing policy — whether the listener refuses a plaintext client and what verification the connection string tells the driver to do — never a switch for engine encryption.
 
 ## Before you begin
@@ -50,10 +50,10 @@ Two facts shape everything below:
 | Engine | Creatable series (tested) | Variants |
 | --- | --- | --- |
 | PostgreSQL | **18** | Alpine, Debian |
-| MySQL | **9.7** | Debian, Oracle Linux 9 |
-| MariaDB | **12.3** | Debian, UBI |
+| MySQL | **9.7**, **8.4** | Debian, Oracle Linux 9 |
+| MariaDB | **12.3**, **11.8** | Debian, UBI |
 
-Older series (PostgreSQL 17/16/15, MySQL 8.4, MariaDB 11.8/11.4/10.11) are catalogued so an existing cluster can be named, not created.
+Older series (PostgreSQL 17/16/15, MariaDB 11.4/10.11) are catalogued so an existing cluster can be named, not created.
 
 ## Connect to it
 
@@ -260,7 +260,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | Item | Value |
 | --- | --- |
 | Engines | `postgres`, `mysql`, `mariadb` |
-| Creatable series | PostgreSQL 18 · MySQL 9.7 · MariaDB 12.3 |
+| Creatable series | PostgreSQL 18 · MySQL 9.7, 8.4 · MariaDB 12.3, 11.8 |
 | Variants | `alpine`, `debian`, `oraclelinux9`, `ubi` (two per series) |
 | Listener ports | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999` |
 | SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
