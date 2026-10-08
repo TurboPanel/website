@@ -7,7 +7,7 @@ Third-party components remain under their own copyright and license terms and ar
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d415f1948
+pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383dc09bd0
 -->
 
 ## Production dependencies
@@ -304,7 +304,7 @@ pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d41
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.3.6
+### @next/env@16.3.8
 
 - License: MIT
 - Copyright: Next.js Team
@@ -2414,7 +2414,7 @@ pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d41
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.3.6
+### next@16.3.8
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3321,7 +3321,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.6
+### @next/swc-linux-x64-gnu@16.3.8
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
