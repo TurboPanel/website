@@ -1,6 +1,6 @@
 ---
 title: Servers
-description: Adding a server with a registration key, pending keys, the server list and batch daemon updates, the server control panel — details, labels, machine class, the server proxy, hostname, reboot, SSH port, time and NTP, daemon update, revoke, delete — and the organization's server settings, with every refusal
+description: Adding a server with a registration key, pending keys, the server list and batch daemon updates, the server control panel — details, labels, machine class, the Services tab, the server proxy, hostname, reboot, SSH port, time and NTP, daemon update, revoke, delete, forgetting records when the host is gone — and the organization's server settings, with every refusal
 ---
 
 # Servers
@@ -58,7 +58,7 @@ Two rules:
 
 ## The control panel
 
-Open a server for six tabs: **Overview · Control · Time · Network · Firewall · Metrics**. The **Firewall** tab is described in [Firewall](/docs/using/firewall).
+Open a server for seven tabs: **Overview · Control · Services · Time · Network · Firewall · Metrics**. The **Firewall** tab is described in [Firewall](/docs/using/firewall).
 
 ### Overview
 
@@ -75,7 +75,24 @@ Open a server for six tabs: **Overview · Control · Time · Network · Firewall
 - **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
-- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. The co-located server cannot be deleted.
+- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. If the host is gone, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
+
+### Seeing what runs on a server
+
+Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete server** might refuse, without leaving the control panel.
+
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records instead of asking you to stop or move apps first. When the card says **Yes**, delete is available on **Control**.
+
+Below the card, each section is a list, or one quiet line when empty. If a list is long, the tab cuts it off with **and N more**:
+
+- **Apps** — environments whose containers run here: project, environment, container name and status, and the domains they publish. Containers and domains on each app are capped the same way.
+- **Databases** — managed-database members on this host (primary or replica), their engine and status.
+- **Apps bound to databases** — one row per app on this server that is bound to a managed database, with the databases it uses. The database itself may live on another server.
+- **Backups** — backups of databases that have a member on this server, how many, and when the latest was taken.
+- **Networks and addresses** — networks this server is in, and how many addresses are assigned here.
+- **Runtimes** — language runtimes the daemon has reported, and the versions it found.
+
+The tab uses one request and refreshes while you keep it open.
 
 ### Time
 
@@ -90,6 +107,24 @@ Read-only view of what the daemon reports and how the organization has pinned it
 ### Metrics
 
 Live and historical charts for the host; see [Server metrics](/docs/metrics) for what each one means and [Live metrics sessions](/docs/using/admin#server-metrics) for the session limit.
+
+## When the host is gone
+
+If you purged the host or lost the machine, the app still lists its containers and networks, so **Delete server** is refused (`server_has_blockers`). When the server shows **Offline**, **Delete server** lists exactly which records will be forgotten and offers **Forget these and delete server** (two-step confirm).
+
+Forgetting removes only the app's records. It does not touch the machine. It is refused while the host is online. It is recorded in the audit log as a server delete, with the counts of what was forgotten.
+
+<Steps>
+  <Step>
+    Open the server. It must show **Offline**.
+  </Step>
+  <Step>
+    On **Control**, open **Delete server** and read the list of records that will be forgotten.
+  </Step>
+  <Step>
+    **Forget these and delete server**, then confirm.
+  </Step>
+</Steps>
 
 ## Organization settings
 
@@ -109,7 +144,7 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 | Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
 | Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
 | Reserved name | `this server` (the co-located server) |
-| Control-panel tabs | Overview · Control · Time · Network · Firewall · Metrics |
+| Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics |
 | Machine class | `auto` (default) · `physical` · `virtual` |
 | Cascades | timezone, SSH port, NTP: organization → datacenter → server |
 | Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
@@ -121,7 +156,7 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 | `server_capacity_exceeded` | 409 | Enrolled servers plus pending keys reach **Max servers**. |
 | `no_license_available` | 409 | High Availability: every purchased license is held or releasing. |
 | `license_has_attached_server` | 409 | The key is bound to a live server; delete the server, not the key. |
-| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). |
+| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). While the host is online, tear those down first. When it shows **Offline**, **Delete server** can forget those records instead. |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own app. |
 | `The co-located development daemon cannot be updated from the control plane` | 403 | Update the control plane instead. |
 | `control_plane_upgrade_required` | 409 | Self-hosted: the server-update gate is shut. The badge reads **Waiting for the control plane upgrade**. |
@@ -133,6 +168,8 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 
 ## Related
 
+- [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases) — switching a Pi to the 4 KiB kernel so its apps can reach managed databases.
+- [Purge and data export](/docs/deployment/purge) — removing TurboPanel from a host; then delete the server here.
 - [Daemon setup](/docs/deployment/daemon-setup) — the installer, the FHS layout, the service.
 - [Daemon update](/docs/deployment/daemon-update) — updating from the shell and changing channel.
 - [Datacenters and networking](/docs/using/network) — subnets, pins, addresses, Docker pools, the mesh.
