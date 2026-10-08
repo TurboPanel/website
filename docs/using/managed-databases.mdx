@@ -17,7 +17,7 @@ A managed database is a **managed project** — one project whose environment ho
 
 Two facts shape everything below:
 
-- **The version series is chosen once.** A cluster is created as PostgreSQL 18, MySQL 9.7 (the default) or 8.4, or MariaDB 11.8 (long-term support, the default) or 12.3, with a base-OS variant; the series never changes afterwards (`managed_series_immutable`). Only the variant may. MariaDB 12.3 can run on one server only for now: adding a replica (a failover pair) or running a high availability cluster needs MariaDB 11.8 until failover for 12.x is supported.
+- **The version series is chosen once.** A cluster is created as PostgreSQL 18, MySQL 9.7 (the default) or 8.4, or MariaDB 11.8 (long-term support, the default) or 12.3, with a base-OS variant; the series never changes afterwards (`managed_series_immutable`). Only the variant may. MariaDB 12.3 can run on one server only for now: adding a replica, or converting a replica to a failover member, needs MariaDB 11.8 until failover for 12.x is supported. A 12.3 database that already exists keeps running as it is.
 - **TLS between the listener and the engine is always on.** The **SSL mode** you set is a client-facing policy — whether the listener refuses a plaintext client and what verification the connection string tells the driver to do — never a switch for engine encryption.
 
 ## Before you begin
@@ -136,7 +136,7 @@ Existing logins and system users are never renamed by a default or a lock change
 | **Failover replica** | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand. |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
-MariaDB 12.3 stays on one server: **Add replica** needs MariaDB 11.8 until failover for 12.x is supported.
+MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a failover member need MariaDB 11.8 until failover for 12.x is supported.
 
 <Steps>
   <Step>
