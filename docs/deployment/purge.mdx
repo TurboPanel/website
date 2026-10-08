@@ -179,7 +179,7 @@ Every package that is purged is first simulated with `apt-get -s purge`. A packa
 ## After purging a daemon
 
 1. Stop environments from the app before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
-2. After the script finishes, the server shows **Offline**. Open it in the app and use **Delete server** — it lists the leftover records and offers **Forget these and delete server**. See [When the host is gone](/docs/using/servers#when-the-host-is-gone). On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
+2. After the script finishes, the server shows **Offline**. Open it in the app and use **Delete server** — it lists leftover records, the apps that will be removed from TurboPanel, and any database you must delete first, then offers **Forget these and delete server**. See [When the host is gone](/docs/using/servers#when-the-host-is-gone). On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
 3. Reinstall with the commands the script prints at the end:
 
 Install a daemon again ([Daemon setup](/docs/deployment/daemon-setup)):

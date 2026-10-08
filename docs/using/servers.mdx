@@ -75,13 +75,15 @@ Open a server for seven tabs: **Overview · Control · Services · Time · Netwo
 - **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
-- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. If the host is gone, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
+- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`). While the host is online, tear down or move the environments placed here first. If the host is gone and the server shows **Offline**, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
 
 ### Seeing what runs on a server
 
 Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete server** might refuse, without leaving the control panel.
 
-**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records instead of asking you to stop or move apps first. When the card says **Yes**, delete is available on **Control**.
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records — including apps that lived only on this server — instead of asking you to stop or move them first. A database whose only copy is here still has to be deleted first. When the card says **Yes**, delete is available on **Control**.
+
+Every delete refusal and that card name each blocking environment as **Project / Environment**, up to fifty and then **and N more** — including environments that only hold a managed database, which block delete but do not appear in **Apps** below. Blocking managed databases are listed the same way.
 
 Below the card, each section is a list, or one quiet line when empty. If a list is long, the tab cuts it off with **and N more**:
 
@@ -110,19 +112,29 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 
 ## When the host is gone
 
-If you purged the host or lost the machine, the app still lists its containers and networks, so **Delete server** is refused (`server_has_blockers`). When the server shows **Offline**, **Delete server** lists exactly which records will be forgotten and offers **Forget these and delete server** (two-step confirm).
+If you purged the host or lost the machine, the app still lists what ran there, so **Delete server** is refused (`server_has_blockers`) until those records are gone. **Host is gone** is only for an **Offline** server. While the host is **Online**, forget is refused (`server_online`); tear down or move apps first. The co-located server cannot be deleted.
 
-Forgetting removes only the app's records. It does not touch the machine. It is refused while the host is online. It is recorded in the audit log as a server delete, with the counts of what was forgotten.
+When the server shows **Offline**, **Delete server** opens **Host is gone**. Apps that lived only on this server are listed first — they will be removed from TurboPanel (each app in its project; a long list ends with **and N more**). Confirm twice: the first press shows that warning and list; **Forget these and delete server** then removes the server.
+
+**What is forgotten** (records in TurboPanel only — the machine is not touched):
+
+- Those apps, and the containers, networks, and addresses still recorded on this server
+- Replica members on this server when the database still has its main copy on another server
+- Leftover deploy and storage records that still point at this host
+
+**What is not forgotten.** A database whose only copy was on this server must be deleted first. If this server held the database's main copy and other copies exist elsewhere, move the main copy or delete the database first. Until then, forget is refused (`server_has_blockers`) and the databases are listed by name.
+
+Forgetting is recorded in the audit log as a server delete, with counts of what was forgotten.
 
 <Steps>
   <Step>
     Open the server. It must show **Offline**.
   </Step>
   <Step>
-    On **Control**, open **Delete server** and read the list of records that will be forgotten.
+    On **Control**, open **Delete server**. Read the apps that will be removed from TurboPanel (listed first), then the other records that will be forgotten. If a database is listed as blocking, delete that database first and come back.
   </Step>
   <Step>
-    **Forget these and delete server**, then confirm.
+    Confirm, then **Forget these and delete server**.
   </Step>
 </Steps>
 
@@ -156,7 +168,8 @@ Forgetting removes only the app's records. It does not touch the machine. It is 
 | `server_capacity_exceeded` | 409 | Enrolled servers plus pending keys reach **Max servers**. |
 | `no_license_available` | 409 | High Availability: every purchased license is held or releasing. |
 | `license_has_attached_server` | 409 | The key is bound to a live server; delete the server, not the key. |
-| `server_has_blockers` | 409 | Networks, containers or addresses still reference the server (counts in the response). While the host is online, tear those down first. When it shows **Offline**, **Delete server** can forget those records instead. |
+| `server_has_blockers` | 409 | Leftover records still reference the server (counts in the response), or a database still has its only copy or its main copy here. While the host is online, tear those down first. When it shows **Offline**, **Delete server** can forget leftover records — except those databases, which you must delete first. |
+| `server_online` | 409 | Forget leftover records is refused while the server is still connected. |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own app. |
 | `The co-located development daemon cannot be updated from the control plane` | 403 | Update the control plane instead. |
 | `control_plane_upgrade_required` | 409 | Self-hosted: the server-update gate is shut. The badge reads **Waiting for the control plane upgrade**. |
