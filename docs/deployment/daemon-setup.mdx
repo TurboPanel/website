@@ -71,7 +71,7 @@ Full table: [Control plane](/docs/deployment/control-plane#control-plane-listene
 
 **Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during Ansible provisioning with an explicit architecture error.
 
-A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel by default; apps that use managed databases need a 4 KiB kernel. On such a Pi the installer switches it as its last step (opt out with `TURBOPANEL_SKIP_KERNEL_SWITCH=1`), and `sudo tp-orchestrate kernel-features apply pi-4k-pagesize --reboot` does it on a server that is already installed. See [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
+A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel by default; apps that use managed databases need a 4 KiB kernel. On such a Pi the installer switches it as its last step on a first install (opt out with `TURBOPANEL_SKIP_KERNEL_SWITCH=1`): it records whether the server was already enrolled, waits for fresh enrolment files, then restarts. On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this. On a server that is already installed, run `sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-4k-pagesize --reboot`. See [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
 
 ### Remote managed server (production installer)
 
