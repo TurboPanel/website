@@ -77,7 +77,7 @@ On **nginx and Apache**, each deploy starts the site's own PHP from the mode it 
 2. The web server is pointed at the new socket with the usual safe rollout: stage the config, test it, reload, probe the site over HTTP, and switch back if the probe fails.
 3. The old runtime is removed only after the probe passes. If the rollout fails, the new runtime is removed and the old one keeps serving.
 
-A runtime that is down when the daemon starts is started again. Removing the site removes its runtimes. The PHP binaries are limited to owners who are entitled to that PHP version, and the deploy grants that entitlement.
+A runtime that is down when the daemon starts is started again. Removing the site removes its runtimes. Every PHP version installed on the server can be run by every site owner's Linux user.
 
 A site with no mode keeps the shared php-fpm pool it already has. A site that moves to its own runtime leaves its old pool behind on the shared php-fpm; nothing is migrated. A mode is refused for a site that has no Linux user of its own, and `lsphp-*` is refused on nginx and Apache. On **OpenLiteSpeed** the mode picks which runtime the site's socket connects to (`fastcgi`, `fpm` or `lsphp-detached`). Caddy runs no per-site PHP and does not read the mode.
 
