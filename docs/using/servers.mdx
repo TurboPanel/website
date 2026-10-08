@@ -1,6 +1,6 @@
 ---
 title: Servers
-description: Adding a server with a registration key, pending keys, the server list and batch daemon updates, the server control panel — details, labels, machine class, the server proxy, hostname, reboot, SSH port, time and NTP, daemon update, revoke, delete, forgetting records when the host is gone — and the organization's server settings, with every refusal
+description: Adding a server with a registration key, pending keys, the server list and batch daemon updates, the server control panel — details, labels, machine class, the Services tab, the server proxy, hostname, reboot, SSH port, time and NTP, daemon update, revoke, delete, forgetting records when the host is gone — and the organization's server settings, with every refusal
 ---
 
 # Servers
@@ -58,7 +58,7 @@ Two rules:
 
 ## The control panel
 
-Open a server for six tabs: **Overview · Control · Time · Network · Firewall · Metrics**. The **Firewall** tab is described in [Firewall](/docs/using/firewall).
+Open a server for seven tabs: **Overview · Control · Services · Time · Network · Firewall · Metrics**. The **Firewall** tab is described in [Firewall](/docs/using/firewall).
 
 ### Overview
 
@@ -76,6 +76,23 @@ Open a server for six tabs: **Overview · Control · Time · Network · Firewall
 - **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
 - **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`: networks, containers or addresses on the server — the response counts each); tear down or move the environments placed here first. If the host is gone, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
+
+### Seeing what runs on a server
+
+Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete server** might refuse, without leaving the control panel.
+
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records instead of asking you to stop or move apps first. When the card says **Yes**, delete is available on **Control**.
+
+Below the card, each section is a list, or one quiet line when empty. If a list is long, the tab cuts it off with **and N more**:
+
+- **Apps** — environments whose containers run here: project, environment, container name and status, and the domains they publish. Containers and domains on each app are capped the same way.
+- **Databases** — managed-database members on this host (primary or replica), their engine and status.
+- **Apps bound to databases** — one row per app on this server that is bound to a managed database, with the databases it uses. The database itself may live on another server.
+- **Backups** — backups of databases that have a member on this server, how many, and when the latest was taken.
+- **Networks and addresses** — networks this server is in, and how many addresses are assigned here.
+- **Runtimes** — language runtimes the daemon has reported, and the versions it found.
+
+The tab uses one request and refreshes while you keep it open.
 
 ### Time
 
@@ -127,7 +144,7 @@ Forgetting removes only the app's records. It does not touch the machine. It is 
 | Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
 | Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
 | Reserved name | `this server` (the co-located server) |
-| Control-panel tabs | Overview · Control · Time · Network · Firewall · Metrics |
+| Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics |
 | Machine class | `auto` (default) · `physical` · `virtual` |
 | Cascades | timezone, SSH port, NTP: organization → datacenter → server |
 | Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
