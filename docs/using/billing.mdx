@@ -1,11 +1,11 @@
 ---
 title: Billing and licenses
-description: On TurboPanel High Availability — what a license is, buying the first ones, adding and releasing licenses at a tier, moving a license up or down the ladder, servers that are not covered, past-due payment, invoices and the customer portal, and every refusal
+description: On TurboPanel High Availability — what a license is, buying the first ones, adding and releasing licenses at a tier, changing billed quantities per tier, picking a server's license tier, servers that are not covered, past-due payment, invoices and the customer portal, and every refusal
 ---
 
 # Billing and licenses
 
-On **TurboPanel High Availability**, an organization pays for **licenses**, and each connected server uses one. Which tier a server needs is decided by its hardware; which license it gets is decided by the platform; what you buy is only *how many, at which tier*. This chapter is the **Billing** screen (`/<org>/billing`), reached from the organization menu — it is not in the sidebar — first checkout, changing quantities, moving a license between tiers, and what happens when payment fails. Prices are on [Pricing](/pricing); the ladder itself is in [License tiers](/docs/deployment/tiers).
+On **TurboPanel High Availability**, an organization pays for **licenses**, and each connected server uses one. Which tier a server **requires** is decided by its hardware; **which license it sits on** defaults to greedy placement in bind order, and an organization **owner** can **pick** any tier at or above that requirement on the server's overview when spare licenses exist. What you buy is only *how many, at which tier*. This chapter is the **Billing** screen (`/<org>/billing`), reached from the organization menu — it is not in the sidebar — first checkout, changing license quantities, moving billed quantities between tiers, and what happens when payment fails. Prices are on [Pricing](/pricing); the ladder itself is in [License tiers](/docs/deployment/tiers).
 
 <Callout type="info" title="Self-hosted has no Billing screen">
   A self-hosted control plane has no subscription: every server it licenses is entitled to **SX** automatically, and the sidebar omits Billing. Server count is bounded only by the organization's own capacity setting (**Servers → Settings**). Everything on this page is High Availability.
@@ -18,7 +18,7 @@ On **TurboPanel High Availability**, an organization pays for **licenses**, and 
 | **Tier** | A rung of the ladder, **S1** to **S7** (**SX** above it, negotiated). Each has a **cores** and **RAM** ceiling; a server needs the smallest tier whose ceilings cover its physical cores *and* its RAM. |
 | **License** | One unit of entitlement at a tier. An organization holds a **quantity per tier** — "two at S1, one at S3". A license carries no server name and no tier of its own. |
 | **Registration key** | What **Servers → Add server** mints against the licenses you hold: one key enrolls one server. Minting is refused when every purchased license is held or being released (`no_license_available`). |
-| **Assignment** | Derived, never chosen: servers are placed in the order they were added, each onto the smallest purchased tier that covers it. Adding hardware can never push an already-covered server off its license; a newcomer nothing fits stays **not covered**. |
+| **Assignment** | By default each server takes the smallest purchased tier that covers it, in bind order (oldest first). On a server's overview, an owner can **pick** any tier at or above the **required** floor when a spare license exists at that tier or the smallest tier above — including lowering placement when the server is overprovisioned. No extra charge until you buy more. Adding hardware can never push an already-covered server off its license; a newcomer nothing fits stays **not covered**. |
 | **Period** | Subscriptions bill monthly, anchored to the first of the month (UTC); the first invoice is prorated. |
 
 Two facts shape every action below:
@@ -61,9 +61,11 @@ A second checkout while one is in flight is refused (`checkout_pending`); a chec
 
 Restore comes before buying: an **Add** at a tier that has licenses ending opens as a **Restore** (API: `licenses_ending`). **Add licenses at another tier** (choose a tier, then **Add**) adds a tier you do not yet hold to the subscription the same way. The **Licenses** summary shows **Purchased**, **In use** and **Available** tiles, an **Ends** tile while any are ending, and any **Pending changes** with the date each lands.
 
-## Move a license to another tier
+## Change how many licenses you hold at each tier
 
-**Billing → Move a license**: **From tier** → **To tier**.
+**Billing → Change how many licenses you hold at each tier**: **From tier** → **To tier**. This changes your **billed quantities** — it does not name a server. To move one specific server onto another tier when you already have spare licenses, open that server and use **License tier** on its overview.
+
+To reach your servers from Billing, use **Servers** in the organization menu.
 
 - **Up the ladder** is invoiced now (a prorated quote first) and applies once the invoice is paid. If the card fails, the change waits, parked, until the open invoice is paid; nothing is granted meanwhile.
 - **Down the ladder** applies at the end of the period, with no credit.
@@ -72,7 +74,7 @@ A move that is not actually an upgrade or downgrade in the chosen direction is r
 
 ## Servers not covered
 
-When a server needs a tier nothing purchased covers — it was added with no matching license, or it grew — Billing shows a **servers not covered** notice naming the server and its required tier, and the server detail carries a button that deep-links here with that tier preselected. An uncovered server's workloads keep running, but its daemon is refused at its next session with *License tier below required* and parks — no metrics, no commands — until it is covered. Buy at that tier, move a license up, or delete the server.
+When a server needs a tier nothing purchased covers — it was added with no matching license, or it grew — Billing shows a **servers not covered** notice naming the server and its required tier. On the server, use **License tier** when you have a spare license at the right tier, or buy more here. An uncovered server's workloads keep running, but its daemon is refused at its next session with *License tier below required* and parks — no metrics, no commands — until it is covered.
 
 ## Past-due payment
 
@@ -87,7 +89,7 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | Item | Value |
 | --- | --- |
 | Ladder | S1 ≤ 4 cores / 16 GiB · S2 ≤ 10 / 32 · S3 ≤ 16 / 64 · S4 ≤ 32 / 128 · S5 ≤ 64 / 256 · S6 ≤ 128 / 512 · S7 ≤ 256 / 1 TiB · SX above ([details](/docs/deployment/tiers)) |
-| Placement | smallest purchased tier whose ceilings cover the server; servers placed in bind order, incumbents first |
+| Placement | default: smallest purchased tier that covers the server, bind order (incumbents first); per-server **License tier** pick when spare licenses exist at that tier or above |
 | Billing period | monthly, anchored to the 1st 00:00 UTC; first invoice prorated |
 | Increase / move up | immediate, prorated invoice now; parked (not granted) while the invoice is unpaid |
 | Decrease / move down | at period end, no credit |
@@ -113,6 +115,18 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | `billing_mutation_in_progress` | 409 | Another change for this organization is being applied; retry in a moment. |
 | `no_license_available` | 409 (Add server) | Every purchased license is held or releasing; buy one more first. |
 | `stripe_error` | 502 / 503 | The payment provider refused (502) or did not answer (503, transient); nothing was applied. |
+
+### Server license tier (`PUT /api/client/v1/servers/{id}/license-tier`)
+
+Organization **owner** only. Body `{ "tierId": "<tier id>" | null }` sets or clears the server's picked tier and recomputes assignment immediately. Members and managers who are not owners receive `Forbidden` (403) with no stable error code.
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `Forbidden` | 403 | The signed-in account is not an organization owner (`organization:own`). |
+| `invalid_body` | 400 | `tierId` was missing, not a string, or an empty string (use `null` to clear). |
+| `tier_below_required` | 422 | The picked tier is below what this server's hardware requires. |
+| `tier_not_found` | 404 | The tier id is unknown or inactive. |
+| `server_not_licensed` | 404 | The server has no active license (self-hosted and unlicensed rows). |
 
 ## Related
 
