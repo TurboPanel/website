@@ -118,10 +118,11 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 
 ### Server license tier (`PUT /api/client/v1/servers/{id}/license-tier`)
 
-Organization **owner** only. Body `{ "tierId": "<tier id>" | null }` sets or clears the server's picked tier and recomputes assignment immediately.
+Organization **owner** only. Body `{ "tierId": "<tier id>" | null }` sets or clears the server's picked tier and recomputes assignment immediately. Members and managers who are not owners receive `Forbidden` (403) with no stable error code.
 
 | Code | Status | Meaning |
 | --- | --- | --- |
+| `Forbidden` | 403 | The signed-in account is not an organization owner (`organization:own`). |
 | `invalid_body` | 400 | `tierId` was missing, not a string, or an empty string (use `null` to clear). |
 | `tier_below_required` | 422 | The picked tier is below what this server's hardware requires. |
 | `tier_not_found` | 404 | The tier id is unknown or inactive. |

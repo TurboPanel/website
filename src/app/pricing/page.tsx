@@ -69,6 +69,11 @@ const PLACEMENT_RULES = [
     detail:
       'Extra devices never block access. Each tier watches a set number of NICs, drives, and GPUs; anything beyond that goes unwatched and you get a daily note saying which devices, and which tier would cover them.',
   },
+  {
+    title: 'Default assignment, with an owner pick when you need one.',
+    detail:
+      'By default each server lands on the smallest purchased tier that fits, in bind order. Organization owners can pick any tier at or above what the hardware requires when a spare license exists at that tier or the smallest tier above it.',
+  },
 ] as const
 
 const FAQ = [
@@ -78,7 +83,7 @@ const FAQ = [
   },
   {
     q: 'How is a server placed on the S1–S7 ladder?',
-    a: 'By the machine, not by a feature list. Physical cores and RAM set the tier a server needs — that part is a hard floor, and a license below it cannot enroll that server. NICs, drives, and GPUs only raise the recommended tier: a server with more devices than its tier watches still connects, and you get a daily note listing what is unwatched. Prices are planned; nothing is purchasable during the private alpha.',
+    a: 'By the machine, not by a feature list. Physical cores and RAM set the tier a server needs — that part is a hard floor, and a license below it cannot enroll that server. NICs, drives, and GPUs only raise the recommended tier: a server with more devices than its tier watches still connects, and you get a daily note listing what is unwatched. By default TurboPanel assigns the smallest purchased tier that fits, in bind order; organization owners can also pick a tier at or above required when spare licenses exist. Prices are planned; nothing is purchasable during the private alpha.',
   },
   {
     q: 'When does self-hosted still make sense?',
