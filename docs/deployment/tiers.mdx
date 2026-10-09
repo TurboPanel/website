@@ -64,7 +64,7 @@ The two rules fail differently, on purpose.
 
 ## The daily notice
 
-Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — placed a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The app shows the same placement (license tier, required tier, recommended tier, unwatched device ids) on the server's overview, with an upgrade link when billing is enabled.
+Once a day, TurboPanel High Availability emails organization owners about any server whose license rank sits **below its recommended tier**, listing the unwatched NICs, drives, and GPUs by id and naming the tier that would cover them. The same sweep also notes a server that is **overprovisioned** — placed a full rank above what the machine recommends — so a downgrade is visible. Each server is throttled to one notice per 24 hours per distinct state; a change in what is unwatched sends a fresh one. The app shows the same placement (license tier, picked tier when set, required tier, recommended tier, unwatched device ids) on the server's overview, with **License tier** to pick a higher rung when spare licenses exist.
 
 Nothing is sent for a server that satisfies its recommendation, and nothing is sent on self-hosted.
 
