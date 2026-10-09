@@ -181,6 +181,10 @@ See [Servers](/docs/using/servers).
 | `updates_managed` | 409 | TurboPanel High Availability: daemon updates are rolled out from **Admin → Updates**, not per server. |
 | `control_plane_upgrade_required` | 409 | Self-hosted: update the control plane from **Admin → Updates** before updating other servers. |
 | `upgrade_gate_unavailable` | 503 | TurboPanel could not confirm that the control plane is ready for server updates. Retry shortly. |
+| `invalid_body` | 400 | `PUT …/servers/{id}/license-tier`: `tierId` was missing, not a string, or an empty string (use `null` to clear). |
+| `tier_below_required` | 422 | `PUT …/servers/{id}/license-tier`: the picked tier is below what this server's hardware requires. |
+| `tier_not_found` | 404 | `PUT …/servers/{id}/license-tier`: the tier id is unknown or inactive. |
+| `server_not_licensed` | 404 | `PUT …/servers/{id}/license-tier`: the server has no active license. |
 
 ## Datacenters and networking
 
