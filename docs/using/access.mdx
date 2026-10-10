@@ -35,7 +35,7 @@ How they combine:
 
 - **Owner implies manager.** A check for `organization:manage` passes with either grant; a check for `organization:own` needs the owner grant itself.
 - **Organization grants reach every team.** An organization owner or manager may act on any team in the organization; a team grant reaches only its team.
-- **Grants flow through membership.** A grant to a *team* applies to everyone in it; a grant to the *organization* as subject applies to everyone in any of its teams. Most organizations need nothing beyond the grant an invitation carries.
+- **Grants flow through membership.** A grant to a *team* applies to everyone in it; a grant to the *organization* as subject applies to everyone in any of its teams. A console invitation adds none by itself — give **Manage** or **Owner** explicitly when someone needs them.
 - **Administrators bypass all of this.** A user whose control plane role is `superadmin` or `admin` (see [Administering the control plane](/docs/using/admin)) passes every organization check without a grant row.
 - **The last owner cannot be removed.** Revoking the only `organization:own` grant on an organization is refused.
 
@@ -69,7 +69,7 @@ Renaming is **Manage Organization → Organization** (managers may save). Names 
 
 <Steps>
   <Step>
-    Pick the **Team** and enter the **Email** → **Send invitation**. One pending invitation exists per team and address; a second is refused (`invitation_pending`) until the first is accepted, revoked, or expires.
+    Pick the **Team** and enter the **Email** → **Send invitation**. The form sends team and email only (no grants). One pending invitation exists per team and address; a second is refused (`invitation_pending`) until the first is accepted, revoked, or expires.
   </Step>
   <Step>
     The invitee receives a link good for **7 days**. **Pending invitations** lists every unexpired one across the organization's teams with who sent it and when it expires; **Revoke invitation** ends it before it is used.
@@ -84,7 +84,10 @@ Renaming is **Manage Organization → Organization** (managers may save). Names 
   </Step>
 </Steps>
 
-The accepted invitation creates the team membership and, by default, an **organization manager** grant to the new member. An organization **owner** may instead specify the grants an invitation carries (the API's `grants` field: any grantable permission on an entity inside the organization, checked at accept time); anyone else who tries is refused (`grants_require_owner`).
+Accepting creates **team membership** only. The invitee can sign in and belongs to the organization, but gets **no organization permission** until someone grants one — they appear as a **Member** in **Access → Members** and see what a plain member sees, not manager workflows. To give more access, an organization **owner** may:
+
+- attach grants when creating the invitation (`POST /invitations` `grants`: any grantable permission on an entity inside the organization, checked at accept time). Omitting `grants` or sending `null` stores none; an empty `grants: []` is refused (`Invalid invitation grants`, 400). Anyone else who passes `grants` is refused (`grants_require_owner`, 403).
+- add grants after accept under **Access → Access grants**, or send a new invitation that carries them.
 
 <Callout type="warn" title="The address must match">
   An invitation is accepted only by an account whose email equals the invited address (case-insensitively). Forwarding the link to another address does not work; revoke and re-invite instead.
@@ -92,7 +95,7 @@ The accepted invitation creates the team membership and, by default, an **organi
 
 ## Members
 
-**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member**, the highest organization permission the person holds) and *Joined* date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
+**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member** — the highest organization permission they hold, so a console invitee with no grant shows **Member**) and *Joined* date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
 
 <Steps>
   <Step>
@@ -140,7 +143,8 @@ Subject IDs are the account, team or organization ids. The teams are in the **Te
 | Grant targets | `organization`, `team` (the API also accepts the resource tree — workspace, project, environment, service, server, hosting, variable, managed, container, tls) |
 | Subjects | `user` · `team` · `organization` |
 | Invitation lifetime | 7 days; one pending per team + address |
-| Default invitation grant | `organization:manage` on the organization |
+| Grants on a console invitation | none (team + email only) |
+| Grants on an API invitation | omitted or `null` stores none; owner may attach explicit specs |
 | Defaults on creation | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own` |
 | Control plane roles | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering the control plane](/docs/using/admin) |
 
@@ -151,7 +155,7 @@ Subject IDs are the account, team or organization ids. The teams are in the **Te
 | `invitation_pending` | 409 | That address already has a live invitation to that team. |
 | `email_unavailable` | 503 | The control plane cannot send mail, so the invitation was not created. |
 | `grants_require_owner` | 403 | Only an organization owner may attach explicit grants to an invitation. |
-| `Invalid invitation grants` | 400 | A grant in the invitation names a permission or target that does not fit (for example a team permission on the organization). |
+| `Invalid invitation grants` | 400 | `grants` is an empty array, or a grant names a permission or target that does not fit (for example a team permission on the organization). |
 | `Forbidden` | 403 (accept) | The signed-in account's email is not the invited address. |
 | `gone` | 410 (accept) | The invitation expired, was revoked or was already used — or its team or organization no longer exists. |
 | `invalid_grant` | 400 (accept) | The invitation's stored grants no longer fit the organization. |

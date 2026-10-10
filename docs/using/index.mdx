@@ -46,7 +46,7 @@ Two things sit outside the organization: the **account menu** (top right) holds 
 ## Who sees what
 
 - **Any member** of an organization can open every area above and read it.
-- **Manage** rights on the organization (the default grant an invitation gives) let you create and change projects, delete an environment, deploy, enrol servers and edit the network registry.
+- **Manage** rights on the organization (`organization:manage`) let you create and change projects, delete an environment, deploy, enrol servers and edit the network registry. **Access → Invite a teammate** adds team membership only; give **Manage** or **Owner** under **Access grants** or with the API `grants` field on an invitation.
 - **Owner** rights are needed for the destructive and organization-shaping actions: deleting a project, adding an access grant, pending-key cleanup, and the two organization opt-ins that widen what a compose file may ask for (privileged container fields, a default resource ceiling).
 - **Administrators** of the control plane additionally see **Admin**. On a self-hosted control plane the first administrator is created by the install wizard; on TurboPanel High Availability by the operator.
 
