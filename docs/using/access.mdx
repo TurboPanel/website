@@ -51,7 +51,7 @@ Visibility follows the same rules in the database, not in the app: a list shows 
 
 <Steps>
   <Step>
-    Header organization menu → **New**, or `/organizations` → **New**. Name it. On TurboPanel High Availability the first organization from sign-up is named after your email (`you@example.com's organization`) and can be renamed under **Manage Organization**; on self-hosted, install creates **Root Organization**.
+    Header organization menu → **New**, or `/organizations` → **New**. Name it. The first organization from account sign-up (password or social sign-in, on any deployment that provisions one) is named from your email (`you@example.com's organization`); if the email is missing, blank, or that label fails display-name rules, it falls back to **My Organization**. Self-hosted install still creates **Root Organization** for the superadmin. Rename anytime under **Manage Organization**.
   </Step>
   <Step>
     You become its **owner** (`organization:own`) and the owner of its **Default Team**, with a **Default Workspace** ready for projects.
