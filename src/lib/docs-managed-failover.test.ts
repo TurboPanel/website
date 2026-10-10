@@ -23,48 +23,23 @@ describe("managed database failover docs", () => {
     expect(managed).toContain("4 KiB");
   });
 
-  it("matches control-plane host-loss engine policy (ha-host-loss)", () => {
-    expect(managed).toContain("metadata.detector = host-loss");
-    expect(managed).toContain("PostgreSQL, MySQL, and MariaDB");
-    expect(managed).toContain("host-loss-attested");
-    expect(managed).toContain("fullyApplied === true");
-    expect(managed).not.toMatch(
-      /MySQL, MariaDB[\s\S]*Never[\s\S]*engine_unsupported/,
-    );
-    expect(managed).not.toContain("MySQL and MariaDB are probed like Postgres");
-    expect(managed).toContain("managed-ha-boot-hold-v1");
-    expect(managed).toContain("TURBOPANEL_HOST_LOSS_WINDOW_SECONDS");
-    expect(managed).toContain("### Failover by scenario");
-    expect(managed).not.toMatch(
-      /an automatic failover does not proceed when the old primary is unreachable/i,
-    );
-    expect(managed).not.toContain(
-      "Because the old primary is stopped first, two writers never exist at the same time",
-    );
+  it("states the failover behaviour the platform really has", () => {
+    expect(managed).toContain("### Automatic failover");
     expect(managed).toContain("unable to verify previous primary is fenced");
-    expect(managed).toContain("ha-host-loss");
-    expect(managed).toMatch(
-      /postgres-probe[\s\S]*only from the.*primary's own server/i,
-    );
-    expect(managed).toContain("lastStreaming.ageMs");
-    expect(managed).toMatch(/decision cap.*7\.5 minutes/i);
-    expect(managed).toMatch(/too_late[\s\S]*blocked/i);
-    expect(managed).not.toMatch(
-      /10 minutes[\s\S]*no recovery row|no journal entry/i,
-    );
-    expect(managed).toMatch(
-      /unfenced[\s\S]*15.minute cooldown|cooldown still applies/i,
-    );
-    expect(managed).not.toContain(
-      "wait for automatic failover to retry",
-    );
-    expect(managed).toMatch(
-      /every[\s\S]*failover replica is probed even when stored health looks healthy/i,
-    );
     expect(managed).toContain("managed_member_is_primary");
+    expect(managed).toContain("`too_late`");
+    expect(managed).toMatch(/15 minutes/);
+    expect(managed).toMatch(/within about ten minutes of the cluster being created/);
     expect(managed).toMatch(/logical dumps[\s\S]*not point-in-time recovery/i);
+    expect(managed).toMatch(
+      /Until the platform has demoted and stopped the old database, it may still accept writes/,
+    );
+    // Claims that were checked against the code and found wrong.
     expect(managed).not.toContain("Bring the old server back or confirm it is off, then promote");
     expect(managed).not.toMatch(/point-in-time copy on the new writer/i);
+    expect(managed).not.toMatch(/10 minutes[\s\S]*no recovery row|no journal entry/i);
+    expect(managed).not.toContain("wait for automatic failover to retry");
+    expect(managed).not.toContain("Because the old primary is stopped first, two writers never exist at the same time");
   });
 
   it("links the section from the using index and ingress architecture page", () => {
