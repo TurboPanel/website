@@ -27,9 +27,9 @@ describe("managed database failover docs", () => {
     expect(managed).toContain("### Automatic failover");
     expect(managed).toContain("unable to verify previous primary is fenced");
     expect(managed).toContain("managed_member_is_primary");
-    expect(managed).toContain("`too_late`");
+    expect(managed).toContain("silent too long for an automatic failover to be safe");
     expect(managed).toMatch(/15 minutes/);
-    expect(managed).toMatch(/within about ten minutes of the cluster being created/);
+    expect(managed).toMatch(/about the first ten and a half minutes/);
     expect(managed).toMatch(/logical dumps[\s\S]*not point-in-time recovery/i);
     expect(managed).toMatch(
       /Until the platform has demoted and stopped the old database, it may still accept writes/,
