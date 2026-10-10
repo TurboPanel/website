@@ -201,17 +201,24 @@ The former primary is demoted to a replica. If its server was online, the platfo
 
 ### When the primary's server dies
 
-A dead database **process** on a live server can still trigger [automatic failover](#automatic-failover) (Postgres probe or Orchestrator for MySQL and MariaDB) when fencing succeeds.
+A dead database **process** on a live server can still trigger [automatic failover](#automatic-failover) (Postgres probe or Orchestrator for MySQL and MariaDB). That path stops the old primary first; if the stop cannot be confirmed, the journal records `unfenced` and nothing is promoted.
 
-A dead **server** is different: nothing on the host can report in, so the platform does not guess. **MySQL and MariaDB never promote automatically on host loss** — the recovery journal records a terminal `blocked` row in plain words (`metadata.detector = host-loss`) and nothing is promoted. **PostgreSQL** may promote automatically only after the host has been offline long enough and every corroboration check passes (see the control-plane `ha-host-loss` rule); if any check fails, the outcome is the same blocked journal row, not a promotion.
+A dead **server** is different: the engine-level detectors never run on a host that is not connected. About once a minute the control plane runs a separate **host-loss** rule (`ha-host-loss`): it looks at how long the primary's server has been marked offline, whether the outage looks fleet-wide, and whether every other member's daemon corroborates that replication from the primary has stopped.
 
-**What to do:** open **Overview**, pick a healthy same-datacenter **failover** replica, and press **Promote** (`POST …/managed/members/:memberId/promote`). That path continues even when the old primary cannot be reached (the old member is marked **needs resync** afterward). Automatic failover does not use force and refuses when the old primary cannot be fenced (`unfenced` in the journal).
+| Engine | Host-loss automatic promote |
+| --- | --- |
+| **PostgreSQL** | **May promote** when the offline window has passed (default 2 minutes, `TURBOPANEL_HOST_LOSS_WINDOW_SECONDS`), the primary's daemon advertised `managed-ha-boot-hold-v1`, every other member's server is connected and answers a fresh health read with no replica still streaming from the primary, and the ordinary automatic-failover gates pass (switch on, cooldown, healthy same-datacenter failover replica, command queue). A go calls the same promotion as engine-dead automatic failover, with the unreachable primary fenced by attestation and the boot hold instead of a stop command. |
+| **MySQL, MariaDB** | **Never** — the rule records a terminal `blocked` row with plain-words reason `engine_unsupported` (`metadata.detector = host-loss`) and does not probe replicas or start a promotion. |
+
+Any host-loss refusal that is not an automatic promotion is also a terminal `blocked` row (`metadata.detector = host-loss`) with the reason in plain words (for example fleet-wide outage, a replica still receiving from the primary, or the decision window has passed).
+
+**What to do when nothing was promoted:** open **Overview**, pick a healthy same-datacenter **failover** replica, and press **Promote** (`POST …/managed/members/:memberId/promote`). Manual promotion continues even when the old primary cannot be reached (the old member is marked **needs resync** afterward). That is separate from engine-dead automatic failover, which never uses force and records `unfenced` when the old primary on a live server could not be confirmed stopped.
 
 If **Promote** refuses because the replica is not streaming or is too far behind, the app offers **Promote anyway** after the lag message — API `{ "force": true }` on the same promote route. That skips lag and health checks only (never replica class) and accepts possible data loss if the old primary still had unreplicated commits. Copy on the sheet: *Promote anyway accepts possible data loss if the primary still has unreplicated commits.*
 
 ### Backups from before the failover
 
-Each backup is stored on the server that was primary when it ran (`backup.server_id`). After promotion the primary moves; restore always targets the **current** primary's server.
+Each backup file lives on the server that ran the primary when the backup was taken (the API exposes that host as `storedOnServerId` on each backup row). After promotion the primary moves; restore always targets the **current** primary's server.
 
 **What you see:** **Restore** answers **409** `backup_on_other_server` with a message that the file lives on another server and to take a new backup on the current primary (or switch back first). No restore is enqueued.
 
@@ -225,11 +232,11 @@ Each backup is stored on the server that was primary when it ran (`backup.server
 
 ### External access and the listener
 
-Unchanged from [External access](#external-access): with **Allow external access** off, SQL listeners are on `127.0.0.1` only (`15432` / `13306`). With it on, the same ports publish on all host addresses (`0.0.0.0`). Failover does not move the endpoint your apps dial — only which backend ProxySQL treats as the writer.
+With **Allow external access** off, SQL listeners are on `127.0.0.1` only (`15432` / `13306`). With it on, the same ports publish on all host addresses (`0.0.0.0`). Failover does not move the endpoint your apps dial — only which backend ProxySQL treats as the writer. The per-server switch and API are under [External access](#external-access) below.
 
 ### MariaDB 11.8 vs 12.3
 
-**MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false`): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` state (MariaDB 12.x prints `OFF`/`ON` where Orchestrator expects numeric flags). Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
+**MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false` in the release catalog): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` values. Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
 
 ### Orchestrator login and datacenter placement
 
@@ -325,7 +332,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
 | Connection roles | `read-write` (default) · `read-only` |
 | Replica classes | `failover` (same datacenter) · `read` (anywhere) |
-| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; detects a dead engine on a live server, not a lost server |
+| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; engine-dead on a live server (Postgres probe / Orchestrator); whole-host loss is Postgres-only via `ha-host-loss` (`metadata.detector = host-loss` on blocked rows) |
 | Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
 | Applied login | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain` |
 | Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |

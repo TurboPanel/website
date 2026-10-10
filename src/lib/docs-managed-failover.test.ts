@@ -23,6 +23,19 @@ describe('managed database failover docs', () => {
     expect(managed).toContain('4 KiB')
   })
 
+  it('matches control-plane host-loss engine policy (ha-host-loss)', () => {
+    expect(managed).toContain('metadata.detector = host-loss')
+    expect(managed).toContain('engine_unsupported')
+    expect(managed).toMatch(
+      /PostgreSQL[\s\S]*May promote[\s\S]*MySQL, MariaDB[\s\S]*Never/,
+    )
+    expect(managed).not.toContain(
+      'MySQL and MariaDB are probed like Postgres',
+    )
+    expect(managed).toContain('managed-ha-boot-hold-v1')
+    expect(managed).toContain('TURBOPANEL_HOST_LOSS_WINDOW_SECONDS')
+  })
+
   it('links the section from the using index and ingress architecture page', () => {
     expect(usingIndex).toContain(
       '/docs/using/managed-databases#what-to-expect-when-a-database-fails-over',
