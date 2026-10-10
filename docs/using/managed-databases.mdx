@@ -30,28 +30,30 @@ Two facts shape everything below:
 ## Create a cluster
 
 <Steps>
+  <Step>**Projects → New project**, name it, choose **Managed**.</Step>
   <Step>
-    **Projects → New project**, name it, choose **Managed**.
+    Pick the engine from the catalog. Only released engines are selectable; the
+    card says so otherwise.
   </Step>
   <Step>
-    Pick the engine from the catalog. Only released engines are selectable; the card says so otherwise.
+    Choose the **version series** and the base-OS **variant** (Alpine, Debian,
+    Oracle Linux 9 or UBI, per engine), and the **server** for the primary.
   </Step>
   <Step>
-    Choose the **version series** and the base-OS **variant** (Alpine, Debian, Oracle Linux 9 or UBI, per engine), and the **server** for the primary.
+    **Create project.** The root password is shown **once** — copy it now; the
+    platform never shows it again (you can rotate it later).
   </Step>
   <Step>
-    **Create project.** The root password is shown **once** — copy it now; the platform never shows it again (you can rotate it later).
-  </Step>
-  <Step>
-    The **Overview** shows the cluster provisioning, then *Running*. Provisioning polls only while it is in progress.
+    The **Overview** shows the cluster provisioning, then *Running*.
+    Provisioning polls only while it is in progress.
   </Step>
 </Steps>
 
-| Engine | Creatable series (tested) | Variants |
-| --- | --- | --- |
-| PostgreSQL | **18** | Alpine, Debian |
-| MySQL | **9.7** (default), **8.4** | Debian, Oracle Linux 9 |
-| MariaDB | **11.8** (default, long-term support), **12.3** (one server only) | Debian, UBI |
+| Engine     | Creatable series (tested)                                         | Variants               |
+| ---------- | ----------------------------------------------------------------- | ---------------------- |
+| PostgreSQL | **18**                                                            | Alpine, Debian         |
+| MySQL      | **9.7** (default), **8.4**                                        | Debian, Oracle Linux 9 |
+| MariaDB    | **11.8** (default, long-term support), **12.3** (one server only) | Debian, UBI            |
 
 Older series (PostgreSQL 17/16/15, MariaDB 11.4/10.11) are catalogued so an existing cluster can be named, not created.
 
@@ -61,13 +63,20 @@ The **Connect** tab is the one place to read the endpoint from; never dial an en
 
 <Steps>
   <Step>
-    Read the **listener endpoint** — host and port of the ProxySQL on the primary's server (or, for a service bound elsewhere, on that service's server).
+    Read the **listener endpoint** — host and port of the ProxySQL on the
+    primary's server (or, for a service bound elsewhere, on that service's
+    server).
   </Step>
   <Step>
-    Note the **effective SSL policy** and its DSN parameter (`sslmode=` for PostgreSQL, `ssl-mode=` for MySQL and MariaDB). For `verify-ca` or `verify-full`, download the **Organization CA** from the same tab and point your driver at it.
+    Note the **effective SSL policy** and its DSN parameter (`sslmode=` for
+    PostgreSQL, `ssl-mode=` for MySQL and MariaDB). For `verify-ca` or
+    `verify-full`, download the **Organization CA** from the same tab and point
+    your driver at it.
   </Step>
   <Step>
-    Use a login from the **Data** tab. Under the default `partial` scheme applied usernames carry a random suffix (`app_x7…`), so copy the applied name, not the short one you typed.
+    Use a login from the **Data** tab. Under the default `partial` scheme
+    applied usernames carry a random suffix (`app_x7…`), so copy the applied
+    name, not the short one you typed.
   </Step>
 </Steps>
 
@@ -75,15 +84,15 @@ For a service in a compose project, do not paste any of this into variables: bin
 
 ### SSL modes
 
-| Mode | Plaintext client refused? | What the connection string tells the driver |
-| --- | --- | --- |
-| `disable` | no | no TLS |
-| `allow`, `prefer` | no | try TLS, fall back |
-| `require` (default) | **yes** | TLS, no verification |
-| `verify-ca` | **yes** | TLS, verify the CA |
-| `verify-full` | **yes** | TLS, verify CA and hostname |
+| Mode                | Plaintext client refused? | What the connection string tells the driver |
+| ------------------- | ------------------------- | ------------------------------------------- |
+| `disable`           | no                        | no TLS                                      |
+| `allow`, `prefer`   | no                        | try TLS, fall back                          |
+| `require` (default) | **yes**                   | TLS, no verification                        |
+| `verify-ca`         | **yes**                   | TLS, verify the CA                          |
+| `verify-full`       | **yes**                   | TLS, verify CA and hostname                 |
 
-Resolution is three-layer — the cluster's own override, then the organization default (**Managed → Settings**), then the platform default `require`. Leaving a cluster on *inherit* means an organization change applies to it later; setting a mode pins it.
+Resolution is three-layer — the cluster's own override, then the organization default (**Managed → Settings**), then the platform default `require`. Leaving a cluster on _inherit_ means an organization change applies to it later; setting a mode pins it.
 
 ## Users and databases
 
@@ -91,13 +100,18 @@ Resolution is three-layer — the cluster's own override, then the organization 
 
 <Steps>
   <Step>
-    **Rotate root** shows a new root password once. Root is platform-suffixed (`postgres_…` / `root_…`); the bare engine admin name is never a login.
+    **Rotate root** shows a new root password once. Root is platform-suffixed
+    (`postgres_…` / `root_…`); the bare engine admin name is never a login.
   </Step>
   <Step>
-    **Create user**: a short name and a **Connection role** — **read-write** (routed to the primary) or **read-only** (routed to read-eligible replicas; refused if none exists). The password is shown once; **Rotate** and **Delete** act per user.
+    **Create user**: a short name and a **Connection role** — **read-write**
+    (routed to the primary) or **read-only** (routed to read-eligible replicas;
+    refused if none exists). The password is shown once; **Rotate** and
+    **Delete** act per user.
   </Step>
   <Step>
-    **Create database** / **Delete database**. The initial database and the root user cannot be dropped.
+    **Create database** / **Delete database**. The initial database and the root
+    user cannot be dropped.
   </Step>
 </Steps>
 
@@ -105,13 +119,13 @@ A login's name must be unique across every cluster on servers the same organizat
 
 ## Name schemes
 
-Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the *applied* name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
+Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the _applied_ name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
 
-| Scheme | System name | Example |
-| --- | --- | --- |
-| `plain` | exactly what you typed | `bob` |
-| `partial` (default) | what you typed, then `_` and 11 random lowercase letters and digits | `bob_x7k2m9qpz1a` |
-| `random` | 12 random characters: a leading letter, then 11 lowercase letters and digits. It never starts with a `tp` prefix and carries no trace of the typed name. | `u7k2m9x4qpz1` |
+| Scheme              | System name                                                                                                                                              | Example           |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `plain`             | exactly what you typed                                                                                                                                   | `bob`             |
+| `partial` (default) | what you typed, then `_` and 11 random lowercase letters and digits                                                                                      | `bob_x7k2m9qpz1a` |
+| `random`            | 12 random characters: a leading letter, then 11 lowercase letters and digits. It never starts with a `tp` prefix and carries no trace of the typed name. | `u7k2m9x4qpz1`    |
 
 The scheme applies to every kind of login or system user: Linux, SFTP and SSH system users, managed database logins (PostgreSQL, MySQL and MariaDB, within each engine's identifier limit), the managed admin login, and the replication login. The admin login is never `plain`: a `plain` request for it is applied as `partial`. System users declared in a compose document follow the organization default.
 
@@ -131,80 +145,129 @@ Existing logins and system users are never renamed by a default or a lock change
 
 **Overview** tab — the topology.
 
-| Replica class | Where | What it is for |
-| --- | --- | --- |
-| **Failover replica** | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand. |
+| Replica class             | Where                          | What it is for                                                                                                            |
+| ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **Failover replica**      | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a failover member need MariaDB 11.8 until failover for 12.x is supported.
 
 <Steps>
   <Step>
-    **Add replica**, pick the class and the server, and whether it **serves read traffic** (`readEligible`). Apply.
+    **Add replica**, pick the class and the server, and whether it **serves read
+    traffic** (`readEligible`). Apply.
   </Step>
   <Step>
-    **Promote** a failover replica for a planned switchover: the old primary becomes a replica, the endpoint does not change.
+    **Promote** a failover replica for a planned switchover: the old primary
+    becomes a replica, the endpoint does not change.
   </Step>
   <Step>
-    **Promote for disaster recovery** a remote replica only when the primary's site is gone: one writer results; any failover replica left in the old datacenter is rewritten to a read replica.
+    **Promote for disaster recovery** a remote replica only when the primary's
+    site is gone: one writer results; any failover replica left in the old
+    datacenter is rewritten to a read replica.
   </Step>
   <Step>
-    **Remove** a replica that is no longer needed. The primary cannot be removed.
+    **Remove** a replica that is no longer needed. The primary cannot be
+    removed.
   </Step>
 </Steps>
 
 ### Manual promote
 
-**Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and points the endpoint at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind. The app asks the replica's server for a fresh reading first if the last one is older than two minutes. Over the API, `{ "force": true }` skips the lag and health check (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**.
+**Promote** on a failover replica switches over: the old primary is asked to stop if its server is online, the replica becomes the writer, and the endpoint is pointed at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and not far behind (no more than 64 MiB or 30 seconds) on a live health check made when you press the button. For MySQL and MariaDB the replica must also have applied every transaction it received; for PostgreSQL it must have replayed nearly all the WAL it received. If that check refuses, **Promote anyway** (API `{ "force": true }`) skips the lag and health checks and accepts possible data loss. A **read** replica can only be promoted with **Promote for disaster recovery**.
 
-The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). A promote you start yourself goes ahead even when the old primary cannot be reached; an automatic failover does not.
+The old primary becomes a replica. If it needs to be re-seeded from the new primary, it shows **needs resync**; press **Resync** on that replica (`POST /environments/:id/managed/members/:memberId/resync`).
 
-### Automatic failover
+### Automatic failover [#automatic-failover]
 
-When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
+When a primary dies, the platform can promote a same-datacenter **failover** replica on its own. The endpoint your applications dial does not change.
 
-**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator. Losing a whole server is deliberately not detected: nothing can confirm the old primary is isolated, so that case stays manual (use **Promote** or disaster recovery).
+- **The database dies on a server that is still connected.** PostgreSQL is checked by the daemon on the primary's server. MySQL and MariaDB are watched by Orchestrator. The platform stops the old primary before it promotes. If it cannot prove the old primary is stopped, nothing is promoted and the recovery history shows a `blocked` row: _Automatic failover blocked: unable to verify previous primary is fenced_.
+- **The whole server goes silent.** About once a minute the control plane looks at servers that went offline. It waits a couple of minutes, then promotes only if the other members of the cluster agree the primary has stopped replicating. It refuses when many servers are offline at once, or when a replica is still streaming from the primary (the server is probably alive and only its link to the control plane is down).
 
-**What the platform checks, in order.**
-
-1. The report comes from the server that hosts the cluster's current primary, in the same organization.
-2. The per-environment switch below is on.
-3. No automatic failover for this cluster began in the last 15 minutes (the cooldown).
-4. A same-datacenter failover replica is healthy enough to promote: streaming, with a recent observation and little lag.
-5. The platform can queue commands to the servers.
-6. **Fencing first.** The old primary is drained and stopped before anything is promoted. If it cannot be confirmed stopped, for example because its server is unreachable, nothing is promoted.
-
-Only then is the replica promoted and the endpoint repointed. Because the old primary is stopped first, two writers never exist at the same time. Its data is resynced as a replica afterwards.
-
-**The switch.** `TURBOPANEL_AUTO_FAILOVER` turns this on or off for a whole deployment. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off, so a typo never promotes. Manual switchover and disaster recovery never read it. A self-hosted control plane reads it as an environment variable (see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services)) and, unset, has automatic failover on. On TurboPanel High Availability it is set per environment: on for testing, off for staging and live.
+Automatic failover needs a healthy, caught-up failover replica in the same datacenter. After one starts, another automatic failover for that cluster waits 15 minutes. It does not run while the control plane is down. A primary that dies while a create or change is still settling (about the first ten and a half minutes) is not failed over until that window ends, and one that dies in the first moments of it is not failed over at all. The control plane operator can turn automatic failover off for a deployment; see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services). Manual switchover and disaster recovery do not depend on it.
 
 **A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
 
-| Reason | Meaning | What to do |
-| --- | --- | --- |
-| `auto_failover_disabled` | The switch is off on this control plane. | Turn it on, or promote by hand. |
-| `cooldown` | An automatic failover started less than 15 minutes ago. A refusal does not extend the cooldown, and the report is sent again after it. | Wait, or promote by hand. |
-| `unfenced` | The old primary could not be confirmed stopped, so promoting would risk two writers. | Bring the old server back or confirm it is off, then promote by hand. |
-| `no_command_queue` | This control plane cannot send commands to servers. | A deployment fault; contact whoever runs the control plane. |
+| Reason                   | Meaning                                                                                                                                | What to do                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `auto_failover_disabled` | The switch is off on this control plane.                                                                                               | Turn it on, or promote by hand.                                       |
+| Cooldown                 | An automatic failover started less than 15 minutes ago. A refusal does not extend the cooldown, and the report is sent again after it. | Wait, or promote by hand.                                             |
+| Unable to verify previous primary is fenced | Automatic failover could not prove the old primary was drained and stopped, so nothing was promoted and that member is still the primary. If a failover replica was already chosen, the row keeps that target and the **15-minute cooldown** still applies — the next automatic attempt is `cooldown`, not an immediate fencing retry. | Stop the old database if you can, wait out the cooldown, or use **Promote anyway** / `{ "force": true }` on a failover replica if you accept split-brain risk. |
+| `no_command_queue`       | This control plane cannot send commands to servers.                                                                                    | A deployment fault; contact whoever runs the control plane.           |
 
 A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
+
+## What to expect when a database fails over [#what-to-expect-when-a-database-fails-over]
+
+Plain-words guide for the person on the **Overview** tab. Recovery history shows what the platform tried; the connection string your apps dial does not change after a successful switchover or automatic failover.
+
+### After a switchover or automatic failover
+
+The former primary is demoted to a replica and shows **needs resync** until it has been re-seeded from the new primary. Press **Resync** on that replica (two-step confirm: _Wipes this replica's data and re-seeds it from the primary._). The platform wipes its data directory and copies from the new primary. Any writes the old primary took while it was isolated are discarded and exist nowhere else.
+
+If an automatic failover marks a member **needs resync** but ends `blocked`, nothing was promoted: that member is still the primary and its database may still be running. **Resync** on a member that is still the primary answers **409** `managed_member_is_primary`.
+
+### When the primary's server dies [#when-the-primarys-server-dies]
+
+When a whole server is silent, the platform cannot stop the database on it. If the other members agree the primary has stopped, a failover replica is promoted without stopping the old primary, and the old member is marked **needs resync**. Until the platform has demoted and stopped the old database, it may still accept writes if the server comes back, so check **Overview** before you assume the old primary is safe.
+
+A planned reboot or update of that server can delay the decision, but not for long: about seven and a half minutes after the server went offline, the attempt ends with a `blocked` row saying the server has been silent too long for an automatic failover to be safe. If nothing was promoted and you want a new writer, open **Overview**, pick a healthy same-datacenter **failover** replica and press **Promote**. Do not bring the old server back online and promote while it is still the primary.
+
+
+### Backups from before the failover
+
+Each backup file lives on the server that ran the primary when the backup was taken (the API exposes that host as `storedOnServerId` on each backup row). After promotion the primary moves; restore always targets the **current** primary's server.
+
+**What you see:** **Restore** answers **409** `backup_on_other_server` — the response names the server that stored the file (the primary when the backup ran), says it can only be restored there, and tells you to take a new backup on the current primary or switch back first. No restore is enqueued.
+
+**What to do:** managed backups are **logical dumps**, not point-in-time recovery. **Back up now** on the new primary creates a **new** file on the new writer's server; restoring it does **not** apply the older backup that returned `backup_on_other_server`. To use a pre-failover dump, restore it on the server that still holds the file (or switch the primary back to that server first); otherwise take a fresh backup after failover and restore that copy on the current primary.
+
+### Short write outages and listener reloads
+
+**Switchover or engine-dead automatic failover:** the shared listener drains the old primary, stops it, promotes the replica, and repoints ProxySQL. **Host-loss automatic failover** skips drain/stop on the silent host (attested fence) but still promotes and repoints listeners on connected servers. Read-write clients should expect a short gap — connection refused, timeout, or driver errors. Use connection retry/backoff; the host and port in the connection string stay the same.
+
+**Adding a replica** (or changing who serves reads) enqueues `managed.ingress.reconcile` on every server that fronts the cluster so ProxySQL picks up the new backend. While that reconcile runs, read-write logins can see brief connection or write errors. Retry for a few seconds; a fresh ProxySQL stack can take a few seconds before its admin port answers.
+
+### External access and the listener
+
+With **Allow external access** off, SQL listeners are on `127.0.0.1` only (`15432` / `13306`). With it on, the same ports publish on all host addresses (`0.0.0.0`). Failover does not move the endpoint your apps dial — only which backend ProxySQL treats as the writer. The per-server switch and API are under [External access](#external-access) below.
+
+### MariaDB 11.8 vs 12.3
+
+**MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false` in the release catalog): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` values. Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
+
+### Orchestrator login and datacenter placement
+
+MySQL and MariaDB automatic failover uses **Orchestrator** (one stack per organization on servers that host HA members). Two credentials are organization-wide, not Linux accounts:
+
+- A **topology database login** — one derived MySQL user every HA cluster in the organization accepts so Orchestrator can register all members.
+- **Orchestrator HTTP basic auth and a Raft token** — shared by every Raft peer in the org.
+
+Raft voters are chosen **inside one datacenter** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter** so they share one Raft group. Postgres HA does not use Orchestrator; engine-dead reports on a live server use the Postgres probe instead.
+
+### ProxySQL and 4 KiB kernel pages
+
+Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common on Raspberry Pi 5 until switched). Consumer servers need the proxy too — apps reach databases through `127.0.0.1:15432` / `13306` even when no engine runs there.
+
+**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
 
 ## Backups
 
 **Backups** tab, for all three engines. A backup is a logical dump of one database, stored on the server that runs the cluster's primary.
 
-| Engine | Dump | File |
-| --- | --- | --- |
-| PostgreSQL | `pg_dump` custom format, per database | `.dump` |
-| MySQL, MariaDB | `mysqldump`, per database | `.sql` |
+| Engine         | Dump                                  | File    |
+| -------------- | ------------------------------------- | ------- |
+| PostgreSQL     | `pg_dump` custom format, per database | `.dump` |
+| MySQL, MariaDB | `mysqldump`, per database             | `.sql`  |
 
 ### Back up now, restore, delete
 
-| Action | What happens |
-| --- | --- |
-| **Back up now** | Dumps the database on the primary's server and records it in the list. |
-| **Restore** | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
-| **Delete** | Two presses. Removes the backup. |
+| Action          | What happens                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Back up now** | Dumps the database on the primary's server and records it in the list.                                                                      |
+| **Restore**     | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
+| **Delete**      | Two presses. Removes the backup.                                                                                                            |
 
 Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
 
@@ -216,17 +279,22 @@ Every **new** managed database starts with one schedule named **Daily**: every d
 
 <Steps>
   <Step>
-    **Add schedule**, give it a **Name** (up to 64 characters) and choose **Schedule**: **Hourly**, **Daily** (a time, `HH:MM`, 24-hour), **Weekly** (a day and a time) or **Advanced: cron** (five fields: minute, hour, day of month, month, day of week).
+    **Add schedule**, give it a **Name** (up to 64 characters) and choose
+    **Schedule**: **Hourly**, **Daily** (a time, `HH:MM`, 24-hour), **Weekly**
+    (a day and a time) or **Advanced: cron** (five fields: minute, hour, day of
+    month, month, day of week).
   </Step>
   <Step>
-    Pick a **Timezone** or leave **Server time** to follow the server's own clock.
+    Pick a **Timezone** or leave **Server time** to follow the server's own
+    clock.
   </Step>
   <Step>
-    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add schedule** saves it.
+    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add
+    schedule** saves it.
   </Step>
 </Steps>
 
-Each row shows the schedule in words (for example *Daily at 03:12*), how many it keeps, when it runs next, and the last run (*Succeeded* or *Failed*, with the error). **Enabled** / paused switches it off without losing it, **Edit** changes it, **Run history** lists recent runs (newest first), and **Delete** removes the schedule and stops its timer: **backups it already made stay on the server**.
+Each row shows the schedule in words (for example _Daily at 03:12_), how many it keeps, when it runs next, and the last run (_Succeeded_ or _Failed_, with the error). **Enabled** / paused switches it off without losing it, **Edit** changes it, **Run history** lists recent runs (newest first), and **Delete** removes the schedule and stops its timer: **backups it already made stay on the server**.
 
 What to know:
 
@@ -244,10 +312,10 @@ One setting, per server: **Allow external access to the databases on this server
 
 A server runs one listener for every database on it, so who can reach it from outside is a fact about the server, not about one database.
 
-| Setting | Who can connect |
-| --- | --- |
-| **No** (default) | Only services on that server: sites run by a site owner's Linux user (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect. |
-| **Yes** | The same ports are also published on all of the server's addresses. Anyone who can reach the server's network can try to connect. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall. It covers **every** database on that server. |
+| Setting          | Who can connect                                                                                                                                                                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No** (default) | Only services on that server: sites run by a site owner's Linux user (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect.               |
+| **Yes**          | The same ports are also published on all of the server's addresses. Anyone who can reach the server's network can try to connect. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall. It covers **every** database on that server. |
 
 Find the switch in the **create database** form (it shows the chosen server's current value and warns when other databases already run there), in the database's **Settings** tab (one row per server that serves it, with how many other databases share it), and over the API at `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access` (organization owners and managers). Saving tells the server at once; if the server is offline or the change cannot be delivered yet, it is saved and retried automatically, and the app shows it as waiting for the server. The **Connect** tab always lists the way in from this server only, and adds a way in from outside the server only while the setting is **Yes** (and the server has a public address or hostname).
 
@@ -259,53 +327,54 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 
 ## Reference
 
-| Item | Value |
-| --- | --- |
-| Engines | `postgres`, `mysql`, `mariadb` |
-| Creatable series | PostgreSQL 18 · MySQL 9.7 (default), 8.4 · MariaDB 11.8 (default, long-term support), 12.3 (one server only) |
-| Variants | `alpine`, `debian`, `oraclelinux9`, `ubi` (two per series) |
-| Listener ports | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999` |
-| SSL modes | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full` |
-| Connection roles | `read-write` (default) · `read-only` |
-| Replica classes | `failover` (same datacenter) · `read` (anywhere) |
-| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; detects a dead engine on a live server, not a lost server |
-| Recovery kinds | `automatic-failover` · `switchover` · `disaster-recovery` |
-| Applied login | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain` |
-| Backups | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only |
+| Item               | Value                                                                                                                                                                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engines            | `postgres`, `mysql`, `mariadb`                                                                                                                                                                                                                              |
+| Creatable series   | PostgreSQL 18 · MySQL 9.7 (default), 8.4 · MariaDB 11.8 (default, long-term support), 12.3 (one server only)                                                                                                                                                |
+| Variants           | `alpine`, `debian`, `oraclelinux9`, `ubi` (two per series)                                                                                                                                                                                                  |
+| Listener ports     | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999`                                                                                                                                                                       |
+| SSL modes          | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full`                                                                                                                                                                          |
+| Connection roles   | `read-write` (default) · `read-only`                                                                                                                                                                                                                        |
+| Replica classes    | `failover` (same datacenter) · `read` (anywhere)                                                                                                                                                                                                            |
+| Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; engine-dead on a live server (Postgres probe / Orchestrator); whole-host loss via `ha-host-loss` for PostgreSQL, MySQL, and MariaDB (`metadata.detector = host-loss` on host-loss blocked rows) |
+| Recovery kinds     | `automatic-failover` · `switchover` · `disaster-recovery`                                                                                                                                                                                                   |
+| Applied login      | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain`                                                                                                                          |
+| Backups            | PostgreSQL `pg_dump -Fc` (`.dump`), MySQL and MariaDB `mysqldump` (`.sql`), per database; manual keep `1`–`50`; up to 20 schedules per database, each keeping `1`–`50`; no download; local disk only                                                        |
 
 ## Errors
 
-| Code | Status | Meaning |
-| --- | --- | --- |
-| `managed_engine_unavailable` | 400 | The engine is not released yet. |
-| `managed_version_unsupported` | 422 | The series or variant is not creatable. |
-| `managed_series_immutable` | 422 | A cluster's series cannot change after provisioning; only the variant may. |
-| `server_placement_required` | 409 | No server chosen for the primary. |
-| `server_offline` | 409 | The action needs the member's daemon connected. |
-| `managed_busy` | 409 | The cluster is provisioning or applying; wait for it. |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing` | 409 | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary. |
-| `managed_replica_not_promotable` | 422 | Only a failover or read replica in a promotable state can be promoted. |
-| `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport` | 422 | A failover replica needs a trusted datacenter and a datacenter path to the primary. |
-| `fabric_address_required` | 422 | A remote replica or consumer needs a TurboFabric address on its server. |
-| `managed_private_port_exhausted` | 409 | The server has no private replication port left (45000–45999). |
-| `managed_listener_bind_conflict` | 422 | The listener port is already bound on that server. |
-| `managed_no_read_targets` | 422 | A read-only login was requested and no replica serves reads. |
-| `managed_user_exists`, `database_exists` | 409 | The user or database already exists on this cluster. |
-| `username_in_use` | 409 | A login with that name exists on another cluster in the organization's servers. |
-| `username_reserved` | 400 | `postgres`, `root`, `mysql`, `superadmin`. |
-| `principal_scheme_locked` | 409 | The organization locks the name scheme and the request asked for a different one. |
-| `managed_user_has_bindings`, `managed_database_has_bindings` | 409 | Sever the service bindings first. |
-| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**. |
-| `managed_backup_unsupported` | 400 | The engine does not support backups. |
-| `backup_not_found` | 404 | No backup with that id. |
-| `backup_policy_invalid` | 400 | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset. |
-| `backup_schedule_invalid`, `backup_timezone_invalid` | 400 | The schedule or timezone cannot be used; the response says why. |
-| `backup_target_unsupported` | 400 | This target cannot have a schedule through this route. |
-| `backup_policy_not_found` | 404 | No schedule with that id on this database. |
-| `backup_policy_limit` | 409 | The database already has 20 schedules. |
-| `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
-| `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
-| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Control plane faults; not something a form change fixes. |
+| Code                                                                                                                 | Status    | Meaning                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `managed_engine_unavailable`                                                                                         | 400       | The engine is not released yet.                                                                                                       |
+| `managed_version_unsupported`                                                                                        | 422       | The series or variant is not creatable.                                                                                               |
+| `managed_series_immutable`                                                                                           | 422       | A cluster's series cannot change after provisioning; only the variant may.                                                            |
+| `server_placement_required`                                                                                          | 409       | No server chosen for the primary.                                                                                                     |
+| `server_offline`                                                                                                     | 409       | The action needs the member's daemon connected.                                                                                       |
+| `managed_busy`                                                                                                       | 409       | The cluster is provisioning or applying; wait for it.                                                                                 |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing`                                      | 409       | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary. |
+| `managed_replica_not_promotable`                                                                                     | 422       | Only a failover or read replica in a promotable state can be promoted.                                                                |
+| `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport`                             | 422       | A failover replica needs a trusted datacenter and a datacenter path to the primary.                                                   |
+| `fabric_address_required`                                                                                            | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                               |
+| `managed_private_port_exhausted`                                                                                     | 409       | The server has no private replication port left (45000–45999).                                                                        |
+| `managed_listener_bind_conflict`                                                                                     | 422       | The listener port is already bound on that server.                                                                                    |
+| `managed_no_read_targets`                                                                                            | 422       | A read-only login was requested and no replica serves reads.                                                                          |
+| `managed_user_exists`, `database_exists`                                                                             | 409       | The user or database already exists on this cluster.                                                                                  |
+| `username_in_use`                                                                                                    | 409       | A login with that name exists on another cluster in the organization's servers.                                                       |
+| `username_reserved`                                                                                                  | 400       | `postgres`, `root`, `mysql`, `superadmin`.                                                                                            |
+| `principal_scheme_locked`                                                                                            | 409       | The organization locks the name scheme and the request asked for a different one.                                                     |
+| `managed_user_has_bindings`, `managed_database_has_bindings`                                                         | 409       | Sever the service bindings first.                                                                                                     |
+| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**.                                              |
+| `managed_backup_unsupported`                                                                                         | 400       | The engine does not support backups.                                                                                                  |
+| `backup_not_found`                                                                                                   | 404       | No backup with that id.                                                                                                               |
+| `backup_policy_invalid`                                                                                              | 400       | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset.                        |
+| `backup_schedule_invalid`, `backup_timezone_invalid`                                                                 | 400       | The schedule or timezone cannot be used; the response says why.                                                                       |
+| `backup_target_unsupported`                                                                                          | 400       | This target cannot have a schedule through this route.                                                                                |
+| `backup_policy_not_found`                                                                                            | 404       | No schedule with that id on this database.                                                                                            |
+| `backup_policy_limit`                                                                                                | 409       | The database already has 20 schedules.                                                                                                |
+| `backup_on_other_server`                                                                                             | 409       | The backup file is stored on the server that was primary when it ran; restore only works on that host — take a new backup on the current primary or switch back first. |
+| `managed_runtime_present`                                                                                            | 409       | Destroy the cluster before deleting its project or environment.                                                                       |
+| `managed_destroy_failed`                                                                                             | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                    |
+| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`      | 500 / 503 | Control plane faults; not something a form change fixes.                                                                              |
 
 ## Related
 
