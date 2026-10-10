@@ -25,7 +25,7 @@ describe("invitation access docs (no default organization manager grant)", () =>
     expect(access).not.toMatch(/default grant an invitation gives/i);
   });
 
-  it("access.mdx documents team-only console invites and explicit grants", () => {
+  it("access.mdx documents team-only app invites and explicit grants", () => {
     expect(access).toMatch(/no grants/i);
     expect(access).toMatch(/grants_require_owner/);
     expect(access).toMatch(/Invalid invitation grants/);
@@ -42,12 +42,12 @@ describe("invitation access docs (no default organization manager grant)", () =>
   });
 
   it("access.mdx accept error rows use HTTP statuses from invitationAcceptErrorPayload", () => {
-    for (const { status } of Object.values(INVITATION_ACCEPT_ERROR_PAYLOADS)) {
+    for (const { status, error } of Object.values(
+      INVITATION_ACCEPT_ERROR_PAYLOADS,
+    )) {
       expect(access).toContain(`${status} (accept)`);
+      expect(access).toContain(`| \`${error}\``);
     }
-    expect(access).toContain(
-      INVITATION_ACCEPT_ERROR_PAYLOADS.invalid_grant.error,
-    );
   });
 
   it("access.mdx documents team membership only after accept", () => {

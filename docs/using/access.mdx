@@ -35,7 +35,7 @@ How they combine:
 
 - **Owner implies manager.** A check for `organization:manage` passes with either grant; a check for `organization:own` needs the owner grant itself.
 - **Organization grants reach every team.** An organization owner or manager may act on any team in the organization; a team grant reaches only its team.
-- **Grants flow through membership.** A grant to a _team_ applies to everyone in it; a grant to the _organization_ as subject applies to everyone in any of its teams. A console invitation adds none by itself — give **Manage** or **Owner** explicitly when someone needs them.
+- **Grants flow through membership.** A grant to a _team_ applies to everyone in it; a grant to the _organization_ as subject applies to everyone in any of its teams. An app invitation adds none by itself — give **Manage** or **Owner** explicitly when someone needs them.
 - **Administrators bypass all of this.** A user whose control plane role is `superadmin` or `admin` (see [Administering the control plane](/docs/using/admin)) passes every organization check without a grant row.
 - **The last owner cannot be removed.** Revoking the only `organization:own` grant on an organization is refused.
 
@@ -104,7 +104,7 @@ Accepting creates **team membership** only. The invitee can sign in and belongs 
 
 ## Members
 
-**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member** — the highest organization permission they hold, so a console invitee with no grant shows **Member**) and _Joined_ date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
+**Access → Members** lists everyone with access to the organization: **Name**, email, a role badge (**Owner**, **Manager** or **Member** — the highest organization permission they hold, so an app invitee with no grant shows **Member**) and _Joined_ date. A person counts as a member through a team in the organization or through a grant on it. Only owners and managers can see the list.
 
 <Steps>
   <Step>
@@ -158,7 +158,7 @@ Subject IDs are the account, team or organization ids. The teams are in the **Te
 | Grant targets                  | `organization`, `team` (the API also accepts the resource tree — workspace, project, environment, service, server, hosting, variable, managed, container, tls) |
 | Subjects                       | `user` · `team` · `organization`                                                                                                                               |
 | Invitation lifetime            | 7 days; one pending per team + address                                                                                                                         |
-| Grants on a console invitation | none (team + email only)                                                                                                                                       |
+| Grants on an app invitation    | none (team + email only)                                                                                                                                       |
 | Grants on an API invitation    | omitted stores none; owner may attach explicit specs (`grants: null` → 400 `Invalid request`)                                                                  |
 | Defaults on creation           | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own`                                                                       |
 | Control plane roles            | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering the control plane](/docs/using/admin)                                   |
@@ -172,8 +172,8 @@ Subject IDs are the account, team or organization ids. The teams are in the **Te
 | `grants_require_owner`                                                  | 403          | Only an organization owner may attach explicit grants to an invitation.                                                                    |
 | `Invalid invitation grants`                                             | 400          | `grants` is an empty array, or a grant names a permission or target that does not fit (for example a team permission on the organization). |
 | `Forbidden`                                                             | 403 (accept) | The signed-in account's email is not the invited address.                                                                                  |
-| `gone`                                                                  | 410 (accept) | The invitation expired, was revoked or was already used — or its team or organization no longer exists.                                    |
-| `invalid_grant`                                                         | 400 (accept) | The invitation's stored grants no longer fit the organization.                                                                             |
+| `Invitation expired or already used`                                    | 410 (accept) | The invitation expired, was revoked or was already used — or its team or organization no longer exists.                                    |
+| `Invalid invitation grants`                                             | 400 (accept) | The invitation's stored grants no longer fit the organization.                                                                             |
 | `Not found`                                                             | 404          | No pending invitation, or no grant, with that id.                                                                                          |
 | `Entity not found`                                                      | 404          | The grant target is not in this organization.                                                                                              |
 | `… may only be granted on organization entities` / `… on team entities` | 400          | The permission does not fit the target kind.                                                                                               |

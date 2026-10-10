@@ -55,7 +55,7 @@ Unlinking refuses when it would remove your last way to sign in.
 
 ## Invite a teammate
 
-Invitations are **team-scoped**: you invite someone to a team so they become a member of the organization. That membership does not grant **Manage** or **Owner** by itself — only explicit grants (on the invitation or added later) do. A manager of the team invites; only an organization owner may attach grants on `POST /invitations`; the console invite form sends none. The link is good for **7 days**; a control plane without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering the control plane](/docs/using/admin#email)). The app procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
+Invitations are **team-scoped**: you invite someone to a team so they become a member of the organization. That membership does not grant **Manage** or **Owner** by itself — only explicit grants (on the invitation or added later) do. A manager of the team invites; only an organization owner may attach grants on `POST /invitations`; the app invite form sends none. The link is good for **7 days**; a control plane without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering the control plane](/docs/using/admin#email)). The app procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
 
 ```mermaid title="Invitation when the invitee has no account"
 sequenceDiagram
