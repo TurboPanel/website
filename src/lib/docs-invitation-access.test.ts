@@ -14,6 +14,7 @@ function readDoc(...parts: string[]): string {
 
 describe("invitation access docs (no default organization manager grant)", () => {
   const access = readDoc("using", "access.mdx");
+  const errors = readDoc("using", "reference", "errors.mdx");
   const index = readDoc("using", "index.mdx");
   const accounts = readDoc("getting-started", "accounts-and-access.mdx");
 
@@ -48,6 +49,26 @@ describe("invitation access docs (no default organization manager grant)", () =>
       expect(access).toContain(`${status} (accept)`);
       expect(access).toContain(`| \`${error}\``);
     }
+  });
+
+  it("errors.mdx documents POST /invitations grants refusals", () => {
+    expect(errors).toMatch(
+      /\| `Invalid request`\s+\| 400\s+\| `POST \/invitations` sent `grants: null` or a non-array\./,
+    );
+    expect(errors).toMatch(
+      /\| `Invalid invitation grants`\s+\| 400\s+\| `POST \/invitations` sent `grants: \[\]`/,
+    );
+  });
+
+  it("errors.mdx documents accept wire bodies, not internal reason codes", () => {
+    for (const { status, error } of Object.values(
+      INVITATION_ACCEPT_ERROR_PAYLOADS,
+    )) {
+      expect(errors).toContain(`${status} (accept)`);
+      expect(errors).toContain(`| \`${error}\``);
+    }
+    expect(errors).not.toMatch(/\| `invalid_grant`\s+\|/);
+    expect(errors).not.toMatch(/\| `gone`\s+\|/);
   });
 
   it("access.mdx documents team membership only after accept", () => {
