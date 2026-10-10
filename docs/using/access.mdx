@@ -51,10 +51,14 @@ Visibility follows the same rules in the database, not in the app: a list shows 
 
 <Steps>
   <Step>
-    Header organization menu → **New**, or `/organizations` → **New**. Name it.
-    On TurboPanel High Availability the first organization from sign-up is
-    called **My Organization**; on self-hosted, install creates **Root
-    Organization**.
+    Header organization menu → **New**, or `/organizations` → **New**. Name it when sign-up did not already create one for you.
+
+    On **TurboPanel High Availability**, password or GitHub/Google sign-up (ordinary sign-up, not accepting an invitation) provisions your first organization automatically. It is named from your account email (`you@example.com's organization`); if the email is missing, blank, or that label fails display-name rules, it falls back to **My Organization**.
+
+    On a **self-hosted** control plane, install creates **Root Organization** for the superadmin. Password sign-up does not provision a personal organization — create one here. GitHub/Google sign-up still provisions one with the same email-based name and **My Organization** fallback when needed.
+
+    Rename anytime under **Manage Organization**.
+
   </Step>
   <Step>
     You become its **owner** (`organization:own`) and the owner of its **Default
@@ -152,16 +156,16 @@ Subject IDs are the account, team or organization ids. The teams are in the **Te
 
 ## Reference
 
-| Item                           | Value                                                                                                                                                          |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Permissions on grants          | `organization:own` · `organization:manage` · `team:own` · `team:manage`                                                                                        |
-| Grant targets                  | `organization`, `team` (the API also accepts the resource tree — workspace, project, environment, service, server, hosting, variable, managed, container, tls) |
-| Subjects                       | `user` · `team` · `organization`                                                                                                                               |
-| Invitation lifetime            | 7 days; one pending per team + address                                                                                                                         |
-| Grants on an app invitation    | none (team + email only)                                                                                                                                       |
-| Grants on an API invitation    | omitted stores none; owner may attach explicit specs (`grants: null` → 400 `Invalid request`)                                                                  |
-| Defaults on creation           | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own`                                                                       |
-| Control plane roles            | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering the control plane](/docs/using/admin)                                   |
+| Item                        | Value                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Permissions on grants       | `organization:own` · `organization:manage` · `team:own` · `team:manage`                                                                                        |
+| Grant targets               | `organization`, `team` (the API also accepts the resource tree — workspace, project, environment, service, server, hosting, variable, managed, container, tls) |
+| Subjects                    | `user` · `team` · `organization`                                                                                                                               |
+| Invitation lifetime         | 7 days; one pending per team + address                                                                                                                         |
+| Grants on an app invitation | none (team + email only)                                                                                                                                       |
+| Grants on an API invitation | omitted stores none; owner may attach explicit specs (`grants: null` → 400 `Invalid request`)                                                                  |
+| Defaults on creation        | **Default Team** (creator `team:own`), **Default Workspace**, creator `organization:own`                                                                       |
+| Control plane roles         | `superadmin`, `admin` bypass organization grants; `user` does not — see [Administering the control plane](/docs/using/admin)                                   |
 
 ## Errors
 
