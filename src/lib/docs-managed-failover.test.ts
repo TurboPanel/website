@@ -47,7 +47,17 @@ describe("managed database failover docs", () => {
       /postgres-probe[\s\S]*only from the.*primary's own server/i,
     );
     expect(managed).toContain("lastStreaming.ageMs");
-    expect(managed).toMatch(/10 minutes[\s\S]*no recovery row|no journal entry/i);
+    expect(managed).toMatch(/decision cap.*7\.5 minutes/i);
+    expect(managed).toMatch(/too_late[\s\S]*blocked/i);
+    expect(managed).not.toMatch(
+      /10 minutes[\s\S]*no recovery row|no journal entry/i,
+    );
+    expect(managed).toMatch(
+      /unfenced[\s\S]*15.minute cooldown|cooldown still applies/i,
+    );
+    expect(managed).not.toContain(
+      "wait for automatic failover to retry",
+    );
     expect(managed).toMatch(
       /every[\s\S]*failover replica is probed even when stored health looks healthy/i,
     );
