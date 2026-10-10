@@ -34,6 +34,13 @@ describe("managed database failover docs", () => {
     expect(managed).not.toContain("MySQL and MariaDB are probed like Postgres");
     expect(managed).toContain("managed-ha-boot-hold-v1");
     expect(managed).toContain("TURBOPANEL_HOST_LOSS_WINDOW_SECONDS");
+    expect(managed).toContain("### Failover by scenario");
+    expect(managed).not.toMatch(
+      /an automatic failover does not proceed when the old primary is unreachable/i,
+    );
+    expect(managed).not.toContain(
+      "Because the old primary is stopped first, two writers never exist at the same time",
+    );
   });
 
   it("links the section from the using index and ingress architecture page", () => {

@@ -176,26 +176,35 @@ MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a 
 
 **Promote** on a failover replica switches over: it asks the old primary to stop if its server is online, promotes the replica and points the endpoint at it, so the connection string does not change. The replica must be a **failover** replica that is streaming and no more than 64 MiB or 30 seconds behind on a **live** health read from its daemon (non-force promote always probes first; **Refresh health** on **Overview** updates stored readings but does not replace that probe). Over the API, `{ "force": true }` skips the lag and health checks (and accepts possible data loss) but never the replica class. A **read** replica can only be promoted with **Promote for disaster recovery**.
 
-The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). A promote you start yourself goes ahead even when the old primary cannot be reached; an automatic failover does not.
+The old primary becomes a replica. If it could not be stopped, it is marked `needs_resync` and stays that way until you re-seed it from the new primary (`POST /environments/:id/managed/members/:memberId/resync`). **Promote** and disaster recovery keep going when the old primary or its server cannot be reached (the old member is marked **needs resync** afterward). Automatic failover on a **live** server is different: it must prove the old primary was drained and stopped first, or the journal records `unfenced` and nothing is promoted. Whole-host loss uses a separate attested fence — see [When the primary's server dies](#when-the-primarys-server-dies).
 
-### Automatic failover
+### Automatic failover [#automatic-failover]
 
-When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
+When a primary dies, the platform can promote a same-datacenter **failover** replica on its own. The endpoint your applications dial does not change. Two detectors feed the same `beginAutomaticFailover` path (switch, 15 minute cooldown, candidate gate, command queue), but they fence the old primary differently:
 
-**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator on a live server. A dead **host** (the whole server silent) is a separate **host-loss** rule for PostgreSQL, MySQL, and MariaDB — see [What to expect when a database fails over](#what-to-expect-when-a-database-fails-over).
+| Path | What broke | How it is detected |
+| ---- | ---------- | ------------------ |
+| **Engine dead, host alive** | The database engine on a connected server | PostgreSQL: the daemon on the primary's server (`postgres-probe`, every 5 s, dead only after six consecutive hard failures spanning at least 20 s). MySQL and MariaDB: Orchestrator **DeadPrimary** on a live server (`managed-ha-event`). |
+| **Host loss** | The primary's server is silent to the control plane | About once a minute, `ha-host-loss` on the control plane — see [When the primary's server dies](#when-the-primarys-server-dies). |
 
-**What the platform checks, in order.**
+**Shared gates (both paths).** The report must name the cluster's current primary and come from a server in the same organization that hosts a member. `TURBOPANEL_AUTO_FAILOVER` must be on for this deployment (below). No automatic failover for this cluster may have **started** in the last 15 minutes. A same-datacenter **failover** replica must pass the candidate gate (stored health and/or an event-time **fresh-standby** probe — not only `streaming`; see the host-loss table). The control plane must be able to queue commands (`no_command_queue` otherwise).
 
-1. The report comes from the server that hosts the cluster's current primary, in the same organization.
-2. The per-environment switch below is on.
-3. No automatic failover for this cluster began in the last 15 minutes (the cooldown).
-4. A same-datacenter failover replica is healthy enough to promote: streaming, with a recent observation and little lag.
-5. The platform can queue commands to the servers.
-6. **Fencing first.** The old primary is drained and stopped before anything is promoted. If it cannot be confirmed stopped, for example because its server is unreachable, nothing is promoted.
+**Engine-dead fencing (live host only).** The platform drains ProxySQL on the cluster, then stops the old primary container. Promotion runs only when drain and stop are confirmed. If the old primary's server is not connected, automatic failover does not send those commands: the row is `blocked` with `unfenced` because two writers would be possible. Host-loss automatic failover skips network drain/stop and uses an attested fence instead (`fenceBasis = host-loss-attested`, boot hold on the old host).
 
-Only then is the replica promoted and the endpoint repointed. Because the old primary is stopped first, two writers never exist at the same time. Its data is resynced as a replica afterwards.
+**Fresh-standby probe (engine dead).** When stored readings do not show a healthy streaming failover replica, the control plane probes each same-datacenter failover replica at event time. PostgreSQL may accept a non-`streaming` standby when its last streaming read is tied to the failure start (default 10 s margin), received WAL is replayed within 16 KiB, and the last receive lag was within 64 MiB; the replica that received the most WAL wins. MySQL and MariaDB require `fullyApplied === true` plus the same contact receipt; if more than one failover replica passes but their executed GTID sets differ, nothing is picked automatically — promote by hand.
 
-**The switch.** `TURBOPANEL_AUTO_FAILOVER` turns this on or off for a whole deployment. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off, so a typo never promotes. Manual switchover and disaster recovery never read it. A self-hosted control plane reads it as an environment variable (see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services)) and, unset, has automatic failover on. On TurboPanel High Availability it is set per environment: on for testing, off for staging and live.
+**The switch.** `TURBOPANEL_AUTO_FAILOVER` is read when each event or host-loss decision runs. It accepts `on` or `off` (also `true`/`false` and `1`/`0`); any other value counts as off. Unset or blank: **on** everywhere except when `TURBOPANEL_ENVIRONMENT` is `staging` or `live` (**off** on those unless you set `on`). Self-hosted and TurboPanel High Availability **testing** and **canary** therefore default to on; **staging** and **live** default to off. Manual switchover and disaster recovery never read it. See [Control plane configuration](/docs/deployment/instance-configuration#runtime-services).
+
+### Failover by scenario
+
+Plain words for the three engines. MySQL and MariaDB share the same Orchestrator and GTID gates; only the detector label differs.
+
+| Scenario | PostgreSQL | MySQL | MariaDB |
+| -------- | ---------- | ----- | ------- |
+| **(a) Engine dead, host alive** | **Can promote automatically** after the probe reports dead (~20 s minimum) plus gate time, when the switch is on, cooldown clear, command queue up, and a failover replica passes the candidate gate. **Fencing:** drain + stop on the live host before promote; **`unfenced`** if stop cannot be proved. **Force promote:** n/a (operator action) — **Promote** / `{ "force": true }` skips lag and health checks, not replica class; continues if the old primary cannot be stopped (**needs resync**). | Same automatic path via Orchestrator **DeadPrimary** on a live server; same fencing and **`unfenced`** rule on a live host. Fresh-standby: **`fullyApplied === true`**; split GTID sets block automatic pick. **Force promote:** same as Postgres. | Same as MySQL. |
+| **(b) Host dead, control plane up** | **Can promote automatically** after the host is marked offline (`sweep_stale`), the host-loss window elapses (default **120 s**, `TURBOPANEL_HOST_LOSS_WINDOW_SECONDS`, clamped 60–300 s), peers corroborate silence, and the same switch/cooldown/queue/candidate gates pass — typically several minutes after the daemon last answered. **No** drain/stop on the dead host; **attested** fence (`host-loss-attested`) and **needs resync** on the old primary. Blocked codes include `fleet_outage`, `peer_streaming`, `not_corroborated`, `daemon_too_old`, `too_late` (after ~7.5 min from the offline mark). **Force promote:** **Promote** when automatic path is blocked or too slow. | Same host-loss path and timing; peer **`fullyApplied`** / GTID rules on the failover replica probe. **Force promote:** same as Postgres. | Same as MySQL. |
+| **(c) Host alive, cut off from control plane** | Engine probe may still run locally, but if the daemon cannot reach the control plane the server is marked offline and **host-loss** may run. Automatic promotion is **refused** while any replica still reports **`streaming`** from the primary (`peer_streaming` — the host is probably up, only the control-plane link is down). **Force promote:** only after you accept split-brain risk — **Promote anyway** / `{ "force": true }`. | Same: **`peer_streaming`** blocks host-loss auto-failover; Orchestrator on other servers does not replace peer corroboration. **Force promote:** same as Postgres. | Same as MySQL. |
+| **(d) Control plane down** | **No** automatic failover (no sweep, no `managed-ha-event` handling, no command queue). Daemons may still detect a dead engine locally; promotion waits until the control plane is back or you recover manually on another path. **Force promote:** unavailable until the control plane and replica daemon answer. | Same. | Same. |
 
 **A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
 
@@ -208,7 +217,7 @@ Only then is the replica promoted and the endpoint repointed. Because the old pr
 
 A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
 
-## What to expect when a database fails over
+## What to expect when a database fails over [#what-to-expect-when-a-database-fails-over]
 
 Plain-words guide for the person on the **Overview** tab. Recovery history shows what the platform tried; the connection string your apps dial does not change after a successful switchover or automatic failover.
 
@@ -218,9 +227,9 @@ The former primary is demoted to a replica. If its server was online, the platfo
 
 **What to do:** on that member, press **Resync** (two-step confirm: _Wipes this replica's data and re-seeds it from the primary._). The platform wipes its data directory and copies from the new primary. Any writes the old primary took while it was isolated are discarded and exist nowhere else. API: `POST /environments/:id/managed/members/:memberId/resync`.
 
-### When the primary's server dies
+### When the primary's server dies [#when-the-primarys-server-dies]
 
-A dead database **process** on a live server can still trigger [automatic failover](#automatic-failover) (Postgres probe or Orchestrator for MySQL and MariaDB). That path stops the old primary first; if the stop cannot be confirmed, the journal records `unfenced` and nothing is promoted.
+A dead database **process** on a live server triggers [automatic failover](#automatic-failover) through `postgres-probe` or Orchestrator. That path drains and stops the old primary on the connected host before promote; if drain/stop cannot be confirmed, the journal records `unfenced` and nothing is promoted. It does **not** run when only the host is silent — that is host-loss below.
 
 A dead **server** is different: the engine-level detectors never run on a host that is not connected. About once a minute the control plane runs a **host-loss** sweep (`ha-host-loss`): it looks at how long the primary's server has been marked offline, whether the outage looks fleet-wide, and whether every other member's daemon corroborates that replication from the primary has stopped. **PostgreSQL, MySQL, and MariaDB** all use this path; `engine_unsupported` is only for engines outside that set (not something MySQL or MariaDB hit today).
 
@@ -241,13 +250,13 @@ Non-force **Promote** always asks the replica's daemon for a fresh health read f
 
 Each backup file lives on the server that ran the primary when the backup was taken (the API exposes that host as `storedOnServerId` on each backup row). After promotion the primary moves; restore always targets the **current** primary's server.
 
-**What you see:** **Restore** answers **409** `backup_on_other_server` with a message that the file lives on another server and to take a new backup on the current primary (or switch back first). No restore is enqueued.
+**What you see:** **Restore** answers **409** `backup_on_other_server` — the response names the server that stored the file (the primary when the backup ran), says it can only be restored there, and tells you to take a new backup on the current primary or switch back first. No restore is enqueued.
 
 **What to do:** run **Back up now** on the new primary, then restore from that backup if you need a point-in-time copy on the new writer.
 
 ### Short write outages and listener reloads
 
-**Switchover or automatic failover:** the shared listener drains the old primary, stops it, promotes the replica, and repoints ProxySQL. Read-write clients should expect a short gap — connection refused, timeout, or driver errors. Use connection retry/backoff; the host and port in the connection string stay the same.
+**Switchover or engine-dead automatic failover:** the shared listener drains the old primary, stops it, promotes the replica, and repoints ProxySQL. **Host-loss automatic failover** skips drain/stop on the silent host (attested fence) but still promotes and repoints listeners on connected servers. Read-write clients should expect a short gap — connection refused, timeout, or driver errors. Use connection retry/backoff; the host and port in the connection string stay the same.
 
 **Adding a replica** (or changing who serves reads) enqueues `managed.ingress.reconcile` on every server that fronts the cluster so ProxySQL picks up the new backend. While that reconcile runs, read-write logins can see brief connection or write errors. Retry for a few seconds; a fresh ProxySQL stack can take a few seconds before its admin port answers.
 
@@ -393,7 +402,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `backup_target_unsupported`                                                                                          | 400       | This target cannot have a schedule through this route.                                                                                |
 | `backup_policy_not_found`                                                                                            | 404       | No schedule with that id on this database.                                                                                            |
 | `backup_policy_limit`                                                                                                | 409       | The database already has 20 schedules.                                                                                                |
-| `backup_on_other_server`                                                                                             | 409       | The backup file is on a server that is no longer this cluster's primary; take a new backup on the current primary.                    |
+| `backup_on_other_server`                                                                                             | 409       | The backup file is stored on the server that was primary when it ran; restore only works on that host — take a new backup on the current primary or switch back first. |
 | `managed_runtime_present`                                                                                            | 409       | Destroy the cluster before deleting its project or environment.                                                                       |
 | `managed_destroy_failed`                                                                                             | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                    |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`      | 500 / 503 | Control plane faults; not something a form change fixes.                                                                              |
