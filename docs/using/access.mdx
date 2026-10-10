@@ -51,7 +51,13 @@ Visibility follows the same rules in the database, not in the app: a list shows 
 
 <Steps>
   <Step>
-    Header organization menu → **New**, or `/organizations` → **New**. Name it. The first organization from account sign-up (password or social sign-in, on any deployment that provisions one) is named from your email (`you@example.com's organization`); if the email is missing, blank, or that label fails display-name rules, it falls back to **My Organization**. Self-hosted install still creates **Root Organization** for the superadmin. Rename anytime under **Manage Organization**.
+    Header organization menu → **New**, or `/organizations` → **New**. Name it when sign-up did not already create one for you.
+
+    On **TurboPanel High Availability**, password or GitHub/Google sign-up (ordinary sign-up, not accepting an invitation) provisions your first organization automatically. It is named from your account email (`you@example.com's organization`); if the email is missing, blank, or that label fails display-name rules, it falls back to **My Organization**.
+
+    On a **self-hosted** control plane, install creates **Root Organization** for the superadmin. Password sign-up does not provision a personal organization — create one here. GitHub/Google sign-up still provisions one with the same email-based name and **My Organization** fallback when needed.
+
+    Rename anytime under **Manage Organization**.
   </Step>
   <Step>
     You become its **owner** (`organization:own`) and the owner of its **Default Team**, with a **Default Workspace** ready for projects.
