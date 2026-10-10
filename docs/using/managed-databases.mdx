@@ -163,7 +163,7 @@ The old primary becomes a replica. If it could not be stopped, it is marked `nee
 
 When a primary dies, the platform can promote a failover replica on its own. It is the same promotion as a switchover, started by a dead-primary report instead of a person. The endpoint your applications dial does not change.
 
-**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator. Losing a whole server is deliberately not detected: nothing can confirm the old primary is isolated, so that case stays manual (use **Promote** or disaster recovery).
+**How it detects a dead primary.** For PostgreSQL, the daemon on the primary's own server checks the database every 5 seconds and reports it dead only after it has failed for at least 20 seconds in a row, so a restart, a crash that recovers, or an overloaded primary is not mistaken for a dead one. A stop, restart, upgrade or restore you start yourself holds the check off while it runs. For MySQL and MariaDB the report comes from Orchestrator on a live server. A dead **host** is a separate rule (MySQL and MariaDB stay manual; Postgres only in narrow cases) — see [What to expect when a database fails over](#what-to-expect-when-a-database-fails-over).
 
 **What the platform checks, in order.**
 
@@ -188,6 +188,63 @@ Only then is the replica promoted and the endpoint repointed. Because the old pr
 | `no_command_queue` | This control plane cannot send commands to servers. | A deployment fault; contact whoever runs the control plane. |
 
 A row can also be `blocked` because no same-datacenter failover replica was healthy enough to promote. A `blocked` row does not hold anything up: **Promote** and disaster recovery stay available.
+
+## What to expect when a database fails over
+
+Plain-words guide for the person on the **Overview** tab. Recovery history shows what the platform tried; the connection string your apps dial does not change after a successful switchover or automatic failover.
+
+### After a switchover or automatic failover
+
+The former primary is demoted to a replica. If its server was online, the platform stopped it cleanly first. If the stop could not be confirmed (the host was unreachable), the member stays **needs resync** on the topology — the app shows `needs resync` — and does not serve traffic until you fix it.
+
+**What to do:** on that member, press **Resync** (two-step confirm: *Wipes this replica's data and re-seeds it from the primary.*). The platform wipes its data directory and copies from the new primary. Any writes the old primary took while it was isolated are discarded and exist nowhere else. API: `POST /environments/:id/managed/members/:memberId/resync`.
+
+### When the primary's server dies
+
+A dead database **process** on a live server can still trigger [automatic failover](#automatic-failover) (Postgres probe or Orchestrator for MySQL and MariaDB) when fencing succeeds.
+
+A dead **server** is different: nothing on the host can report in, so the platform does not guess. **MySQL and MariaDB never promote automatically on host loss** — the recovery journal records a terminal `blocked` row in plain words (`metadata.detector = host-loss`) and nothing is promoted. **PostgreSQL** may promote automatically only after the host has been offline long enough and every corroboration check passes (see the control-plane `ha-host-loss` rule); if any check fails, the outcome is the same blocked journal row, not a promotion.
+
+**What to do:** open **Overview**, pick a healthy same-datacenter **failover** replica, and press **Promote** (`POST …/managed/members/:memberId/promote`). That path continues even when the old primary cannot be reached (the old member is marked **needs resync** afterward). Automatic failover does not use force and refuses when the old primary cannot be fenced (`unfenced` in the journal).
+
+If **Promote** refuses because the replica is not streaming or is too far behind, the app offers **Promote anyway** after the lag message — API `{ "force": true }` on the same promote route. That skips lag and health checks only (never replica class) and accepts possible data loss if the old primary still had unreplicated commits. Copy on the sheet: *Promote anyway accepts possible data loss if the primary still has unreplicated commits.*
+
+### Backups from before the failover
+
+Each backup is stored on the server that was primary when it ran (`backup.server_id`). After promotion the primary moves; restore always targets the **current** primary's server.
+
+**What you see:** **Restore** answers **409** `backup_on_other_server` with a message that the file lives on another server and to take a new backup on the current primary (or switch back first). No restore is enqueued.
+
+**What to do:** run **Back up now** on the new primary, then restore from that backup if you need a point-in-time copy on the new writer.
+
+### Short write outages and listener reloads
+
+**Switchover or automatic failover:** the shared listener drains the old primary, stops it, promotes the replica, and repoints ProxySQL. Read-write clients should expect a short gap — connection refused, timeout, or driver errors. Use connection retry/backoff; the host and port in the connection string stay the same.
+
+**Adding a replica** (or changing who serves reads) enqueues `managed.ingress.reconcile` on every server that fronts the cluster so ProxySQL picks up the new backend. While that reconcile runs, read-write logins can see brief connection or write errors. Retry for a few seconds; a fresh ProxySQL stack can take a few seconds before its admin port answers.
+
+### External access and the listener
+
+Unchanged from [External access](#external-access): with **Allow external access** off, SQL listeners are on `127.0.0.1` only (`15432` / `13306`). With it on, the same ports publish on all host addresses (`0.0.0.0`). Failover does not move the endpoint your apps dial — only which backend ProxySQL treats as the writer.
+
+### MariaDB 11.8 vs 12.3
+
+**MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false`): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` state (MariaDB 12.x prints `OFF`/`ON` where Orchestrator expects numeric flags). Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
+
+### Orchestrator login and datacenter placement
+
+MySQL and MariaDB automatic failover uses **Orchestrator** (one stack per organization on servers that host HA members). Two credentials are organization-wide, not Linux accounts:
+
+- A **topology database login** — one derived MySQL user every HA cluster in the organization accepts so Orchestrator can register all members.
+- **Orchestrator HTTP basic auth and a Raft token** — shared by every Raft peer in the org.
+
+Raft voters are chosen **inside one datacenter** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter** so they share one Raft group. Postgres HA does not use Orchestrator; host-loss auto-promote is Postgres-only among engines.
+
+### ProxySQL and 4 KiB kernel pages
+
+Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common on Raspberry Pi 5 until switched). Consumer servers need the proxy too — apps reach databases through `127.0.0.1:15432` / `13306` even when no engine runs there.
+
+**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
 
 ## Backups
 
@@ -303,6 +360,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `backup_target_unsupported` | 400 | This target cannot have a schedule through this route. |
 | `backup_policy_not_found` | 404 | No schedule with that id on this database. |
 | `backup_policy_limit` | 409 | The database already has 20 schedules. |
+| `backup_on_other_server` | 409 | The backup file is on a server that is no longer this cluster's primary; take a new backup on the current primary. |
 | `managed_runtime_present` | 409 | Destroy the cluster before deleting its project or environment. |
 | `managed_destroy_failed` | 502 | The daemon could not tear the cluster down; see the server's logs. |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable` | 500 / 503 | Control plane faults; not something a form change fixes. |
