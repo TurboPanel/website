@@ -18,7 +18,7 @@ The group appears once the daemon's first directory walk completes — a freshly
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
 | Used | `storage.hostingUsedBytes` | Bytes under the hosting root — every site and app the panel hosts on this server. Operators can point this at a specific filesystem from the server's hardware profile; it defaults to the site owner home root |
-| Free on filesystem | `storage.hostingFreeBytes` | Space left on the filesystem the hosting root lives on |
+| Free on filesystem | `storage.hostingFreeBytes` | Space left on the filesystem the hosting root lives on *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 
 Read the pair as **can this grow**. Used climbing while free falls toward zero is the hosting volume filling; used flat while free falls is something *else* on the same filesystem eating it (logs, Docker, a database on `/`).
 
@@ -33,17 +33,17 @@ A backup root on its own attached disk reads straight from the filesystem, so th
 
 ## Docker data root [#managed-storage-docker]
 
-`storage.dockerUsedBytes` — the total bytes Docker holds: image layers, container writable layers, volumes, and build cache. This is the one figure shared with [Docker](/docs/metrics/managed-docker); that group's breakdown sums to it.
+`storage.dockerUsedBytes` — the total bytes Docker holds: image layers, container writable layers, volumes, and build cache. This is the one figure shared with [Docker](/docs/metrics/managed-docker); that group's breakdown sums to it. *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
 
 The wire carries no Docker free-bytes field. The app joins the free side at render time from the filesystem that carries the **docker** role in the server's inventory (root when Docker lives on `/`), which is exactly what the other three free series mean. With no docker-role filesystem known, the chart shows used only.
 
-On **S1** this total is all the Docker accounting you get — the layer / container / volume / build-cache split is a separate family granted from S2. See [Docker](/docs/metrics/managed-docker).
+The layer / container / volume / build-cache split behind this total, and container health, are on the [Docker](/docs/metrics/managed-docker) page; they are on every plan.
 
 ## Logs [#managed-storage-logs]
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Used | `storage.logsUsedBytes` | Bytes under the log directory |
+| Used | `storage.logsUsedBytes` | Bytes under the log directory *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 | Free on filesystem | `storage.logsFreeBytes` | Space left on the filesystem holding logs |
 
 A log directory that grows without steps is a service logging without rotation. When logs share the root filesystem, this is the usual answer to "why is `/` filling up".
@@ -80,7 +80,7 @@ Bytes are only half of "can this grow". The app also shows **free inodes** for e
 
 ## Related
 
-- [Docker](/docs/metrics/managed-docker) — the breakdown behind the Docker total (S2 and up)
+- [Docker](/docs/metrics/managed-docker) — the breakdown behind the Docker total, container health and what a prune reclaims
 - [Storage](/docs/metrics/storage) — I/O pressure, throughput, latency, root capacity
 - [Filesystems](/docs/metrics/filesystems) — available bytes and inodes per extra mount
 - [License tiers](/docs/deployment/tiers) — what S1 does and does not include

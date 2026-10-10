@@ -41,13 +41,17 @@ This is the chart to open when the host feels slow but utilization looks modest.
 | High PSI + moderate busy % | Too many runnable tasks for the cores you have, or steal from a noisy neighbor |
 | High PSI + high busy % | The machine is saturated the obvious way |
 
-CPU PSI has **no Full series**. Memory and I/O can stall every non-idle task at once; a CPU cannot — some task is always running if there is work. See the [PSI primer](/docs/metrics#pressure-stall-information) for Some vs Full on the other resources.
+CPU PSI has **no Full series**. Memory and I/O can stall every non-idle task at once; a CPU cannot — some task is always running if there is work. Interrupt handling can, which is why it has its own chart: see [CPU interrupt pressure](#cpu-pressure-irq). See the [PSI primer](/docs/metrics#pressure-stall-information) for Some vs Full on the other resources.
 
 The chart hides when the kernel does not export `/proc/pressure/cpu`.
 
+## CPU interrupt pressure (PSI) [#cpu-pressure-irq]
+
+Share of the sample during which **every** task was stalled handling interrupts. Wire name: `extended.host.irqPressureFullPercent`; series label: **Full**. Normally zero. A host spending its time in interrupt handlers (a packet flood, a failing device) leaves zero here before anything else gets slow. The chart hides when the kernel does not export `/proc/pressure/irq`, which is shown as "not reported" rather than zero.
+
 ## Cores saturated [#cpu-saturated-cores]
 
-`host.cpu.saturatedCoreCount` — how many logical CPUs were at or above **90% busy** in that sample.
+`host.cpu.saturatedCoreCount` — how many logical CPUs were at or above **90% busy** in that sample. *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
 
 Averages hide hotspots. A 16-core host at 10% busy can still have one core at 100% (a single-threaded runtime, a stuck process, a poorly pinned interrupt). If PSI is up and this count is 1 or 2 while the stacked utilization chart looks calm, the problem is concentration, not fleet-wide load. A count near the core total with high PSI is the machine saturated the obvious way. This is a single host scalar so a 64-core host costs the same to store as a 2-core one; there is no per-core series.
 

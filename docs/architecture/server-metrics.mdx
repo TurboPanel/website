@@ -1,6 +1,6 @@
 ---
 title: Server metrics architecture
-description: Shared host-metrics contract (schema v6), Analytics Engine and DuckDB + Parquet storage, retention windows, the per-tier row inventory, and the dated Cloudflare cost model
+description: Shared host-metrics contract (schema v8, v6 still accepted), per-sample sizes, Analytics Engine and DuckDB + Parquet storage, retention windows, the per-tier row inventory, and the dated Cloudflare cost model
 ---
 
 # Server metrics architecture
@@ -15,11 +15,11 @@ TurboPanel collects **host metrics** from connected daemons via authenticated `P
 
 ## Overview
 
-One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 6`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest rejects any sample whose `metadata.version` is not `6`; there is no dual-accept and no migration. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 8`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest accepts wire versions `6` and `8` and rejects any other; a v8 daemon adds one optional `extended` section (see [Metrics layout v8](#metrics-v8-additions)) once the control plane has negotiated the `metrics-v8` feature. There is no migration of stored metrics. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
 
 | Runtime | Store | Backend |
 | ------- | ----- | ------- |
-| Cloudflare Workers | Analytics Engine | `SERVER_METRICS` binding → `turbopanel_server_metrics_v6` dataset |
+| Cloudflare Workers | Analytics Engine | `SERVER_METRICS` binding → `turbopanel_server_metrics_v8` dataset |
 | Self-hosted Deno | DuckDB + Parquet | one typed table per family (embedded, no port) |
 
 Store selection: `resolveServerMetricsStore` (always on — Workers → Analytics Engine, Deno → DuckDB + Parquet).
@@ -104,16 +104,16 @@ The contract has no `MetricPart`/19-slot-per-part allowlist coupling. Metrics ar
 | `host.system` | Universal | host (no entity id) | 19 — CPU (11: busy/user/system/iowait/steal/softirq/pressure-some/saturated-core-count/procs-running/procs-blocked/process-count), memory (8: used/cached-files/swap-used/pressure-some/pressure-full/swap-in/swap-out/major-page-faults) |
 | `host.io` | Universal | host (no entity id) | 11 — kernel (2: file-handles-used%, conntrack-used%), storage (7: io-pressure-some/full, disk read/write bytes, one combined disk latency, root-fs available bytes/free inodes), network (2: TCP retransmit%, softnet drops/s) — plus the two embedded monitored-NIC slots |
 | `host.diagnostics` | Presence-gated, **granted at every tier** | host (no entity id) | 19 — CPU (7: avg/min/max frequency, context switches/s, interrupts/s, forks/s, IRQ%) + memory (12: free, cached, anon, slab reclaimable/unreclaimable, dirty, writeback, shmem, committed, direct/kswapd scan rates, compaction stalls/s). Replaces v5's two capability-gated `cpu.detail`/`memory.detail` rows with one always-on row |
-| `gpu` | Presence-gated + `gpuSlots` | one row per page of `gpus[]` | 6 per GPU — utilization%, memory used bytes, memory activity%, PCIe rx/tx bytes/s, throttle%. Temperatures and power moved to `hardware.physical` |
-| `network` | Presence-gated + `normalNicSlots` (NICs beyond the two embedded in `host.io`) | one row per page of the non-embedded `networks[]` | 6 per NIC — rx/tx bytes/s, rx/tx errors/s, rx/tx drops/s |
-| `filesystem` | Presence-gated + `extraFilesystemSlots` | one row per page of `filesystems[]` | 2 per filesystem — available bytes, free inodes |
+| `gpu` | Presence-gated + `gpuSlots` | one row per page of `gpus[]` | 6 per GPU — utilization%, memory used bytes, memory activity%, PCIe rx/tx bytes/s, throttle%. Temperatures and power moved to `hardware.physical`; the GPU's driver, model and memory size ride as text on its own row |
+| `network` | Presence-gated + `normalNicSlots` (NICs beyond the two embedded in `host.io`) | one row per page of the non-embedded `networks[]` | 6 per NIC — rx/tx bytes/s, rx/tx errors/s, rx/tx drops/s; the link speed rides as text on its own row |
+| `filesystem` | Presence-gated + `extraFilesystemSlots` | one row per page of `filesystems[]` | 2 per filesystem — available bytes, free inodes; the filesystem's size (bytes and inodes) rides as text on its own row |
 | `block` | Presence-gated + `detailedBlockDeviceSlots` | one row per page of `blockDevices[]` | 8 per device — read/write bytes+ops/s, read/write latency ms, utilization%, queue depth. Drive temperature moved to `hardware.physical` |
 | `hardware.physical` | Presence-gated + `physicalHardwareSignalSlots` — **physical machines only**, never emitted on a VM | one row per page of `hardwareSignals[]` | 1 per signal (`value`) — every temperature and power reading in the contract: CPU package temp/power, board temps, storage temps, per-GPU temp / memory temp / power, per-service-drive temp. Fan RPM is not a signal |
 | `managed.ingress` | Presence-gated + `managedIngressEnabled` | one unpaged row per `ingressSources[]` entry (**Caddy only**) | 19 — requests, response class counts (2xx/3xx/4xx/5xx), request errors, request/response bytes, a raw per-interval duration **sum**, six cumulative latency buckets (≤10ms/50ms/100ms/500ms/1s/5s), in-flight, upstreams healthy/total, retries |
 | `managed.router` | Presence-gated + `managedIngressEnabled` | host (no entity id) — the shared hosting Traefik | 12 — backends up/total, services, routers, retries, backend 5xx, backend latency avg + requests, open connections, config reloads + age, soonest TLS expiry (7 spare slots) |
 | `managed.database_proxy` | Presence-gated + `databaseProxyMetricsEnabled` | one unpaged row per `databaseProxies[]` entry (ProxySQL) | 17 — queries, slow queries, query/backend latency avg, active transactions, client connections + created/aborted, rejected at max-connections, backend connections + created/aborted, connection errors, backends up/total, bytes from/to backends (2 spare slots) |
 | `managed.storage` | Presence-gated, **granted at every tier** | host (no entity id) | 19 — hosting/backup/Docker/logs used bytes, hosting/backup/logs free bytes, then a postgres/mysql/mariadb census (instances running + healthy, connections used + max per engine). Absent until the daemon's first directory walk completes |
-| `managed.docker` | Presence-gated + `managedDockerEnabled` (**S2 and up**) | host (no entity id) | 10 — layer bytes, image count + reclaimable bytes, container bytes + count, volume bytes + count + reclaimable, build-cache bytes + reclaimable (9 spare slots) |
+| `managed.docker` | Presence-gated + `managedDockerEnabled` (**every plan** since v8) | host (no entity id) | 10 — layer bytes, image count + reclaimable bytes, container bytes + count, volume bytes + count + reclaimable, build-cache bytes + reclaimable (9 spare slots) |
 
 **Entitlement vs. emission are distinct.** A capability-plan slot count (`gpuSlots: 2`) is what a server is *allowed* to report; whether it emits rows depends entirely on whether the daemon found that hardware. A server entitled to two GPUs with none installed emits zero `gpu` rows. Entitlement caps *how many* entities may be reported; presence decides *whether* a family is emitted at all this tick. The same split applies everywhere — `physicalHardwareSignalSlots` is 19 on a physical machine (11 on the entry tier) and 0 on a VM, but a physical host with no working sensors still emits nothing for `hardware.physical`. Hosted ingest enforces the ceiling with `truncateSampleToCapabilityPlan`; self-hosted ingest skips truncation entirely.
 
@@ -154,15 +154,59 @@ The memory half of `host.diagnostics` is the **Memory detail** group — what RA
 
 **Retired since v4:** `host.cpu.maxCoreBusyPercent` → `saturatedCoreCount` (cores at or above 90% busy); `host.memory.availableBytes` → `usedBytes` + `cachedFilesBytes`; `host.storage.diskReadLatencyMs` + `diskWriteLatencyMs` → one `diskLatencyMs`; `host.storage.maxBlockDeviceUtilPercent` removed; `gpu.temperatureCelsius` / `memoryTemperatureCelsius` / `powerWatts` and `block.temperatureCelsius` moved to `hardware.physical`; `cpu.detail` + `memory.detail` merged into `host.diagnostics` (seven memory fields dropped: page tables, kernel stack, commit limit, and the four active/inactive splits); `cpu.core.live` and the NUMA reservation deleted outright; `collectionMode` removed from the metadata.
 
-## Topology generations
 
-Every sample carries `metadata.topologyGeneration` and `metadata.bootGeneration`. `topologyGeneration` bumps only when the daemon's enumerated entity set (NICs, GPUs, filesystems, block devices, hardware signals) actually changes shape — a NIC replaced, a GPU added, a disk removed — not on every value change. The ingest route resolves a `SlotMapping` for the sample's own `topologyGeneration` (`client/servers/topology-slot-mapping.ts`) and threads it through packing so:
+## Metrics layout v8 [#metrics-v8-additions]
 
-- `host.io`'s two embedded NIC slots (see below) stay pinned to `SlotMapping.normalNicSlot1`/`.normalNicSlot2`'s `deviceId`, not raw array position — a 2-NIC host with a TurboFabric mesh interface stays at 2 rows even though `networks[]` has 3 entries, because the fabric device is in `SlotMapping.fabricDeviceIds` and never pages as a `network` row.
-- Every paged family (`gpu`/`network`/`filesystem`/`block`/`hardware.physical`) orders entities by the matching `SlotMapping.*PageOrder` list, and stamps each page's contributing entity ids so a stored row is self-describing regardless of which generation produced it — a query never needs to reinterpret a page's identity under a later generation's mapping.
-- With no resolved generation yet (first sample, resync pending), packing falls back to positional order gracefully rather than dropping data.
+Layout v8 (the stamp every hosted row carries) is what the control plane stores. A current daemon sends the v6 sample plus one optional **`extended`** section, only once the control plane has negotiated the `metrics-v8` feature (the control plane deploys first; it rejects unknown keys). Every key is optional and an unknown value is left out, never sent as `0`.
 
-Every stored row also carries the sample's own `topologyGeneration`, so a UI can segment charts around a topology change the same way v3 segmented around a hardware-profile-generation change. Capacity totals (memory, swap, root filesystem) live on the generation record, never in a sample, so a percentage from last week is still divided by last week's capacity after a RAM upgrade.
+| `extended` key | What it carries |
+| -------------- | --------------- |
+| `host` | PID-limit use %, OOM kills in the interval, root disk queue depth and operations/s, failed systemd units, degraded and resyncing software-RAID arrays |
+| `docker` | containers running / unhealthy / restarting, container OOM and unexpected-exit events, containers' CPU % and memory, bytes a prune would reclaim |
+| `ingress` | days until the soonest hosting certificate expires |
+| `text` | short host facts: kernel, OS, virtualisation, cloud provider, web engine and PHP versions, failed unit names, RAID state, reboot required, pending updates, busiest PHP pool, largest sites on disk, soonest certificate |
+| `blockDeviceText`, `gpuText` | each drive's model and SMART verdict, each GPU's driver and model |
+| `sizes`, `filesystemSizes`, `gpuSizes`, `networkSizes` | the sizes every percentage is measured against, and each device's own size (below) |
+
+The text is read back as the host's **facts** on `GET /servers/:id/metrics/facts` (the newest sample from the last day; text only, never numbers) and shown as "About this host" in the app. The numbers are read by canonical name on `/metrics/series` (`extended.host.oomKills`, `extended.docker.containersUnhealthy`, `extended.ingress.tlsCertSoonestExpiryDays`, `extended.sizes.memoryTotalBytes`, …); they are explicit-only, never in the default selection. Over a chart bucket event counts add up, health counts (failed units, unhealthy containers, degraded arrays) keep the worst reading, and certificate days take the latest. The hosting Caddy reports totals only, never per-site counts.
+
+### Sizes ride every sample [#sizes-ride-every-sample]
+
+A percentage is only true against the size at the moment it was measured. A resize or a memory balloon changes that size, so every sample carries the sizes it was measured against, and a change is simply a step in the next sample:
+
+| Size | Divides |
+| ---- | ------- |
+| `sizes.memoryTotalBytes` | memory used |
+| `sizes.swapTotalBytes` | swap used |
+| `sizes.commitLimitBytes` | committed memory |
+| `sizes.logicalCores` | the CPU count shown beside the CPU charts |
+| `sizes.rootFilesystemTotalBytes`, `rootFilesystemTotalInodes` | root disk bytes and inodes used |
+| `filesystemSizes[]` (per extra filesystem id) | that filesystem's bytes and inodes used |
+| `gpuSizes[]` (per GPU id) | that GPU's memory used |
+| `networkSizes[]` (per NIC id) | the link speed |
+
+Each device's own size rides as plain text on that device's own row (a filesystem's bytes and inodes, a GPU's memory, a NIC's link speed): no extra rows and no extra number slots. The series route reads the size beside each requested use metric, divides each bucket by its own size, and hides the sizes it added. At the native 60 s resolution the percentage is exact; over a coarser bucket a size averages like any gauge. A sample from a daemon that sends no sizes yet falls back to the totals the server last reported.
+
+### What layout v8 does not store [#v8-layout-amendment]
+
+The hosted rows are full (19 numbers each), so carrying the sizes without adding rows meant leaving out nine less useful points on the Analytics Engine store: cores saturated, hosting free space, Docker used space, logs used space, major page faults per second, unreclaimable kernel slab, Caddy 2xx responses, the router's backends up and the router's request count. Everything else stays, including soft-interrupt time, memory pressure "full", the router's 5xx and latency, NIC 2 problems and GPU memory activity. Self-hosted DuckDB still stores all nine. Pressure is kept together: CPU pressure, then interrupt pressure ("full" only; the whole-host CPU "full" is always zero and is not stored), then memory pressure (some and full), and disk pressure (some and full) sits with disk IO. Filesystem rows hold nine filesystems each. The full slot tables are in the maintainer notes (`V8-LAYOUT.md`).
+
+## Hardware and device identity
+
+The wire sample still carries `metadata.topologyGeneration` and `metadata.bootGeneration`, but layout v8 stores neither and keeps no generation history. Instead:
+
+- **Every stored row names its own devices.** A paged family (`gpu`/`network`/`filesystem`/`block`/`hardware.physical`) stamps each page's device ids on the row, and the host network row names the two embedded NICs and the one folded extra filesystem (`nic1=<id>@<link speed>;nic2=<id>@<link speed>;fs=<id>`). A reader asks for "device X", never for "slot 3", so replacing a NIC or re-ordering slots can never give one device another's history.
+- **The server keeps only its latest hardware facts**, as one record on the server (`server.metadata.hardware`), overwritten at most every 5 minutes. It answers "what hardware does this server have now" (device names, layout paths, machine class) and nothing historical.
+- `host.network`'s two embedded NIC slots still follow the slot mapping computed from those latest facts (`SlotMapping.normalNicSlots`), and a TurboFabric mesh interface (`SlotMapping.fabricDeviceIds`) never pages as a `network` row. Before the first hardware report arrives, packing falls back to positional order rather than dropping data.
+- **Sizes are not hardware facts.** A RAM or CPU resize or a balloon changes the sizes on the next sample (see [Sizes ride every sample](#sizes-ride-every-sample)).
+- The report is bounded: an out-of-range number is refused, the snapshot is capped at 64 KiB, and a changed report inside the 5-minute window is dropped.
+
+## Limits on what a server may send
+
+- **One stored sample a minute per server.** A duplicate or replayed sample is answered with `409` and not stored (the daemon does not retry a `409`). A sample sent early spends a small catch-up allowance (5, refilling one a minute) and is otherwise answered with `429` and a `Retry-After`. On Cloudflare this count lives in one small Durable Object per server and is exact; self-hosted keeps it in memory.
+- **Events are capped.** At most 16 per sample (the most severe are kept) and 120 per server per hour; the rest are dropped and the sample itself is still stored.
+- **Over its plan.** A server with more RAM or more physical CPU cores than its licensed box size keeps all of its metrics; the server record is flagged so an operator can see it. Plans limit how big a server may be, never which metrics it gets.
+- **Self-hosted storage** keeps 90 days and at most 5 GiB (`TURBOPANEL_SERVER_METRICS_MAX_BYTES`); the oldest days are removed first.
 
 ## Events
 
@@ -182,7 +226,7 @@ One AE data point holds only 20 doubles, so a sample writes **two or more** data
 
 `managed.ingress` and `managed.database_proxy` have no paging concept — one unpaged row per source entry, since a managed-service sidecar count is small and unbounded paging would add no value. `host.diagnostics`, `managed.router`, `managed.storage`, and `managed.docker` are **single fixed-shape rows** per sample — one hosting root, one Docker daemon, one shared router per host — and carry no entity identity.
 
-The dataset name is **`turbopanel_server_metrics_v6`**. The Wrangler binding is **`SERVER_METRICS`**.
+The dataset name is **`turbopanel_server_metrics_v8`**. The Wrangler binding is **`SERVER_METRICS`**.
 
 | Slot | Content |
 | ---- | ------- |
@@ -191,11 +235,11 @@ The dataset name is **`turbopanel_server_metrics_v6`**. The Wrangler binding is 
 | `double20` | Every `"metrics"` and `"event"` row: the sample's `intervalSeconds` — the weighting term for `weighted-average` / `last` / `max` aggregates |
 | `blob1` | Row-kind discriminator — `"metrics"` / `"event"` / `"status"` |
 | `blob2` | `"metrics"` rows: the `HostedFamily`; `"event"` rows: the event's kind; empty on `"status"` rows |
-| `blob3` | Schema version (string, every row kind) |
+| `blob3` | Storage layout version, `"8"` (string, every row kind; readers accept only this) |
 | `blob4` | Reserved — always empty in v6. v5 stamped the collection mode here; cadence is now carried by `intervalSeconds` alone |
 | `blob5` | `"metrics"` rows: `metadata.sampledAt`; `"event"` rows: the event's own `at`; empty on `"status"` rows (AE stamps its own ingestion timestamp there) |
 | `blob6` | Sample sequence (stringified integer); empty on `"status"` rows |
-| `blob7` | `metadata.topologyGeneration` (stringified integer); empty on `"status"` rows |
+| `blob7` | Reserved, written empty (it held the topology generation before layout v8) |
 | `blob8` | The capability-plan generation ingest resolved the sample under (stringified integer); empty only when plan resolution did not run |
 | `blob9` | Page index within a paged family (`"0"` for unpaged rows) |
 | `blob10` | Family-conditional: `sourceId` for `managed.ingress`/`managed.database_proxy` rows, comma-joined per-page entity ids for `gpu`/`network`/`filesystem`/`block`/`hardware.physical` rows, the event's `source` for `"event"` rows, empty on `host.system`/`host.io` and on the four host-wide singletons |
@@ -210,7 +254,7 @@ AE doubles have no null. Missing metrics store **`AE_MISSING_METRIC_SENTINEL = -
 
 ### Connection-status event stream (`blob1 = "status"`)
 
-Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v6` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
+Every genuine online/offline transition on a `server` row also writes **one status event**. On Analytics Engine it lands in the same `turbopanel_server_metrics_v8` dataset, discriminated by `blob1`; on self-hosted Deno it lands in a separate typed `server_status_events` DuckDB table (never shared with sample tables).
 
 <Callout type="warn" title="History-only — never authoritative for liveness">
   This event stream (and the `/metrics/connection` endpoint built on it) exists purely for
@@ -225,7 +269,7 @@ Every genuine online/offline transition on a `server` row also writes **one stat
 
 ## DuckDB + Parquet schema (self-hosted)
 
-The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION` **8**). The marker number is intentionally **not** the wire schema version: `METRICS_SCHEMA_VERSION = 6` counts contract revisions, while the marker counts on-disk layout generations of the self-hosted store and bumps whenever DDL widens or adds a table (every statement is `CREATE TABLE IF NOT EXISTS`, so an unbumped marker would silently keep an older, narrower table). v6 wire samples land in layout **8** — the two numbers are expected to differ and are never reconciled. A missing, corrupt, or non-matching marker discards those files and the current store is created on the next open — there is no in-place migration. See [Metrics deployment](/docs/deployment/metrics).
+The Deno path uses the embedded `@duckdb/node-api` engine — no external service, no port, no credentials. Everything lives under the metrics state root (`TURBOPANEL_METRICS_DIR`, default `<stateDir>/metrics`): `metrics.duckdb` (hot database), `parquet/` (sealed daily partitions, one subtree per family), `tmp/` (spill + in-flight exports), and a sidecar schema marker (`DUCKDB_SCHEMA_MARKER_VERSION` **10**). The marker number is intentionally **not** the wire schema version: `METRICS_SCHEMA_VERSION = 8` counts contract revisions, while the marker counts on-disk layout generations of the self-hosted store and bumps whenever DDL widens or adds a table (every statement is `CREATE TABLE IF NOT EXISTS`, so an unbumped marker would silently keep an older, narrower table). v6 and v8 wire samples land in layout **10** — the two numbers are expected to differ and are never reconciled. A missing, corrupt, or non-matching marker discards those files and the current store is created on the next open — there is no in-place migration. See [Metrics deployment](/docs/deployment/metrics).
 
 **One real typed table per family — no positional layout, no sentinel.** Missing metrics are genuine SQL `NULL`s. DuckDB writes one row per entity with named nullable columns — 24 drives is 24 rows, not 12 packed pages; AE paging is a Cloudflare-only concern. The current layout:
 
@@ -256,6 +300,7 @@ Resource caps and configuration:
 | --- | ------- |
 | `TURBOPANEL_METRICS_DIR` | Metrics state root override |
 | `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS` | Retention days (default **90**) — prunes expired Parquet partitions plus any hot/status rows past the cutoff |
+| `TURBOPANEL_SERVER_METRICS_MAX_BYTES` | Size cap for the metrics store (default **5 GiB**) — removes the oldest whole days first once the store is over it |
 | `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS` | DuckDB `SET threads` cap (default **2**) |
 | `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | DuckDB `SET memory_limit` in MiB (default **128**) |
 
@@ -298,9 +343,13 @@ Metrics ingestion runs on the normal Worker isolate (or Deno process) and **incu
 
 ### Rows per sample by tier
 
+<Callout type="warn" title="These tables are the v6 inventory">
+  Layout v8 packs the host-wide families into four fixed rows (`host.system`, `host.io`, `host.network`, `host.web`) and folds Caddy, the router and the storage accounting into them. A v8 sample is **4 rows on a VM, 5 rows on a physical machine with one drive, and 6 rows on a physical machine with two or three drives**, all with no managed database, one more with managed databases, plus one page per three extra drives, NICs or GPUs and one per nine extra filesystems; the counts for every plan and hardware shape are pinned in the maintainer notes (`V8-LAYOUT.md`). The v6 figures below are kept for the cost arithmetic and overstate a v8 sample.
+</Callout>
+
 Every sample writes `rowsPerSample` data points, every minute, with no cadence discount: `rowsPerSample` starts at **2** (the universal baseline) and grows by one row per populated family page. What scales with the tier is **entity cardinality** — how many NICs, drives, GPUs, and extra filesystems a server may report — not depth: `host.diagnostics` and `managed.storage` are on at every tier because doubles inside a row are free.
 
-The table assumes a **fully loaded** server: every entitled slot filled, a site Caddy (`managed.ingress`), the shared hosting router (`managed.router`), a ProxySQL sidecar (`managed.database_proxy`), the storage-accounting row, and the Docker breakdown from S2 up (the entry tier does not grant `managed.docker`, and its extra-filesystem entitlement is carved out to zero). Two NICs embed in `host.io`; the daemon's monitored-NIC ceiling is 11, so S7 and SX page at most nine NICs. A physical machine adds one `hardware.physical` page (11 signal slots on S1, 19 above); a VM never emits that family.
+The table assumes a **fully loaded** server: every entitled slot filled, a site Caddy (`managed.ingress`), the shared hosting router (`managed.router`), a ProxySQL sidecar (`managed.database_proxy`), the storage-accounting row, and the Docker breakdown (v6 withheld it on the entry tier; v8 grants it on every plan). Two NICs embed in `host.io`; the daemon's monitored-NIC ceiling is 11, so S7 and SX page at most nine NICs. A physical machine adds one `hardware.physical` page (11 signal slots on S1, 19 above); a VM never emits that family.
 
 | Tier | Entitlement (NIC / drive / GPU / extra fs) | Rows/sample (VM) | Rows/sample (physical) | Writes/mo (VM / physical) | AE cost/mo (VM / physical) |
 | ---- | ------------------------------------------ | ---------------- | ---------------------- | ------------------------- | -------------------------- |
@@ -317,7 +366,7 @@ Row by row, a fully loaded **S1** on a physical machine is: `host.system` + `hos
 
 ### The 250-point invocation limit
 
-Analytics Engine accepts at most 250 data points per Worker invocation, and every family writes on every tick, so the worst sample is also the typical sample. The inventory splits three ways, mirroring the tier model's write-limit check: **hardware only** is every entitled NIC, drive, GPU, and extra-filesystem page plus the always-on host rows (`host.system`, `host.io`, `host.diagnostics`, `managed.storage`, and `managed.docker` from S2 up) and the physical sensor page — no managed-service rows at all; **+ sources** adds the three fixed traffic rows (`managed.ingress`, `managed.router`, `managed.database_proxy`), which is the fully loaded physical figure from the table above; **+ 128 events** stacks a full event burst on top of that. Even the largest ladder shape stays far below the ceiling:
+Analytics Engine accepts at most 250 data points per Worker invocation, and every family writes on every tick, so the worst sample is also the typical sample. The inventory splits three ways, mirroring the tier model's write-limit check: **hardware only** is every entitled NIC, drive, GPU, and extra-filesystem page plus the always-on host rows (`host.system`, `host.io`, `host.diagnostics`, `managed.storage`, and `managed.docker`) and the physical sensor page — no managed-service rows at all; **+ sources** adds the three fixed traffic rows (`managed.ingress`, `managed.router`, `managed.database_proxy`), which is the fully loaded physical figure from the table above; **+ 128 events** stacks a full event burst on top of that. Even the largest ladder shape stays far below the ceiling:
 
 | Tier | Hardware only | + sources (physical, fully loaded) | + 128 events | Headroom to 250 |
 | ---- | ------------- | ---------------------------------- | ------------ | --------------- |

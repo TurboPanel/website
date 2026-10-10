@@ -20,7 +20,7 @@ Memory charts show **what RAM is being used for**, **whether the host is swappin
 
 Used is the best single gauge of "can this host take more work". Cached is **not** a problem: Linux uses idle memory as cache on purpose and drops it under pressure. A rising used line is the warning; a large cached number by itself is not. Used plus cached leaving little of the total is a host that has stopped caching — the next step is [pressure](#memory-pressure).
 
-Both series are stored as bytes, not as a percentage of a capacity, so a RAM upgrade does not rewrite last week's history — each bucket is divided by the capacity of the topology generation it was sampled under.
+Both series are stored as bytes, not as a percentage of a capacity, so a RAM upgrade does not rewrite last week's history — each sample is divided by the memory size that same sample reported.
 
 ## Memory used [#memory-percent]
 
@@ -55,7 +55,7 @@ Some swap on a long-lived host is common (idle pages pushed out). A climbing lin
 | Some rising, Full still ~0 | Reclaim is working but costing latency — check [major faults](#memory-major-faults) and [swap I/O](#memory-swap-io) |
 | Full leaving zero | Severe. Shed load, add RAM, or find the leak. The host was not doing application work during those samples |
 
-The chart hides when `/proc/pressure/memory` is missing.
+The chart hides when `/proc/pressure/memory` is missing. "Full" is stored on every hosted sample.
 
 ## Swap I/O [#memory-swap-io]
 
@@ -70,7 +70,7 @@ The chart hides when both series stay empty.
 
 ## Major page faults [#memory-major-faults]
 
-`host.memory.majorPageFaultsPerSecond` — faults that required a disk read (not the cheap minor faults satisfied from RAM).
+`host.memory.majorPageFaultsPerSecond` — faults that required a disk read (not the cheap minor faults satisfied from RAM). *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
 
 A burst at process start is normal (demand paging). A sustained rate, especially with swap-in, means the working set does not fit. Pair with I/O PSI if the disk is the one paying for it.
 
@@ -108,7 +108,7 @@ Kernel object caches — dentries, inodes, network buffers — not your applicat
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
 | Reclaimable | `diagnostics.slabReclaimableBytes` | Kernel caches it can drop (directory and inode caches, and similar). Same idea as file cache: useful until RAM is needed |
-| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects that stay until their owner is gone (sockets, file structs). **Does not shrink just because a user process exits** |
+| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects that stay until their owner is gone (sockets, file structs). **Does not shrink just because a user process exits** *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 
 | What you see | Typical reading |
 | ------------ | --------------- |
