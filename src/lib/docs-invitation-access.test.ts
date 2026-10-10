@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  INVITATION_ACCEPT_ERROR_PAYLOADS,
+  INVITATION_CREATE_GRANTS_DOC,
+} from "./invitation-access-contract";
 
 const DOCS = join(__dirname, "..", "..", "docs");
 
@@ -30,11 +34,24 @@ describe("invitation access docs (no default organization manager grant)", () =>
   });
 
   it("access.mdx matches POST /invitations grants body rules", () => {
-    expect(access).toMatch(/Omitting `grants` stores none/i);
-    expect(access).toMatch(/`grants: null`/i);
-    expect(access).toMatch(/Invalid request/);
+    expect(access).toContain(INVITATION_CREATE_GRANTS_DOC.omitStoresNone);
+    expect(access).toContain(INVITATION_CREATE_GRANTS_DOC.nullOrNonArray);
+    expect(access).toContain(INVITATION_CREATE_GRANTS_DOC.emptyArray);
     expect(access).not.toMatch(/omitted or `null` stores none/i);
     expect(access).not.toMatch(/Omitting `grants` or sending `null`/i);
+  });
+
+  it("access.mdx accept error rows use HTTP statuses from invitationAcceptErrorPayload", () => {
+    for (const { status } of Object.values(INVITATION_ACCEPT_ERROR_PAYLOADS)) {
+      expect(access).toContain(`${status} (accept)`);
+    }
+    expect(access).toContain(
+      INVITATION_ACCEPT_ERROR_PAYLOADS.invalid_grant.error,
+    );
+  });
+
+  it("access.mdx documents team membership only after accept", () => {
+    expect(access).toMatch(/team membership\*\* only/i);
   });
 
   it("accounts-and-access invite diagram shows a single Join step for new users", () => {
