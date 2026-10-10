@@ -41,6 +41,20 @@ describe("managed database failover docs", () => {
     expect(managed).not.toContain(
       "Because the old primary is stopped first, two writers never exist at the same time",
     );
+    expect(managed).toContain("unable to verify previous primary is fenced");
+    expect(managed).toContain("ha-host-loss");
+    expect(managed).toMatch(
+      /postgres-probe[\s\S]*only from the.*primary's own server/i,
+    );
+    expect(managed).toContain("lastStreaming.ageMs");
+    expect(managed).toMatch(/10 minutes[\s\S]*no recovery row|no journal entry/i);
+    expect(managed).toMatch(
+      /every[\s\S]*failover replica is probed even when stored health looks healthy/i,
+    );
+    expect(managed).toContain("managed_member_is_primary");
+    expect(managed).toMatch(/logical dumps[\s\S]*not point-in-time recovery/i);
+    expect(managed).not.toContain("Bring the old server back or confirm it is off, then promote");
+    expect(managed).not.toMatch(/point-in-time copy on the new writer/i);
   });
 
   it("links the section from the using index and ingress architecture page", () => {
