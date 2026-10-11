@@ -206,7 +206,7 @@ curl -fsSL turbopanel.sh \
     TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/v0.1.0/manifest.json sh
 ```
 
-Pins accept release manifests only. Each package's pin must be a `manifest.json` or `manifest-<version>.json` under its own repository's GitHub Releases (`https://github.com/TurboPanel/<repo>/releases/download/<tag>/…` or `…/releases/latest/download/…`); the daemon also accepts its CDN channel drop (`https://dl.trbp.nl/channels/<channel>/manifest.json`). The installer and the root helper refuse anything else, including a URL with `..`, a percent-encoded character, a port or a query string. A `TURBOPANEL_*_MANIFEST_URL` pin in `daemon.env` that does not match is ignored, as if unset.
+Pins accept release manifests only. Each package's pin must be a `manifest.json` or `manifest-<version>.json` under its own repository's GitHub Releases (`https://github.com/TurboPanel/<repo>/releases/download/<tag>/…` or `…/releases/latest/download/…`). The installer and the root helper refuse anything else, including a URL with `..`, a percent-encoded character, a port or a query string. A `TURBOPANEL_*_MANIFEST_URL` pin in `daemon.env` that does not match is ignored, as if unset.
 
 The control plane checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
 

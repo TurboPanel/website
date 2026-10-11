@@ -8,8 +8,9 @@ description: The operator's side of sign-in — configuring GitHub and Google on
 How operators sign in, protect an account, and invite teammates. Two-factor, passkeys, and GitHub / Google sign-in are managed from the signed-in app; invitations are team-scoped.
 
 <Callout type="info" title="Private alpha — not yet publicly available">
-  Self-hosted and TurboPanel High Availability are both in **private alpha**. This page describes
-  the account and access flows that already exist in the app — not a public sign-up path.
+  Self-hosted and TurboPanel High Availability are both in **private alpha**.
+  This page describes the account and access flows that already exist in the app
+  — not a public sign-up path.
 </Callout>
 
 ## Protecting an account
@@ -32,6 +33,7 @@ Buttons appear on sign-in **only when that provider is configured** on the contr
     - `TURBOPANEL_AUTH_PROVIDERS__GOOGLE_CLIENT_SECRET`
 
     A key set by environment renders locked in the admin screen.
+
   </Tab>
   <Tab value="TurboPanel High Availability">
     TurboPanel High Availability binds those same four names as Wrangler secrets (`wrangler secret put`); the database row stays empty there. **Name the variables, never a value.**
@@ -39,9 +41,10 @@ Buttons appear on sign-in **only when that provider is configured** on the contr
 </Tabs>
 
 <Callout type="warn" title="No automatic linking by email address">
-  A provider identity that matches no linked account either creates a new user (when sign-up is
-  enabled) or fails with a clear message. Linking an existing account to GitHub or Google happens
-  only from the signed-in Security screen → **Linked accounts**.
+  A provider identity that matches no linked account either creates a new user
+  (when sign-up is enabled) or fails with a clear message. Linking an existing
+  account to GitHub or Google happens only from the signed-in Security screen →
+  **Linked accounts**.
 </Callout>
 
 TurboPanel stores the provider identity only — no provider access or refresh tokens.
@@ -52,7 +55,7 @@ Unlinking refuses when it would remove your last way to sign in.
 
 ## Invite a teammate
 
-Invitations are **team-scoped**: you invite someone to a team, and organization access follows from team membership. A manager of the team invites; only an organization owner may attach explicit permission grants; the link is good for **7 days**; and a control plane without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering the control plane](/docs/using/admin#email)). The app procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
+Invitations are **team-scoped**: you invite someone to a team so they become a member of the organization. That membership does not grant **Manage** or **Owner** by itself — only explicit grants (on the invitation or added later) do. A manager of the team invites; only an organization owner may attach grants on `POST /invitations`; the app invite form sends none. The link is good for **7 days**; a control plane without outbound email refuses to create one rather than creating it silently (see **Email** in [Administering the control plane](/docs/using/admin#email)). The app procedure, the accept flow for someone without an account, and the permission catalogue are in [Organizations, teams and access](/docs/using/access).
 
 ```mermaid title="Invitation when the invitee has no account"
 sequenceDiagram
@@ -64,10 +67,9 @@ sequenceDiagram
     CP->>Mail: invitation job (7-day link)
     Mail-->>Invitee: Accept link
     Invitee->>CP: Open accept link (no account)
-    CP-->>Invitee: Sign up carrying the invitation
-    Invitee->>CP: Verify email, sign in
-    Invitee->>CP: Accept
-    CP-->>Invitee: Team member with the invited grants
+    CP-->>Invitee: Create password and Join (one step)
+    Invitee->>CP: Join (creates account, accepts invitation, signs in)
+    CP-->>Invitee: Team member (grants only if the owner attached them)
 ```
 
 ## Related

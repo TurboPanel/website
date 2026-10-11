@@ -119,6 +119,50 @@ WordPress runs only on **MySQL or MariaDB**. The Services tab warns **WordPress 
 
 Source *Self-signed*, list the **Hostnames**, save. Useful for a `datacenter` or `local` hostname, or as a placeholder before a real certificate exists.
 
+### Let's Encrypt for one domain
+
+The quickest route to a trusted certificate is on the domain itself. Each web domain in an environment shows its **Certificate** state, and when Let's Encrypt is allowed for the organization it offers **Use Let's Encrypt**. TurboPanel checks DNS first, so a request is never sent to Let's Encrypt for a name that does not point at your server yet (a failed check there counts against Let's Encrypt's own failure limit).
+
+<Steps>
+  <Step>
+    An organization owner or manager turns on **Allow Let's Encrypt certificates** under **Servers → TLS**, or **Organization settings → Domains & certificates** (see [Let's Encrypt](#lets-encrypt) below). Without it the button is not shown.
+  </Step>
+  <Step>
+    Open the environment, **Configuration → Domains → Add or change domains**, and find the domain. The **Certificate** block shows its state.
+  </Step>
+  <Step>
+    Optionally tick **Also redirect www to this domain**, then press **Use Let's Encrypt**. The domain must be on a `public` bind and be a name Let's Encrypt can reach: no wildcard, IP address or private name.
+  </Step>
+  <Step>
+    If every name already points at the server, the certificate is pinned at once and the block says **Redeploy this environment to start it.** Deploy. Caddy asks for the certificate on that deploy and renews it on its own after that. TurboPanel never starts the deploy for you.
+  </Step>
+  <Step>
+    If a name does not point at the server yet, nothing is pinned and the block reads **Waiting for DNS**, with the result per name and the address to point at. **Check DNS** repeats the check. TurboPanel also keeps checking in the background and pins the certificate as soon as DNS is right; it gives up on a request after 7 days. You still redeploy once it has pinned.
+  </Step>
+</Steps>
+
+The state of the **Certificate** block is decided by the control plane, not guessed by the app:
+
+| State | What the block says | What to do |
+| --- | --- | --- |
+| **Test certificate** | Browsers will warn visitors. | Press **Use Let's Encrypt**, or pin an uploaded certificate. |
+| **Uploaded certificate** | Days left, and that you renew this one. A warning shows at 14, 3 and 1 days, and once it has run out. | Upload a new certificate and pin it. |
+| **Waiting for DNS** | Let's Encrypt starts as soon as the domain points at your server. | Fix the records named in the block, then **Check DNS**. |
+| **Getting a certificate** | This usually takes a minute or two, or *Redeploy this environment to start it.* | Wait, or redeploy. |
+| **Secure** | Let's Encrypt, renews automatically, with the days left. | Nothing. |
+| **Renewal failed**, or **Couldn't get a certificate** if none was ever issued | The reason line from the host. Visitors see a warning when the current certificate runs out. | **Check DNS**, fix what it names, then **Try again**. |
+
+A domain declared in the compose document (`x-turbopanel.hosting[]`) has its certificate set there too, so the block explains that and offers no button. Use `tls: { mode: acme }` in the document instead.
+
+The same two actions are in the API, both needing **Manage** on the organization:
+
+| Call | What it does |
+| --- | --- |
+| `PUT /hostings/:id/use-letsencrypt` | The button. Body `{ "wwwRedirect": true }` is optional. Answers with the hosting, its `certificate` block (with the DNS report) and `needsDeploy`. Recorded in the audit log as `hosting.letsencrypt.requested`. |
+| `GET /hostings/:id/dns-check` | The same DNS check, read-only: each name, the addresses it resolves to and the address it should resolve to. |
+
+`GET /hostings` and `GET /hostings/:id` carry the `certificate` block: `state` (`test_certificate`, `uploaded`, `secure`, `waiting_for_dns`, `issuing`, `renewal_failed`), the source, expiry and days left, whether it renews automatically, `lastError`, `lastIssuedAt`, the DNS report, and `needsDeploy`. Where Let's Encrypt has reported when a certificate was issued and when it runs out, the block shows both; until it has, a pinned certificate reads *Getting a certificate*.
+
 ### Let's Encrypt
 
 Let's Encrypt is **off by default for every organization**. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it is an explicit opt-in, and turning it back off is immediate: no new certificate can be requested, and a deploy that still pins a Let's Encrypt (`managed`) row is refused with `acme_requires_org_opt_in` until you turn the opt-in back on or pin another certificate. Certificates Caddy already issued are not revoked; they stay on the host.
@@ -197,6 +241,8 @@ x-turbopanel:
 | `hosting_bind_scope_mismatch` | 400 | A public IP was picked with a non-public bind, or the IP's registered scope is not `public`. | Set `bind: public`, or pick an IP registered as public. |
 | `invalid_hosting_options` | 400 | A field has the wrong shape (a bad port, a `tcp` row with no ports, more than 10 ports). | See the options table. |
 | `lets_encrypt_not_enabled` | 403 | The organization has not opted in. | **Servers → TLS → Allow Let's Encrypt certificates**. |
+| `hosting_not_http`, `hosting_has_no_hostnames` | 400 | **Use Let's Encrypt** on a hosting that is not a web (HTTP) hosting, or that has no hostnames yet. | Add a hostname to a web hosting first. |
+| `letsencrypt_hostname_unsupported` | 400 | One of the domain's names is a wildcard, an IP address or a private name. | Use public names only, or another certificate. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` hostname, or a DNS-01 challenge, on a Let's Encrypt row. | List each hostname; HTTP-01 only. |
 | `private_hostname_unsupported` | 400 | A loopback or private hostname on a Let's Encrypt row. | Use a public name, or a self-signed or Organization CA certificate. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. | Pin the existing row. |

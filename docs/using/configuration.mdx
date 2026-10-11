@@ -1,0 +1,110 @@
+---
+title: Configuration
+description: What an environment really runs, how it differs from the Base, how to change a line for one environment or for all of them, and the API behind the Configuration tab
+---
+
+# Configuration
+
+An environment's **Configuration** tab answers one question: *what does this environment actually run?* It shows the [Base](/docs/using/projects#the-model) with this environment's own changes applied. The merge is done by the control plane with the same rules a deploy uses, so what you read here is what the next deploy sends. Nothing on the tab deploys: editing and saving change the stored configuration only.
+
+## The model
+
+| Term | Meaning |
+| --- | --- |
+| **Base** | The project's compose document and its project-level variables. Every environment starts from it. |
+| **Changes from Base** | What this environment does differently, line by line: a setting, an app it adds, a variable it overrides. |
+| **Follows the Base** | The environment has its own changes at most, and gets every later change to the Base on its next deploy. |
+| **Stands alone** | The environment replaces the Base's services outright. It keeps its own settings and ignores the Base, except for variables set on the project. |
+| **Runs as** | The site owner's Linux user an app runs as: the Linux account that owns the app's files and runs it. |
+
+Each row on the tab carries a **source tag** saying where its value comes from: **Base**, **\{Environment\} change**, **Set in \{Environment\}** (on an environment that stands alone) or **Project** (a variable set on the project).
+
+## Before you begin
+
+- **Manage** rights on the organization: the configuration view is refused without them (`403`).
+- The tab is for compose projects. Managed and platform projects keep their own screens.
+
+## Read the tab
+
+Open the environment, then **Configuration**. It has five sections:
+
+| Section | What it lists |
+| --- | --- |
+| **Apps** | Each app with its kind, who it **Runs as**, what changed, and a link to the service page. |
+| **Domains** | The environment's hostnames, with **Add or change domains** (the domain page, where [Let's Encrypt](/docs/using/hosting#lets-encrypt-for-one-domain) is switched on). Domains belong to this environment only. |
+| **Variables** | The effective variables. Secrets are never shown. A variable set on the project reaches every environment; a change in this environment replaces the project value here only. |
+| **Linux users** | The Linux user each app runs as. |
+| **Data** | The data stores: databases and storage volumes. |
+
+A project with a single environment has nothing to compare, so the tab shows no filter and says that edits go to the Base.
+
+### Only changes from Base
+
+**Only changes from Base (N)** swaps the page for one row per change: what changed, where, and the Base value next to this environment's value. When there are none the page says **No changes from the Base**, with **Show everything** to go back to the full list. The same count is on the environment's **Overview** as **Changes from Base (n)**.
+
+## Change a line
+
+Variables and **Runs as** can be edited on the tab. The older **Compose**, **Hosting**, **Bindings** and **Storage** views are one tab away (**Configuration → Compose** and so on) for everything else.
+
+<Steps>
+  <Step>
+    Press the edit button on a row, or **Add variable** in **Variables**. For a variable, give the **Name** and **Value** and choose **Keep it secret** or **Show it**. A name that looks like a credential starts as secret. A secret's editor starts empty and writes only; the current value is never shown.
+  </Step>
+  <Step>
+    Choose **Where this change goes**. **\{Environment\} only** adds an \{Environment\} change and the other environments keep the Base value. **Base, for every environment that follows it** changes the Base, so every environment that follows it gets the value on its next deploy; an environment that stands alone does not change. The cards name the environments each choice reaches. On a project with one environment the choice is not offered: it goes to the Base.
+  </Step>
+  <Step>
+    **Done** stages the edit. Nothing is saved yet. A bar appears: *N unsaved changes*, with **Review** (each change with its own **Undo**), **Discard** and **Save changes**.
+  </Step>
+  <Step>
+    **Save changes** writes everything staged to the project, the environment and the variables in one go. It never deploys. If something cannot be saved, a **Not saved** notice names each line and why.
+  </Step>
+  <Step>
+    **Deploy** from the environment header when you want the change to run.
+  </Step>
+</Steps>
+
+On a row that shows a change from the Base:
+
+| Action | What it does |
+| --- | --- |
+| **Go back to Base** | Removes this environment's change, so the line follows the Base again. Staged like any edit. |
+| **Make this the Base** | Moves this value into the Base. The app first says which environments follow the Base and would get the value on their next deploy, and that this environment's own change is removed so it keeps running the same value. Not offered for a secret or a masked value. |
+
+An environment that stands alone owns its apps whole, so only its variables can go back to the Base.
+
+### What is not here yet
+
+A compare sheet, an Add domain sheet (the domain page does the job), pasting a `.env` file and a page for data stores are not built yet.
+
+## Reference
+
+### `GET /environments/:id/config-view`
+
+Read-only, derived from saved data. Nothing is stored and nothing is allocated, unlike the deploy preview. It needs manage access to the organization.
+
+| Field | Meaning |
+| --- | --- |
+| `effective` | The Base merged with the environment's own compose by the merge a deploy uses, with project and environment variables (the environment wins by name). Covers services, domains, Linux users and variables. |
+| `base` | The Base alone: the project compose, project overlays and project variables. |
+| `changes[]` | What the environment does differently, per service and field, with where each value comes from (`baseSource`, `envSource`). |
+| `followsBase` | `false` when the environment's own compose, or one of its extra layers, sets `services: !override` or `services: !reset`; `true` otherwise. |
+
+Secret variables carry no value. Compose values that look like credentials (names such as password, token, secret or API key, `--token=` arguments, `user:pass@` addresses) are reported as changed with `masked: true` and no value. The raw `x-turbopanel` block is never returned: `principal` appears as a Linux user row, `hosting` as domain rows and `source.*` as plain fields. Organization and workspace variables and root-level networks and volumes are not part of this view.
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `compose_invalid` | 400 | Saving an environment's changes failed validation. The environment's changes and any extra layer are checked as partial layers; the rule that every Docker service has an `image` or `build` is checked on the merge with the Base. A service that is new in the environment names itself in the message: *Service "worker" must define "image" or "build" - neither the project's Base nor this environment's changes give it one*. The save is also refused, with a plain message, when the stored Base cannot be read under today's rules. |
+| `compose_invalid` | 422 | On `config-view`: a saved compose file of the project or environment cannot be read. |
+| `Not found` | 404 | The environment is not in this organization. |
+
+Service-kind rules still apply per layer: a change that sets only `x-turbopanel.php`, `principal` or `source.branch` on a Base service must restate that service's `serviceKind` or `source.sourceId` in the change.
+
+## Related
+
+- [Projects and environments](/docs/using/projects) — the Projects home, the Base, environments and New environment.
+- [Writing compose](/docs/using/compose#merging-an-overlay) — the merge rules and the `!reset` and `!override` tags.
+- [Storage, variables and secrets](/docs/using/storage-and-variables) — the variable cascade and secrets.
+- [Hosting](/docs/using/hosting) — domains and certificates.

@@ -32,8 +32,8 @@ The left navigation is the organization's. Each row below names the area, its ad
 
 | Area | Where | What you do there |
 | --- | --- | --- |
-| **Overview** | `/<org>/overview` | All servers at a glance: servers, cores, memory. |
 | **Projects** | `/<org>/projects` | Create projects; open one to edit its compose, deploy environments, manage hostnames, storage, bindings and settings. Sub-pages: **Git sources** (the GitHub Apps and GitLab connections the organization owns) and **Repositories** (every repository a project reads from). |
+| **Activity** | `/<org>/activity` | What is deploying, restarting or stopping right now across every project, and what failed in the last seven days. Owners and managers. |
 | **Workspaces** | `/<org>/workspaces` | Create and rename workspaces; see which projects sit in each. |
 | **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenters**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
 | **Managed** | `/<org>/managed` | Every managed database cluster in the organization, and the organization's managed defaults (client TLS mode, listener ports). |
@@ -46,7 +46,7 @@ Two things sit outside the organization: the **account menu** (top right) holds 
 ## Who sees what
 
 - **Any member** of an organization can open every area above and read it.
-- **Manage** rights on the organization (the default grant an invitation gives) let you create and change projects, delete an environment, deploy, enrol servers and edit the network registry.
+- **Manage** rights on the organization (`organization:manage`) let you create and change projects, delete an environment, deploy, enrol servers and edit the network registry. **Access → Invite a teammate** adds team membership only; give **Manage** or **Owner** under **Access grants** or with the API `grants` field on an invitation.
 - **Owner** rights are needed for the destructive and organization-shaping actions: deleting a project, adding an access grant, pending-key cleanup, and the two organization opt-ins that widen what a compose file may ask for (privileged container fields, a default resource ceiling).
 - **Administrators** of the control plane additionally see **Admin**. On a self-hosted control plane the first administrator is created by the install wizard; on TurboPanel High Availability by the operator.
 
@@ -82,11 +82,14 @@ The app is the same on both. Three things differ, and each page in this part say
 | Chapter | What it covers |
 | --- | --- |
 | [Projects and environments](/docs/using/projects) | Workspaces, the six ways to create a project, environments, settings, delete. |
+| [Configuration](/docs/using/configuration) | What an environment really runs, its changes from the Base, and how to change a line. |
 | [Writing compose](/docs/using/compose) | The compose document — what TurboPanel reads, adds and refuses; the Services view. |
 | [Deploying and running an environment](/docs/using/deploy) | Placement, preview, deploy, redeploy, lifecycle, logs, refusals. |
+| [Activity](/docs/using/activity) | What is running or recently failed across the organization, in one list. |
 | [Hosting — hostnames, ports and TLS](/docs/using/hosting) | Hosting rows, certificates, the Let's Encrypt opt-in. |
 | [Storage, variables and secrets](/docs/using/storage-and-variables) | Persistent storage; the variable cascade; secrets and `{$KEY}` references. |
-| [Managed databases](/docs/using/managed-databases) | PostgreSQL, MySQL and MariaDB clusters: create, connect, users, replicas, backups and backup schedules. |
+| [Managed databases](/docs/using/managed-databases) | PostgreSQL, MySQL and MariaDB clusters: create, connect, users, replicas, backups and backup schedules. After failover: [what to expect](/docs/using/managed-databases#what-to-expect-when-a-database-fails-over). |
+| [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases) | Why a Raspberry Pi needs the 4 KiB kernel for apps to reach databases, the switch command, the installer step, undo and recovery. |
 | [Git sources and repositories](/docs/using/git) | GitHub and GitLab applications, binding a repository, push-to-deploy. |
 | [Servers](/docs/using/servers) | Adding a server, the server list, the control panel, organization server settings. |
 | [Datacenters and networking](/docs/using/network) | Datacenters, addresses, Docker networks and pools, reserved ranges, the mesh. |
