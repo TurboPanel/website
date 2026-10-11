@@ -53,7 +53,7 @@ WireGuard PSK files are deleted after apply; they never appear in Ansible extra-
 
 ## Updates
 
-Channel manifest from CDN or GitHub Releases → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS**; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. Every production manifest also carries an **Ed25519 signature** made with the release signing key. The installer, the daemon, and the control plane each verify it against one pinned public key and refuse a missing, malformed, or foreign signature; the daemon and the control plane also refuse a validly signed manifest that is older than the build they already know about. The key is a single trusted key today: see [Signing key rotation](/docs/security/signing-key-rotation) for what changing it involves.
+Channel manifest from GitHub Releases → `run.sh` reconciles `/opt/turbopanel` and restarts `turbopaneld.service`. Install and update downloads use **HTTPS**; the channel manifest lists each artifact URL with a **SHA-256 checksum**, and the installer verifies the downloaded bytes against that hash before extraction. Every production manifest also carries an **Ed25519 signature** made with the release signing key. The installer, the daemon, and the control plane each verify it against one pinned public key and refuse a missing, malformed, or foreign signature; the daemon and the control plane also refuse a validly signed manifest that is older than the build they already know about. The key is a single trusted key today: see [Signing key rotation](/docs/security/signing-key-rotation) for what changing it involves.
 
 ## Data sent to the control plane
 
@@ -68,7 +68,7 @@ Daemons do **not** upload arbitrary filesystem contents unless a specific comman
 
 ## Revocation
 
-1. Delete or revoke the server in the org console.
+1. Delete or revoke the server in the app.
 2. Remove `turbopaneld` and state on the host ([purge](/docs/deployment/purge)).
 3. Rotate org secrets if you suspect key compromise.
 
@@ -91,7 +91,7 @@ A daemon left on a stale anchor parks with a greppable `tls-trust` log (dialed h
 
 Organization CA rotation (managed-database / ProxySQL / replication leaves — not daemon → control-plane trust) follows the same order via the org TLS library. This is not the Platform CA above — see [Organization CA](/docs/security/organization-ca) for the full model. **Mint** a new active generation while the outgoing CA stays in the overlap trust bundle (`POST /api/client/v1/tls/ca/rotate`), **distribute** by fanning `managed.apply` and `managed.ingress.reconcile`, **confirm** those commands succeeded (`GET /api/client/v1/tls/ca/rotation`), then **retire** (`POST /api/client/v1/tls/ca/retire`) so the old generation leaves the bundle. Do not retire first.
 
-**Hosting is separate:** tenant **hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). They are never issued by the Organization CA. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+**Hosting is separate:** site **hosting** leaves (Caddy-fronted web services) are operator-pinned library certificates, Caddy `tls internal`, or a Let's Encrypt row Caddy issues on the serving host (`tlsMode: acme`). They are never issued by the Organization CA. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Related
 

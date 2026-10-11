@@ -226,7 +226,7 @@ The complete list of what a self-hosted control plane reads at boot — required
 | `TURBOPANEL_TLS_PUBLIC` | When `1` / `true`, Deno `GET /api/daemon/v1/instance/ca` 404s for a hostname that presents a Let's Encrypt or uploaded leaf |
 | `TURBOPANEL_IS_SIGNUP_ENABLED` | Forces sign-up open (`1`) or closed (`0`), overriding the admin setting — both runtimes |
 | `TURBOPANEL_REDIS_SOCKET` / `TURBOPANEL_AMQP_URL` | Redis socket (required, opened lazily) and the RabbitMQ URL for the email queue (unset → probe, then a silent no-op queue) |
-| `TURBOPANEL_UPDATE_CHANNEL` | The channel this control plane resolves daemon, control-plane, and UI updates on (`release` default; `trunk`, `edge`, `canary`, `rc`) |
+| `TURBOPANEL_UPDATE_CHANNEL` | The channel this control plane resolves daemon, control-plane, and UI updates on (`release` default; `canary`, `rc`; `trunk` retired, `edge` reserved) |
 | `TURBOPANEL_UPGRADE_STEP_RETENTION_DAYS` | How long a successful upgrade step is kept (default 14). Failed steps stay 90 days; runs stay 365 days, newest 50 kept. See [Control plane configuration](/docs/deployment/instance-configuration) |
 | `TURBOPANEL_AUTH_PROVIDERS__*` | GitHub / Google OAuth client id + secret (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Env wins over the `SYSTEM_AUTH_PROVIDERS` setting row. On TurboPanel High Availability these are Wrangler secrets. |
 

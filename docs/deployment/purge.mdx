@@ -127,7 +127,7 @@ There is one path and nothing to choose. `q` is not offered; the only way out is
 | `/opt/turbopanel/` lines in shell startup files in root's home and other user homes (a `.turbopanel-purge.bak` copy is saved first; site owner homes are removed whole) | Removed             |
 | Service accounts and groups (IDs 9900–9999)                                                                                                                            | Removed             |
 | Config, state, log and backup folders; `/etc/ssh/turbopanel`                                                                                                           | Removed             |
-| Site owner accounts, `<user>-grp` groups, homes                                                                                                                         | Removed             |
+| Site owner accounts, their own groups (`<user>`, ids 15001–60000), homes                                                                                                | Removed             |
 | Docker Engine: containers, volumes, images, packages, its apt repo and key                                                                                             | Removed             |
 | PHP packages and the sury key that TurboPanel installed                                                                                                                | Removed (see below) |
 | Any other apt package                                                                                                                                                  | Never touched       |
@@ -179,7 +179,7 @@ Every package that is purged is first simulated with `apt-get -s purge`. A packa
 ## After purging a daemon
 
 1. Stop environments from the app before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
-2. After the script finishes, open the server in the app and use **Delete server**. On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
+2. After the script finishes, the server shows **Offline**. Open it in the app and use **Delete server** — it lists the leftover records and offers **Forget these and delete server**. See [When the host is gone](/docs/using/servers#when-the-host-is-gone). On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
 3. Reinstall with the commands the script prints at the end:
 
 Install a daemon again ([Daemon setup](/docs/deployment/daemon-setup)):

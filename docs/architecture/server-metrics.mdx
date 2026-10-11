@@ -8,14 +8,14 @@ description: Shared host-metrics contract (schema v6), Analytics Engine and Duck
 TurboPanel collects **host metrics** from connected daemons via authenticated `POST /api/daemon/v1/metrics` — one sample per minute per server, every family on every sample. Metrics is **disposable, statistical, and may be sampled**; it is not a billing ledger or audit trail.
 
 <Callout type="info" title="Canonical source">
-  What each console chart means: [Server metrics](/docs/metrics). The five PSI stall-time percentages are explained there under [Pressure Stall Information](/docs/metrics#pressure-stall-information).
-  Agent maintenance detail lives in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">instance/src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
+  What each chart in the app means: [Server metrics](/docs/metrics). The five PSI stall-time percentages are explained there under [Pressure Stall Information](/docs/metrics#pressure-stall-information).
+  Maintainer notes live in <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopanel/blob/trunk/src/daemon/metrics/AGENTS.md">turbopanel/src/daemon/metrics/AGENTS.md</File> and <File path="AGENTS.md" href="https://github.com/TurboPanel/turbopaneld/blob/trunk/src/metrics/AGENTS.md">daemon/src/metrics/AGENTS.md</File>.
   Operations: [Metrics deployment](/docs/deployment/metrics). Which tier a server lands on and what that entitles: [License tiers](/docs/deployment/tiers).
 </Callout>
 
 ## Overview
 
-One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 6`) is mirrored in the daemon and instance repos (not build-coupled). Ingest rejects any sample whose `metadata.version` is not `6`; there is no dual-accept and no migration. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
+One **versioned wire contract** (`METRICS_SCHEMA_VERSION = 6`) is mirrored in the daemon and control plane repos (not build-coupled). Ingest rejects any sample whose `metadata.version` is not `6`; there is no dual-accept and no migration. The contract groups metrics **by entity** — host, network device, filesystem, block device, GPU, hardware signal, ingress source, database proxy — plus four **host-wide singletons** (diagnostics, router, storage accounting, Docker usage) that carry no entity id. Every leaf value is `number | null` (missing is always `null`, never coerced to `0`), and every entity carries a stable logical id instead of relying on positional membership in an allowlist. Storage is **dual-runtime**:
 
 | Runtime | Store | Backend |
 | ------- | ----- | ------- |

@@ -41,21 +41,30 @@ human-readable Docker name. The one exception is the self-hosted TurboPanel
 control plane stack itself, whose compose project stays `turbopanel-system` because
 operators do inspect it directly.
 
+## External access
+
+One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no per-login source rule, so this is deliberately a server-level fact rather than a per-database one.
+
+- **No:** the listener is published on `127.0.0.1` only. Sites run by a site owner's Linux user connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
+- **Yes:** the same ports are published on every address of the server (`0.0.0.0`). Anyone who can reach the server's network can try to connect, and every database on the server is reachable that way. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall.
+
+The control plane sends the daemon a single bind address (`127.0.0.1` or `0.0.0.0`) in `bindAddresses`; the daemon contract is unchanged. A change is queued to the server at once and kept as "waiting" until the server confirms it, then retried automatically if the server was offline. The API is `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access`.
+
 ## Ports and firewall
 
 On each server that hosts a managed member or a **placed compose service bound to a managed cluster**:
 
 | Port | Protocol | Audience |
 | --- | --- | --- |
-| **15432** | TCP | Postgres-family clients through ProxySQL |
-| **13306** | TCP | MySQL / MariaDB clients through ProxySQL |
+| **15432** | TCP | Postgres-family clients through ProxySQL (on `127.0.0.1` unless external access is on) |
+| **13306** | TCP | MySQL / MariaDB clients through ProxySQL (on `127.0.0.1` unless external access is on) |
 | **127.0.0.1:6032** | TCP | ProxySQL admin (loopback only) |
 | **45000–45999** | TCP | Member private listeners (replication + remote backends) |
 
 Firewall guidance:
 
 - Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
-- Restrict public exposure of 15432/13306 to operator IP ranges when exposure is `public`.
+- When external access is on for the server, restrict 15432/13306 to operator IP ranges in your cloud or provider firewall. TurboPanel's own firewall only previews this listener today and enforces nothing.
 - Engine containers themselves never publish host ports for SQL.
 
 ### Public replication transport
@@ -138,6 +147,11 @@ A **binding** connects a managed database user to a compose service:
 3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
    consumer server and cluster member servers so frontend users and servers stay
    aligned with sealed system user passwords.
+4. Binding create, change and delete are recorded in the organization's audit
+   trail as `binding.create`, `binding.update` and `binding.delete`. An entry
+   names who did it and which binding, never a password or any variable value.
+   Deleting a binding asks the person to confirm it is them first when the
+   organization has turned on that option.
 
 ## Replicas and failover
 
@@ -164,6 +178,7 @@ only.
 
 ## Related
 
+- [What to expect when a database fails over](/docs/using/managed-databases#what-to-expect-when-a-database-fails-over) — resync, blocked host loss, backups, listener reloads, Orchestrator placement
 - [Architecture overview](/docs/architecture)
 - [Datacenter networks](/docs/architecture/datacenter-networks)
 - [Control plane API](/docs/architecture/api)

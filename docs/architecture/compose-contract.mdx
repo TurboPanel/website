@@ -27,7 +27,7 @@ It also means TurboPanel is **not** allowed to quietly ignore a field. Every Com
 
 `x-turbopanel` appears in exactly two places: at the document root, and on a service. Nothing else. There is no second namespace, no magic label prefix, no naming convention that secretly means something.
 
-**At the root** it declares `principals` — the accounts services may run as, named by a document-local **alias**. An alias is deliberately all a document can say. What the account *is* on the host — its uid, gid, home directory, shell, keys, password — is a privilege decision recorded on a control-plane row and gated by an organization-manage permission. A line of YAML written by anyone with compose edit rights must not be able to decide it.
+**At the root** it declares `principals` — the site owner's Linux users that services may run as, named by a document-local **alias**. An alias is deliberately all a document can say. What the account *is* on the host — its uid, gid, home directory, shell, keys, password — is a privilege decision recorded on a control-plane row and gated by an organization-manage permission. A line of YAML written by anyone with compose edit rights must not be able to decide it.
 
 **On a service** it declares the handful of things Compose genuinely has no word for:
 
@@ -106,6 +106,6 @@ The rules above are worth stating as a contract because each one closes a specif
 
 **Re-asking a Compose question invents a second source of truth.** If replicas could be set in both `deploy.replicas` and an extension key, one of them is silently losing, and which one depends on merge order.
 
-**Letting a document pin a compiler decision breaks the abstraction that makes fleets work.** A container name, an address, a placement — pinned in YAML, they are re-litigated on every deploy and cannot be changed without editing and redeploying every document that mentions them.
+**Letting a document pin a compiler decision breaks the abstraction that makes managing many servers work.** A container name, an address, a placement — pinned in YAML, they are re-litigated on every deploy and cannot be changed without editing and redeploying every document that mentions them.
 
 **Privilege in a document is privilege without a gate.** Aliases in compose, accounts on records, is the shape that keeps "who may edit YAML" and "who may create a Linux account with a shell" as two different questions.
