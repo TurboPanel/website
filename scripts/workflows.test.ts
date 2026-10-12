@@ -122,9 +122,12 @@ describe(".github/workflows", () => {
   });
 });
 
-// Versions come from git tags (Road to 0.2.x, versioning Phase 3): no "Start
-// x.y.z" PR, no minor gate, and no release step reads package.json's version;
-// minors and majors are started by turbopaneld's Start Next Version workflow.
+// The tags work out the version (Road to 0.2.x, versioning Phase 3); the
+// committed package.json must agree, and publish-rc.yml refuses an rc until it
+// does. The bump is the "chore: start X.Y.Z" PR the Release App opens after a
+// release (or Start Next Version opens for a minor or major), made with
+// scripts/set-version.mjs. No minor gate, and no release step reads a version
+// out of package.json.
 describe("versions from tags", () => {
   const GONE = [
     /gh-next-version/,
@@ -135,7 +138,7 @@ describe("versions from tags", () => {
   ];
 
   it.each(files)(
-    "%s opens no Start PR, has no minor gate and reads no version file",
+    "%s has none of the old Start PR or minor gate steps and reads no version out of package.json",
     (file) => {
       for (const gone of GONE) expect(read(file)).not.toMatch(gone);
       expect(read(file)).not.toMatch(
@@ -150,6 +153,29 @@ describe("versions from tags", () => {
       /uses: TurboPanel\/dev\/\.github\/actions\/version@[\da-f]{40} # dev#\d+\n {8}with:\n {10}mode: base\n/,
     );
     expect(text).toContain("BASE_VERSION: ${{ steps.base.outputs.base }}");
+  });
+
+  it("refuses an rc whose committed version is not the version from the tags", () => {
+    const text = read("publish-rc.yml");
+    const resolve = text.indexOf("\n  resolve:\n");
+    const checkout = text.indexOf("- name: Check out the merged commit");
+    const check = text.indexOf(
+      "- name: Refuse an rc whose committed version disagrees",
+    );
+    const prepare = text.indexOf("\n  prepare:\n");
+    expect(resolve).toBeGreaterThan(0);
+    expect(checkout).toBeGreaterThan(text.indexOf("- name: Find the merged PR"));
+    expect(check).toBeGreaterThan(checkout);
+    expect(prepare).toBeGreaterThan(check);
+    expect(text.slice(checkout, check)).toContain(
+      "ref: ${{ steps.r.outputs.commit }}",
+    );
+    const step = text.slice(check, prepare);
+    expect(step).toContain("if: steps.r.outputs.proceed == 'true'");
+    expect(step).toContain("VERSION: ${{ steps.r.outputs.version }}");
+    expect(step).toContain(
+      'run: node scripts/set-version.mjs --check "$VERSION"',
+    );
   });
 
   it("pins one TurboPanel/dev commit across the promotion workflows", () => {
