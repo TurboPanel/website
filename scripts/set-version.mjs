@@ -23,7 +23,10 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(
+  path.dirname(realScriptPath(fileURLToPath(import.meta.url))),
+  "..",
+);
 
 const PLAIN_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
@@ -217,11 +220,11 @@ export function isExecutedAsCli(
 }
 
 /** A path with symlinks resolved (Node resolves import.meta.url, Deno does not); a missing path stays as given. */
-function realScriptPath(argv1) {
+function realScriptPath(p) {
   try {
-    return realpathSync(path.resolve(argv1));
+    return realpathSync(path.resolve(p));
   } catch {
-    return path.resolve(argv1);
+    return path.resolve(p);
   }
 }
 

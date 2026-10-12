@@ -198,7 +198,7 @@ describe("set-version", () => {
     expect(bad.stderr).toContain('merge the "chore: start 0.0.0" PR');
   });
 
-  it("still runs, and still fails a wrong version, when called through a symlink", () => {
+  it("through a symlink it checks the real repo", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "set-version-link-"));
     try {
       const link = path.join(dir, "set-version.mjs");
@@ -207,6 +207,15 @@ describe("set-version", () => {
         encoding: "utf8",
       });
       expect(bad.status).toBe(1);
+      expect(bad.stderr).toContain("chore: start 0.0.0");
+      const ok = spawnSync(
+        process.execPath,
+        [link, "--check", committedVersion()],
+        {
+          encoding: "utf8",
+        },
+      );
+      expect(ok.status).toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
