@@ -63,7 +63,7 @@ Right after each release the release bot opens a pull request titled **chore: st
 that changes those files to the next patch, and it merges itself once its checks pass. Until
 then, every canary build of that repository is refused with a message naming the file and the
 number it should hold, so nothing ships under the old number. (The website has no canary build;
-there the release candidate is refused instead.) If its checks fail, fix it or merge it by hand. To
+there the release candidate is refused instead.) If its checks fail, fix them, or close it and run the script yourself. To
 bump by hand, run `node scripts/set-version.mjs x.y.z+1` in a pull request.
 
 The first canary of a new version is `x.y.z+1-canary.1`, and the canary number starts again at 1
@@ -105,7 +105,8 @@ start a minor only when everything on `trunk` may ship as it. A candidate that i
 | What you see                                      | What to do                                                                                                                                                                                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build                                                                                                                                |
-| A canary build says a file holds the wrong version | The **chore: start x.y.z** pull request has not merged yet. If its checks failed, fix them or merge it by hand (or run `node scripts/set-version.mjs x.y.z` in a pull request). The next green build on `trunk` makes a canary                               |
+| A canary build says a file holds the wrong version | The **chore: start x.y.z** pull request has not merged yet. If its checks failed, fix them, or close it and run `node scripts/set-version.mjs x.y.z` in a pull request. The next green build on `trunk` makes a canary                               |
+| The **Publish Release Candidate** run says `package.json` holds the wrong version | The candidate pull request merged before the **chore: start x.y.z** pull request did: `staging` has moved but no candidate tag or release was made, and no **Release** pull request opens. Re-running that run fails the same way. Let **chore: start x.y.z** merge; the next green build on `trunk` opens a fresh candidate pull request, and merging it publishes the candidate |
 | The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Publish Release Candidate** workflow (_Run workflow_, the commit to tag) |
 | The release run is waiting                        | Approve the `release` environment on the run page                                                                                                                                                    |
 | The automatic path cannot run at all              | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path                                     |

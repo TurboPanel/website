@@ -25,7 +25,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const PLAIN_VERSION = /^\d+\.\d+\.\d+$/;
+const PLAIN_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 /**
  * @typedef {{ file: string, pattern: RegExp, jsonPath?: string[] }} VersionField
