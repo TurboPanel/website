@@ -79,8 +79,8 @@ ships no binary, so its candidates and releases are notes-only tags on a commit.
 
 ## Starting a minor or a major
 
-A **patch** needs nothing beyond merging the **chore: start** pull request that opens after each
-release. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the first is `1.0.0`) is the one
+A **patch** needs nothing from you: the **chore: start** pull request that opens after each release
+merges itself once its checks pass. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the first is `1.0.0`) is the one
 deliberate step: run **Start Next Version** in the `turbopaneld` repository (Actions →
 _Start Next Version_ → _Run workflow_, pick `minor` or `major`). Only people with write access to
 that repository can run it. Tick **dry-run** first to see what each repository would get.
@@ -91,7 +91,8 @@ bumps the version.
 It pushes a `start/vx.y.0` tag at the head of `trunk` in `turbopaneld`, `turbopanel`, `ui` and
 the website, each one the next minor (or major) after that repository's own newest release, and
 opens a **chore: start x.y.0** pull request in each repository that changes its files to the new
-number. Canaries of that repository are refused until its pull request merges; after that, the
+number, and each one merges itself once its checks pass. Canaries of that repository are refused
+until its pull request merges; after that, the
 canaries and the **Release Candidate** pull requests carry the new number.
 Running it twice is harmless: a repository already on that version is skipped.
 
