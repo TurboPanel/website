@@ -122,9 +122,14 @@ describe(".github/workflows", () => {
   });
 });
 
-// Versions come from git tags (Road to 0.2.x, versioning Phase 3): no "Start
-// x.y.z" PR, no minor gate, and no release step reads package.json's version;
-// minors and majors are started by turbopaneld's Start Next Version workflow.
+// The tags work out the version (Road to 0.2.x, versioning Phase 3); the
+// committed package.json must agree, and publish-rc.yml refuses an rc until it
+// does. The bump is the "chore: start X.Y.Z" PR the Release App opens after a
+// release (or Start Next Version opens for a minor or major), made with
+// scripts/set-version.mjs. No minor gate, and no release step reads a version
+// out of package.json.
+const START_JOB = "\n  start-version-pr:\n";
+
 describe("versions from tags", () => {
   const GONE = [
     /gh-next-version/,
@@ -135,7 +140,7 @@ describe("versions from tags", () => {
   ];
 
   it.each(files)(
-    "%s opens no Start PR, has no minor gate and reads no version file",
+    "%s has none of the old Start PR or minor gate steps and reads no version out of package.json",
     (file) => {
       for (const gone of GONE) expect(read(file)).not.toMatch(gone);
       expect(read(file)).not.toMatch(
@@ -152,6 +157,31 @@ describe("versions from tags", () => {
     expect(text).toContain("BASE_VERSION: ${{ steps.base.outputs.base }}");
   });
 
+  it("refuses an rc whose committed version is not the version from the tags", () => {
+    const text = read("publish-rc.yml");
+    const resolve = text.indexOf("\n  resolve:\n");
+    const checkout = text.indexOf("- name: Check out the merged commit");
+    const check = text.indexOf(
+      "- name: Refuse an rc whose committed version disagrees",
+    );
+    const prepare = text.indexOf("\n  prepare:\n");
+    expect(resolve).toBeGreaterThan(0);
+    expect(checkout).toBeGreaterThan(
+      text.indexOf("- name: Find the merged PR"),
+    );
+    expect(check).toBeGreaterThan(checkout);
+    expect(prepare).toBeGreaterThan(check);
+    expect(text.slice(checkout, check)).toContain(
+      "ref: ${{ steps.r.outputs.commit }}",
+    );
+    const step = text.slice(check, prepare);
+    expect(step).toContain("if: steps.r.outputs.proceed == 'true'");
+    expect(step).toContain("VERSION: ${{ steps.r.outputs.version }}");
+    expect(step).toContain(
+      'run: node scripts/set-version.mjs --check "$VERSION"',
+    );
+  });
+
   it("pins one TurboPanel/dev commit across the promotion workflows", () => {
     const pins = new Set<string>();
     for (const file of [
@@ -161,17 +191,54 @@ describe("versions from tags", () => {
       "promote-ok.yml",
       "promote-ok-recheck.yml",
     ]) {
-      for (const m of read(file).matchAll(
+      // The start-version-pr job's dev actions are pinned on their own.
+      const promote = read(file).split(START_JOB)[0];
+      for (const m of promote.matchAll(
         /TurboPanel\/dev\/\.github\/(?:workflows\/[\w.-]+|actions\/version)@([\da-f]{40})/g,
       )) {
         pins.add(m[1]);
       }
-      for (const m of read(file).matchAll(
+      for (const m of promote.matchAll(
         /^ +(?:dev-)?ref: ([\da-f]{40})(?: #.*)?$/gm,
       ))
         pins.add(m[1]);
     }
     expect([...pins]).toHaveLength(1);
+  });
+
+  it('opens the "chore: start" PR for the next patch after the release is finalized', () => {
+    const release = read("publish-release.yml");
+    const job = release.split(START_JOB)[1] ?? "";
+    expect(job).toMatch(/^ {4}needs: \[prepare, finalize\]$/m);
+    expect(job).toMatch(/^ {6}contents: read/m);
+    expect(job).toContain(
+      "uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0",
+    );
+    expect(job).toContain("repositories: ${{ github.event.repository.name }}");
+    expect(job).toMatch(
+      /uses: TurboPanel\/dev\/\.github\/actions\/version@[\da-f]{40} # dev#\d+\n {8}with:\n {10}mode: base\n/,
+    );
+    expect(job).toContain("NEWEST: ${{ steps.next.outputs.release }}");
+    expect(job).toContain("RELEASED: ${{ needs.prepare.outputs.version }}");
+    expect(job).toMatch(
+      /uses: TurboPanel\/dev\/\.github\/actions\/start-version-pr@[\da-f]{40} # dev#\d+\n/,
+    );
+    expect(job).toContain("version: ${{ steps.next.outputs.base }}");
+    expect(job).toContain("github-token: ${{ steps.app.outputs.token }}");
+    expect(job).toContain(
+      "reason: It was opened after v${{ needs.prepare.outputs.version }} was released.",
+    );
+    expect(job).toContain('auto-merge: "true"');
+    // One dev commit for both of the job's actions.
+    const pins = new Set(
+      [
+        ...job.matchAll(
+          /TurboPanel\/dev\/\.github\/actions\/[\w-]+@([\da-f]{40})/g,
+        ),
+      ].map((m) => m[1]),
+    );
+    expect([...pins]).toHaveLength(1);
+    expect(release).not.toContain('Nothing opens a "Start <next>" PR');
   });
 });
 

@@ -3,8 +3,8 @@
 # webhooks, unrelated to this — so this is a notes-only release, purely for
 # version tracking and to give the compatibility matrix / release notes a
 # place to link to. See the Road to 0.1.x page's `other-repos` item. The tag's
-# number is the version (versions come from git tags); package.json's
-# committed number is not checked against it.
+# number is the version. This path does not check package.json's committed
+# number; publish-rc.yml does, before an rc is published.
 
 name: Release
 
