@@ -42,7 +42,7 @@ export const VERSION_FIELDS = [
   },
   {
     file: "sonar-project.properties",
-    pattern: /^(sonar\.projectVersion=)([^\r\n]*?)([ \t]*)$/m,
+    pattern: /^(sonar\.projectVersion=)(\S*)([ \t]*)$/m,
   },
 ];
 
@@ -69,7 +69,7 @@ function withValueAt(doc, keys, value) {
   let node = /** @type {Record<string, unknown>} */ (copy);
   for (const key of keys.slice(0, -1))
     node = /** @type {Record<string, unknown>} */ (node[key]);
-  node[keys[keys.length - 1]] = value;
+  node[keys.at(-1)] = value;
   return copy;
 }
 
