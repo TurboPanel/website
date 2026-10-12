@@ -6,9 +6,11 @@
 # website ships no binary, so an rc is a notes-only release: the merged trunk
 # commit is tagged v<version>-rc.N and a GitHub Release is created. The version
 # comes from git tags (the newest release's next patch, or a version started
-# with turbopaneld's Start Next Version), never from package.json.
+# with turbopaneld's Start Next Version); the merged commit's package.json must
+# already say it (scripts/set-version.mjs --check), or nothing is published.
 #
-#   1. resolve  the merged PR's head commit and the version from the tags
+#   1. resolve  the merged PR's head commit and the version from the tags,
+#               then the committed-version check on that commit
 #   2. prepare / publish / finalize   the shared promote workflows
 #               (TurboPanel/dev), notes-only, with NO approval gate — the merge
 #               was the deliberate act
@@ -110,6 +112,25 @@ jobs:
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"
           echo "publishing an rc of $version from $commit"
+
+      # website has no canary build, so this is where the committed version is
+      # held against the tags: the merged commit's package.json and
+      # sonar-project.properties must say the version, or no rc is published.
+      # Right after a release the Release App opens a "chore: start X.Y.Z" PR
+      # that bumps them and merges itself once its checks pass; after that the
+      # next trunk → staging merge publishes.
+      - name: Check out the merged commit
+        if: steps.r.outputs.proceed == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.r.outputs.commit }}
+          persist-credentials: false
+
+      - name: Refuse an rc whose committed version disagrees
+        if: steps.r.outputs.proceed == 'true'
+        env:
+          VERSION: ${{ steps.r.outputs.version }}
+        run: node scripts/set-version.mjs --check "$VERSION"
 
   prepare:
     needs: resolve
