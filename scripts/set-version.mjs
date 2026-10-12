@@ -13,7 +13,8 @@
  * website has no canary build, so publish-rc.yml runs `--check` with that
  * number on the merged trunk commit and refuses to publish the rc until they
  * do. Right after a release the TurboPanel Release App opens a
- * "chore: start X.Y.Z" PR made with this script; merging it is the bump.
+ * "chore: start X.Y.Z" PR made with this script, and it merges itself once
+ * its checks pass.
  *
  * Only the one version value in each file is rewritten (textually), so the
  * rest of the file keeps its formatting.

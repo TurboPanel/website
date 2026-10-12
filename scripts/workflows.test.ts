@@ -228,6 +228,7 @@ describe("versions from tags", () => {
     expect(job).toContain(
       "reason: It was opened after v${{ needs.prepare.outputs.version }} was released.",
     );
+    expect(job).toContain('auto-merge: "true"');
     // One dev commit for both of the job's actions.
     const pins = new Set(
       [

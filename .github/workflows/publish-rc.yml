@@ -117,8 +117,8 @@ jobs:
       # held against the tags: the merged commit's package.json and
       # sonar-project.properties must say the version, or no rc is published.
       # Right after a release the Release App opens a "chore: start X.Y.Z" PR
-      # that bumps them; merge it, then the next trunk → staging merge
-      # publishes.
+      # that bumps them and merges itself once its checks pass; after that the
+      # next trunk → staging merge publishes.
       - name: Check out the merged commit
         if: steps.r.outputs.proceed == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
