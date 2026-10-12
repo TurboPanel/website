@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -195,5 +196,28 @@ describe("set-version", () => {
     });
     expect(bad.status).toBe(1);
     expect(bad.stderr).toContain('merge the "chore: start 0.0.0" PR');
+  });
+
+  it("through a symlink it checks the real repo", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "set-version-link-"));
+    try {
+      const link = path.join(dir, "set-version.mjs");
+      symlinkSync(SCRIPT, link);
+      const bad = spawnSync(process.execPath, [link, "--check", "0.0.0"], {
+        encoding: "utf8",
+      });
+      expect(bad.status).toBe(1);
+      expect(bad.stderr).toContain("chore: start 0.0.0");
+      const ok = spawnSync(
+        process.execPath,
+        [link, "--check", committedVersion()],
+        {
+          encoding: "utf8",
+        },
+      );
+      expect(ok.status).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
