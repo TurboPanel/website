@@ -121,9 +121,11 @@ See [Hosting](/docs/using/hosting).
 
 ## System users (principals)
 
+What a principal is, and its two forms, are explained in [Principals](/docs/using/principals).
+
 | Code                                    | Status | Meaning                                                                                |
 | --------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
-| `username_in_use`                       | 409    | The username is taken on a server this project reaches.                                |
+| `username_in_use`                       | 409    | Another system user or login in the organization already has the name.                 |
 | `username_reserved`                     | 400    | The username is a reserved system account.                                             |
 | `principal_scheme_locked`               | 409    | The organization locks the name scheme and the request asked for a different one.      |
 | `username_too_long`                     | 400    | The username exceeds the Unix limit.                                                   |
