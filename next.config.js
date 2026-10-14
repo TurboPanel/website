@@ -68,6 +68,7 @@ function createNextConfig(phase, { defaultConfig }) {
     },
     async redirects() {
       return [
+        { source: '/acceptable-use', destination: '/aup', permanent: true },
         {
           source: '/discord',
           destination: 'https://discord.com/invite/vGDQaTXPQw',
