@@ -29,13 +29,6 @@ export default function TermsPage() {
       />
 
       <MarketingSection className="pt-0">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--tp-amber-line,theme(colors.amber.400/40))] bg-[var(--tp-surface-muted)]/60 px-5 py-4 text-sm text-[var(--tp-text-muted)]">
-          <strong className="text-[var(--tp-text)]">Draft, not legal advice.</strong> This page is a
-          starting template written to match TurboPanel&apos;s actual product and licensing facts. It has
-          not been reviewed by an attorney and should be before it governs real signups. Bracketed
-          fields (legal entity name, registered address, governing jurisdiction) still need filling in.
-        </div>
-
         <MarketingSectionHeader title="1. Two different things these terms cover" />
         <P>
           TurboPanel is two products under one name. <strong className="text-[var(--tp-text)]">The
@@ -74,7 +67,7 @@ export default function TermsPage() {
         <P>
           Your use of the hosted service — including anything you deploy, host, or run through it — is
           also governed by the{' '}
-          <Link href="/acceptable-use" className="text-[var(--tp-accent)] hover:underline">
+          <Link href="/aup" className="text-[var(--tp-accent)] hover:underline">
             Acceptable Use Policy
           </Link>
           . Violating it is grounds for suspension or termination under Section 8.
@@ -146,8 +139,7 @@ export default function TermsPage() {
           Questions about these Terms:{' '}
           <a href="mailto:legal@turbopanel.io" className="text-[var(--tp-accent)] hover:underline">
             legal@turbopanel.io
-          </a>{' '}
-          [confirm inbox exists before publishing], or [Company Legal Name], [Registered Address].
+          </a>.
         </P>
       </MarketingSection>
     </MarketingPageShell>

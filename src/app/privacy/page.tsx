@@ -28,12 +28,6 @@ export default function PrivacyPage() {
       />
 
       <MarketingSection className="pt-0">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--tp-amber-line,theme(colors.amber.400/40))] bg-[var(--tp-surface-muted)]/60 px-5 py-4 text-sm text-[var(--tp-text-muted)]">
-          <strong className="text-[var(--tp-text)]">Draft, not legal advice.</strong> Written to match
-          what the hosted service actually collects today; needs attorney review — particularly the
-          international-transfer and regional-rights sections — before it governs real signups.
-        </div>
-
         <MarketingSectionHeader title="1. Self-hosted vs. hosted" />
         <P>
           If you run TurboPanel yourself, this policy doesn&apos;t apply to that instance — there is no
@@ -114,10 +108,8 @@ export default function PrivacyPage() {
           of these at{' '}
           <a href="mailto:privacy@turbopanel.io" className="text-[var(--tp-accent)] hover:underline">
             privacy@turbopanel.io
-          </a>{' '}
-          [confirm inbox exists before publishing]. We&apos;ll respond within the timeframe your local
-          law requires. [GDPR/CCPA-specific language — legal basis for processing, EU representative if
-          applicable — to be set with counsel.]
+          </a>. We&apos;ll respond within the timeframe your local
+          law requires.
         </P>
 
         <H3>8. Security</H3>
