@@ -115,7 +115,7 @@ export default function PricingPage() {
       <MarketingHero
         eyebrow="Pricing · Private alpha"
         title="We run the panel. You run what matters."
-        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. The control plane lives on a global edge network — we run the panel, you connect servers and ship."
+        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. TurboPanel High Availability will run the control plane on a global edge network — we run the panel, you connect servers and ship."
       >
         <div className="mt-8 flex flex-wrap gap-3">
           <MarketingSecondaryCta href="/docs/getting-started/introduction">How it works</MarketingSecondaryCta>

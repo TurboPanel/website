@@ -209,8 +209,7 @@ export default function Home() {
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
                 High Availability is in private alpha and not yet publicly available. Prefer to
                 operate the control plane yourself? Self-hosted will be free with unlimited servers —
-                same product, your infrastructure. It is also in private alpha and not yet publicly
-                available.
+                same product, your infrastructure. It is also in private alpha.
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 sm:items-end">

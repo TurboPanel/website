@@ -251,8 +251,8 @@ export default function SetupsPage() {
       <MarketingSection variant="band" className="pb-20">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <MarketingSectionHeader
-            title="Pick a pattern. Or don't — just start."
-            description="Connect your first server, deploy something, and reshape your fleet whenever you're ready. The console never changes underneath you."
+            title="Pick a pattern. Or don't — reshape it later."
+            description="When access opens, connect your first server, deploy something, and reshape your fleet whenever you're ready. The console never changes underneath you."
           />
           <div className="flex shrink-0 flex-wrap gap-3">
             <MarketingSecondaryCta href="/pricing" className="px-5">

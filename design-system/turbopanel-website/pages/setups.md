@@ -15,7 +15,7 @@
    diagram (`components/marketing/setups/setup-diagrams.tsx`) alternating
    sides left/right, plus a closing **N — Unlimited** pattern styled as a
    dashed-border "anything goes" card
-4. Closing band — secondary links (pricing, docs); no waitlist CTA
+4. Closing band — pricing link; no waitlist CTA
 
 ## Content rules
 
@@ -27,7 +27,7 @@
 | Diagrams | Each numbered pattern gets a decorative topology SVG in a `tp-card` with a Compute (blue) / Data (green) legend — static, no animation, `aria-hidden` |
 | Layout | Sequential sections with mono index (`01`…, `N`), alternating diagram side (`reverse` prop) for visual rhythm; hairline dividers between patterns |
 | Unlimited pattern | Styled distinctly (dashed accent border, centered copy, its own freeform/scattered diagram) to signal "this one breaks the pattern on purpose" |
-| CTA | At most **one** pulsing primary CTA (hero); no waitlist or sign-up CTA (there is no waiting list) |
+| CTA | Secondary links only (docs, pricing); no waitlist or sign-up CTA (there is no waiting list) |
 
 ## Do not
 
