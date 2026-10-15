@@ -1,4 +1,3 @@
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import {
   MarketingPrimaryCta,
   MarketingSecondaryCta,
@@ -98,9 +97,6 @@ export default function Home() {
         benefits={HERO_BENEFITS}
       >
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-          <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingInlineLink href="/pricing">See pricing</MarketingInlineLink>
         </div>
       </MarketingHero>
@@ -211,7 +207,7 @@ export default function Home() {
                 We run the panel. You run what matters.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--tp-text-muted)]">
-                High Availability is in private alpha — join the waitlist for early access. Prefer to
+                High Availability is in private alpha and not yet publicly available. Prefer to
                 operate the control plane yourself? Self-hosted will be free with unlimited servers —
                 same product, your infrastructure. It is also in private alpha and not yet publicly
                 available.
@@ -221,9 +217,6 @@ export default function Home() {
               <MarketingPrimaryCta href="/pricing" emphasis={false} className="px-5">
                 See simple pricing
               </MarketingPrimaryCta>
-              <MarketingControlPlaneCta path="/sign-up" variant="secondary" emphasis={false} className="px-5">
-                Join the waitlist
-              </MarketingControlPlaneCta>
             </div>
           </div>
         </div>
@@ -247,9 +240,6 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-12 flex flex-wrap gap-3 border-t border-[var(--tp-border)] pt-10">
-          <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/api">Explore the API</MarketingSecondaryCta>
         </div>
       </MarketingSection>

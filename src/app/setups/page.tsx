@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import { MarketingSecondaryCta } from '@/components/marketing/MarketingPrimaryCta'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
@@ -191,9 +190,6 @@ function UnlimitedPattern() {
         ))}
       </ul>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-          Join the waitlist
-        </MarketingControlPlaneCta>
         <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
       </div>
     </article>
@@ -209,9 +205,6 @@ export default function SetupsPage() {
         description="One server or twelve, one datacenter or five — TurboPanel doesn't care how your fleet is shaped. Wire it up your way, then run every app, container, database, and website from a single fast console."
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/getting-started/introduction">
             See how it works
           </MarketingSecondaryCta>
@@ -262,9 +255,6 @@ export default function SetupsPage() {
             description="Connect your first server, deploy something, and reshape your fleet whenever you're ready. The console never changes underneath you."
           />
           <div className="flex shrink-0 flex-wrap gap-3">
-            <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Join the waitlist
-            </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/pricing" className="px-5">
               Pricing
             </MarketingSecondaryCta>

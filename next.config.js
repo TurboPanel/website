@@ -25,8 +25,8 @@ function createNextConfig(phase, { defaultConfig }) {
       ignoreBuildErrors: process.env.TURBOPANEL_SKIP_TS_CHECK === '1',
     },
     async headers() {
-      // turbopanel.io hosts /security, the legal pages, the docs and the
-      // waitlist form, and documents this very header set as a property of
+      // turbopanel.io hosts /security, the legal pages and the docs, and
+      // documents this very header set as a property of
       // the product — so the site sends it too.
       //
       // The CSP is Report-Only on purpose: the API reference page loads

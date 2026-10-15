@@ -24,7 +24,7 @@
 | Support | One short sentence: fast worldwide, always on, websites + apps + databases |
 | Benefits | ≤3 check lines; operator outcomes, not Workers / JWT / Compose jargon |
 | Price | **Above the fold** — omit dollar amounts during private alpha (not yet publicly available); link `/pricing` |
-| CTA | **One** primary close (`Join the waitlist` → sign-up) + optional text link to pricing |
+| CTA | No waitlist or sign-up CTA (there is no waiting list); secondary links to pricing / API only |
 | Aside | No terminal / API mock on home — too techy for the first sell |
 
 ### Do not (home hero)
@@ -38,4 +38,4 @@
 
 Sell three promises repeatedly: **simple to start**, **fast worldwide**, and **affordable to grow**. TurboPanel High Availability is the default convenience path; **self-hosted is a first-class open-source option** with the same product — operators own infrastructure, uptime, and upgrades. Price and a single close belong in the first viewport. Never name the hosted or self-hosted runtime vendors on the home page.
 
-**Both paths are in private alpha and not yet publicly available** — CTAs read as waitlist joins (`Join the waitlist`), never "start now" / "request access" language that implies the product is live today.
+**Both paths are in private alpha and not yet publicly available** — no waitlist or sign-up CTA, never "start now" / "request access" language that implies the product is live today.
