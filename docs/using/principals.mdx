@@ -130,7 +130,6 @@ A database login is scoped to its cluster: it is created on every member of the 
 | `ssh_key_limit`, `ssh_key_duplicate` | 409 | The account already has 64 SSH keys, or already has that key. |
 | `invalid_password` | 400 | Password outside 8–128 characters, or containing control characters. |
 | `managed_user_exists` | 409 | A login with that name already exists on this cluster. |
-| `managed_no_read_targets` | 422 | A **Read-only** login was asked for and no replica serves reads. |
 | `managed_user_has_bindings` | 409 | A binding still delivers the login to a service. |
 | `cannot_drop_root_user`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 | The cluster's own logins cannot be deleted or rotated here; rotate root from the **Credentials** panel (**Rotate password**). |
 

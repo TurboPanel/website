@@ -106,14 +106,29 @@ Resolution is three-layer — the cluster's own override, then the organization 
   <Step>
     **Create user**: a short name and a **Connection role** — **read-write**
     (routed to the primary) or **read-only** (routed to read-eligible replicas;
-    refused if none exists). The password is shown once; **Rotate** and
-    **Delete** act per user.
+    on a cluster with no replica it goes to the primary, so a login that may
+    only read works on a single server). The password is shown once; **Rotate**
+    and **Delete** act per user.
   </Step>
   <Step>
     **Create database** / **Delete database**. The initial database and the root
     user cannot be dropped.
   </Step>
 </Steps>
+
+### Who sets a login's permissions
+
+Every login has a **permission mode** that says who decides what it may do inside the databases you list:
+
+- **Recipe** (the default for new logins) — TurboPanel sets the permissions from the choices you make, and puts them back the way you chose them whenever the cluster is applied.
+- **Manage permissions myself** — you set the permissions yourself, in SQL (`GRANT` and `REVOKE`, the commands that give or take away a permission). TurboPanel **never resets the permissions of a login in this mode**. It still looks after the login itself: it creates it, sets its password, keeps it able to log in and never a superuser, applies its connection limit, and lets it connect to the databases you listed (everyone else stays blocked from them). Anything below that, such as which tables it can read, is left exactly as you made it.
+- **Preset** — logins created before permission modes existed. They behave as they always did: the panel resets their permissions to the one you picked (owner, read-write or read-only) on every apply. They keep working with no change.
+
+You can switch a login to **Manage permissions myself** at any time. Switching it back to panel-set permissions asks you to confirm first, because the panel will then reset the login's permissions and remove grants you made by hand. A read-only Postgres login moved to "manage permissions myself" keeps its read-only default until someone resets it by hand.
+
+**Password changes must go through the panel.** The connection listener keeps its own copy of each password, so a password changed only in SQL leaves the listener holding the old one and the login stops working. Use **Rotate** instead.
+
+A login can also be marked as used by a **database tool** (a desktop client such as DBeaver or Sequel Ace). Tool logins always go to the primary and are never split between a writer and a reader, because those tools run setup commands that pin a session to one server.
 
 A login's name must be unique across every cluster on servers the same organization owns — `username_in_use` if another cluster has it, `managed_user_exists` if this one does. `postgres`, `root`, `mysql` and `superadmin` are reserved.
 
@@ -372,7 +387,6 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `fabric_address_required`                                                                                            | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                               |
 | `managed_private_port_exhausted`                                                                                     | 409       | The server has no private replication port left (45000–45999).                                                                        |
 | `managed_listener_bind_conflict`                                                                                     | 422       | The listener port is already bound on that server.                                                                                    |
-| `managed_no_read_targets`                                                                                            | 422       | A read-only login was requested and no replica serves reads.                                                                          |
 | `managed_user_exists`, `database_exists`                                                                             | 409       | The user or database already exists on this cluster.                                                                                  |
 | `username_in_use`                                                                                                    | 409       | A login with that name exists on another cluster in the organization's servers.                                                       |
 | `username_reserved`                                                                                                  | 400       | `postgres`, `root`, `mysql`, `superadmin`.                                                                                            |
