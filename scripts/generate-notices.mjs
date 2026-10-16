@@ -37,6 +37,16 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
  * @typedef {import('../src/lib/notices.ts').NoticePackage} NoticePackage
  */
 
+const BUNDLED_FONTS_NOTICE = [
+  '## Bundled fonts',
+  '',
+  'The site serves these typefaces from `src/fonts/` (latin subset, variable weight, WOFF2) rather than fetching them at build time. Each is licensed under the SIL Open Font License 1.1; the full text ships in `LICENSES/`.',
+  '',
+  '- Plus Jakarta Sans (normal and italic) — Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) — `LICENSES/OFL-1.1-Plus-Jakarta-Sans.txt`',
+  '- Geist — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist.txt`',
+  '- Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`',
+].join('\n')
+
 /**
  * @param {{
  *   root?: string
@@ -105,6 +115,7 @@ export function runGenerateNotices({
       'pnpm-lock.yaml': fingerprintCommentValue(hashFile(root, 'pnpm-lock.yaml', readFile)),
     },
     complementNoticePath: 'NOTICE',
+    extraPreamble: BUNDLED_FONTS_NOTICE,
   })
 
   return finishNoticesWrite({
