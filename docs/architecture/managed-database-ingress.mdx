@@ -20,12 +20,12 @@ flowchart LR
   PS2 --> Eng1
 ```
 
-| Piece | Role |
-| --- | --- |
-| **ProxySQL** | One compose project per managed server, with configuration under `/etc/turbopanel/proxysql/`. Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
-| **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family) |
-| **Backends** | Engine containers on the organization's managed Docker network, or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members |
-| **Users** | Non-replication managed database users resealed for that server — binding-created users included |
+| Piece         | Role                                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ProxySQL**  | One compose project per managed server, with configuration under `/etc/turbopanel/proxysql/`. Inventory: system component `managed-ingress`, container `<serviceId>-in`, container role `ingress` |
+| **Listeners** | Host TCP **15432** (Postgres family) and **13306** (MySQL family)                                                                                                                                 |
+| **Backends**  | Engine containers on the organization's managed Docker network, or private (site) / TurboFabric — or, as a last resort, public — addresses of remote members                                      |
+| **Users**     | Non-replication managed database users resealed for that server — binding-created users included                                                                                                  |
 
 Replication users never become ProxySQL frontend users.
 
@@ -43,7 +43,7 @@ operators do inspect it directly.
 
 ## External access
 
-One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no per-login source rule for ordinary logins (the root login is the one exception, see below), so this is deliberately a server-level fact rather than a per-database one.
+One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no network-level per-login source rule, so who can reach the listener is deliberately a server-level fact rather than a per-database one. A login can be narrowed further, but only as query rules, after it has signed in (see below).
 
 - **No:** the listener is published on `127.0.0.1` only. Sites run by a site owner's Linux user connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
 - **Yes:** the same ports are published on every address of the server (`0.0.0.0`). Anyone who can reach the server's network can try to connect, and every database on the server is reachable that way. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall.
@@ -60,18 +60,29 @@ How it works:
 - Internet clients (IPv4 and IPv6) arrive with their real address. Callers on `127.0.0.1`, the host's bridge gateway and containers that dial the server's own public address arrive as the gateway of ProxySQL's Docker network (the `docker-proxy` effect), so the gateway counts as local. Anything that can arrive as the gateway is allowed to use root.
 - A control plane or daemon that predates the field sends or reads no list, and the root login stays unlimited, as before. The rule starts once both sides are new.
 
+### Per-login source limits and connection caps
+
+An ordinary login can carry the same kind of limit as the root login, chosen by its owner (see "Where a login can connect from" in the database guide). It uses the same mechanism and the same helpers:
+
+- The control plane stores `allowedSources` on the login (`any` is stored as nothing). It sends the daemon the resolved list on the login's `users[]` entry in `managed.ingress.reconcile`: plain addresses and trailing-`%` prefixes (a CIDR is translated on save, only where that is exact; `server:<id>` is resolved to the server's addresses on each reconcile), plus `allowLocalSources` when "This server only" was chosen, and `maxConnections`. All three are optional; absent means no rules, as before.
+- The daemon renders, per limited login, one pass rule per allowed source and a final error rule ("This login is not allowed from this address…"). Rule ids come from one sequence per protocol family, lowest first, so every limit sits ahead of the read-split rules; a limited login gets its own `^SELECT` reader rule on each pass rule so the split keeps working (not for read-only or database-tool logins, which have a fixed route). `fast_forward` is never set, because it would skip the rules. `maxConnections` is the user row's `max_connections`.
+- The refusal lands on the first query, not at sign-in: the login authenticates, the proxy answers every query from another address with an error. Tools that run queries on connect fail immediately, and some (for example Adminer) show an empty page.
+- "This server only" is loopback plus every subnet of every Docker network ProxySQL is attached to. Callers on `127.0.0.1`, the bridge gateway and containers dialing the server's public address arrive as the network gateway (the `docker-proxy` effect), so anything arriving as the gateway counts as local. Internet clients arrive with their real address.
+- Rules are admin SQL only and are rebuilt on every reconcile: hand-added rules are lost, and removing a limit removes its rules at the next reconcile.
+- Version skew: the control plane sends these fields only to a daemon that lists the `managed-login-limits-v1` feature. For an older daemon a source-limited login is left out of that server's payload (it cannot sign in there) instead of being sent unlimited, and a bare connection cap is dropped. The API answers 409 `managed_login_limits_need_daemon_update` rather than saving a limit that could not be enforced. A daemon that gets none of the fields behaves as before.
+
 The control plane sends the daemon a single bind address (`127.0.0.1` or `0.0.0.0`) in `bindAddresses`; the daemon contract is unchanged. A change is queued to the server at once and kept as "waiting" until the server confirms it, then retried automatically if the server was offline. The API is `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access`.
 
 ## Ports and firewall
 
 On each server that hosts a managed member or a **placed compose service bound to a managed cluster**:
 
-| Port | Protocol | Audience |
-| --- | --- | --- |
-| **15432** | TCP | Postgres-family clients through ProxySQL (on `127.0.0.1` unless external access is on) |
-| **13306** | TCP | MySQL / MariaDB clients through ProxySQL (on `127.0.0.1` unless external access is on) |
-| **127.0.0.1:6032** | TCP | ProxySQL admin (loopback only) |
-| **45000–45999** | TCP | Member private listeners (replication + remote backends) |
+| Port               | Protocol | Audience                                                                               |
+| ------------------ | -------- | -------------------------------------------------------------------------------------- |
+| **15432**          | TCP      | Postgres-family clients through ProxySQL (on `127.0.0.1` unless external access is on) |
+| **13306**          | TCP      | MySQL / MariaDB clients through ProxySQL (on `127.0.0.1` unless external access is on) |
+| **127.0.0.1:6032** | TCP      | ProxySQL admin (loopback only)                                                         |
+| **45000–45999**    | TCP      | Member private listeners (replication + remote backends)                               |
 
 Firewall guidance:
 
@@ -167,21 +178,21 @@ A **binding** connects a managed database user to a compose service:
 
 ## Replicas and failover
 
-| Concern | Behavior |
-| --- | --- |
-| **Placement** | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas stop at `datacenter` — an untrusted-only pair is **422** `failover_requires_trusted_datacenter`, never a silent fallback; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
-| **Read split** | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup |
-| **Apply** | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer) |
-| **Promote** | Stop the old primary when its server is online, then promote the replica; the promote command follows the stop. A promote an operator starts continues when the old primary cannot be reached (that member is marked `needs_resync`); automatic failover refuses instead |
-| **Members per server** | One member of a cluster per server (`managed_member_exists`) |
-| **Remove replica** | Member stays `applying` until `managed.destroy` succeeds; destroy failure leaves the row `failed` and retryable |
+| Concern                | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Placement**          | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas stop at `datacenter` — an untrusted-only pair is **422** `failover_requires_trusted_datacenter`, never a silent fallback; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
+| **Read split**         | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup                                                                                                                                                                                                                                                                                                                                               |
+| **Apply**              | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer)                                                                                                                                                                                                                                                                                                                  |
+| **Promote**            | Stop the old primary when its server is online, then promote the replica; the promote command follows the stop. A promote an operator starts continues when the old primary cannot be reached (that member is marked `needs_resync`); automatic failover refuses instead                                                                                                                                                            |
+| **Members per server** | One member of a cluster per server (`managed_member_exists`)                                                                                                                                                                                                                                                                                                                                                                        |
+| **Remove replica**     | Member stays `applying` until `managed.destroy` succeeds; destroy failure leaves the row `failed` and retryable                                                                                                                                                                                                                                                                                                                     |
 
 ## Commands
 
-| Command | Who | Purpose |
-| --- | --- | --- |
-| `managed.apply` / `.lifecycle` / `.destroy` / `.promote` | Member host | Engine lifecycle |
-| `managed.ingress.reconcile` | Each server that needs a frontend | ProxySQL compose, durable cnf, admin apply |
+| Command                                                  | Who                               | Purpose                                    |
+| -------------------------------------------------------- | --------------------------------- | ------------------------------------------ |
+| `managed.apply` / `.lifecycle` / `.destroy` / `.promote` | Member host                       | Engine lifecycle                           |
+| `managed.ingress.reconcile`                              | Each server that needs a frontend | ProxySQL compose, durable cnf, admin apply |
 
 HTTP managed routes return **command ids immediately**; the UI polls Postgres
 command rows. Dependent follow-ups (standbys, promote after fence, primary
