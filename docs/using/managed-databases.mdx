@@ -124,7 +124,7 @@ Every login has a **permission mode** that says who decides what it may do insid
 - **Manage permissions myself** — you set the permissions yourself, in SQL (`GRANT` and `REVOKE`, the commands that give or take away a permission). TurboPanel **never resets the permissions of a login in this mode**. It still looks after the login itself: it creates it, sets its password, keeps it able to log in and never a superuser, applies its connection limit, and lets it connect to the databases you listed (everyone else stays blocked from them). Anything below that, such as which tables it can read, is left exactly as you made it.
 - **Preset** — logins created before permission modes existed. They behave as they always did: the panel resets their permissions to the one you picked (owner, read-write or read-only) on every apply. They keep working with no change.
 
-You can switch a login to **Manage permissions myself** at any time. Switching it back to panel-set permissions asks you to confirm first, because the panel will then reset the login's permissions and remove grants you made by hand.
+You can switch a login to **Manage permissions myself** at any time. Switching it back to panel-set permissions asks you to confirm first, because the panel will then reset the login's permissions and remove grants you made by hand. A read-only Postgres login moved to "manage permissions myself" keeps its read-only default until someone resets it by hand.
 
 **Password changes must go through the panel.** The connection listener keeps its own copy of each password, so a password changed only in SQL leaves the listener holding the old one and the login stops working. Use **Rotate** instead.
 
