@@ -179,7 +179,7 @@ Databases you made **before** owner roles existed keep exactly the owner and per
 
 ### Choosing the database owner (PostgreSQL)
 
-Every PostgreSQL database made with an owner role (the default) is owned by that role or by a login you pick, never by the cluster's root login or the platform's admin account. Databases made before owner roles, and ones made with `ownerRole: false`, keep their current owner. By default the owner is the owner role, which no one logs in as. When you create a database through the API you can instead pick a login as the owner by sending its id as `ownerLoginId` (usually your migrations login or your read/write login):
+Every new PostgreSQL database is made with an owner role and is owned by that role or by a login you pick, never by the cluster's root login or the platform's admin account. Databases made before owner roles keep their current owner. By default the owner is the owner role, which no one logs in as. When you create a database through the API you can instead pick a login as the owner by sending its id as `ownerLoginId` (usually your migrations login or your read/write login):
 
 - The login must be an **Owner** (migrations) or **Read-write** login that TurboPanel manages. A read-only login, a Database admin login, the root login and a login set to **Manage permissions myself** cannot be an owner (`managed_owner_login_invalid`).
 - The database is added to the login's list, so it can connect to it.
@@ -191,7 +191,7 @@ Every PostgreSQL database made with an owner role (the default) is owned by that
 
 MySQL and MariaDB have no database owner. A login there gets rights on a database, and you choose which logins and rights when you create the login.
 
-When you create a database through the API you can send `ownerRole: false` to opt out. It is on by default for PostgreSQL, and not available for MySQL or MariaDB. A name longer than 54 characters cannot have an owner role (the role names would not fit PostgreSQL's 63-character limit).
+There is no way to opt out of the owner role when you create a PostgreSQL database. Sending `ownerRole: false` is refused with `managed_owner_role_required`; leave `ownerRole` out (sending `true` does the same). A PostgreSQL database name can be at most 54 characters, because the owner role's name is built from it and role names are limited to 63 characters. A longer name is refused with `managed_owner_role_name_too_long`; choose a shorter name. If a server's TurboPanel daemon is too old to make owner roles, it still makes the database without one until you update the server. MySQL and MariaDB have no owner role and are not affected.
 
 ### The Database admin login
 
