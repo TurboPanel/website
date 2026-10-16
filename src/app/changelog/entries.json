@@ -69,7 +69,7 @@
         "items": [
           "Scheduled and on-demand backups for storage copies, with restore and delete from the app, and a schedules panel for managed databases of all three engines.",
           "A managed Postgres can fail over to a failover replica on its own when the primary is found dead; recoveries no longer leave a cluster stuck.",
-          "MySQL and MariaDB logins now do the three jobs their names say. A read-write login can change data but can no longer create, change or drop tables, indexes, views, routines, triggers or events; the migration login can do all of that inside its own database, and only the Database admin login can hand rights to others. This tightens every existing read-write login at the next apply of its cluster, with no grace period: an app that runs its migrations with a read-write login must switch to a migration login first. A server running an older daemon refuses to create a read-write login until it is updated."
+          "MySQL and MariaDB logins now do the three jobs their names say. A read-write login can change data but can no longer create, change or drop tables, indexes, views, routines, triggers or events; the migration login can do all of that inside its own database, and only the Database admin login can hand rights to others. This tightens every existing read-write login at the next apply of its cluster, with no grace period: an app that runs its migrations with a read-write login must switch to a migration login first. TurboPanel refuses to create a read-write login, or change one to read-write, on a server whose daemon is out of date, until it is updated."
         ]
       },
       {
