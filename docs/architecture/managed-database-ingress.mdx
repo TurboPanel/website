@@ -43,10 +43,22 @@ operators do inspect it directly.
 
 ## External access
 
-One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no per-login source rule, so this is deliberately a server-level fact rather than a per-database one.
+One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no per-login source rule for ordinary logins (the root login is the one exception, see below), so this is deliberately a server-level fact rather than a per-database one.
 
 - **No:** the listener is published on `127.0.0.1` only. Sites run by a site owner's Linux user connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
 - **Yes:** the same ports are published on every address of the server (`0.0.0.0`). Anyone who can reach the server's network can try to connect, and every database on the server is reachable that way. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall.
+
+### The root login is limited by source address
+
+Every cluster has a root login (`postgres_…` / `root_…`), a full superuser that is registered on the shared ProxySQL like any other login. ProxySQL refuses its queries unless they come from the server itself, its containers or the organization's other servers. In plain words: the root login works for apps and the panel, and tools on a laptop must use a normal login.
+
+How it works:
+
+- The control plane sends each root login an `allowedSources` list in `managed.ingress.reconcile`: the addresses of the organization's servers (public, private network and mesh). The daemon adds its own sources: loopback and every Docker network the ProxySQL container is attached to, translated to address prefixes ProxySQL understands (it matches an exact address or a trailing `%` prefix, never a CIDR range).
+- ProxySQL gets one query rule per allowed source that lets the query through, then a final rule for that login that answers every other query with "This login is not allowed from this address". The rules are rebuilt on every reconcile, so hand-added rules are lost and a recreated Docker network is picked up.
+- The refusal happens at the first query, not at login: the login still authenticates. Tools that run setup queries when connecting fail right away; others connect and fail on the first statement.
+- Internet clients (IPv4 and IPv6) arrive with their real address. Callers on `127.0.0.1`, the host's bridge gateway and containers that dial the server's own public address arrive as the gateway of ProxySQL's Docker network (the `docker-proxy` effect), so the gateway counts as local. Anything that can arrive as the gateway is allowed to use root.
+- A control plane or daemon that predates the field sends or reads no list, and the root login stays unlimited, as before. The rule starts once both sides are new.
 
 The control plane sends the daemon a single bind address (`127.0.0.1` or `0.0.0.0`) in `bindAddresses`; the daemon contract is unchanged. A change is queued to the server at once and kept as "waiting" until the server confirms it, then retried automatically if the server was offline. The API is `GET`/`PUT /api/client/v1/servers/{id}/managed-external-access`.
 
@@ -64,7 +76,7 @@ On each server that hosts a managed member or a **placed compose service bound t
 Firewall guidance:
 
 - Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
-- When external access is on for the server, restrict 15432/13306 to operator IP ranges in your cloud or provider firewall. TurboPanel's own firewall only previews this listener today and enforces nothing.
+- The root login is refused from outside the organization's servers, but still restrict the listener: when external access is on for the server, restrict 15432/13306 to operator IP ranges in your cloud or provider firewall. TurboPanel's own firewall only previews this listener today and enforces nothing.
 - Engine containers themselves never publish host ports for SQL.
 
 ### Public replication transport
