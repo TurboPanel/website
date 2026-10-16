@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import { MarketingSecondaryCta } from '@/components/marketing/MarketingPrimaryCta'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
@@ -113,9 +112,6 @@ export default function OpenSourcePage() {
           <MarketingSecondaryCta href="/docs/deployment/self-hosted">
             Preview self-hosted docs
           </MarketingSecondaryCta>
-          <MarketingControlPlaneCta path="/sign-up" emphasis={false}>
-            Join the waitlist
-          </MarketingControlPlaneCta>
         </div>
       </MarketingHero>
 

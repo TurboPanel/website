@@ -1,4 +1,3 @@
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import { MarketingSecondaryCta } from '@/components/marketing/MarketingPrimaryCta'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
@@ -384,9 +383,6 @@ export default function RoadmapPage() {
         }
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
           <MarketingSecondaryCta href="/changelog">Changelog</MarketingSecondaryCta>
         </div>
@@ -409,12 +405,9 @@ export default function RoadmapPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <MarketingSectionHeader
             title="Follow our progress toward beta"
-            description="TurboPanel High Availability is building toward accounts, fleet management, deploys, managed databases, and private networking from one fast control plane — join the waitlist to hear when it opens."
+            description="TurboPanel High Availability is building toward accounts, fleet management, deploys, managed databases, and private networking from one fast control plane."
           />
           <div className="flex flex-wrap gap-3">
-            <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Join the waitlist
-            </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/docs" className="px-5">
               Go to docs
             </MarketingSecondaryCta>

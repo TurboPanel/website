@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'The terms governing use of the TurboPanel hosted service.',
 }
 
-const LAST_UPDATED = '2026-09-12'
+const LAST_UPDATED = '2026-10-15'
 
 function H3({ children }: Readonly<{ children: React.ReactNode }>) {
   return <h3 className="mt-8 text-lg font-semibold text-[var(--tp-text)]">{children}</h3>
@@ -40,13 +40,13 @@ export default function TermsPage() {
         <P>
           <strong className="text-[var(--tp-text)]">The hosted service</strong> — TurboPanel High
           Availability at <code>turbopanel.app</code>, where TurboPanel operates the control plane for
-          you — is what these Terms govern. Creating an account, signing up from the waitlist, or using{' '}
+          you — is what these Terms govern. Creating an account or using{' '}
           <code>turbopanel.app</code> means you agree to them.
         </P>
 
         <H3>2. Private alpha</H3>
         <P>
-          The hosted service is in private alpha. Signup is invite- and waitlist-gated, features change
+          The hosted service is in private alpha. Signup is invite-only, features change
           or disappear without notice, there is no uptime commitment or service-level agreement, and
           TurboPanel may suspend, reset, or discontinue the hosted service or your access to it at any
           time. Use it for evaluation and low-stakes workloads accordingly.

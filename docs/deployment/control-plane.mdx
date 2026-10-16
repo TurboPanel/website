@@ -59,7 +59,7 @@ graph TD
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
 | **Daemon on CP host** | Co-located (socket mode) | Connects to Workers URL |
-| **Availability** | Private alpha — preview | Private alpha — [waitlist](https://turbopanel.app/sign-up) |
+| **Availability** | Private alpha — preview | Private alpha — not yet publicly available |
 | **Pricing (planned)** | Free, unlimited servers | See [pricing](https://turbopanel.io/pricing) when available |
 
 ## Control-plane listeners
@@ -179,9 +179,9 @@ Overview and operator responsibilities: [Self-hosted](/docs/deployment/self-host
   It is not the production self-hosted install path.
 </Callout>
 
-### TurboPanel High Availability (private alpha — waitlist)
+### TurboPanel High Availability (private alpha)
 
-TurboPanel High Availability runs the control plane on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to the control plane's URL. **It is not yet publicly available** — [join the waitlist](https://turbopanel.app/sign-up) for access updates.
+TurboPanel High Availability runs the control plane on Cloudflare Workers. Remote daemons connect over HTTPS/WSS to the control plane's URL. **It is not yet publicly available.**
 
 When access is available, operators create an organization in the app, configure Workers bindings and secrets, and enroll servers with `turbopanel.sh` (manifest default host — no `TURBOPANEL_HOST` required).
 
