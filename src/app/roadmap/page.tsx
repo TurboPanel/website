@@ -1,4 +1,3 @@
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import { MarketingSecondaryCta } from '@/components/marketing/MarketingPrimaryCta'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
@@ -20,7 +19,10 @@ type Phase = Readonly<{
   discussionUrl?: string
 }>
 
-const LAST_UPDATED = '2026-09-18'
+const LAST_UPDATED = '2026-10-12'
+
+const IDEAS_URL = 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas'
+const RELEASES_URL = 'https://github.com/TurboPanel/turbopanel/releases'
 
 const PHASES: ReadonlyArray<Phase> = [
   {
@@ -28,12 +30,13 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Foundation',
     status: 'Complete',
     summary: 'The secure foundation for accounts, teams, and one reliable control plane.',
-    releaseUrl: 'https://github.com/TurboPanel/turbopanel/releases',
+    releaseUrl: RELEASES_URL,
     focus: [
       'Secure sign-in, verification, recovery, and team invitations',
       'TOTP authenticator-app second factor and passkeys',
       'The same product experience across High Availability and self-hosted',
-      'Organizations, workspaces, invitations, and flexible access',
+      'Organizations, invitations, and flexible access',
+      'Signed releases that move through one tag-based pipeline, from canary to release',
       'Clear guides for setup, security, deployment, and automation',
     ],
   },
@@ -42,68 +45,91 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Fleet ops',
     status: 'Complete',
     summary: 'Manage many servers from one place without guessing what is online.',
-    releaseUrl: 'https://github.com/TurboPanel/turbopanel/releases',
+    releaseUrl: RELEASES_URL,
     focus: [
       'Multi-server dashboard with live status, OS, and connection details',
       'Host metrics charts for CPU, memory, disk, network, and more',
       'Server connect, reconnect, ping, hostname, reboot, and updates',
+      'Updates one server at a time; an offline server does not block the rest of the fleet',
       'A quick add-server flow that gets a host online in minutes',
       'Private networking mesh, datacenters, and IP address management',
     ],
   },
   {
-    title: 'Apps and Deploy',
-    shortLabel: 'Apps & deploy',
+    title: 'Hosting and Deploy',
+    shortLabel: 'Hosting',
+    status: 'Complete',
+    summary:
+      'Deploy from a source repository, run Docker Compose, PHP and WordPress sites, and Node apps from one place.',
+    releaseUrl: RELEASES_URL,
+    focus: [
+      'Projects from a GitHub repository: a hostname per branch with HTTPS, and a deploy on every push',
+      'Docker Compose projects with a managed database attached, including backup and restore',
+      'PHP and WordPress sites on Caddy, nginx, Apache or OpenLiteSpeed, with a PHP mode per site',
+      "Node apps that run natively as the site owner's Linux user, built in a sandbox",
+      'Static sites and SFTP access',
+      "Secrets and environment variables, scheduled tasks, and one-click Let's Encrypt certificates",
+    ],
+  },
+  {
+    title: 'Production Launch',
+    shortLabel: 'Launch',
     status: 'In Progress',
     summary:
-      'Deploy container apps, WordPress and PHP sites, and managed databases from one place.',
-    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
+      'Prove managed databases on every engine, then move TurboPanel onto its first production servers.',
+    discussionUrl: IDEAS_URL,
     focus: [
-      'Projects, environments, visual editing, and one-click deploy (shipped)',
-      'Secrets and environment variables, plus starter catalog templates (shipped)',
-      'WordPress, PHP, and static site hosting with SFTP access (shipped)',
-      'Managed databases with users, backups, and high availability (shipped)',
-      'Scheduled tasks and push-to-deploy from GitHub and GitLab (shipped)',
-      'Automatic TLS certificates (shipped)',
-      'Richer container day-to-day views',
+      'Managed Postgres, MySQL and MariaDB on a single server, a failover pair, or a three-member cluster',
+      'Automatic failover works on all three engines; every failure scenario is being proven, including a host losing power and a site staying up through a failover',
+      'Backups that survive the loss of a host, and restore checked on every engine',
+      "Forward-only upgrades for the panel's own database, with a backup taken first and a tested restore",
+      'Our hosted control plane on its own high-availability servers, with a written release checklist and a rehearsed rollback',
+      'Self-hosted install and upgrade from the previous release, proven on a fresh host',
+      "A choice of PHP versions for the server's OS, in every PHP mode, with 8.4 as the default",
+      'Branded new-site, 404 and error pages on every web engine',
+      'The redesigned project and environment editor',
+      'Hardening of the daemon, sign-in and release signing, an outside security review, and a support channel',
     ],
   },
   {
-    title: 'Reliability and Security',
-    shortLabel: 'Reliability',
+    title: 'Runtimes and Sites',
+    shortLabel: 'Runtimes',
     status: 'Planned',
-    summary: 'Make recovery, alerting, and account security feel production-grade.',
-    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
+    summary: 'More ways to create and run a site once the launch work is done.',
+    discussionUrl: IDEAS_URL,
     focus: [
-      'Backup workflows for apps, sites, and volumes',
-      'Scheduled backups with retention policies',
-      'Health checks and operator alerts',
-      'Audit logs and further security hardening',
+      'Deno as an app runtime next to Node',
+      'WordPress as a first-class way to create a site, with a wizard that installs it for you',
+      'A PHP extensions picker and per-site directory listing',
+      'Older Node releases offered with an end-of-life warning, from one runtime list',
+      "A site's own 404 and error pages win over ours",
+      'A "What are you creating?" page with presets',
     ],
   },
   {
-    title: 'Teams and Automation',
-    shortLabel: 'Teams',
+    title: 'Operations and Teams',
+    shortLabel: 'Operations',
     status: 'Planned',
-    summary: 'Share work safely and hook TurboPanel into the rest of your stack.',
-    discussionUrl: 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas',
+    summary: 'Day-two operations for people who run many servers and share them.',
+    discussionUrl: IDEAS_URL,
     focus: [
-      'Deeper team roles and client-facing account support',
-      'API tokens for external automation',
-      'Outbound webhooks for deploy and status events',
-      'Usage and reporting views',
+      'MySQL 8.4 and MariaDB 12.3 tested on failover pairs and three-member clusters',
+      'Guides for upgrade, backup and restore',
+      'A service that keeps crashing is stopped and its site owner is alerted',
+      'A read-only Viewer role',
+      'Point-and-click backhaul: choose which network carries server-to-server traffic, in priority order',
+      'Release signing key rotation and anti-rollback for signed manifests',
     ],
   },
   {
-    title: 'Platform Expansion',
-    shortLabel: 'Platform',
+    title: 'Later',
+    shortLabel: 'Later',
     status: 'Future',
-    summary: 'Longer-term surfaces once core hosting and ops workflows are mature. Not committed to a schedule.',
+    summary: 'Longer-term work, not committed to a schedule.',
     focus: [
-      'Native mobile operations experience',
-      'Plugin and extension system',
-      'Broader app catalog and managed service presets',
-      'More operator tooling for large fleets',
+      'Phone-sized screens for the web app',
+      'Private repositories, deploy keys, plain remotes and other code hosts',
+      'Rolling deploys across several servers, and blue-green deploys',
     ],
   },
 ]
@@ -346,7 +372,7 @@ export default function RoadmapPage() {
       <MarketingHero
         eyebrow="Product roadmap · Private alpha"
         title="In private alpha. Building toward beta."
-        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, deploys, website hosting, managed databases, and automatic TLS are furthest along, and we are now finishing everyday container views. Last updated ${LAST_UPDATED}.`}
+        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, hosting and deploys are built. We are now proving managed database failover on every engine and getting TurboPanel onto its first production servers. Last updated ${LAST_UPDATED}.`}
         aside={
           <StatusAside
             shipped={shipped}
@@ -357,9 +383,6 @@ export default function RoadmapPage() {
         }
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs">Read the docs</MarketingSecondaryCta>
           <MarketingSecondaryCta href="/changelog">Changelog</MarketingSecondaryCta>
         </div>
@@ -382,12 +405,9 @@ export default function RoadmapPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <MarketingSectionHeader
             title="Follow our progress toward beta"
-            description="TurboPanel High Availability is building toward accounts, fleet management, metrics, deploys, and private networking from one fast control plane — join the waitlist to hear when it opens."
+            description="TurboPanel High Availability is building toward accounts, fleet management, deploys, managed databases, and private networking from one fast control plane."
           />
           <div className="flex flex-wrap gap-3">
-            <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Join the waitlist
-            </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/docs" className="px-5">
               Go to docs
             </MarketingSecondaryCta>

@@ -34,7 +34,8 @@
         "items": [
           "One-click Let's Encrypt for each domain. The app checks DNS first and shows the certificate state (Test certificate, Waiting for DNS, Getting a certificate, Secure, Renewal failed); the expiry date is recorded from the server.",
           "\"Also redirect www to this domain\" serves the www name as a permanent redirect.",
-          "The Hosting tab lets you pick a hostname and shows only that hostname's settings."
+          "The Hosting tab lets you pick a hostname and shows only that hostname's settings.",
+          "New organization certificate authorities use P-384 keys and last 15 years."
         ]
       },
       {
@@ -68,7 +69,13 @@
         "heading": "Databases, storage and backups",
         "items": [
           "Scheduled and on-demand backups for storage copies, with restore and delete from the app, and a schedules panel for managed databases of all three engines.",
-          "A managed Postgres can fail over to a failover replica on its own when the primary is found dead; recoveries no longer leave a cluster stuck."
+          "A managed Postgres can fail over to a failover replica on its own when the primary is found dead; recoveries no longer leave a cluster stuck.",
+          "MySQL and MariaDB logins now do the three jobs their names say. A read/write login can change data but can no longer create, change or drop tables, indexes, views, routines, triggers or events; the migration login can do all of that inside its own database, and only the Database admin login can hand rights to others. Every existing read/write login is tightened at the next apply of its cluster, with no grace period. Before you update, check that no app runs its migrations as a read/write login, and move any that does to a migration login first. TurboPanel refuses to create a read/write login, or change one to read/write, on a server whose daemon is out of date, until it is updated.",
+          "When you create a database login you pick one of three jobs in the app: read-only, read/write or migration. There is also a Database admin login for each cluster, and every login can be limited to the places it may connect from and to a number of connections. Review the limits on logins that are reachable from outside the server.",
+          "The root database login now works only from the server itself, its containers and the panel servers. If anything outside those connects as root, give it its own login instead.",
+          "Every new Postgres database gets a no-login owner role, and you can choose which login owns the database. Creating a database without an owner role, or with a name longer than 54 characters, is refused.",
+          "MySQL and MariaDB database names that contain an underscore are now granted by exact name: a grant on wp_site no longer also matches wpXsite. Older broad grants are removed at the next apply, so a login that quietly relied on a look-alike name loses that access; check the logins of any database with an underscore in its name.",
+          "\"What can this login do?\" shows the permissions a database login really has on the server, so you can check a login against what you meant to give it."
         ]
       },
       {
@@ -84,7 +91,8 @@
         "heading": "Updates and billing",
         "items": [
           "Updates name the version and the piece being updated, show a calm reconnecting state while the control plane restarts, and update one server at a time by default; an environment can start more at once. A server already on the target build no longer shows a stale update error.",
-          "The capacity pages say server limit. A server limit change checks its proration date first, spare larger server slots follow the recommended size, a refusal to remove a license says how many are in use, and a past-due subscription ends on Stripe's own retry schedule."
+          "The capacity pages say server limit. A server limit change checks its proration date first, spare larger server slots follow the recommended size, a refusal to remove a license says how many are in use, and a past-due subscription ends on Stripe's own retry schedule.",
+          "A fresh install now runs its steps in the right order, and an update restarts the panel so the new version is the one running. Update the servers' daemons before or together with the panel."
         ]
       },
       {
