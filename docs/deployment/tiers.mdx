@@ -70,10 +70,9 @@ Nothing is sent for a server that satisfies its recommendation, and nothing is s
 
 ## What a tier changes in the metrics you see
 
-Depth is the same at every tier. Host CPU, memory, storage I/O, network health, the merged diagnostics row, storage accounting, the ingress and router rows, and the database-proxy row are all on from S1. What the tier changes is **cardinality** — how many per-device charts exist — plus three entry-tier carve-outs:
+Depth is the same at every tier. Host CPU, memory, storage I/O, network health, the merged diagnostics row, storage accounting, the ingress and router rows, and the database-proxy row are all on from S1. What the tier changes is **cardinality** — how many per-device charts exist — plus two entry-tier carve-outs (Docker metrics are on every plan, [Docker](/docs/metrics/managed-docker)):
 
-- **S1 has no Docker breakdown.** The Docker data-root total still shows under [Storage usage](/docs/metrics/managed-storage); the layer / container / volume / build-cache split ([Docker](/docs/metrics/managed-docker)) is granted from S2, and the app shows a one-line notice in its place on S1.
-- **S1 watches no extra filesystems.** Root capacity is always reported; additional mounts appear from S2.
+- **S1 watches one extra filesystem.** Root capacity is always reported; further mounts appear from S2.
 - **S1 physical machines get 11 sensor slots** instead of 19 — enough for the CPU package, board, and a couple of drives.
 
 The row-by-row inventory each tier produces, and what it costs to store, is in [Server metrics architecture](/docs/architecture/server-metrics#rows-per-sample-by-tier). This page does not restate those figures.
