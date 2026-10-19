@@ -189,7 +189,10 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 | Vendored runtimes (deno/uv/python/ansible/cloudflared)      | `/opt/turbopanel/vendor`              |
 | Config (`daemon.env`, `instance-ca.pem`)                    | `/etc/turbopanel`                     |
 | Persistent identity (license, `server.id`, keys, tunnels)   | `/var/lib/turbopanel`                 |
+| Rebuildable caches                                          | `/var/cache/turbopanel`               |
 | Logs                                                        | `/var/log/turbopanel`                 |
+| Backups (managed, volumes, panel)                           | `/backup`                             |
+| Site owners' files                                          | `/srv/users/<owner>`                  |
 | Runtime (sockets, `daemon.lock`)                            | `/run/turbopanel`                     |
 
 - User `tp:tp` (UID/GID 9999). Its sudo rule is limited to three root commands, without a password: the host helper (`/opt/turbopanel/lib/tp-host`), the orchestration runner, and the web-engine config checks. `tp` is also in the `docker` group, and Docker access is root-equivalent, so treat the `tp` account as equivalent to root on that host.

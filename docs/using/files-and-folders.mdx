@@ -1,0 +1,172 @@
+---
+title: Where your files live
+description: The folders TurboPanel makes on a server for each site owner's Linux user, how services and volumes are named on disk, shared (common) folders, when a name is locked, what stop and delete do to files, and orphan folders
+---
+
+# Where your files live
+
+Every site, app and volume that needs files on a server gets a folder there. This chapter says where the folders are, how they are named, which names you can choose, when a name stops being changeable, and what each action does to the files. For who owns the files and how a login reaches them, see [Site owner accounts and isolation](/docs/security/site-isolation).
+
+## The model
+
+Each **site owner's Linux user** has one folder tree on every server where its services run:
+
+```text
+/srv/users/alice/                 root owns it; the SFTP jail root
+  home/                           alice's login home
+  tmp/                            alice's private temporary folder
+  production/                     one folder per environment (the scope)
+    services/
+      example.com/                one folder per service that needs files
+        public/                   uploaded files for a site you fill over SFTP
+        releases/<release id>/    sealed, read-only builds
+        current                   link to the release that is live
+        shared/                   files that must outlive a deploy
+        logs/                     the app's own log files
+    volumes/
+      uploads/                    one folder per storage volume
+  staging/
+  common/                         shared by every environment (below)
+    services/
+    volumes/
+```
+
+- **`home/` and `tmp/`** belong to the owner. Everything else is a folder TurboPanel makes for you.
+- **A scope folder** is named after the environment (`production`, `staging`), or is `common` for things shared across environments.
+- **A service folder** is made only for services that run from files on the host: sites, uploaded-directory sites and native apps. A service that only runs a container from an image has no service folder; its data lives in volumes.
+- **A volume folder** is the bind-mount source for a storage entry of kind *Directory* on a host path. It belongs to the owner, so you can fill it and empty it over SFTP, but you cannot delete the folder itself.
+- **Which parts you can write.** You can write to `home/`, `tmp/`, `public/`, `shared/`, `logs/` and inside each volume. Every folder above those is root's, so a site owner cannot rename, replace or delete a service, volume or environment folder, only empty the writable parts inside it.
+- **Project names are not in paths.** The project's name and short name never appear on the server.
+
+Over SFTP with the jail on, the owner sees the same tree starting at `/`, and signs in to `/home`.
+
+## Name rules
+
+A folder name is fixed by the time the folder exists, so TurboPanel checks it up front. The same rules are applied by the app, the API and the host.
+
+| Name | Allowed | Length |
+| --- | --- | --- |
+| Environment | Lowercase letters, digits, hyphens and underscores; starts with a letter or digit | Up to 32 |
+| Service or volume folder | Lowercase letters, digits, dots, hyphens and underscores; starts and ends with a letter or digit; no `..` | Up to 63 |
+| Site owner's Linux user | Lowercase letters, digits, hyphens and underscores; starts with a letter or underscore; no `--`, no trailing `-`, not all digits; not a reserved system name, and not starting with `tp` or `systemd-` or ending in `-grp` | Up to 28 |
+| Project short name | Lowercase letters, digits and hyphens; starts with a letter or digit. It is made from the project's name and never appears in a path | Up to 40 |
+
+**Reserved names.** An environment cannot be called `common`, `home`, `tmp`, `services` or `volumes` (those are the owner's own folders), and a handful of other words are kept free so a future folder never needs a rename: `data`, `sites`, `backup`, `backups`, `logs`, `cache`, `run`, `var`, `etc`, `bin`, `root`, `public`, `releases`, `current`, `shared`, `lost-found` and `tmp-staging`.
+
+**Name from a domain.** A website's folder name defaults to its domain, made safe for a folder:
+
+1. Spaces and one trailing dot are dropped, and an international domain is turned into its `xn--` form.
+2. It is lowercased.
+3. A leading `*.` becomes `wildcard.`.
+4. If the result is longer than 63 characters, it is cut to 54 characters, then `-` and eight characters of a fingerprint of the full domain are added, so the same domain always gives the same name.
+5. If another service of the same owner in the same environment already has that name, `-2`, `-3` and so on are added, up to `-99`.
+
+A later domain change, an extra domain or an alias never renames the folder. A name you type yourself is never changed for you: if it is taken, the request is refused with `directory_name_taken`.
+
+## Choose how folders are named for your organization
+
+An organization owner or manager picks how service and volume folders are named. The setting applies to every service and volume created afterwards.
+
+| Setting | What it does |
+| --- | --- |
+| **Readable names** (`slug`, the default) | Each service and volume has a folder name field, filled in for you (a site from its domain, anything else from its name). |
+| **Ids** (`uuid`) | The folder is named after the service's or volume's id. There is no name field. |
+| **Both** (`both`) | Each service and volume chooses, readable names by default. |
+
+Environment folders are always the environment's name. Over the API it is `GET` and `PUT /api/client/v1/organizations/{id}/directory-defaults` (`names`: `slug`, `uuid` or `both`). It can change until the first folder is made anywhere in the organization. After that it is locked, and changing it returns `directory_names_locked`.
+
+## Shared (common) folders
+
+By default a service or volume belongs to one environment and lives under that environment's folder. To keep something across environments, create it as **common** when you add it. It then lives under `common/` and is not tied to an environment name.
+
+- The choice is made at creation and cannot change afterwards (`scope_locked`).
+- Any environment of any project in the organization can use a common service or volume of the same site owner. An environment lists the ones it uses, and `POST /api/client/v1/environments/{id}/shares` adds one (`serviceId` or `storageId`). Removing the share stops the environment using it and leaves the asset alone.
+- Adding a share is refused with `asset_not_common` (the service or volume is not common), `asset_in_this_environment` (it belongs to this environment already) or `asset_has_no_owner` (it has no site owner yet). Adding the same share twice is harmless.
+- A common asset cannot be deleted while another environment uses it (`common_asset_in_use`).
+- A common volume is mounted only by environments that use it, and only at the mounts they ask for.
+
+Common folders never block an environment rename, because they do not contain the environment's name.
+
+## When a name is locked
+
+Names that appear in a path stop changing once something exists on disk under them.
+
+| What | Locked when | Refusal |
+| --- | --- | --- |
+| A service's folder name | The service has a folder on any server | `service_slug_locked` (409) |
+| A volume's folder name and its site owner | The volume has a folder on any server | `storage_slug_locked` (409) |
+| Common or not | Always, once chosen at creation | `scope_locked` (409) |
+| An environment's name | Any service or volume folder exists under it on any server | `environment_name_locked` (409) |
+| An environment's server | Same as its name | `environment_server_locked` (409) |
+| A project's short name | Folders exist under its environments | `project_slug_locked` (409) |
+| The organization's folder naming | The first folder is made anywhere in the organization | `directory_names_locked` (409) |
+
+An environment's name is the folder name on disk, so it cannot be renamed while folders exist under it. The error lists up to 20 of the folders that block it, each with its server and a plain reason, for example *being removed, waiting for server Beta to come back*. Remove those services and volumes first, or keep the name. Moving an environment to another server is locked the same way, and an environment with folders cannot be deleted either (`environment_has_folders`) until they are removed.
+
+What counts: a folder in the state *planned*, *present*, *removing* or *orphan*. What does not count: an empty environment folder with nothing in it, a service that has no folder (container-only), a managed database (it lives outside the owner's tree), and a folder marked *missing*. A rename also waits for a running deploy of the environment (`environment_deploy_running`).
+
+## What stop, delete and removing a service do
+
+| Action | Files on the server |
+| --- | --- |
+| **Stop** an environment | Kept. Every folder stays, so a start brings the same files back. |
+| **Redeploy** | A new sealed release is added; the previous releases stay for rollback (the newest five are kept) and `shared/` is never touched. |
+| **Delete** a service or volume | The folder is removed from every server that has it. If a server is offline, the folder shows as *removing* and is removed when the server returns; the name stays locked until then. |
+| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. |
+| Take a service **out of the compose document** | The folder is kept and marked **orphan**. Only an explicit delete removes files. |
+| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders stay, because stopping never removes data. |
+
+An empty environment folder is left in place when its last service goes. It costs nothing and does not lock any name.
+
+### Orphan folders
+
+An **orphan** is a folder on a server that no service or volume owns any more: a service removed from the compose document (its files are kept on purpose), or a folder found on the server that the app did not make. The app raises an alert, lists the orphan with the reason *no service or volume owns this folder on server X*, and counts it toward the environment-name lock until an organization admin removes it or the service is added back. Nothing is deleted automatically.
+
+The host also reports the folders it finds on its disk; any difference from what the app expects shows as an orphan (a folder only on disk) or *missing* (a folder the app expects that is not there), with an alert.
+
+## Volumes and the user a container runs as
+
+A volume folder belongs to the site owner's Linux user. A container may run as any user and TurboPanel never refuses a compose document for that. When a service declares a numeric user other than root, that user is given access to the volume folder with a permission entry; the folder's owner is never changed to root or to the image's user, so you keep access over SFTP. For an image that must own its data as a fixed user, use a Docker named volume instead of a directory.
+
+## Backups and TurboPanel's own folders
+
+Backups and the platform's own state live outside the owner's tree.
+
+| Path | What |
+| --- | --- |
+| `/backup/managed/<id>/` | Backups of a managed database |
+| `/backup/volumes/<id>/` | Backups of a storage volume |
+| `/backup/panel/` | Control plane upgrade backups and database dumps |
+| `/var/lib/turbopanel/` | The daemon's state, including deployments, release records, the web server's and Docker gate's state, and managed databases |
+| `/var/cache/turbopanel/` | Caches the daemon can rebuild |
+| `/var/log/turbopanel/` | Daemon, web server and gate logs |
+| `/var/lib/turbopanel-build/` | Scratch space for sandboxed builds; the one folder kept beside the others |
+
+The path of a backup is stored relative to the backup folder (for example `managed/<id>/<backup id>.dump`), so moving the backup folder to another disk and pointing `TURBOPANEL_BACKUP_DIR` at it does not break restores. A volume restore stages its files inside the volume folder (`.tp-restore-stage`, `.tp-restore-old` and `.tp-restore-done`, all starting with a dot), so those names cannot clash with anything you create.
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invalid_environment_name` | 400 | The environment's name cannot be a folder name. Rename it to meet the rules above before deploying. |
+| `invalid_directory_name` | 400 | A folder name is outside the rules above. |
+| `directory_name_mode_forbidden` | 400 | The organization's setting does not allow that kind of name. |
+| `directory_name_taken` | 409 | Another service or volume of the same site owner has that name in the same environment (or in `common`). |
+| `directory_name_typed_in_uuid_mode` | 409 | The organization names folders after ids, so a name cannot be typed. |
+| `service_slug_locked`, `storage_slug_locked` | 409 | The service or volume already has a folder, so its name can no longer change. |
+| `scope_locked` | 409 | Whether it is common was chosen at creation. |
+| `common_asset_in_use` | 409 | Another environment still uses this common service or volume. |
+| `environment_name_locked`, `environment_server_locked` | 409 | Folders exist under the environment. The body lists up to 20 of them. |
+| `environment_has_folders` | 409 | The environment still has folders; remove the listed services and volumes first. |
+| `environment_deploy_running` | 409 | A deploy is running; rename when it finishes. |
+| `invalid_project_slug` | 400 | The project's short name is outside the rules. |
+| `project_slug_locked`, `project_slug_in_use` | 409 | The project's short name cannot change after folders exist, or another project already uses it. |
+| `asset_not_common`, `asset_in_this_environment`, `asset_has_no_owner` | 409 | A share could not be added: the service or volume is not common, already belongs to this environment, or has no site owner. |
+| `directory_names_locked` | 409 | The organization already has folders, so its naming setting is fixed. |
+
+## Related
+
+- [Site owner accounts and isolation](/docs/security/site-isolation) — who owns each folder and how SFTP is locked to it.
+- [Storage, variables and secrets](/docs/using/storage-and-variables) — volumes, copies and backups.
+- [Writing compose](/docs/using/compose) — how a site is served from `public/` or `current`.
+- [System users](/docs/using/principals) — the site owner's Linux user.

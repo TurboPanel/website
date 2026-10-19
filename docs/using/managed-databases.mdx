@@ -373,7 +373,7 @@ Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common
 | **Restore**     | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
 | **Delete**      | Two presses. Removes the backup.                                                                                                            |
 
-Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
+Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `managed/<cluster id>/` in the backup folder, which is `/backup` or the directory the operator set with `TURBOPANEL_BACKUP_DIR`; the app stores each backup's path relative to that folder). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
 
 ### Schedules
 

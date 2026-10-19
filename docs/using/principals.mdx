@@ -113,7 +113,8 @@ A database login is scoped to its cluster: it is created on every member of the 
 
 | Item | Value |
 | --- | --- |
-| Home | `/srv/users/<system name>` |
+| Home | `/srv/users/<system name>/home` |
+| Files for services and volumes | `/srv/users/<system name>/<environment>/services/…` and `…/volumes/…`, plus `common/` for shared assets. See [Where your files live](/docs/using/files-and-folders). |
 | User id | Chosen from 15001–60000; today each server picks its own |
 | Shared storage | Not yet; each server holds its own copy of the home directory |
 
@@ -138,5 +139,6 @@ A database login is scoped to its cluster: it is created on every member of the 
 - [Compose](/docs/using/compose#at-the-document-root) — declaring the system users a document's services run as.
 - [Managed databases](/docs/using/managed-databases#users-and-databases) — logins, databases, connection roles and name schemes.
 - [Storage and variables](/docs/using/storage-and-variables) — storage entries assigned to a system user.
+- [Where your files live](/docs/using/files-and-folders) — the folders on the server, how they are named and when a name is locked.
 - [Errors](/docs/using/reference/errors#system-users-principals) — every refusal code in one place.
 - [Terminology](/docs/getting-started/terminology) — the names TurboPanel uses for its parts.
