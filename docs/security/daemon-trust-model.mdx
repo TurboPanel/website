@@ -63,8 +63,11 @@ Channel manifest from GitHub Releases → `run.sh` reconciles `/opt/turbopanel` 
 | Host metrics samples | Charts and alerting (see [server metrics](/docs/architecture/server-metrics)) |
 | Command results / logs (on demand) | Operator actions |
 | Public daemon key fingerprint | Authentication |
+| Let's Encrypt certificate chain and private key, for a hostname Caddy on this server issued | Stored encrypted by the control plane (see [Stored copy](/docs/using/hosting#stored-copy)) |
 
 Daemons do **not** upload arbitrary filesystem contents unless a specific command requests it (e.g. managed logs tail).
+
+The one place the daemon reads a key it does not own is the Let's Encrypt copy. Caddy's certificate folder belongs to its own account (mode `0700`), so the daemon reads it only through a narrow, read-only helper that takes exactly one plain hostname per call, follows no symlinks, skips the internal CA, and prints that hostname's certificate and key to the daemon over a pipe, never to a file or a log. The control plane accepts a pair only from a server that hosts a domain pinning that certificate, so a compromised server can replace only the certificates of sites placed on it.
 
 ## Revocation
 
