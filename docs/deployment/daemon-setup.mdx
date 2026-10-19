@@ -12,7 +12,7 @@ The TurboPanel **daemon** ([turbopaneld](https://github.com/TurboPanel/turbopane
 ### Purpose
 
 - Connect to the control plane control plane as a remote daemon
-- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, control plane, web app)
+- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, control plane, web interface)
 - Apply dev-sync pushes and Cloudflare tunnel tokens from the control plane
 - Report server identity (`serverId`, `hostname`, `machineId`) on WebSocket `hello`
 
@@ -218,7 +218,7 @@ Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld
 | `TURBOPANEL_INSTANCE_URL`   | HTTPS base URL of the control plane (remote servers)                     |
 | `TURBOPANEL_INSTANCE_CA`    | Platform CA PEM path for TLS (default `/etc/turbopanel/instance-ca.pem`) |
 | `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`release` default)    |
-| `TURBOPANEL_DEV_INSTANCE`   | `1` for co-located dev (Ansible installs control plane/web app)          |
+| `TURBOPANEL_DEV_INSTANCE`   | `1` for co-located dev (Ansible installs control plane/web interface)          |
 
 Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`. On a
 self-hosted control plane that is the daemon the control plane installer provisions: it starts before the wizard has
