@@ -15,7 +15,7 @@ An environment's **Configuration** tab answers one question: *what does this env
 | **Changes from Base** | What this environment does differently, line by line: a setting, an app it adds, a variable it overrides. |
 | **Follows the Base** | The environment has its own changes at most, and gets every later change to the Base on its next deploy. |
 | **Stands alone** | The environment replaces the Base's services outright. It keeps its own settings and ignores the Base, except for variables set on the project. |
-| **Runs as** | The site owner's Linux user an app runs as: the Linux account that owns the app's files and runs it. |
+| **Runs as** | The Hosting Account an app runs as: the Linux account that owns the app's files and runs it. |
 
 Each row on the tab carries a **source tag** saying where its value comes from: **Base**, **\{Environment\} change**, **Set in \{Environment\}** (on an environment that stands alone) or **Project** (a variable set on the project).
 
