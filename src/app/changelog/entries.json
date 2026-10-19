@@ -1,6 +1,94 @@
 [
   {
     "date": "Unreleased",
+    "channel": "Private alpha · fresh start release candidate",
+    "title": "TurboPanel Fresh Start",
+    "body": "One new folder layout on every server, one fresh database baseline, folder names you choose once and keep, certificate authority rotations that finish on their own, and alerts for folders and certificates that need attention. This release needs a wipe: it cannot be installed over an earlier one.",
+    "sections": [
+      {
+        "heading": "This Release Needs a Wipe",
+        "items": [
+          "Reset the panel database and every server, then install fresh. Do not update an existing panel or server to this release; it will refuse to start on an old database.",
+          "Why the folder layout cannot be moved in place: sites, apps and volumes now live in a different tree, and no old path is kept as a fallback. Carrying both would mean two sets of rules for who owns and can reach each folder.",
+          "Why the database starts again: every earlier change to the database is folded into one fresh baseline, with tables renamed and reshaped for launch. Nothing converts an older database to it.",
+          "Why servers are reset too: a Hosting Account, its folders and the panel's records of them must agree from the first day, and an older server's leftovers would break that.",
+          "This is the one reset. From this release on, every change to the database is a forward-only upgrade from the previous release, with a backup taken first."
+        ]
+      },
+      {
+        "heading": "Where Your Files Live",
+        "items": [
+          "Each Hosting Account now has one tree under /srv/users/{owner}/. Inside it, every environment gets its own folder, and its sites and apps sit under services and its volumes under volumes: /srv/users/{owner}/{scope}/services and /srv/users/{owner}/{scope}/volumes.",
+          "The scope is the environment name. A service or volume can instead be placed in a shared scope called common, so every environment of that Hosting Account can use it. The choice is made when you create it and cannot be changed later.",
+          "Sites, apps and volumes are served from this tree, backups read a volume copy straight from its folder, and a deploy sends the folder of every service that runs on the host.",
+          "Deleting a volume asks the host to remove its folder, and you confirm the removal. Removing a service keeps its files. A container that runs as a user other than the Hosting Account's gets access set up for it when it is declared."
+        ]
+      },
+      {
+        "heading": "Folder Names and Locks",
+        "items": [
+          "Folder names for services and volumes are short lowercase names, chosen when you create them. An organization can require readable names, require generated ones, or allow both.",
+          "Names are locked once something exists on a server, so a folder is never moved by accident: a service's folder name, the place (environment or common) it was created in, an environment's name while it has folders, and the project's short name once any folder exists.",
+          "A refused change says which folders are holding the lock, and a folder waiting for an offline server to remove it is named as the reason.",
+          "The Folders screen lists the folders that need attention, and lets you remove them or try again."
+        ]
+      },
+      {
+        "heading": "One Fresh Database Baseline",
+        "items": [
+          "The panel's database history is now a single baseline instead of forty steps.",
+          "Table names are all one plain word. For example, the two-factor table is now totp and the grant table is now permission.",
+          "Database logins and the databases themselves have their own tables, a database login's rights are stored as real columns, and audit history and commands are stored by month."
+        ]
+      },
+      {
+        "heading": "Certificates",
+        "items": [
+          "Rotating an organization's certificate authority now finishes on its own. Leaf certificates that were issued under the old authority and left behind are renewed instead of staying stuck, and the ones a rotation leaves behind are listed with an owner for each.",
+          "Alerts: a folder left behind on a server with nothing in the panel pointing to it, and a certificate that fails to renew, now raise an alert. The notification rules screen gives each alert a plain name."
+        ]
+      },
+      {
+        "heading": "Hosting and Environments",
+        "items": [
+          "Domains is now called Hosting.",
+          "The environment's configuration page shows its hostnames, waits for them to load before it says there are none, and asks for a certificate when you save a web hostname. The certificate box appears only for web routes."
+        ]
+      },
+      {
+        "heading": "Safer Defaults",
+        "items": [
+          "The SFTP jail, which locks files-only users into their own home, is now on by default for a new server. An explicit off is remembered and always wins, and a layout problem keeps it off with a message naming the Hosting Account.",
+          "A Postgres read/write login can no longer empty a table (TRUNCATE) or point a foreign key at one (REFERENCES), matching MySQL and MariaDB. Only the migration login can; an app that empties tables in its tests needs it.",
+          "The audit trail keeps 13 months. Older entries are removed in small batches, and a superadmin can change the window or keep everything."
+        ]
+      },
+      {
+        "heading": "Installing and Updating",
+        "items": [
+          "The installer log is calmer and consistent from one step to the next.",
+          "The update bar says in plain words what it updates, calls the part you are looking at the web interface, and warns that the page may briefly show the updating screen.",
+          "After a deploy starts a site's web server, the deploy waits for it to come up before it calls the deploy failed."
+        ]
+      }
+    ],
+    "links": [
+      {
+        "href": "/docs/deployment/upgrade",
+        "label": "Upgrade & rollback"
+      },
+      {
+        "href": "/docs/security/site-isolation",
+        "label": "Site owner isolation"
+      },
+      {
+        "href": "/docs/using/hosting",
+        "label": "Hosting"
+      }
+    ]
+  },
+  {
+    "date": "Unreleased",
     "channel": "Private alpha · 0.2.x release candidate",
     "title": "TurboPanel 0.2.x",
     "body": "A new project and environment editor in the web app, a deploy you can cancel, certificates in one click, more ways to serve a site (four web engines and three PHP modes), a much tighter separation between site owners on a server, and a firewall you can preview before anything is applied.",
@@ -53,7 +141,7 @@
         "items": [
           "Root owns a site owner's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
           "Native and static builds run in a sandbox as an unprivileged build user with public internet access only, 4 GB of memory, 2 CPUs and 30 minutes, one build at a time per server.",
-          "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners can be locked into their own home with an SFTP jail, which is off by default and turned on for one server at a time by an operator.",
+          "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners are locked into their own home with an SFTP jail, which a new server switches on by itself.",
           "The web servers run as their own unprivileged accounts, and a link inside one site is followed only when its owner matches the file it points to.",
           "The Docker gate is installed wherever Docker runs on a managed server. It is in observe mode: it records what it would refuse and only turns away malformed requests."
         ]
