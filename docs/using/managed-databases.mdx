@@ -165,7 +165,7 @@ Each login has one level on each database it is listed for. The levels are jobs,
 
 What that means on each engine:
 
-- **PostgreSQL**: read-only logins read; read/write logins use everything the owner role makes but cannot create or alter its tables (on a database made before owner roles, a read/write login can still create tables in a private schema of its own); the migration login acts as the database's owner role. See [Owner roles and migrations logins](#owner-roles-and-migrations-logins-postgresql).
+- **PostgreSQL**: read-only logins read; read/write logins use everything the owner role makes but cannot create or alter its tables, empty one (`TRUNCATE`) or point a foreign key at one (`REFERENCES`), and only the migration login can; an app that empties tables in its tests needs the migration login for that (on a database made before owner roles, a read/write login can still create tables in a private schema of its own); the migration login acts as the database's owner role. See [Owner roles and migrations logins](#owner-roles-and-migrations-logins-postgresql).
 - **MySQL and MariaDB**: the same three jobs, set directly on the database. Anything the migration login creates is usable by the read-only and read/write logins at once, with no extra step. A read/write login's temporary tables last only for its own session and never touch your tables.
 - **Stored functions on MySQL and MariaDB.** By default a stored function or procedure runs with the rights of the login that made it, not the caller. A read-only login could therefore change data through one, so read-only logins are not allowed to call them, and a `SELECT` that uses such a function fails with "execute command denied". Use a read/write login for queries that call functions.
 

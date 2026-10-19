@@ -181,6 +181,10 @@ The daemon checks again before `docker compose up`. It resolves each bind and fi
 
 Every flip of this gate is recorded in the organization's audit trail (`organization.compose_privileged_fields.set`, readable by owners at `GET /organizations/:id/audit`), with who did it and when. Turn this on only for an organization with a real, understood need for one of these features. It is not a per-field allowlist: turning it on admits all of them.
 
+### How long the audit trail is kept
+
+The audit trail keeps **13 months** of history. Every 15 minutes TurboPanel removes entries older than that, oldest first and in small batches of 1,000, so the table stays a working size and the clean-up never holds up the panel. A superadmin can change the window with `PUT /api/admin/v1/settings/audit-retention` and `{ "months": 24 }`: a whole number from 3 to 120, or `0` to keep everything. `GET` on the same path returns the current value. Export what you need to keep for longer before it ages out.
+
 ### Connecting GitHub and GitLab safely
 
 Two rules protect the connection between an organization and its forge.
