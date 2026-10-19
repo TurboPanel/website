@@ -49,13 +49,14 @@ A development install builds as the developer instead. The sandbox needs systemd
 
 ## SFTP jail
 
-An owner with files-only access (SFTP, no shell) can be locked into their own home. The jail is **off by default** and is turned on for one server at a time by an operator on that server, once the home layout above is in place:
+An owner with files-only access (SFTP, no shell) is locked into their own home. A new server turns the jail **on by itself**: each time SSH access is updated, and while the jail is off, the server checks the home layout above and switches the jail on when everything is in place. An operator can still turn it off or on for one server by hand:
 
 ```bash
+sudo /opt/turbopanel/lib/tp-host sftp-chroot off
 sudo /opt/turbopanel/lib/tp-host sftp-chroot on
 ```
 
-`on` first checks the layout and refuses if anything is wrong: a folder on the way to the home that root does not own or that others can write to, an owner with no `home/` of their own, a login home other than `home/`, or a user in both the SFTP and the shell groups. `off` removes the jail and is never refused; `status` shows the state.
+`on` first checks the layout and refuses if anything is wrong: a folder on the way to the home that root does not own or that others can write to, a home folder that is not in the owner's own group with mode 0750, an owner with no `home/` of their own, a login home other than `home/`, or a user in both the SFTP and the shell groups. `off` removes the jail, is never refused, and is remembered: the server does not turn the jail back on by itself until you run `on` again. `status` shows the state. If the layout is not in place yet, for example an owner whose home has not been moved, the jail stays off and the update reports which owner is blocking it; it tries again at the next update. If the SSH service refuses the jailed setup when the server switches it on, the server turns it back off, reports why, and tries again at the next update.
 
 With the jail on, a files-only owner signs in to `home/` and sees only `home/`, `tmp/` and their environment folders (and `common/`), with `services/` and `volumes/` inside each. They can write `home/`, `tmp/`, `public/`, `shared/`, `logs/` and their volumes, cannot change a service folder or any release, and cannot see `/etc` or another owner's home. A shell login gets "This service allows sftp connections only". Owners with shell access are never jailed. The check runs again at every SSH update; if the layout has drifted, that one owner's login closes and the jail stays on for everyone.
 
