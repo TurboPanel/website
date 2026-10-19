@@ -48,7 +48,8 @@ A folder name is fixed by the time the folder exists, so TurboPanel checks it up
 | --- | --- | --- |
 | Environment | Lowercase letters, digits, hyphens and underscores; starts with a letter or digit | Up to 32 |
 | Service or volume folder | Lowercase letters, digits, dots, hyphens and underscores; starts and ends with a letter or digit; no `..` | Up to 63 |
-| Site owner's Linux user | Lowercase letters, digits, hyphens and underscores; starts with a letter or underscore | Up to 28 |
+| Site owner's Linux user | Lowercase letters, digits, hyphens and underscores; starts with a letter or underscore; no `--`, no trailing `-`, not all digits; not a reserved system name, and not starting with `tp` or `systemd-` or ending in `-grp` | Up to 28 |
+| Project short name | Lowercase letters, digits and hyphens; starts with a letter or digit. It is made from the project's name and never appears in a path | Up to 40 |
 
 **Reserved names.** An environment cannot be called `common`, `home`, `tmp`, `services` or `volumes` (those are the owner's own folders), and a handful of other words are kept free so a future folder never needs a rename: `data`, `sites`, `backup`, `backups`, `logs`, `cache`, `run`, `var`, `etc`, `bin`, `root`, `public`, `releases`, `current`, `shared`, `lost-found` and `tmp-staging`.
 
@@ -72,7 +73,7 @@ An organization owner or manager picks how service and volume folders are named.
 | **Ids** (`uuid`) | The folder is named after the service's or volume's id. There is no name field. |
 | **Both** (`both`) | Each service and volume chooses, readable names by default. |
 
-Environment folders are always the environment's name. The setting is in the organization's settings, and over the API it is `GET` and `PUT /api/client/v1/organizations/{id}/directory-defaults` (`names`: `slug`, `uuid` or `both`). It can change until the first folder is made anywhere in the organization. After that it is locked, and changing it returns `directory_names_locked`.
+Environment folders are always the environment's name. Over the API it is `GET` and `PUT /api/client/v1/organizations/{id}/directory-defaults` (`names`: `slug`, `uuid` or `both`). It can change until the first folder is made anywhere in the organization. After that it is locked, and changing it returns `directory_names_locked`.
 
 ## Shared (common) folders
 
@@ -80,6 +81,7 @@ By default a service or volume belongs to one environment and lives under that e
 
 - The choice is made at creation and cannot change afterwards (`scope_locked`).
 - Any environment of any project in the organization can use a common service or volume of the same site owner. An environment lists the ones it uses, and `POST /api/client/v1/environments/{id}/shares` adds one (`serviceId` or `storageId`). Removing the share stops the environment using it and leaves the asset alone.
+- Adding a share is refused with `asset_not_common` (the service or volume is not common), `asset_in_this_environment` (it belongs to this environment already) or `asset_has_no_owner` (it has no site owner yet). Adding the same share twice is harmless.
 - A common asset cannot be deleted while another environment uses it (`common_asset_in_use`).
 - A common volume is mounted only by environments that use it, and only at the mounts they ask for.
 
@@ -92,7 +94,7 @@ Names that appear in a path stop changing once something exists on disk under th
 | What | Locked when | Refusal |
 | --- | --- | --- |
 | A service's folder name | The service has a folder on any server | `service_slug_locked` (409) |
-| A volume's folder name and site owner | The volume has a folder on any server | `storage_slug_locked` (409) |
+| A volume's folder name and its site owner | The volume has a folder on any server | `storage_slug_locked` (409) |
 | Common or not | Always, once chosen at creation | `scope_locked` (409) |
 | An environment's name | Any service or volume folder exists under it on any server | `environment_name_locked` (409) |
 | An environment's server | Same as its name | `environment_server_locked` (409) |
@@ -110,9 +112,9 @@ What counts: a folder in the state *planned*, *present*, *removing* or *orphan*.
 | **Stop** an environment | Kept. Every folder stays, so a start brings the same files back. |
 | **Redeploy** | A new sealed release is added; the previous releases stay for rollback (the newest five are kept) and `shared/` is never touched. |
 | **Delete** a service or volume | The folder is removed from every server that has it. If a server is offline, the folder shows as *removing* and is removed when the server returns; the name stays locked until then. |
-| **Delete** an environment | Its service and volume folders are removed the same way. |
+| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. |
 | Take a service **out of the compose document** | The folder is kept and marked **orphan**. Only an explicit delete removes files. |
-| **Remove a server** from an environment | The folders of that environment on the server are removed. |
+| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders stay, because stopping never removes data. |
 
 An empty environment folder is left in place when its last service goes. It costs nothing and does not lock any name.
 
@@ -157,7 +159,9 @@ The path of a backup is stored relative to the backup folder (for example `manag
 | `environment_name_locked`, `environment_server_locked` | 409 | Folders exist under the environment. The body lists up to 20 of them. |
 | `environment_has_folders` | 409 | The environment still has folders; remove the listed services and volumes first. |
 | `environment_deploy_running` | 409 | A deploy is running; rename when it finishes. |
+| `invalid_project_slug` | 400 | The project's short name is outside the rules. |
 | `project_slug_locked`, `project_slug_in_use` | 409 | The project's short name cannot change after folders exist, or another project already uses it. |
+| `asset_not_common`, `asset_in_this_environment`, `asset_has_no_owner` | 409 | A share could not be added: the service or volume is not common, already belongs to this environment, or has no site owner. |
 | `directory_names_locked` | 409 | The organization already has folders, so its naming setting is fixed. |
 
 ## Related

@@ -35,7 +35,7 @@ The panel manages every key. Keys are written to `/etc/ssh/turbopanel/authorized
 
 ## Builds
 
-Every native and static project build on a managed host runs in a sandbox, not as the platform or as the owner. Docker and Railpack image builds are not part of this sandbox: they run through Docker and are governed by the [Docker gate](/docs/deployment/security#docker-socket-security).
+Every native and static project build on a managed host runs in a sandbox, not as the platform or as the owner. Docker image builds are not part of this sandbox: they run through Docker and are governed by the [Docker gate](/docs/deployment/security#docker-socket-security).
 
 - They run as an **unprivileged build user** with no home, which belongs to neither the Docker nor the TurboPanel group.
 - There is **no Docker** inside the sandbox: the Docker socket and the platform's own files are not reachable.

@@ -136,7 +136,9 @@ See [Where your files live](/docs/using/files-and-folders).
 | `environment_name_locked`, `environment_server_locked` | 409 | Folders exist under the environment; the body lists up to 20 of them. |
 | `environment_has_folders` | 409 | The environment still has folders on servers; remove the listed services and volumes first. |
 | `environment_deploy_running` | 409 | A deploy is running; rename the environment when it finishes. |
+| `invalid_project_slug` | 400 | The project's short name is outside the rules. |
 | `project_slug_locked`, `project_slug_in_use` | 409 | The project's short name cannot change after folders exist, or another project already uses it. |
+| `asset_not_common`, `asset_in_this_environment`, `asset_has_no_owner` | 409 | A share could not be added: the service or volume is not common, already belongs to this environment, or has no site owner. |
 | `directory_names_locked` | 409 | The organization already has folders, so its folder naming setting is fixed. |
 
 ## System users (principals)
