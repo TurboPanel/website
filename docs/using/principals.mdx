@@ -7,7 +7,7 @@ description: The named accounts your sites, services and database logins run as 
 
 A **principal** is a named account that belongs to your organization, not to one server. It appears in two forms:
 
-- as a **system user** — the site owner's Linux user, with its home under `/srv/users/<system name>`, on every server where its sites and services run;
+- as a **system user** — a Hosting Account, with its home under `/srv/users/<system name>`, on every server where its sites and services run;
 - as a **database login** on a managed database cluster, with the same name.
 
 The name never changes. Passwords and SSH keys can be changed or removed without changing who the principal is. Services run as a principal, its files belong to it, and a database login shows which principal uses it.

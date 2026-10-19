@@ -127,7 +127,7 @@ The **Docker gate** narrows this route. It is a root-owned service, `turbopanel-
 **What it would block.** The gate reads each request the way Docker does and judges it against a strict profile. A request for a container, volume, network or build that would hand out the host is a *finding*:
 
 - a privileged container, extra Linux capabilities, devices, and the host's network, process, IPC or user namespaces;
-- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside a site owner's `volumes/` folders (`/srv/users/<owner>/<environment or common>/volumes/…`) and TurboPanel's own storage. A service's `releases/` and `shared/` folders are never mounted into a container: containers get their data through volumes;
+- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside a Hosting Account's `volumes/` folders (`/srv/users/<owner>/<environment or common>/volumes/…`) and TurboPanel's own storage. A service's `releases/` and `shared/` folders are never mounted into a container: containers get their data through volumes;
 - volume drivers, log drivers and mount types that point somewhere the author picks, and any Docker setting the gate has not reviewed (a field a newer Docker adds is refused until someone reviews it);
 - a request whose framing is ambiguous, whose body is not strict JSON, or whose path Docker would rewrite;
 - a container request whose owner the gate cannot check (it fails closed when Docker does not answer within 5 seconds).
@@ -210,7 +210,7 @@ TurboPanel uses a **single root of trust** — the versioned `TURBOPANEL_SECRETS
 
 | Envelope | When | Scope |
 | -------- | ---- | ----- |
-| `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and site owner Linux user passwords |
+| `tpsecret.v<n>.…` | At rest in Postgres | Universal format for secret variables, TLS private keys, and Hosting Account passwords |
 | `tpdaemon.v<n>.<serverId>.<keyId>.…` | At delivery only | Recipient-bound; produced by `resealSecretForDaemon` just before a daemon receives the secret |
 
 A credential sealed as `tpsecret` is **server-agnostic at rest**, so the same stored secret can be delivered to any authorized daemon. Delivery decrypts the at-rest envelope inside the control plane and re-seals it for that daemon's `(serverId, keyId)`; daemons decrypt only `tpdaemon` envelopes via authenticated `POST /api/daemon/v1/secrets/decrypt`. Global `tpsecret` blobs are never handed to daemons.
@@ -223,7 +223,7 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 
 | Scheme | Shape | Where |
 | --- | --- | --- |
-| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, site owner Linux user passwords, email secrets, TOTP secret, OAuth client secrets) |
+| `tpsecret` | `tpsecret.v<n>.<payload>` | At rest (variables, TLS private keys, Hosting Account passwords, email secrets, TOTP secret, OAuth client secrets) |
 | `tpdaemon` | `tpdaemon.v<n>.<serverId>.<keyId>.<payload>` | Daemon delivery only |
 | `tpsession` | `tpsession.v<n>.<token>.<sig>` | Session cookie value |
 | `tpotp` | `tpotp.v<n>.<hmacHex>` | Email OTP verifier at rest |
@@ -239,7 +239,7 @@ Every TurboPanel-authored serialized secret uses one grammar: **`<scheme>.v<vers
 1. **Add a key version** — re-run the control plane converge with the opt-in extra-var `turbopanel_instance_secret_rotate=true` (default `false` in the daemon `instance-launch` role; ordinary converges never rotate). The task generates a fresh key via the control plane `scripts/generate-secret.mjs`, computes the next version, and prepends it to `/etc/turbopanel/instance/.instance_secrets` (`root:<turbopanel_group>`, mode `0640`, comma-separated `<version>:<value>`, highest first).
 2. **Re-converge normally** — the role slurps the keyring into `turbopanel_instance_secrets` and the `instance-deno.dev-vars.j2` / `instance-workers.dev-vars.j2` templates emit `TURBOPANEL_SECRETS`. Restart picks up the new keyring for the control plane, whose in-process email consumer decrypts `MAILGUN_API_KEY` / `SMTP_PASS` with it.
 3. **Confirm new writes use the new version** — update any secret variable and check the stored blob now begins `tpsecret.v<new>`; `GET /api/daemon/v1/jwks.json` publishes one `kid` per keyring version.
-4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep covers every table holding `tpsecret` material — variables, TLS private keys, site owner Linux user passwords, storage content, the `secret` table, git forge app envelopes (private key / client secret / webhook secret), GitLab connection OAuth token pairs, the TOTP secret, and the stored auth-provider/email client secrets — so a key cannot be retired before all of it is re-sealed.
+4. **Sweep existing rows** — Admin → Secrets → **Re-encrypt secrets** (`POST /api/admin/v1/secrets/reencrypt`). Batches are bounded; resume with the returned `cursor` until `completed: true`. Valid `tpdaemon` blobs are skipped by design; plaintext or malformed blobs are reported as `failed` and must be fixed by hand. The sweep covers every table holding `tpsecret` material — variables, TLS private keys, Hosting Account passwords, storage content, the `secret` table, git forge app envelopes (private key / client secret / webhook secret), GitLab connection OAuth token pairs, the TOTP secret, and the stored auth-provider/email client secrets — so a key cannot be retired before all of it is re-sealed.
 5. **Retire the old key** — only after the sweep completes **and** old-key artifacts have aged out: daemon JWTs ≤15 min; daemon enroll/auth challenges (`tpchallenge`) ≤60 s; account-security challenges (`tp2fa` / `tpwebauthn`) ≤5 min; OAuth state (`tpoauth`) ≤10 min. Waiting 10 minutes covers every current stateless auth envelope. Note the user-visible consequence: session cookies embed the signing version, so dropping a key signs out anyone whose cookie was issued under it. Retire by editing `.instance_secrets` to remove the entry and re-converging — and only once nothing is still sealed under it.
 
 #### Backup and escrow
@@ -315,7 +315,7 @@ Recommended:
 
 Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, control plane and app), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [Control plane AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
-Each site owner's Linux user has a home at `/srv/users/<username>`, laid out as described in [Site isolation](/docs/security/site-isolation#the-home-layout) and [Where your files live](/docs/using/files-and-folders). The host picks its UID/GID from **15001–60000**. An override set on the user must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The purge finds site owners' Linux users by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
+Each Hosting Account has a home at `/srv/users/<username>`, laid out as described in [Site isolation](/docs/security/site-isolation#the-home-layout) and [Where your files live](/docs/using/files-and-folders). The host picks its UID/GID from **15001–60000**. An override set on the user must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The purge finds Hosting Accounts by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
 
 ## Daemon Security
 

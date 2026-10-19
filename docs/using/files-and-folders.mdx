@@ -1,15 +1,15 @@
 ---
 title: Where your files live
-description: The folders TurboPanel makes on a server for each site owner's Linux user, how services and volumes are named on disk, shared (common) folders, when a name is locked, what stop and delete do to files, and orphan folders
+description: The folders TurboPanel makes on a server for each Hosting Account, how services and volumes are named on disk, shared (common) folders, when a name is locked, what stop and delete do to files, and orphan folders
 ---
 
 # Where your files live
 
-Every site, app and volume that needs files on a server gets a folder there. This chapter says where the folders are, how they are named, which names you can choose, when a name stops being changeable, and what each action does to the files. For who owns the files and how a login reaches them, see [Site owner accounts and isolation](/docs/security/site-isolation).
+Every site, app and volume that needs files on a server gets a folder there. This chapter says where the folders are, how they are named, which names you can choose, when a name stops being changeable, and what each action does to the files. For who owns the files and how a login reaches them, see [Hosting Accounts and isolation](/docs/security/site-isolation).
 
 ## The model
 
-Each **site owner's Linux user** has one folder tree on every server where its services run:
+Each **Hosting Account** has one folder tree on every server where its services run:
 
 ```text
 /srv/users/alice/                 root owns it; the SFTP jail root
@@ -35,7 +35,7 @@ Each **site owner's Linux user** has one folder tree on every server where its s
 - **A scope folder** is named after the environment (`production`, `staging`), or is `common` for things shared across environments.
 - **A service folder** is made only for services that run from files on the host: sites, uploaded-directory sites and native apps. A service that only runs a container from an image has no service folder; its data lives in volumes.
 - **A volume folder** is the bind-mount source for a storage entry of kind *Directory* on a host path. It belongs to the owner, so you can fill it and empty it over SFTP, but you cannot delete the folder itself.
-- **Which parts you can write.** You can write to `home/`, `tmp/`, `public/`, `shared/`, `logs/` and inside each volume. Every folder above those is root's, so a site owner cannot rename, replace or delete a service, volume or environment folder, only empty the writable parts inside it.
+- **Which parts you can write.** You can write to `home/`, `tmp/`, `public/`, `shared/`, `logs/` and inside each volume. Every folder above those is root's, so a Hosting Account cannot rename, replace or delete a service, volume or environment folder, only empty the writable parts inside it.
 - **Project names are not in paths.** The project's name and short name never appear on the server.
 
 Over SFTP with the jail on, the owner sees the same tree starting at `/`, and signs in to `/home`.
@@ -48,7 +48,7 @@ A folder name is fixed by the time the folder exists, so TurboPanel checks it up
 | --- | --- | --- |
 | Environment | Lowercase letters, digits, hyphens and underscores; starts with a letter or digit | Up to 32 |
 | Service or volume folder | Lowercase letters, digits, dots, hyphens and underscores; starts and ends with a letter or digit; no `..` | Up to 63 |
-| Site owner's Linux user | Lowercase letters, digits, hyphens and underscores; starts with a letter or underscore; no `--`, no trailing `-`, not all digits; not a reserved system name, and not starting with `tp` or `systemd-` or ending in `-grp` | Up to 28 |
+| Hosting Account | Lowercase letters, digits, hyphens and underscores; starts with a letter or underscore; no `--`, no trailing `-`, not all digits; not a reserved system name, and not starting with `tp` or `systemd-` or ending in `-grp` | Up to 28 |
 | Project short name | Lowercase letters, digits and hyphens; starts with a letter or digit. It is made from the project's name and never appears in a path | Up to 40 |
 
 **Reserved names.** An environment cannot be called `common`, `home`, `tmp`, `services` or `volumes` (those are the owner's own folders), and a handful of other words are kept free so a future folder never needs a rename: `data`, `sites`, `backup`, `backups`, `logs`, `cache`, `run`, `var`, `etc`, `bin`, `root`, `public`, `releases`, `current`, `shared`, `lost-found` and `tmp-staging`.
@@ -80,8 +80,8 @@ Environment folders are always the environment's name. Over the API it is `GET` 
 By default a service or volume belongs to one environment and lives under that environment's folder. To keep something across environments, create it as **common** when you add it. It then lives under `common/` and is not tied to an environment name.
 
 - The choice is made at creation and cannot change afterwards (`scope_locked`).
-- Any environment of any project in the organization can use a common service or volume of the same site owner. An environment lists the ones it uses, and `POST /api/client/v1/environments/{id}/shares` adds one (`serviceId` or `storageId`). Removing the share stops the environment using it and leaves the asset alone.
-- Adding a share is refused with `asset_not_common` (the service or volume is not common), `asset_in_this_environment` (it belongs to this environment already) or `asset_has_no_owner` (it has no site owner yet). Adding the same share twice is harmless.
+- Any environment of any project in the organization can use a common service or volume of the same Hosting Account. An environment lists the ones it uses, and `POST /api/client/v1/environments/{id}/shares` adds one (`serviceId` or `storageId`). Removing the share stops the environment using it and leaves the asset alone.
+- Adding a share is refused with `asset_not_common` (the service or volume is not common), `asset_in_this_environment` (it belongs to this environment already) or `asset_has_no_owner` (it has no Hosting Account yet). Adding the same share twice is harmless.
 - A common asset cannot be deleted while another environment uses it (`common_asset_in_use`).
 - A common volume is mounted only by environments that use it, and only at the mounts they ask for.
 
@@ -94,7 +94,7 @@ Names that appear in a path stop changing once something exists on disk under th
 | What | Locked when | Refusal |
 | --- | --- | --- |
 | A service's folder name | The service has a folder on any server | `service_slug_locked` (409) |
-| A volume's folder name and its site owner | The volume has a folder on any server | `storage_slug_locked` (409) |
+| A volume's folder name and its Hosting Account | The volume has a folder on any server | `storage_slug_locked` (409) |
 | Common or not | Always, once chosen at creation | `scope_locked` (409) |
 | An environment's name | Any service or volume folder exists under it on any server | `environment_name_locked` (409) |
 | An environment's server | Same as its name | `environment_server_locked` (409) |
@@ -126,7 +126,7 @@ The host also reports the folders it finds on its disk; any difference from what
 
 ## Volumes and the user a container runs as
 
-A volume folder belongs to the site owner's Linux user. A container may run as any user and TurboPanel never refuses a compose document for that. When a service declares a numeric user other than root, that user is given access to the volume folder with a permission entry; the folder's owner is never changed to root or to the image's user, so you keep access over SFTP. For an image that must own its data as a fixed user, use a Docker named volume instead of a directory.
+A volume folder belongs to the Hosting Account. A container may run as any user and TurboPanel never refuses a compose document for that. When a service declares a numeric user other than root, that user is given access to the volume folder with a permission entry; the folder's owner is never changed to root or to the image's user, so you keep access over SFTP. For an image that must own its data as a fixed user, use a Docker named volume instead of a directory.
 
 ## Backups and TurboPanel's own folders
 
@@ -151,7 +151,7 @@ The path of a backup is stored relative to the backup folder (for example `manag
 | `invalid_environment_name` | 400 | The environment's name cannot be a folder name. Rename it to meet the rules above before deploying. |
 | `invalid_directory_name` | 400 | A folder name is outside the rules above. |
 | `directory_name_mode_forbidden` | 400 | The organization's setting does not allow that kind of name. |
-| `directory_name_taken` | 409 | Another service or volume of the same site owner has that name in the same environment (or in `common`). |
+| `directory_name_taken` | 409 | Another service or volume of the same Hosting Account has that name in the same environment (or in `common`). |
 | `directory_name_typed_in_uuid_mode` | 409 | The organization names folders after ids, so a name cannot be typed. |
 | `service_slug_locked`, `storage_slug_locked` | 409 | The service or volume already has a folder, so its name can no longer change. |
 | `scope_locked` | 409 | Whether it is common was chosen at creation. |
@@ -161,12 +161,12 @@ The path of a backup is stored relative to the backup folder (for example `manag
 | `environment_deploy_running` | 409 | A deploy is running; rename when it finishes. |
 | `invalid_project_slug` | 400 | The project's short name is outside the rules. |
 | `project_slug_locked`, `project_slug_in_use` | 409 | The project's short name cannot change after folders exist, or another project already uses it. |
-| `asset_not_common`, `asset_in_this_environment`, `asset_has_no_owner` | 409 | A share could not be added: the service or volume is not common, already belongs to this environment, or has no site owner. |
+| `asset_not_common`, `asset_in_this_environment`, `asset_has_no_owner` | 409 | A share could not be added: the service or volume is not common, already belongs to this environment, or has no Hosting Account. |
 | `directory_names_locked` | 409 | The organization already has folders, so its naming setting is fixed. |
 
 ## Related
 
-- [Site owner accounts and isolation](/docs/security/site-isolation) — who owns each folder and how SFTP is locked to it.
+- [Hosting Accounts and isolation](/docs/security/site-isolation) — who owns each folder and how SFTP is locked to it.
 - [Storage, variables and secrets](/docs/using/storage-and-variables) — volumes, copies and backups.
 - [Writing compose](/docs/using/compose) — how a site is served from `public/` or `current`.
-- [System users](/docs/using/principals) — the site owner's Linux user.
+- [System users](/docs/using/principals) — the Hosting Account.

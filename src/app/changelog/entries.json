@@ -3,7 +3,7 @@
     "date": "Unreleased",
     "channel": "Private alpha · 0.2.x release candidate",
     "title": "TurboPanel 0.2.x",
-    "body": "A new project and environment editor in the web app, a deploy you can cancel, certificates in one click, more ways to serve a site (four web engines and three PHP modes), a much tighter separation between site owners on a server, and a firewall you can preview before anything is applied.",
+    "body": "A new project and environment editor in the web app, a deploy you can cancel, certificates in one click, more ways to serve a site (four web engines and three PHP modes), a much tighter separation between Hosting Accounts on a server, and a firewall you can preview before anything is applied.",
     "sections": [
       {
         "heading": "The project and environment editor",
@@ -42,16 +42,16 @@
         "heading": "Sites, web engines and PHP",
         "items": [
           "Sites can be served by Caddy, nginx, Apache or OpenLiteSpeed, or by nginx in front of Apache.",
-          "PHP runs in one of three modes: FastCGI (the default), php-fpm, or OpenLiteSpeed's lsphp as a process of its own. Every site's PHP runs as the site owner's Linux user, with its own memory limit.",
+          "PHP runs in one of three modes: FastCGI (the default), php-fpm, or OpenLiteSpeed's lsphp as a process of its own. Every site's PHP runs as the Hosting Account, with its own memory limit.",
           "An organization owner or manager chooses which PHP modes the organization offers and can narrow that for each server. A site picks its mode in the visual editor or in its compose document; a mode the policy does not allow stops the deploy with a clear message.",
           "Remote build sources (building from an address on the internet) are off until the organization allows them, and risky build options in a compose document are refused unless the organization allows them.",
-          "A site owner's Linux user can be named in plain, partial or random form, with an organization default that can be locked."
+          "A Hosting Account can be named in plain, partial or random form, with an organization default that can be locked."
         ]
       },
       {
-        "heading": "Keeping site owners apart",
+        "heading": "Keeping Hosting Accounts apart",
         "items": [
-          "Root owns a site owner's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
+          "Root owns a Hosting Account's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
           "Native and static builds run in a sandbox as an unprivileged build user with public internet access only, 4 GB of memory, 2 CPUs and 30 minutes, one build at a time per server.",
           "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners can be locked into their own home with an SFTP jail, which is off by default and turned on for one server at a time by an operator.",
           "The web servers run as their own unprivileged accounts, and a link inside one site is followed only when its owner matches the file it points to.",
@@ -125,7 +125,7 @@
       },
       {
         "href": "/docs/security/site-isolation",
-        "label": "Site owner isolation"
+        "label": "Hosting Account isolation"
       },
       {
         "href": "/docs/deployment/upgrade",

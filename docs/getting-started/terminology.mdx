@@ -18,7 +18,8 @@ the installer all follow this page.
 | **Daemon**        | `turbopaneld`, the program on each server TurboPanel manages. The **co-located daemon** is the one on the control plane's own host.                                                                                                                                                       |
 | **Server**        | A machine TurboPanel manages. Say **host** only when you mean the operating system itself, as in "host firewall".                                                                                                                                                                         |
 | **Administrator** | The person who runs a self-hosted control plane.                                                                                                                                                                                                                                          |
-| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (the site owner's Linux user) on each server where its sites and services run, and as a **database login** on a managed database cluster. See [Principals](/docs/using/principals). |
+| **Hosting Account** | The Linux account that a hosted customer's files and sites run as, with its home under `/srv/users/<name>`. It is not a panel login, an organization member or a database login. |
+| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (a Hosting Account) on each server where its sites and services run, and as a **database login** on a managed database cluster. See [Principals](/docs/using/principals). |
 
 ## The two ways to run it
 
