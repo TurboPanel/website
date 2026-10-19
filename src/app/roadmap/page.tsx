@@ -127,7 +127,7 @@ const PHASES: ReadonlyArray<Phase> = [
     status: 'Future',
     summary: 'Longer-term work, not committed to a schedule.',
     focus: [
-      'Phone-sized screens for the web app',
+      'Phone-sized screens for the web interface',
       'Private repositories, deploy keys, plain remotes and other code hosts',
       'Rolling deploys across several servers, and blue-green deploys',
     ],

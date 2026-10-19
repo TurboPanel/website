@@ -76,7 +76,7 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     curl -fsSL turbopanel.sh | sh
     ```
 
-    Run with nothing else, the installer downloads the current release packages (control plane, web app and the
+    Run with nothing else, the installer downloads the current release packages (control plane, web interface and the
     daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
     the host with the daemon's Ansible roles (Postgres, Redis, RabbitMQ, Docker, certificates, Caddy),
     applies the database migrations and starts the units — see [Control plane](/docs/deployment/control-plane)
