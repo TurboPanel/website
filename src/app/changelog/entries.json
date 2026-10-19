@@ -3,14 +3,14 @@
     "date": "Unreleased",
     "channel": "Private alpha · fresh start release candidate",
     "title": "TurboPanel Fresh Start",
-    "body": "One new folder layout on every server, one fresh database baseline, folder names you choose once and keep, certificate authority rotations that finish on their own, and alerts for folders and certificates that need attention. This release needs a wipe: it cannot be installed over an earlier one.",
+    "body": "One new folder layout on every server, one fresh start for the database, folder names you choose once and keep, certificate signer changes that finish on their own, and alerts for folders and certificates that need attention. This release needs a wipe: it cannot be installed over an earlier one.",
     "sections": [
       {
         "heading": "This Release Needs a Wipe",
         "items": [
           "Reset the panel database and every server, then install fresh. Do not update an existing panel or server to this release; it will refuse to start on an old database.",
           "Why the folder layout cannot be moved in place: sites, apps and volumes now live in a different tree, and no old path is kept as a fallback. Carrying both would mean two sets of rules for who owns and can reach each folder.",
-          "Why the database starts again: every earlier change to the database is folded into one fresh baseline, with tables renamed and reshaped for launch. Nothing converts an older database to it.",
+          "Why the database starts again: every earlier change to the database is folded into one fresh set of tables, with tables renamed and reshaped for launch. Nothing converts an older database to it.",
           "Why servers are reset too: a Hosting Account, its folders and the panel's records of them must agree from the first day, and an older server's leftovers would break that.",
           "This is the one reset. From this release on, every change to the database is a forward-only upgrade from the previous release, with a backup taken first."
         ]
@@ -34,9 +34,9 @@
         ]
       },
       {
-        "heading": "One Fresh Database Baseline",
+        "heading": "One Fresh Start for the Database",
         "items": [
-          "The panel's database history is now a single baseline instead of forty steps.",
+          "The panel's database now starts from one fresh set of tables instead of forty separate changes.",
           "Table names are all one plain word. For example, the two-factor table is now totp and the grant table is now permission.",
           "Database logins and the databases themselves have their own tables, a database login's rights are stored as real columns, and audit history and commands are stored by month."
         ]
@@ -44,7 +44,7 @@
       {
         "heading": "Certificates",
         "items": [
-          "Rotating an organization's certificate authority now finishes on its own. Leaf certificates that were issued under the old authority and left behind are renewed instead of staying stuck, and the ones a rotation leaves behind are listed with an owner for each.",
+          "Changing an organization's certificate signer now finishes on its own. Certificates that were issued by the old signer and left behind are renewed instead of staying stuck, and any a change leaves behind are listed with an owner for each.",
           "Alerts: a folder left behind on a server with nothing in the panel pointing to it, and a certificate that fails to renew, now raise an alert. The notification rules screen gives each alert a plain name."
         ]
       },
@@ -58,9 +58,9 @@
       {
         "heading": "Safer Defaults",
         "items": [
-          "The SFTP jail, which locks files-only users into their own home, is now on by default for a new server. An explicit off is remembered and always wins, and a layout problem keeps it off with a message naming the Hosting Account.",
-          "A Postgres read/write login can no longer empty a table (TRUNCATE) or point a foreign key at one (REFERENCES), matching MySQL and MariaDB. Only the migration login can; an app that empties tables in its tests needs it.",
-          "The audit trail keeps 13 months. Older entries are removed in small batches, and a superadmin can change the window or keep everything."
+          "The SFTP jail, which locks files-only users into their own home, now switches itself on for a new server once its folders check out. Turning it off yourself is remembered and always wins, and a folder problem keeps it off with a message naming the Hosting Account.",
+          "A Postgres read/write login can now only read and change rows. It can no longer empty a whole table or link tables together, matching MySQL and MariaDB, and logins that had those rights lose them the next time the server is updated. Only the migration login can; an app that empties tables in its tests needs it.",
+          "The audit trail keeps 13 months by default. Older entries are removed in small batches, and a superadmin can change the window (3 to 120 months) or keep everything."
         ]
       },
       {
@@ -141,7 +141,7 @@
         "items": [
           "Root owns a site owner's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
           "Native and static builds run in a sandbox as an unprivileged build user with public internet access only, 4 GB of memory, 2 CPUs and 30 minutes, one build at a time per server.",
-          "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners are locked into their own home with an SFTP jail, which a new server switches on by itself.",
+          "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners can be locked into their own home with an SFTP jail, which is off by default and turned on for one server at a time by an operator.",
           "The web servers run as their own unprivileged accounts, and a link inside one site is followed only when its owner matches the file it points to.",
           "The Docker gate is installed wherever Docker runs on a managed server. It is in observe mode: it records what it would refuse and only turns away malformed requests."
         ]
