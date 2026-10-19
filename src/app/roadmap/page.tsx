@@ -66,7 +66,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Projects from a GitHub repository: a hostname per branch with HTTPS, and a deploy on every push',
       'Docker Compose projects with a managed database attached, including backup and restore',
       'PHP and WordPress sites on Caddy, nginx, Apache or OpenLiteSpeed, with a PHP mode per site',
-      "Node apps that run natively as the site owner's Linux user, built in a sandbox",
+      "Node apps that run natively as the Hosting Account, built in a sandbox",
       'Static sites and SFTP access',
       "Secrets and environment variables, scheduled tasks, and one-click Let's Encrypt certificates",
     ],

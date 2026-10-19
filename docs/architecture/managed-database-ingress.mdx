@@ -45,7 +45,7 @@ operators do inspect it directly.
 
 One yes/no per server decides how far the ProxySQL listener is published: **Allow external access to the databases on this server** (stored on the server, default **No**). One ProxySQL fronts every cluster on a server and has no network-level per-login source rule, so who can reach the listener is deliberately a server-level fact rather than a per-database one. A login can be narrowed further, but only as query rules, after it has signed in (see below).
 
-- **No:** the listener is published on `127.0.0.1` only. Sites run by a site owner's Linux user connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
+- **No:** the listener is published on `127.0.0.1` only. Sites run by a Hosting Account connect there (13306 for MySQL and MariaDB, 15432 for PostgreSQL); bound containers reach ProxySQL by name over the managed Docker network and need no publish. Nothing off the machine can connect.
 - **Yes:** the same ports are published on every address of the server (`0.0.0.0`). Anyone who can reach the server's network can try to connect, and every database on the server is reachable that way. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall.
 
 ### The root login is limited by source address

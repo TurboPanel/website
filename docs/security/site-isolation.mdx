@@ -1,11 +1,11 @@
 ---
-title: Site owner accounts and isolation
-description: How a site owner's Linux user, home directory, SSH and SFTP access, builds and web servers are kept apart from each other and from the host
+title: Hosting Accounts and isolation
+description: How a Hosting Account, home directory, SSH and SFTP access, builds and web servers are kept apart from each other and from the host
 ---
 
-# Site owner accounts and isolation
+# Hosting Accounts and isolation
 
-Every site runs as a Linux user of its own, the **site owner's Linux user** (for example `alice`, with files in `/srv/users/alice`). Several sites and several owners share one host, so the host keeps them apart. This page says how: the layout of the home, how SSH access works, how builds run, which account the web servers use, and what happens to symlinks.
+Every site runs as a Linux user of its own, the **Hosting Account** (for example `alice`, with files in `/srv/users/alice`). Several sites and several owners share one host, so the host keeps them apart. This page says how: the layout of the home, how SSH access works, how builds run, which account the web servers use, and what happens to symlinks.
 
 ## The home layout
 
@@ -23,14 +23,14 @@ Each owner has one directory, `/srv/users/<owner>`, which **root owns**. An owne
 | `<service>/public/`, `shared/` and `logs/`    | alice    | Write                                                                  |
 | `<scope>/volumes/`                            | root     | Not change; each volume inside it is alice's                           |
 
-Because the scope, service and release folders are root's, a release cannot be swapped or edited after it is published, a service or volume folder cannot be replaced by a link to somewhere else, and a site owner cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
+Because the scope, service and release folders are root's, a release cannot be swapped or edited after it is published, a service or volume folder cannot be replaced by a link to somewhere else, and a Hosting Account cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
 
 ## SSH and SFTP keys
 
 The panel manages every key. Keys are written to `/etc/ssh/turbopanel/authorized_keys/<owner>`, a root-owned directory the owner cannot reach, and the SSH server reads them only from there.
 
 - An `authorized_keys` file inside the home (`~/.ssh/authorized_keys`) is **ignored**, so a planted key does not log in.
-- Port forwarding is off for every site owner: no TCP, Unix-socket or remote forwarding, so an SSH login cannot be used as a tunnel into the host's own network.
+- Port forwarding is off for every Hosting Account: no TCP, Unix-socket or remote forwarding, so an SSH login cannot be used as a tunnel into the host's own network.
 - An owner with no SSH access level cannot sign in by key or password at all. Files-only owners get SFTP and no shell.
 
 ## Builds
@@ -62,7 +62,7 @@ With the jail on, a files-only owner signs in to `home/` and sees only `home/`, 
 
 ## Web server accounts
 
-The web servers do not run as root. Apache runs as its own unprivileged account (`tpapache`) from start to finish, including its master process. The hosting Caddy runs as its own unprivileged account too, with only the permission to bind ports 80 and 443. PHP runs as the site owner, never as a web server. See [PHP modes](/docs/using/php).
+The web servers do not run as root. Apache runs as its own unprivileged account (`tpapache`) from start to finish, including its master process. The hosting Caddy runs as its own unprivileged account too, with only the permission to bind ports 80 and 443. PHP runs as the site's Hosting Account, never as a web server. See [PHP modes](/docs/using/php).
 
 ## Symlinks across sites
 
