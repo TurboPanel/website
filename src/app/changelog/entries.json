@@ -21,7 +21,9 @@
           "Each Hosting Account now has one tree under /srv/users/{owner}/. Inside it, every environment gets its own folder, and its sites and apps sit under services and its volumes under volumes: /srv/users/{owner}/{scope}/services and /srv/users/{owner}/{scope}/volumes.",
           "The scope is the environment name. A service or volume can instead be placed in a shared scope called common, so every environment of that Hosting Account can use it. The choice is made when you create it and cannot be changed later.",
           "Sites, apps and volumes are served from this tree, backups read a volume copy straight from its folder, and a deploy sends the folder of every service that runs on the host.",
-          "Deleting a volume asks the host to remove its folder, and you confirm the removal. Removing a service keeps its files. A container that runs as a user other than the Hosting Account's gets access set up for it when it is declared."
+          "Deleting a volume asks the host to remove its folder, and you confirm the removal. Removing a service keeps its files. A container that runs as a user other than the Hosting Account's gets access set up for it when it is declared.",
+          "Volumes made for a site belong to its Hosting Account. A container that runs as the Hosting Account can write to its named volumes, and the old top-level volumes folder is no longer made.",
+          "A service you remove from compose is marked Removed from compose in the environment's containers card, and its leftover folder is flagged as an orphan folder."
         ]
       },
       {
@@ -45,7 +47,10 @@
         "heading": "Certificates",
         "items": [
           "Changing an organization's certificate signer now finishes on its own. Certificates that were issued by the old signer and left behind are renewed instead of staying stuck, and any a change leaves behind are listed with an owner for each.",
-          "Alerts: a folder left behind on a server with nothing in the panel pointing to it, and a certificate that fails to renew, now raise an alert. The notification rules screen gives each alert a plain name."
+          "Alerts: a folder left behind on a server with nothing in the panel pointing to it, and a certificate that fails to renew, now raise an alert. The notification rules screen gives each alert a plain name.",
+          "The panel now keeps an encrypted copy of each Let's Encrypt certificate and its key, sent from the server that got it. The key is never shown or logged.",
+          "A stored copy is kept for at least 30 days after no site uses it any more, and is erased at once when the certificate is revoked or Let's Encrypt is turned off for the organization.",
+          "The snapshot taken before an update no longer holds the panel's root secret, so a copy of that folder cannot open the panel's sealed values."
         ]
       },
       {
@@ -60,7 +65,8 @@
         "items": [
           "The SFTP jail, which locks files-only users into their own home, now switches itself on for a new server once its folders check out. Turning it off yourself is remembered and always wins, and a folder problem keeps it off with a message naming the Hosting Account.",
           "A Postgres read/write login can now only read and change rows. It can no longer empty a whole table or link tables together, matching MySQL and MariaDB, and logins that had those rights lose them the next time the server is updated. Only the migration login can; an app that empties tables in its tests needs it.",
-          "The audit trail keeps 13 months by default. Older entries are removed in small batches, and a superadmin can change the window (3 to 120 months) or keep everything."
+          "The audit trail keeps 13 months by default. Older entries are removed in small batches, and a superadmin can change the window (3 to 120 months) or keep everything.",
+          "Each organization numbers the Hosting Accounts on the servers it owns from 30001, and the organization that owns the server decides. A number is never reused, and existing Hosting Accounts keep theirs."
         ]
       },
       {
