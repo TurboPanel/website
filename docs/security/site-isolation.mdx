@@ -9,20 +9,21 @@ Every site runs as a Linux user of its own, the **site owner's Linux user** (for
 
 ## The home layout
 
-Each owner has one directory, `/srv/users/<owner>`, which **root owns**. An owner can rename or delete anything inside a directory they own, so the directories that hold files the platform owns are not the owner's. The owner writes only into the folders marked below.
+Each owner has one directory, `/srv/users/<owner>`, which **root owns**. An owner can rename or delete anything inside a directory they own, so the directories that hold files the platform owns are not the owner's. The owner writes only into the folders marked below. [Where your files live](/docs/using/files-and-folders) explains the names and what each action does to them.
 
-| Path                                      | Owned by | The owner may                                                        |
-| ----------------------------------------- | -------- | -------------------------------------------------------------------- |
-| `/srv/users/alice`                        | root     | Read it through the group; not change it                             |
-| `home/`                                   | alice    | Write. This is alice's login home (`$HOME`).                         |
-| `data/`                                   | alice    | Write. Files that must outlive a deploy.                             |
-| `tmp/`                                    | alice    | Write. The private temporary directory; PHP's `/tmp` is this folder. |
-| `sites/` and `sites/<site>/`              | root     | Not change                                                           |
-| `sites/<site>/releases/` and each release | root     | Not change                                                           |
-| `sites/<site>/webroot/` and `shared/`     | alice    | Write                                                                |
-| `volumes/`                                | root     | Not change; each volume inside it is alice's                         |
+| Path                                          | Owned by | The owner may                                                          |
+| --------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `/srv/users/alice`                            | root     | Read it through the group; not change it                               |
+| `home/`                                       | alice    | Write. This is alice's login home (`$HOME`).                           |
+| `tmp/`                                        | alice    | Write. The private temporary directory; PHP's `/tmp` is this folder.   |
+| `<scope>/` (an environment name, or `common`) | root     | Not change. One per environment, plus `common` for shared assets.      |
+| `<scope>/services/` and `<scope>/services/<service>/` | root | Not change                                                       |
+| `<service>/releases/` and each release        | root     | Not change                                                             |
+| `<service>/current`                           | root     | Not change. A link to the live release.                                |
+| `<service>/public/`, `shared/` and `logs/`    | alice    | Write                                                                  |
+| `<scope>/volumes/`                            | root     | Not change; each volume inside it is alice's                           |
 
-Because `sites/` and `releases/` are root's, a release cannot be swapped or edited after it is published, and a site owner cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
+Because the scope, service and release folders are root's, a release cannot be swapped or edited after it is published, a service or volume folder cannot be replaced by a link to somewhere else, and a site owner cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
 
 ## SSH and SFTP keys
 
@@ -56,7 +57,7 @@ sudo /opt/turbopanel/lib/tp-host sftp-chroot on
 
 `on` first checks the layout and refuses if anything is wrong: a folder on the way to the home that root does not own or that others can write to, an owner with no `home/` of their own, a login home other than `home/`, or a user in both the SFTP and the shell groups. `off` removes the jail and is never refused; `status` shows the state.
 
-With the jail on, a files-only owner signs in to `home/` and sees only `home/`, `data/`, `tmp/`, `sites/` and `volumes/`. They can write their own folders, `webroot/` and `shared/`, cannot change `sites/` or any release, and cannot see `/etc` or another owner's home. A shell login gets "This service allows sftp connections only". Owners with shell access are never jailed. The check runs again at every SSH update; if the layout has drifted, that one owner's login closes and the jail stays on for everyone.
+With the jail on, a files-only owner signs in to `home/` and sees only `home/`, `tmp/` and their environment folders (and `common/`), with `services/` and `volumes/` inside each. They can write `home/`, `tmp/`, `public/`, `shared/`, `logs/` and their volumes, cannot change a service folder or any release, and cannot see `/etc` or another owner's home. A shell login gets "This service allows sftp connections only". Owners with shell access are never jailed. The check runs again at every SSH update; if the layout has drifted, that one owner's login closes and the jail stays on for everyone.
 
 ## Web server accounts
 
@@ -75,6 +76,7 @@ A link between two files of one owner works as before.
 
 ## Related
 
+- [Where your files live](/docs/using/files-and-folders) — folder names, locks, and what stop and delete do.
 - [PHP modes](/docs/using/php) — how a site's PHP is started and what it gets of its own.
 - [Trust boundaries](/docs/security/trust-boundaries) — what each part can reach if it is compromised.
 - [Daemon trust model](/docs/security/daemon-trust-model) — what the host-side helper allows.

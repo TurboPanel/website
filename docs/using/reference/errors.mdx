@@ -119,6 +119,26 @@ See [Hosting](/docs/using/hosting).
 | `binding_not_found`, `binding_principal_invalid`, `binding_ca_unavailable`, `binding_cluster_invalid` | 400    | The binding could not be built: it no longer exists, it does not point at a database user, the organization's certificate authority could not be made ready, or the cluster's options could not be read. |
 | `backup_target_unsupported`                                                                           | 400    | The storage copy cannot be backed up from where it lives; `detail` says why (for example it has no local folder or Docker volume on its server).                                                         |
 
+## Folders on servers
+
+See [Where your files live](/docs/using/files-and-folders).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invalid_environment_name` | 400 | The environment's name cannot be a folder name. |
+| `invalid_directory_name` | 400 | A service or volume folder name is outside the rules. |
+| `directory_name_mode_forbidden` | 400 | The organization's folder naming setting does not allow that kind of name. |
+| `directory_name_taken` | 409 | Another service or volume of the same site owner has that folder name in the same place. |
+| `directory_name_typed_in_uuid_mode` | 409 | The organization names folders after ids, so a name cannot be typed. |
+| `service_slug_locked`, `storage_slug_locked` | 409 | The service or volume already has a folder, so its folder name can no longer change. |
+| `scope_locked` | 409 | Whether a service or volume is shared by every environment was chosen at creation. |
+| `common_asset_in_use` | 409 | Another environment still uses this shared service or volume. |
+| `environment_name_locked`, `environment_server_locked` | 409 | Folders exist under the environment; the body lists up to 20 of them. |
+| `environment_has_folders` | 409 | The environment still has folders on servers; remove the listed services and volumes first. |
+| `environment_deploy_running` | 409 | A deploy is running; rename the environment when it finishes. |
+| `project_slug_locked`, `project_slug_in_use` | 409 | The project's short name cannot change after folders exist, or another project already uses it. |
+| `directory_names_locked` | 409 | The organization already has folders, so its folder naming setting is fixed. |
+
 ## System users (principals)
 
 What a principal is, and its two forms, are explained in [Principals](/docs/using/principals).
