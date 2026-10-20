@@ -146,7 +146,7 @@ The control-plane step also requires the co-located daemon to advertise `managed
 The automatic backup is written before the control-plane package swap, at:
 
 ```text
-<backup dir>/control-plane/<upgrade id>/
+<backup dir>/panel/<upgrade id>/
 ```
 
 The backup directory defaults to `/backup` (`TURBOPANEL_BACKUP_DIR` moves it). Each attempt keeps a `pg_dump -Fc` of the control-plane database, a tarball of `/etc/turbopanel`, and `meta.json` (including the migration-history fingerprint). The newest three attempts are kept.
@@ -174,7 +174,7 @@ sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i l
   instance-rollback.yml
 ```
 
-That restores the `.prev` builds and, when the migration fingerprint changed, the database dump under `/backup/control-plane/<upgrade id>/`. The helper is the installed absolute path, so it runs when the control plane is stopped and `tp-orchestrate` is not on `PATH`. To reinstall one pinned control-plane manifest instead:
+That restores the `.prev` builds and, when the migration fingerprint changed, the database dump under `/backup/panel/<upgrade id>/`. The helper is the installed absolute path, so it runs when the control plane is stopped and `tp-orchestrate` is not on `PATH`. To reinstall one pinned control-plane manifest instead:
 
 ```bash
 sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate update-instance \

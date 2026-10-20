@@ -10,15 +10,16 @@ the installer all follow this page.
 
 ## The parts
 
-| Name              | What it is                                                                                                                                                                                                  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **TurboPanel**    | The whole product: the control plane, the web app and the daemons on your servers.                                                                                                                          |
-| **Control plane** | The program that runs the API and the database and serves the web app. On **Self-hosted** it is the `turbopanel` binary on its own host; on **TurboPanel High Availability** it runs on Cloudflare Workers. |
-| **App**           | What you sign in to and use. **Web app** means the bundle the control plane serves to your browser.                                                                                                         |
-| **Daemon**        | `turbopaneld`, the program on each server TurboPanel manages. The **co-located daemon** is the one on the control plane's own host.                                                                         |
-| **Server**        | A machine TurboPanel manages. Say **host** only when you mean the operating system itself, as in "host firewall".                                                                                           |
-| **Administrator** | The person who runs a self-hosted control plane.                                                                                                                                                            |
-| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (the site owner's Linux user) on each server where its sites and services run, and as a **database login** on a managed database cluster. See [Principals](/docs/using/principals). |
+| Name              | What it is                                                                                                                                                                                                                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TurboPanel**    | The whole product: the control plane, the web interface and the daemons on your servers.                                                                                                                                                                                                  |
+| **Control plane** | The program that runs the API and the database and serves the web interface. On **Self-hosted** it is the `turbopanel` binary on its own host; on **TurboPanel High Availability** it runs on Cloudflare Workers.                                                                         |
+| **Web interface** | What you sign in to and use: the pages the control plane serves to your browser. This is not your own *app*, the site or service you deploy with TurboPanel.                                                                                                                              |
+| **Daemon**        | `turbopaneld`, the program on each server TurboPanel manages. The **co-located daemon** is the one on the control plane's own host.                                                                                                                                                       |
+| **Server**        | A machine TurboPanel manages. Say **host** only when you mean the operating system itself, as in "host firewall".                                                                                                                                                                         |
+| **Administrator** | The person who runs a self-hosted control plane.                                                                                                                                                                                                                                          |
+| **Hosting Account** | The Linux account that a hosted customer's files and sites run as, with its home under `/srv/users/<name>`. It is not a panel login, an organization member or a database login. |
+| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (a Hosting Account) on each server where its sites and services run, and as a **database login** on a managed database cluster. See [Principals](/docs/using/principals). |
 
 ## The two ways to run it
 
@@ -34,8 +35,8 @@ never means your own apps become highly available.
 
 | Not this                              | Say                                                   |
 | ------------------------------------- | ----------------------------------------------------- |
-| console                               | app (or web app)                                      |
-| panel, for the app                    | app                                                   |
+| console                               | web interface                                         |
+| panel, for the web interface          | web interface                                         |
 | instance, in customer copy            | control plane; **administrator** for "instance owner" |
 | hosted instance, hosted control plane | TurboPanel High Availability                          |
 | node, remote node                     | server                                                |
