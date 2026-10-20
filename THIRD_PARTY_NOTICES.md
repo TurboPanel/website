@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383dc09bd0
+pnpm-lock.yaml sha256:e78d58fe41705207f7494714baec85ee844644139688795ba6a35a8d1b4d5f8f
 -->
 
 ## Production dependencies
@@ -5109,7 +5109,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Gary Court
 - Homepage: https://github.com/garycourt/uri-js
 
-### vite@6.4.3
+### vite@6.4.4
 
 - License: MIT
 - Copyright: Evan You
