@@ -1,9 +1,117 @@
 [
   {
     "date": "Unreleased",
+    "channel": "Private alpha · fresh start release candidate",
+    "title": "TurboPanel Fresh Start",
+    "body": "One new folder layout on every server, one fresh start for the database, folder names you choose once and keep, certificate signer changes that finish on their own, and alerts for folders and certificates that need attention. This release needs a wipe: it cannot be installed over an earlier one.",
+    "sections": [
+      {
+        "heading": "This Release Needs a Wipe",
+        "items": [
+          "Reset the panel database and every server, then install fresh. Do not update an existing panel or server to this release; it will refuse to start on an old database.",
+          "Why the folder layout cannot be moved in place: sites, apps and volumes now live in a different tree, and no old path is kept as a fallback. Carrying both would mean two sets of rules for who owns and can reach each folder.",
+          "Why the database starts again: every earlier change to the database is folded into one fresh set of tables, with tables renamed and reshaped for launch. Nothing converts an older database to it.",
+          "Why servers are reset too: a Hosting Account, its folders and the panel's records of them must agree from the first day, and an older server's leftovers would break that.",
+          "This is the one reset. From this release on, every change to the database is a forward-only upgrade from the previous release, with a backup taken first."
+        ]
+      },
+      {
+        "heading": "Where Your Files Live",
+        "items": [
+          "Each Hosting Account now has one tree under /srv/users/{owner}/. Inside it, every environment gets its own folder, and its sites and apps sit under services and its volumes under volumes: /srv/users/{owner}/{scope}/services and /srv/users/{owner}/{scope}/volumes.",
+          "The scope is the environment name. A service or volume can instead be placed in a shared scope called common, so every environment of that Hosting Account can use it. The choice is made when you create it and cannot be changed later.",
+          "Sites, apps and volumes are served from this tree, backups read a volume copy straight from its folder, and a deploy sends the folder of every service that runs on the host.",
+          "Deleting a volume asks the host to remove its folder, and you confirm the removal. Removing a service keeps its files. A container that runs as a user other than the Hosting Account's gets access set up for it when it is declared.",
+          "Volumes made for a site belong to its Hosting Account. A named volume of a container that runs as the Hosting Account is owned by it, and a container that mounts a volume linked to a Hosting Account and names no user now runs as that Hosting Account. Images that need to start as root behave differently, so set a user in compose if one of them stops working. The old top-level volumes folder is no longer made.",
+          "A site you remove from compose shows Removed from compose in the environment's containers card, with a note and a link to its leftover folder in the Folders panel. Its web server settings are removed at the end of the next deploy, and its files stay until you remove the folder."
+        ]
+      },
+      {
+        "heading": "Folder Names and Locks",
+        "items": [
+          "Folder names for services and volumes are short lowercase names, chosen when you create them. An organization can require readable names, require generated ones, or allow both.",
+          "Names are locked once something exists on a server, so a folder is never moved by accident: a service's folder name, the place (environment or common) it was created in, an environment's name while it has folders, and the project's short name once any folder exists.",
+          "A refused change says which folders are holding the lock, and a folder waiting for an offline server to remove it is named as the reason.",
+          "The Folders screen lists the folders that need attention, and lets you remove them or try again.",
+          "The word base cannot be used as an environment or folder name, because it is easy to confuse with a project's Base. An environment that already has that name keeps it until it is renamed."
+        ]
+      },
+      {
+        "heading": "One Fresh Start for the Database",
+        "items": [
+          "The panel's database now starts from one fresh set of tables instead of forty separate changes.",
+          "Table names are all one plain word. For example, the two-factor table is now totp and the grant table is now permission.",
+          "Database logins and the databases themselves have their own tables, a database login's rights are stored as real columns, and audit history and commands are stored by month."
+        ]
+      },
+      {
+        "heading": "Certificates",
+        "items": [
+          "Changing an organization's certificate signer now finishes on its own. Certificates that were issued by the old signer and left behind are renewed instead of staying stuck, and any a change leaves behind are listed with an owner for each.",
+          "Alerts: a folder left behind on a server with nothing in the panel pointing to it, and a certificate that fails to renew, now raise an alert. The notification rules screen gives each alert a plain name.",
+          "The panel now keeps an encrypted copy of each Let's Encrypt certificate and its key, sent from the server that got it. The key is never shown or logged.",
+          "A stored copy is kept for at least 30 days after no site uses it any more, and is erased at once when the certificate is revoked or Let's Encrypt is turned off for the organization.",
+          "The snapshot taken before an update no longer holds the panel's root secret, so a copy of that folder cannot open the panel's sealed values.",
+          "The panel now accepts the private key forms that the web server writes, so issued certificates are stored instead of being refused."
+        ]
+      },
+      {
+        "heading": "Hosting and Environments",
+        "items": [
+          "Domains is now called Hosting.",
+          "The environment's configuration page shows its hostnames, waits for them to load before it says there are none, and asks for a certificate when you save a web hostname. The certificate box appears only for web routes.",
+          "A site can no longer be given a hostname that the panel itself answers on. The change is refused with a message naming the hostname, and the same check works the other way round."
+        ]
+      },
+      {
+        "heading": "Primary Environments and Node Apps",
+        "items": [
+          "Every project has one primary environment, and a project opens on it. The first environment is primary, you can change it with Make primary, and it cannot be deleted while the project has other environments. You can also pin environments to list them first.",
+          "The Base stays a tab for shared defaults. The Base starts empty, and values an environment gets from it are marked From the Base.",
+          "A new environment starts as a copy of the primary environment, or empty. A copy leaves out hostnames and routes, published ports, fixed container names, the git branch's automatic deploy, variables and secrets, and the server choice, and it tells you what it left out.",
+          "Every edit to a project's compose now names where it goes: one environment or the Base. Saving from an environment's Configuration tab changes only that environment.",
+          "A new Node app is pinned to a real Node version instead of following the server's newest one. The version the repository asks for is preselected when the server offers it, read from .nvmrc, .node-version, package.json engines or volta, or .tool-versions, and the form says if it could not use the hint. Following the newest version is still there as a deliberate choice."
+        ]
+      },
+      {
+        "heading": "Safer Defaults",
+        "items": [
+          "The SFTP jail, which locks files-only users into their own home, now switches itself on for a new server once its folders check out. Turning it off yourself is remembered and always wins, and a folder problem keeps it off with a message naming the Hosting Account.",
+          "A Postgres read/write login can now only read and change rows. It can no longer empty a whole table or link tables together, matching MySQL and MariaDB, and logins that had those rights lose them the next time the server is updated. Only the migration login can; an app that empties tables in its tests needs it.",
+          "The audit trail keeps 13 months by default. Older entries are removed in small batches, and a superadmin can change the window (3 to 120 months) or keep everything.",
+          "Each organization numbers the Hosting Accounts on the servers it owns from 30001, and the organization that owns the server decides. A number is never reused, and existing Hosting Accounts keep theirs."
+        ]
+      },
+      {
+        "heading": "Installing and Updating",
+        "items": [
+          "The installer log is calmer and consistent from one step to the next.",
+          "The update bar says in plain words what it updates, calls the part you are looking at the web interface, and warns that the page may briefly show the updating screen.",
+          "After a deploy starts a site's web server, the deploy waits for it to come up before it calls the deploy failed.",
+          "The server program's log no longer prints notes about optional tools that are not installed as if they were errors."
+        ]
+      }
+    ],
+    "links": [
+      {
+        "href": "/docs/deployment/upgrade",
+        "label": "Upgrade & rollback"
+      },
+      {
+        "href": "/docs/security/site-isolation",
+        "label": "Site owner isolation"
+      },
+      {
+        "href": "/docs/using/hosting",
+        "label": "Hosting"
+      }
+    ]
+  },
+  {
+    "date": "Unreleased",
     "channel": "Private alpha · 0.2.x release candidate",
     "title": "TurboPanel 0.2.x",
-    "body": "A new project and environment editor in the web app, a deploy you can cancel, certificates in one click, more ways to serve a site (four web engines and three PHP modes), a much tighter separation between site owners on a server, and a firewall you can preview before anything is applied.",
+    "body": "A new project and environment editor in the web app, a deploy you can cancel, certificates in one click, more ways to serve a site (four web engines and three PHP modes), a much tighter separation between Hosting Accounts on a server, and a firewall you can preview before anything is applied.",
     "sections": [
       {
         "heading": "The project and environment editor",
@@ -42,16 +150,16 @@
         "heading": "Sites, web engines and PHP",
         "items": [
           "Sites can be served by Caddy, nginx, Apache or OpenLiteSpeed, or by nginx in front of Apache.",
-          "PHP runs in one of three modes: FastCGI (the default), php-fpm, or OpenLiteSpeed's lsphp as a process of its own. Every site's PHP runs as the site owner's Linux user, with its own memory limit.",
+          "PHP runs in one of three modes: FastCGI (the default), php-fpm, or OpenLiteSpeed's lsphp as a process of its own. Every site's PHP runs as the Hosting Account, with its own memory limit.",
           "An organization owner or manager chooses which PHP modes the organization offers and can narrow that for each server. A site picks its mode in the visual editor or in its compose document; a mode the policy does not allow stops the deploy with a clear message.",
           "Remote build sources (building from an address on the internet) are off until the organization allows them, and risky build options in a compose document are refused unless the organization allows them.",
-          "A site owner's Linux user can be named in plain, partial or random form, with an organization default that can be locked."
+          "A Hosting Account can be named in plain, partial or random form, with an organization default that can be locked."
         ]
       },
       {
-        "heading": "Keeping site owners apart",
+        "heading": "Keeping Hosting Accounts apart",
         "items": [
-          "Root owns a site owner's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
+          "Root owns a Hosting Account's home folder and the folders that hold published releases. The owner writes only to their own folders (home, data, tmp, and each site's webroot and shared folders), so a release cannot be changed after it is published.",
           "Native and static builds run in a sandbox as an unprivileged build user with public internet access only, 4 GB of memory, 2 CPUs and 30 minutes, one build at a time per server.",
           "SSH keys are managed by the app and keys placed in a home folder are ignored; port forwarding is off. Files-only owners can be locked into their own home with an SFTP jail, which is off by default and turned on for one server at a time by an operator.",
           "The web servers run as their own unprivileged accounts, and a link inside one site is followed only when its owner matches the file it points to.",
@@ -125,7 +233,7 @@
       },
       {
         "href": "/docs/security/site-isolation",
-        "label": "Site owner isolation"
+        "label": "Hosting Account isolation"
       },
       {
         "href": "/docs/deployment/upgrade",

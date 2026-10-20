@@ -165,7 +165,7 @@ Each login has one level on each database it is listed for. The levels are jobs,
 
 What that means on each engine:
 
-- **PostgreSQL**: read-only logins read; read/write logins use everything the owner role makes but cannot create or alter its tables (on a database made before owner roles, a read/write login can still create tables in a private schema of its own); the migration login acts as the database's owner role. See [Owner roles and migrations logins](#owner-roles-and-migrations-logins-postgresql).
+- **PostgreSQL**: read-only logins read; read/write logins use everything the owner role makes but cannot create or alter its tables, empty one (`TRUNCATE`) or point a foreign key at one (`REFERENCES`), and only the migration login can; an app that empties tables in its tests needs the migration login for that (on a database made before owner roles, a read/write login can still create tables in a private schema of its own); the migration login acts as the database's owner role. See [Owner roles and migrations logins](#owner-roles-and-migrations-logins-postgresql).
 - **MySQL and MariaDB**: the same three jobs, set directly on the database. Anything the migration login creates is usable by the read-only and read/write logins at once, with no extra step. A read/write login's temporary tables last only for its own session and never touch your tables.
 - **Stored functions on MySQL and MariaDB.** By default a stored function or procedure runs with the rights of the login that made it, not the caller. A read-only login could therefore change data through one, so read-only logins are not allowed to call them, and a `SELECT` that uses such a function fails with "execute command denied". Use a read/write login for queries that call functions.
 
@@ -373,7 +373,7 @@ Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common
 | **Restore**     | Typed confirmation (the cluster's name). Restores that backup into the cluster in place. A backup made by a schedule restores the same way. |
 | **Delete**      | Two presses. Removes the backup.                                                                                                            |
 
-Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `/backup`, or the directory the operator set with `TURBOPANEL_BACKUP_DIR`). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
+Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `managed/<cluster id>/` in the backup folder, which is `/backup` or the directory the operator set with `TURBOPANEL_BACKUP_DIR`; the app stores each backup's path relative to that folder). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
 
 ### Schedules
 
@@ -418,14 +418,14 @@ A server runs one listener for every database on it, so who can reach it from ou
 
 | Setting          | Who can connect                                                                                                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **No** (default) | Only services on that server: sites run by a site owner's Linux user (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect.               |
+| **No** (default) | Only services on that server: sites run by a Hosting Account (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect.               |
 | **Yes**          | The same ports are also published on all of the server's addresses. Anyone who can reach the server's network can try to connect. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall. It covers **every** database on that server. |
 
 ### The root login only works from your own machines
 
 Each database comes with a **root** login (`postgres_…` or `root_…`). It can do everything, so TurboPanel does not let it be used from the internet, even when external access is **Yes**. The root login works only from:
 
-- the server itself (including sites run by a site owner's Linux user on that server),
+- the server itself (including sites run by a Hosting Account on that server),
 - containers on that server, and
 - the other servers of the same organization.
 
