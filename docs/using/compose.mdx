@@ -138,8 +138,25 @@ services:
 | `root` | `site` | Document root, relative to the account's site directory. |
 | `php` | `site` | `{ version?, mode?, extensions?, settings?, pool? }` — a series (`8.3`, `8.4`), the [PHP mode](/docs/using/php) (`fastcgi`, `fpm`, `lsphp-detached`; `lsphp-attached` is accepted but runs as detached), opt-in extensions (loaded host-wide for that series), `php_admin_value` directives, php-fpm pool tuning. |
 | `framework` | `node` | `auto` (default), `node`, `next`. |
-| `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range. |
+| `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range, or `latest` to follow the server's newest Node version (see [Node version](#node-version)). |
 | `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
+
+### Node version
+
+A new Node app is **pinned** to one Node series, such as `24`. It stays on that series and only receives patch updates, so a newer Node release on the server never changes it behind your back.
+
+When you create an app from a repository, the form preselects a series for you:
+
+1. A version the repository asks for, if the server offers it. TurboPanel looks at these, in this order, and uses the first one that says something usable: `engines.node` in `package.json`, `volta.node` in `package.json`, `.nvmrc`, `.node-version`, then the `nodejs` line of `.tool-versions`. A folder you set as the app's subdirectory is checked before the repository root.
+2. Otherwise, the newest Node series the server offers, as a fixed pin.
+
+A range such as `>=26.7.0`, `^22` or `20 || 22` picks the **highest offered series that satisfies it**. So `>=22` picks the newest, and `^22` picks 22. A single version such as `v22.11.0` picks its series, 22.
+
+If the repository asks for a version the server does not offer (for example `.nvmrc` says `16`), the form says which file it read and which series it selected instead. You can always change the choice before you create the app, and later on the service's Node.js settings.
+
+`latest` is a separate choice you make on purpose. It follows the newest Node series the server offers, so the app moves to a newer series on the first deploy after the server gets one. It is never selected for you, and when you pick it, the repository's version files are not read.
+
+Apps created before this change that never had a version set keep following the server's newest series until you pick a number.
 
 A key that names a privilege — uid, gid, home, shell, keys, password — is refused with a message pointing at the row that owns it.
 
