@@ -147,10 +147,10 @@ A new Node app is **pinned** to one Node series, such as `24`. It stays on that 
 
 When you create an app from a repository, the form preselects a series for you:
 
-1. A version the repository asks for, if the server offers it. TurboPanel looks at these, in this order, and uses the first one that says something usable: `engines.node` in `package.json`, `volta.node` in `package.json`, `.nvmrc`, `.node-version`, then the `nodejs` line of `.tool-versions`. A folder you set as the app's subdirectory is checked before the repository root.
+1. A version the repository asks for, if the server offers it. TurboPanel looks at these, in this order, and uses the first one that says something usable: `engines.node` in `package.json`, `volta.node` in `package.json`, `.nvmrc`, `.node-version`, then the `nodejs` line of `.tool-versions`. The create form reads the repository root; a deploy checks the app's subdirectory first and then the root.
 2. Otherwise, the newest Node series the server offers, as a fixed pin.
 
-A range such as `>=26.7.0`, `^22` or `20 || 22` picks the **highest offered series that satisfies it**. So `>=22` picks the newest, and `^22` picks 22. A single version such as `v22.11.0` picks its series, 22.
+A range such as `>=26.7.0`, `^22` or `20 || 22` picks the **highest offered series that satisfies it**. So `>=22` picks the newest, and `^22` picks 22. Only the major number is used: `>=26.7.0` selects series 26 even if the server's 26.x is older than 26.7.0. A single version such as `v22.11.0` picks its series, 22.
 
 If the repository asks for a version the server does not offer (for example `.nvmrc` says `16`), the form says which file it read and which series it selected instead. You can always change the choice before you create the app, and later on the service's Node.js settings.
 
