@@ -370,7 +370,6 @@ See [Billing and licenses](/docs/using/billing).
 | ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
 | `billing_not_configured`                 | 503       | The control plane has no billing provider configured.                                            |
 | `subscription_exists`, `no_subscription` | 409       | The organization already has a subscription, or has none.                                        |
-| `checkout_pending`                       | 409       | A checkout is already in progress.                                                               |
 | `subscription_past_due`                  | 409       | The subscription is past due; settle it in the customer portal.                                  |
 | `billing_mutation_in_progress`           | 409       | Another billing change is still applying.                                                        |
 | `servers_uncovered`                      | 409       | Reducing licenses would leave servers uncovered; the response names them and the tier they need. |

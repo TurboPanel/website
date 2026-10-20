@@ -47,7 +47,7 @@ Two facts shape every action below:
   </Step>
 </Steps>
 
-A second checkout while one is in flight is refused (`checkout_pending`); a checkout for an organization that already subscribes is refused (`subscription_exists`) — add licenses to the subscription instead.
+You can leave a checkout and come back at any time. Choosing a different tier or quantity closes the unfinished checkout and opens a new one; an unfinished checkout also closes itself after about an hour. A checkout for an organization that already subscribes, or one that was just paid, is refused (`subscription_exists`) — add licenses to the subscription instead.
 
 ## Add or remove licenses at a tier
 
@@ -103,7 +103,6 @@ When a renewal fails, the payment provider retries on its own schedule and Billi
 | --- | --- | --- |
 | `billing_not_configured` | 503 | TurboPanel High Availability without its payment keys. (Self-hosted has no billing routes at all — 404.) |
 | `subscription_exists` | 409 | The organization already subscribes; use **Add** instead of checkout. |
-| `checkout_pending` | 409 | A checkout is already in flight; finish or cancel it. |
 | `no_subscription` | 409 | No live subscription to change; start with checkout. |
 | `tier_not_purchasable` | 400 | The tier is SX, or its product no longer verifies with the provider (the response lists the failures). |
 | `not_an_upgrade`, `not_a_downgrade` | 400 | The chosen tiers do not go in the direction of the action. |
