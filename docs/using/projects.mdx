@@ -13,6 +13,10 @@ One project, one compose document, any number of environments.
 
 The **Base** is the project's compose document, the description every environment starts from. Each environment may carry **changes from the Base** — a second compose document merged over it, following the [Compose Specification merge rules](https://docs.docker.com/reference/compose-file/merge/), so a staging environment can change an image tag or add a service without copying the whole file. An environment that has none **follows the Base**; one that replaces the Base's services outright **stands alone**. An environment that follows the Base deploys exactly what the Base says, plus whatever it changes.
 
+Think of the Base as the shared defaults and each environment as the changes layered on top, the way a base compose file and an override file work together. Anywhere the app shows a value that comes from the Base, it is marked **From the Base**.
+
+Every project has one **primary environment**: the one you land on when you open the project, the one you edit by default, and the one listed first. A project's first environment is its primary. The primary can be changed (see [Primary and pinned environments](#primary-and-pinned-environments)), and it cannot be deleted.
+
 Placement lives on the environment, not in the document. Every environment either **pins** a server or inherits the project's **Default project server**. A compose document that tries to name a server is refused at save, because which host runs a workload is the platform's decision and belongs where permissions can gate it.
 
 Three facts follow from this model and explain most of what the app does:
@@ -100,29 +104,62 @@ A project created without a type (an older app, or an interrupted wizard) opens 
 
 ### The first environment
 
-A project's first environment is created with the organization's **default environment name** — *production* unless an owner changed it under **Projects → Settings**. A project with a single environment opens that environment directly from **Recent projects**; the environment picker in the header appears as soon as there is a second one. The project's **Environments** tab is always there and, with one environment, says so and offers **New environment**.
+A project's first environment is its primary one. It is created with the organization's **Primary environment name** — *production* unless an owner changed it under **Projects → Settings**. Changing the setting names the primary environment of projects created afterwards; existing projects keep theirs as it is. A project with a single environment opens that environment directly from **Recent projects**; the environment picker in the header appears as soon as there is a second one. The project's **Environments** tab is always there and, with one environment, says so and offers **New environment**.
 
 ### Add, rename, delete
 
 <Steps>
   <Step>
-    **Add.** On the project's **Environments** tab, **New environment** opens a sheet. Give it a **Name** (the same rule as project names, for example *Staging*), then choose **Start from**: **Start from the Base (recommended)** runs what the Base runs and you add changes later; **Empty, stands alone** ignores the Base and you write its compose yourself. Choose its **Server**: **Use the project's server**, or **Choose a server later** when the project has none yet, or pick one. The sheet previews **What it will run**. **Create environment** writes it. Nothing deploys until you press **Deploy**.
+    **Add.** On the project's **Environments** tab, **New environment** opens a sheet. Give it a **Name** (see [Environment names](#environment-names)), then choose **Start from**: a **copy of the primary environment** (the default), which begins with the primary's services and settings and still follows the Base; or **Empty, stands alone**, which ignores the Base and starts with nothing, so you write its compose yourself. Choose its **Server**: **Use the project's server**, or **Choose a server later** when the project has none yet, or pick one. The sheet previews **What it will run**. **Create environment** writes it. Nothing deploys until you press **Deploy**. When the copy is made, the app lists what was left out (see [What a copy leaves out](#what-a-copy-leaves-out)).
   </Step>
   <Step>
-    **Rename.** Open the environment's **Settings** tab and edit the name.
+    **Rename.** Open the environment's **Settings** tab and edit the name. Once the environment has folders on a server the name is locked (see [Environment names](#environment-names)).
   </Step>
   <Step>
     **Delete.** **Settings → Danger → Delete environment**, or **Delete** in the **⋯** menu, two presses. It is disabled while the project has only one environment — delete the project instead. The confirmation names the environment and says its services, domains, containers and variables are removed. **Stop the environment first:** while it has a running container or a deploy in progress the delete is refused (`environment_running`), and the app says so.
   </Step>
 </Steps>
 
-There is no *copy another environment* choice: copying a compose document would duplicate its hostnames and drop its secret values, so start from the Base and add the changes you need.
+A new environment can copy only the primary, not an arbitrary other environment, because a straight copy would duplicate things that must be unique per environment. To base a new environment on a different one, make that one primary first.
+
+### Primary and pinned environments
+
+The **primary** environment is the one a project opens on, the one status and edits default to, and the one a new environment is copied from. It is shown first in the list. A project has exactly one. To move the marker, open another environment's **Settings** tab, find **Primary environment**, and press **Make primary**; the old primary stops being primary at the same moment, and pressing it on the primary changes nothing. If someone else changes the primary at the same time, nothing is changed and you are asked to try again.
+
+You cannot delete the primary while the project has other environments. Make another one primary first, then delete it. The only way to remove it along with everything else is to delete the project.
+
+An environment other than the primary can also be **pinned**, with **Pin** (and **Unpin**) in the same place in its **Settings**. Pinned environments are listed right after the primary; the rest follow, oldest first.
+
+### What a copy leaves out
+
+A new environment that starts as a copy of the primary takes its services and settings, including its own changes and extra layers, and it still follows the Base like every environment. It does not take anything that has to be unique to one environment:
+
+- hostnames
+- published host ports (the container's own ports stay, so other containers can still reach them)
+- fixed container names
+- the git branch and auto-deploy (the source is kept, but deploy on push is off until you choose a branch and turn it on)
+- secrets and variables
+- the server pin
+
+If the Base itself provides one of these (a hostname, a published port, a container name, an auto-deploying source), the copy overrides it in its own changes, so the copy never competes with the primary for it. Hostnames, ports and the like must be set for the new environment on purpose. The create response lists exactly what was left out.
+
+**Empty, stands alone** instead drops the Base's services and begins with nothing.
+
+### Environment names
+
+An environment name is also a folder name on the servers where it runs, so it follows the Linux folder rule rather than the looser project-name rule. It uses lowercase letters, digits, hyphens and underscores, starts with a letter or digit, is at most 32 characters, and is not a reserved word such as `base`, `common`, `home` or `tmp`. Anything else is refused with `invalid_environment_name`. The same rule applies to the organization's **Primary environment name**. Names must also be unique within the project.
+
+Once an environment has folders on any server (planned, present or still being removed), it cannot be renamed or deleted, because its folders live under its name. The refusal lists the folders that block it. Remove those first, or keep the name.
 
 Managed projects use a dedicated **Environments** tab for the same three operations.
 
 ### Follows the Base, or stands alone
 
 An environment **follows the Base** unless its own compose replaces the Base's services (`services: !override` or `services: !reset`), in which case it **stands alone**. There is no switch to store: the app reads it from what is saved, and the control plane answers the same way in `followsBase`. A single-environment project has nothing to follow, so its edits go to the Base.
+
+Every edit names where it goes: an environment, or the Base. Editing in an environment's screens changes only that environment; editing in **Base** changes every environment that follows it. With one environment and nothing else in the Base, an edit goes to that environment. A value an environment gets from the Base is marked **From the Base**; the environment can set its own value for it, and **Go back to Base** removes that value again.
+
+One limit: an environment cannot clear a value the Base gives for the Node version, the package manager or the app folder. It can set a different value, but it cannot leave the field empty or "Not pinned". If you want one of these to be unset, change it in the Base instead.
 
 To see exactly how an environment differs, open **Overview** (the **Changes from Base (n)** card) or **Configuration** ([Only changes from Base](/docs/using/configuration#only-changes-from-base)). To change it, use **Configuration**; to go back to the Base's value for a line, press **Go back to Base** there. An environment's own compose may now be a *partial* layer: it can set only a `command` on a service the Base already gives an image, as long as the merge with the Base is valid. A service that is new in the environment still needs its own `image` or `build`.
 
@@ -160,7 +197,7 @@ The project's **Settings** tab:
 
 Environment scope has its own **Add Variable** (an environment override) and **Danger → Delete environment**.
 
-The organization-wide **default environment name** is under **Projects → Settings** (the settings entry on the Projects list, not inside a project).
+The organization-wide **Primary environment name** is under **Projects → Settings** (the settings entry on the Projects list, not inside a project).
 
 ## Reference
 
@@ -188,9 +225,17 @@ The organization-wide **default environment name** is under **Projects → Setti
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Unique within the project; same rule as project names. |
+| `name` | Unique within the project; follows the [environment name rule](#environment-names). |
+| `isPrimary` | `true` for the project's one primary environment. Set it with `POST /environments/{id}/primary` (no body; idempotent). Answers `409 primary_environment_conflict` if it raced another change. |
+| `pinned` | `true` lists the environment right after the primary. Set with `PATCH /environments/{id}`. `GET /environments` returns the primary, then pinned, then the rest oldest first. |
+| `start` | On `POST /environments`: `copy` (default) copies the primary; `empty` stands alone. Other value: `400 environment_start_invalid`. Sent together with `options`: `400 environment_start_conflict`. |
+| `notCopied` | In the `POST /environments` response: a plain-words list of what a copy left out. |
 | `serverId` | The pin. `null` inherits the project default. `PATCH /environments/:id`. |
 | `options.compose` | The overlay, or absent when using project compose. |
+
+### Edit target
+
+`PATCH /projects/{id}` with `options.compose` or `options.composeOverlays` takes `target`: `base` (the project's shared compose) or an environment id of the project. With exactly one environment and nothing in the Base, no target means that environment. With several environments, or content already in the Base, no target is `400 edit_target_required`. Any other value is `400 edit_target_invalid`. An edit aimed at an environment may carry only `compose` and `composeOverlays`; project settings in the same request are `400 edit_target_mixed`, so send them separately with `target: "base"`.
 
 ### Names
 
@@ -207,6 +252,16 @@ Project, environment and workspace names are compared after trimming surrounding
 | `environment_running` | 409 | Delete refused because the environment still has a running container or a deploy in progress. | **Stop** the environment, wait for it to stop, then delete it. |
 | `managed_runtime_present` | 409 | Delete refused because the environment (or a project's environment) still hosts a managed database cluster. | Destroy the managed cluster from its Overview first; the app's managed delete does this in order. |
 | `source_referenced_by_compose` | 409 | A repository cannot be deleted while a project's compose names it in `x-turbopanel.source`. | Detach the source from the service, then delete the repository. |
+| `edit_target_required` | 400 | A compose edit did not say where it goes and the project has several environments, or its content still lives in the Base. | Send `target`: an environment id, or `base`. |
+| `edit_target_invalid` | 400 | `target` is not `base` and not an environment of this project. | Use `base` or one of the project's environment ids. |
+| `edit_target_mixed` | 400 | A compose edit to an environment also carried project settings. | Send the settings in a separate request with `target: "base"`. |
+| `environment_start_invalid` | 400 | `start` is not `copy` or `empty`. | Send one of the two, or leave it out. |
+| `environment_start_conflict` | 400 | `start` and `options` were both sent. | Send only one. |
+| `invalid_environment_name` | 400 | The name breaks the environment name rule. | Use lowercase letters, digits, hyphens and underscores, up to 32 characters, not a reserved word. |
+| `environment_name_in_use` | 409 | Another environment of the project has that name. | Pick another name. |
+| `environment_name_locked` | 409 | The environment has folders on a server, so it cannot be renamed. | Remove the listed folders, or keep the name. |
+| `primary_environment_cannot_be_deleted` | 409 | Delete refused: this is the primary and the project has other environments. | Make another environment primary first. |
+| `primary_environment_conflict` | 409 | The primary changed at the same moment, so nothing was changed. | Reload and try again. |
 | `Invalid request` | 400 | A body field has the wrong shape (for example a non-uuid `workspaceId`). | Check the field types above. |
 
 ## Related
