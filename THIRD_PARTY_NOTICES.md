@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383dc09bd0
+pnpm-lock.yaml sha256:e4a77bd00f001fc42fe827c05c41f521937785372a799b0a57258e0ac6df803e
 -->
 
 ## Production dependencies
@@ -3185,7 +3185,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Charles Samborski
 - Homepage: https://github.com/bcoe/v8-coverage#readme
 
-### @esbuild/linux-x64@0.28.1
+### @esbuild/darwin-arm64@0.28.1
 
 - License: MIT
 - Homepage: https://github.com/evanw/esbuild#readme
@@ -3277,15 +3277,15 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/lovell/colour#readme
 
-### @img/sharp-libvips-linux-x64@1.3.4
+### @img/sharp-darwin-arm64@0.35.5
 
-- License: LGPL-3.0-or-later
+- License: Apache-2.0
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @img/sharp-linux-x64@0.35.5
+### @img/sharp-libvips-darwin-arm64@1.3.4
 
-- License: Apache-2.0
+- License: LGPL-3.0-or-later
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
@@ -3319,17 +3319,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 
-### @napi-rs/lzma-linux-x64-gnu@1.5.1
-
-- License: MIT
-- Homepage: https://github.com/Brooooooklyn/lzma#readme
-
 ### @next/eslint-plugin-next@16.2.9
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.8
+### @next/swc-darwin-arm64@16.3.8
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -3354,7 +3349,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/SukkaW/nolyfill#readme
 
-### @rollup/rollup-linux-x64-gnu@4.62.4
+### @rollup/rollup-darwin-arm64@4.62.4
 
 - License: MIT
 - Copyright: Lukas Taegert-Atkinson
@@ -3375,7 +3370,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
 
-### @tailwindcss/oxide-linux-x64-gnu@4.3.0
+### @tailwindcss/oxide-darwin-arm64@4.3.0
 
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
@@ -3476,7 +3471,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://typescript-eslint.io
 
-### @unrs/resolver-binding-linux-x64-gnu@1.12.2
+### @unrs/resolver-binding-darwin-arm64@1.12.2
 
 - License: MIT
 - Homepage: https://github.com/unrs/unrs-resolver
@@ -4047,6 +4042,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Raynos
 - Homepage: https://github.com/Raynos/for-each
 
+### fsevents@2.3.3
+
+- License: MIT
+- Homepage: https://github.com/fsevents/fsevents
+
 ### function-bind@1.1.2
 
 - License: MIT
@@ -4509,7 +4509,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme
 
-### lightningcss-linux-x64-gnu@1.32.0
+### lightningcss-darwin-arm64@1.32.0
 
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme
@@ -4982,12 +4982,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/strip-json-comments#readme
 
-### supports-color@10.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/supports-color#readme
-
 ### supports-color@7.2.0
 
 - License: MIT
@@ -5109,7 +5103,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Gary Court
 - Homepage: https://github.com/garycourt/uri-js
 
-### vite@6.4.3
+### vite@6.4.4
 
 - License: MIT
 - Copyright: Evan You
