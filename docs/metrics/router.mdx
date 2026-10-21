@@ -17,7 +17,7 @@ The group header shows **backends reachable** as `N of M` whether or not the sec
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Requests | `router.backendRequests` | Requests the router forwarded to a backend in the interval |
+| Requests | `router.backendRequests` | Requests the router forwarded to a backend in the interval *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 | 5xx | `router.backendErrors5xx` | Responses in the 5xx class **from the container** |
 | Retries | `router.retries` | Times the router retried a request against another backend |
 
@@ -35,7 +35,7 @@ This is container time, measured from the router's side. Rising here while [Cadd
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| Backends up | `router.backendsUp` | Backend servers the router currently considers reachable |
+| Backends up | `router.backendsUp` | Backend servers the router currently considers reachable *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 | Backends total | `router.backendsTotal` | Backend servers configured |
 | Services | `router.servicesTotal` | Services (load-balanced backend groups) in the running configuration |
 | Routers | `router.routersTotal` | Routing rules in the running configuration |
