@@ -82,6 +82,28 @@ The **Connect** tab is the one place to read the endpoint from; never dial an en
 
 For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings-credentials--compose).
 
+### Giving a site the CA certificate [#site-ca]
+
+A binding hands the service the organization CA in one of two forms, so you never have to download it:
+
+| Variable | What it holds | Which service gets it |
+| --- | --- | --- |
+| `<PREFIX>_CA_CERT` | The certificate as text | A service that runs in a container |
+| `<PREFIX>_CA_FILE` | The path of a file that holds the certificate | A site that runs on the server itself, such as a PHP site |
+
+A site on the server gets a path rather than text because a web server mangles a value that spans several lines. TurboPanel writes the file into the site's `.turbopanel-hosting` folder, readable only by the site owner's Linux user, and refreshes it on every deploy. `<PREFIX>` is the key prefix of the binding, `DATABASE` by default.
+
+For example, a PHP app that asks for a CA file in its database settings can read the path from the variable:
+
+```php
+$caFile = getenv('DATABASE_CA_FILE');
+$pdo = new PDO($dsn, $user, $password, [
+    PDO::MYSQL_ATTR_SSL_CA => $caFile,
+]);
+```
+
+If the app's own settings page takes a plain path instead, open the binding in TurboPanel, read the value of `DATABASE_CA_FILE` and paste it there. The certificate is public, so the file holds no secret. See [Organization CA](/docs/security/organization-ca) for rotation.
+
 ### SSL modes
 
 | Mode                | Plaintext client refused? | What the connection string tells the driver |
