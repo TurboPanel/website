@@ -19,7 +19,8 @@ This page is for maintainers. The channels themselves are described under
 | ------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------ |
 | Squash-merge a change into `trunk`                                                   | Anyone with a green `ci-ok` | A **canary** `x.y.z-canary.N` is built and published                                             |
 | Merge **"Release Candidate x.y.z-rc.N"** (`trunk` → `staging`)                       | A maintainer                | `vx.y.z-rc.N` is published from that commit's canary; `staging` moves; **"Release x.y.z"** opens |
-| Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer                | `vx.y.z` becomes the latest release; `live` moves; the next canary is `x.y.z+1` by itself        |
+| Merge **"Release x.y.z"** (`staging` → `live`) and approve the `release` environment | A maintainer                | `vx.y.z` becomes the latest release; `live` moves; **"chore: start x.y.z+1"** opens              |
+| **"chore: start x.y.z+1"** merges itself into `trunk` once its checks pass           | Nobody (the bot)            | The committed version is the next patch; canaries are built again                               |
 
 The pull requests are opened and refreshed by a bot (the TurboPanel Release App), so their checks
 run. You never run a workflow by hand for a normal release.
@@ -46,40 +47,54 @@ candidate is replaced, not abandoned.
    gone through this exact path end to end; the plan is to drop it afterwards, so that merging
    **Release x.y.z** is the only act.
 
-Nothing else opens: the next canary is the next patch by itself.
+Right after the release the bot opens one more pull request, **chore: start x.y.z+1**, that
+bumps the committed version to the next patch. It merges itself once its checks pass (see below).
 
 The installer and the update system follow GitHub's _latest_ release, so the release is what a
 plain install gets from that moment.
 
 ## 3. The next number
 
-Version numbers come from git tags, not from a file, so no pull request moves them. Once
-`vx.y.z` is released, the next canary is `x.y.z+1-canary.1`, and the canary number starts again
-at 1 for every new version. The build writes that number into the binary (it reports plain
-`x.y.z`); the channel and the canary or candidate number live in the signed manifest.
+The git tags work out what the next version is: once `vx.y.z` is released, the next one is
+`x.y.z+1`. The version written in each repository's files (`package.json`, and `deno.json` or
+`app.json` where the repository has one) has to say the same thing.
+
+Right after each release the release bot opens a pull request titled **chore: start x.y.z+1**
+that changes those files to the next patch, and it merges itself once its checks pass. Until
+then, every canary build of that repository is refused with a message naming the file and the
+number it should hold, so nothing ships under the old number. (The website has no canary build;
+there the release candidate is refused instead.) If its checks fail, fix them, or close it and run the script yourself. To
+bump by hand, run `node scripts/set-version.mjs x.y.z+1` in a pull request.
+
+The first canary of a new version is `x.y.z+1-canary.1`, and the canary number starts again at 1
+for every new version. The build writes the version into the binary (it reports plain `x.y.z`);
+the channel and the canary or candidate number live in the signed manifest.
 
 ## Repositories ship independently
 
-The daemon (`turbopaneld`), the control plane (`turbopanel`), the web app (`ui`) and the
-website each have their own version and their own two merges. A daemon-only or a web-app-only
+The daemon (`turbopaneld`), the control plane (`turbopanel`), the web interface (`ui`) and the
+website each have their own version and their own two merges. A daemon-only or a web-interface-only
 release is normal: **no release waits on a matching release in another repository.** The website
 ships no binary, so its candidates and releases are notes-only tags on a commit.
 
 ## Starting a minor or a major
 
-A **patch** needs nothing. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the first is `1.0.0`) is
-the one deliberate step: run **Start Next Version** in the `turbopaneld` repository (Actions →
+A **patch** needs nothing from you: the **chore: start** pull request that opens after each release
+merges itself once its checks pass. A **minor** (`x.y.0`) or a **major** (`x.0.0`; the first is `1.0.0`) is the one
+deliberate step: run **Start Next Version** in the `turbopaneld` repository (Actions →
 _Start Next Version_ → _Run workflow_, pick `minor` or `major`). Only people with write access to
 that repository can run it. Tick **dry-run** first to see what each repository would get.
 
 This button is the only way to start a minor or a major. There is no label on a pull request that
-bumps the version, and no "Start x.y.z" pull request to merge.
+bumps the version.
 
 It pushes a `start/vx.y.0` tag at the head of `trunk` in `turbopaneld`, `turbopanel`, `ui` and
 the website, each one the next minor (or major) after that repository's own newest release, and
-re-runs each repository's trunk build. When those builds finish (about 25 minutes for the control
-plane), the canaries and the **Release Candidate** pull requests carry the new number. Running it
-twice is harmless: a repository already on that version is skipped.
+opens a **chore: start x.y.0** pull request in each repository that changes its files to the new
+number, and each one merges itself once its checks pass. Canaries of that repository are refused
+until its pull request merges; after that, the
+canaries and the **Release Candidate** pull requests carry the new number.
+Running it twice is harmless: a repository already on that version is skipped.
 
 After a start, every release of that repository carries the new number, a hotfix included, so
 start a minor only when everything on `trunk` may ship as it. A candidate that is already on
@@ -90,6 +105,8 @@ start a minor only when everything on `trunk` may ship as it. A candidate that i
 | What you see                                      | What to do                                                                                                                                                                                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The candidate pull request shows a failed `ci-ok` | Fix it on `trunk`; the pull request refreshes on the next green build                                                                                                                                |
+| A canary build says a file holds the wrong version | The **chore: start x.y.z** pull request has not merged yet. If its checks failed, fix them, or close it and run `node scripts/set-version.mjs x.y.z` in a pull request. The next green build on `trunk` makes a canary                               |
+| The **Publish Release Candidate** run says `package.json` holds the wrong version | The candidate pull request merged before the **chore: start x.y.z** pull request did: `staging` has moved but no candidate tag or release was made, and no **Release** pull request opens. Re-running that run fails the same way. Let **chore: start x.y.z** merge; the next green build on `trunk` opens a fresh candidate pull request, and merging it publishes the candidate |
 | The candidate run says it is waiting for a canary | The merged commit's canary is still building — the run waits up to 45 minutes. If a newer merge superseded it, re-run the **Publish Release Candidate** workflow (_Run workflow_, the commit to tag) |
 | The release run is waiting                        | Approve the `release` environment on the run page                                                                                                                                                    |
 | The automatic path cannot run at all              | Use the **Promote** workflow in that repository (`to=rc` with a canary, then `to=release` with the candidate tag). It is a break-glass form, not the normal path                                     |

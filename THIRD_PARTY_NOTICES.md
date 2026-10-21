@@ -6,8 +6,16 @@ Third-party components remain under their own copyright and license terms and ar
 
 This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material). It does not replace that file.
 
+## Bundled fonts
+
+The site serves these typefaces from `src/fonts/` (latin subset, variable weight, WOFF2) rather than fetching them at build time. Each is licensed under the SIL Open Font License 1.1; the full text ships in `LICENSES/`.
+
+- Plus Jakarta Sans (normal and italic) — Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) — `LICENSES/OFL-1.1-Plus-Jakarta-Sans.txt`
+- Geist — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist.txt`
+- Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
+
 <!-- lockfiles
-pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d415f1948
+pnpm-lock.yaml sha256:e78d58fe41705207f7494714baec85ee844644139688795ba6a35a8d1b4d5f8f
 -->
 
 ## Production dependencies
@@ -304,7 +312,7 @@ pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d41
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.3.6
+### @next/env@16.3.8
 
 - License: MIT
 - Copyright: Next.js Team
@@ -2414,7 +2422,7 @@ pnpm-lock.yaml sha256:fa01acacc659a11cc7e7f8c31502bb98ad1918b81e43d145bc6b467d41
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.3.6
+### next@16.3.8
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3321,7 +3329,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.6
+### @next/swc-linux-x64-gnu@16.3.8
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -5101,7 +5109,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Gary Court
 - Homepage: https://github.com/garycourt/uri-js
 
-### vite@6.4.3
+### vite@6.4.4
 
 - License: MIT
 - Copyright: Evan You

@@ -16,7 +16,7 @@ export type ActivePage =
   | 'changelog'
   | 'terms'
   | 'privacy'
-  | 'acceptable-use'
+  | 'aup'
 
 type SiteHeaderProps = Readonly<{
   active?: ActivePage

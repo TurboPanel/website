@@ -12,7 +12,7 @@ The TurboPanel **daemon** ([turbopaneld](https://github.com/TurboPanel/turbopane
 ### Purpose
 
 - Connect to the control plane control plane as a remote daemon
-- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, control plane, web app)
+- Run Ansible playbooks (installs, upgrades, Postgres, Caddy, control plane, web interface)
 - Apply dev-sync pushes and Cloudflare tunnel tokens from the control plane
 - Report server identity (`serverId`, `hostname`, `machineId`) on WebSocket `hello`
 
@@ -70,6 +70,8 @@ Full table: [Control plane](/docs/deployment/control-plane#control-plane-listene
 | Raspberry Pi OS **64-bit**   | `aarch64` (arm64) | Supported on 64-bit images only |
 
 **Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during Ansible provisioning with an explicit architecture error.
+
+A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel by default; apps that use managed databases need a 4 KiB kernel. On such a Pi the installer switches it as its last step on a first install (opt out with `TURBOPANEL_SKIP_KERNEL_SWITCH=1`): it records whether the server was already enrolled, waits for fresh enrolment files, then restarts. On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this. On a server that is already installed, run `sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-4k-pagesize --reboot`. See [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
 
 ### Remote managed server (production installer)
 
@@ -187,7 +189,10 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 | Vendored runtimes (deno/uv/python/ansible/cloudflared)      | `/opt/turbopanel/vendor`              |
 | Config (`daemon.env`, `instance-ca.pem`)                    | `/etc/turbopanel`                     |
 | Persistent identity (license, `server.id`, keys, tunnels)   | `/var/lib/turbopanel`                 |
+| Rebuildable caches                                          | `/var/cache/turbopanel`               |
 | Logs                                                        | `/var/log/turbopanel`                 |
+| Backups (managed, volumes, panel)                           | `/backup`                             |
+| Hosting Account files                                          | `/srv/users/<owner>`                  |
 | Runtime (sockets, `daemon.lock`)                            | `/run/turbopanel`                     |
 
 - User `tp:tp` (UID/GID 9999). Its sudo rule is limited to three root commands, without a password: the host helper (`/opt/turbopanel/lib/tp-host`), the orchestration runner, and the web-engine config checks. `tp` is also in the `docker` group, and Docker access is root-equivalent, so treat the `tp` account as equivalent to root on that host.
@@ -213,7 +218,7 @@ Runtime config: `/etc/turbopanel/daemon.env` (`EnvironmentFile=` on `turbopaneld
 | `TURBOPANEL_INSTANCE_URL`   | HTTPS base URL of the control plane (remote servers)                     |
 | `TURBOPANEL_INSTANCE_CA`    | Platform CA PEM path for TLS (default `/etc/turbopanel/instance-ca.pem`) |
 | `TURBOPANEL_UPDATE_CHANNEL` | Release channel for manual updates and UI updates (`release` default)    |
-| `TURBOPANEL_DEV_INSTANCE`   | `1` for co-located dev (Ansible installs control plane/web app)          |
+| `TURBOPANEL_DEV_INSTANCE`   | `1` for co-located dev (Ansible installs control plane/web interface)          |
 
 Co-located socket mode omits `TURBOPANEL_INSTANCE_URL` and dials `unix:///run/turbopanel/instance.sock`. On a
 self-hosted control plane that is the daemon the control plane installer provisions: it starts before the wizard has

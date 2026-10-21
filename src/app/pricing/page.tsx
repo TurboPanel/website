@@ -1,4 +1,3 @@
-import { MarketingControlPlaneCta } from '@/components/marketing/MarketingControlPlaneCta'
 import { MarketingSecondaryCta } from '@/components/marketing/MarketingPrimaryCta'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingPageShell } from '@/components/marketing/MarketingPageShell'
@@ -45,7 +44,7 @@ const COST_OF_OWN = [
  * Planned per-server tier ladder for TurboPanel High Availability. Values
  * mirror the control-plane catalogue (`turbopanel/src/features/tiers/ladder.ts`
  * + `src/features/tiers/tier-placement.ts`). Informational only — see
- * `AGENTS.md` → Pricing: the CTA stays the waitlist, never a purchase path.
+ * `AGENTS.md` → Pricing: never a purchase path.
  */
 const TIERS = [
   { tier: 'S1', machine: 'Up to 4 cores / 16 GB', price: '$5.00', example: 'A small VM, 4 cores and 16 GB' },
@@ -69,16 +68,21 @@ const PLACEMENT_RULES = [
     detail:
       'Extra devices never block access. Each tier watches a set number of NICs, drives, and GPUs; anything beyond that goes unwatched and you get a daily note saying which devices, and which tier would cover them.',
   },
+  {
+    title: 'Default assignment, with an owner pick when you need one.',
+    detail:
+      'By default each server lands on the smallest purchased tier that fits, in bind order. Organization owners can pick any tier at or above what the hardware requires when a spare license exists at that tier or the smallest tier above it.',
+  },
 ] as const
 
 const FAQ = [
   {
     q: 'What am I paying for on TurboPanel High Availability?',
-    a: 'TurboPanel High Availability is in private alpha and not yet publicly available. Join the waitlist and we will reach out as access opens, with a control plane that runs on a global edge network — fast and always on — plus accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
+    a: 'TurboPanel High Availability is in private alpha and not yet publicly available. When access opens, you get a control plane that runs on a global edge network — fast and always on — plus accounts, deployment tools, and your first connected server. Your workload servers stay completely yours.',
   },
   {
     q: 'How is a server placed on the S1–S7 ladder?',
-    a: 'By the machine, not by a feature list. Physical cores and RAM set the tier a server needs — that part is a hard floor, and a license below it cannot enroll that server. NICs, drives, and GPUs only raise the recommended tier: a server with more devices than its tier watches still connects, and you get a daily note listing what is unwatched. Prices are planned; nothing is purchasable during the private alpha.',
+    a: 'By the machine, not by a feature list. Physical cores and RAM set the tier a server needs — that part is a hard floor, and a license below it cannot enroll that server. NICs, drives, and GPUs only raise the recommended tier: a server with more devices than its tier watches still connects, and you get a daily note listing what is unwatched. By default TurboPanel assigns the smallest purchased tier that fits, in bind order; organization owners can also pick a tier at or above required when spare licenses exist. Prices are planned; nothing is purchasable during the private alpha.',
   },
   {
     q: 'When does self-hosted still make sense?',
@@ -111,12 +115,9 @@ export default function PricingPage() {
       <MarketingHero
         eyebrow="Pricing · Private alpha"
         title="We run the panel. You run what matters."
-        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. Join the waitlist for a control plane that lives on a global edge network — we run the panel, you connect servers and ship."
+        description="TurboPanel High Availability and self-hosted are both in private alpha and not yet publicly available. TurboPanel High Availability will run the control plane on a global edge network — we run the panel, you connect servers and ship."
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingControlPlaneCta path="/sign-up" emphasis>
-            Join the waitlist
-          </MarketingControlPlaneCta>
           <MarketingSecondaryCta href="/docs/getting-started/introduction">How it works</MarketingSecondaryCta>
         </div>
       </MarketingHero>
@@ -133,7 +134,7 @@ export default function PricingPage() {
               </span>
             </div>
             <p className="tp-display mt-4 text-4xl font-semibold tracking-tight text-[var(--tp-text)]">
-              Join the waitlist
+              Coming soon
             </p>
             <p className="mt-1 text-sm text-[var(--tp-text-muted)]">
               Planned S1–S7 pricing is published below. Nothing is purchasable during the private alpha.
@@ -145,9 +146,6 @@ export default function PricingPage() {
             </p>
             <PlanFeatureList items={HIGH_AVAILABILITY_FEATURES} />
             <div className="mt-8 flex flex-wrap gap-3">
-              <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-                Join the waitlist
-              </MarketingControlPlaneCta>
               <MarketingSecondaryCta href="/docs/api" className="px-5">
                 API reference
               </MarketingSecondaryCta>
@@ -261,17 +259,14 @@ export default function PricingPage() {
         <div className="rounded-2xl border border-[var(--tp-accent)]/30 bg-[var(--tp-surface)] px-6 py-8 sm:px-10 sm:py-10">
           <p className="tp-eyebrow">Default to TurboPanel High Availability</p>
           <h2 className="tp-section-title mt-4 max-w-2xl">
-            Join us before general availability.
+            Getting ready for general availability.
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--tp-text-muted)]">
-            Join the waitlist to hear when access opens, connect your first server, and deploy in
+            When access opens, connect your first server and deploy in
             minutes. Self-host it when you need to; let us run it when you don&apos;t. Self-hosted is
             coming too — free with unlimited servers, also in private alpha.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <MarketingControlPlaneCta path="/sign-up" emphasis={false} className="px-5">
-              Join the waitlist
-            </MarketingControlPlaneCta>
             <MarketingSecondaryCta href="/roadmap" className="px-5">
               See the roadmap
             </MarketingSecondaryCta>

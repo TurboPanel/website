@@ -11,7 +11,7 @@ This group is one chart per hardware sensor the daemon trusts enough to export: 
 
 **Fan is not in the sensor catalogue.** The read path never implemented fan RPM as a metric, so v6 removed the slot entirely rather than carry an empty one; there is no RPM chart. Fan *faults* are a separate mechanism — [`fan_fault` and `fan_alarm` events](/docs/metrics/events#fan_fault) — and are unaffected.
 
-The physical-host plan allows up to 19 signals (11 on the entry tier). A physical host with no working sensors still emits nothing — expected, not an error.
+A physical host reports up to 19 signals, on every plan. A physical host with no working sensors still emits nothing — expected, not an error.
 
 ## The reading [#value]
 

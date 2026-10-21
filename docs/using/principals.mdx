@@ -1,0 +1,144 @@
+---
+title: Principals
+description: The named accounts your sites, services and database logins run as — what a principal is, its two forms, how names work, placing one on several servers, and what removing one does
+---
+
+# Principals
+
+A **principal** is a named account that belongs to your organization, not to one server. It appears in two forms:
+
+- as a **system user** — a Hosting Account, with its home under `/srv/users/<system name>`, on every server where its sites and services run;
+- as a **database login** on a managed database cluster, with the same name.
+
+The name never changes. Passwords and SSH keys can be changed or removed without changing who the principal is. Services run as a principal, its files belong to it, and a database login shows which principal uses it.
+
+The app shows the two forms with the words it already uses, **system user** and **database login**; this chapter uses *principal* for the identity behind both. The compose key (`x-turbopanel.principals`) and the API (`/projects/:projectId/principals`) use the same word.
+
+<Callout title="What is live today">
+Everything on this page ships with the next release, and one part is still partial. In the app, a database login's name is still typed when you create it; linking a new login to an existing principal is available through the API (`principalId` when you create a managed database user) but the app does not offer it yet. The **Principals** tab on a server is a read-only list. The numeric user id is chosen once for a new principal and reused on every server; a Linux user that already exists on a server keeps the id it has. The steps below use the panels that exist in the app: **System users** on a project's **Bindings** tab and **Users & databases** on a managed database's **Data** tab, plus the **Principals** tab under **Manage organization** to see every principal and delete one that no project owns any more.
+</Callout>
+
+## The model
+
+**One name pool per organization.** A name is taken by either form: once a system user or a database login has it, nothing else in the organization can. A database login created for a principal shares that principal's name — that is the one allowed overlap, because it is the same principal. A second login on the same cluster is a second principal with its own name.
+
+**Two names, one identity.** Every principal has the **display name** you typed and the **system name** the server or database engine actually sees, derived by the organization's [name scheme](/docs/using/managed-databases#name-schemes) when the principal is created. Neither is ever renamed. The home directory, the Linux login and the database login all use the system name.
+
+**Services run as a principal.** A site or Node app runs as its system user; files it writes belong to that user; storage entries assigned to it live under its home. A compose service that binds a managed database connects as a database login. A principal with no password and no SSH key still exists and still owns its files; credentials are for people, not for the services.
+
+**One principal, several servers.** A principal can be placed on every server its project deploys to. Each server gets its own Linux user with the same name. TurboPanel does not copy files between servers: a site deployed to two servers has two home directories, and what one writes the other does not see. Shared storage for load-balanced sites is planned.
+
+**Removal is always its own action.** Deleting a project never deletes its principals. Removing a principal is a separate step, and it is refused while a service, a database binding or a storage entry still uses it. Removing a server asks, per principal placed there, whether to **keep the identity** (the default — the principal stays in the organization and is removed from that server only) or **delete it outright**, which is refused while anything else still uses it.
+
+## Before you begin
+
+- **Manage** rights on the project (for a system user) or on the managed database project (for a database login).
+- For a system user: a project with at least one environment deployed to a server. The Linux user is created on the server at the next deploy of a service that runs as it.
+- For a database login: a running managed database cluster ([Managed databases](/docs/using/managed-databases)).
+- Pick the name with care; it cannot be changed later. Under the default `partial` scheme the typed name is at most 16 characters.
+
+## Create a system user
+
+<Steps>
+  <Step>
+    Open the project, then the **Bindings** tab. The **System users** panel lists the project's principals with their access level.
+  </Step>
+  <Step>
+    Under **Add system user**, type the username and, if the organization allows it, pick a **Name scheme**. **Add** creates the record. The system name is derived once and shown under the display name.
+  </Step>
+  <Step>
+    Expand the user's row to set **Access**: **No access** (the account runs services and owns files; nobody can sign in as it), **Files only** (SFTP, no shell) or **Shell** (SSH and SFTP).
+  </Step>
+  <Step>
+    **Add key** attaches an SSH public key with a **Key name**; **Remove** detaches one. **Enable** sets a password (leave the field empty to have one generated and shown once); **Rotate** replaces it; **Disable** removes it.
+  </Step>
+  <Step>
+    Assign a service to the user, or name its alias in the compose document ([Compose](/docs/using/compose#at-the-document-root)). The next **Deploy** creates the Linux user, with its home under `/srv/users/<system name>`, on every server the environment deploys to.
+  </Step>
+</Steps>
+
+A system user declared in a compose document under `x-turbopanel.principals` is created for you on the first deploy, using the organization's default name scheme. It then appears in the same panel and is managed the same way.
+
+## Create a database login
+
+<Steps>
+  <Step>
+    Open the managed database project, then the **Data** tab. The **Users & databases** panel lists the cluster's logins and databases.
+  </Step>
+  <Step>
+    **Create user**: a **Username**, a **Name scheme** if the organization allows one, a **Connection role** (**Read/write** or **Read-only**) and the **Databases** it may use. The password is shown once.
+  </Step>
+  <Step>
+    Connect a service to it on the **Connect** tab, under **Connected services** ([Users and databases](/docs/using/managed-databases#users-and-databases)).
+  </Step>
+</Steps>
+
+A database login is scoped to its cluster: it is created on every member of the cluster and goes when the cluster is destroyed. **Rotate password** replaces its password and updates every binding that delivers it.
+
+## Remove a principal
+
+- **System user**: **Delete** on its row in the **System users** panel. Remove it from every service that runs as it and from every storage entry assigned to it first. From the next release the app refuses the delete while something still uses the principal and retires the Linux user on every server; today it removes the record only.
+- **Database login**: **Delete** on its row in **Users & databases**. It is refused while a binding still delivers the login to a service (`managed_user_has_bindings`); sever the binding first. The cluster's root and replication logins cannot be deleted.
+- **Project delete**, from the next release, leaves the project's principals in the organization: site directories and services go with the project, the identity does not. Today the principals go with the project.
+
+## Reference
+
+### The two forms
+
+| Form | Where it lives | Created by | Credentials |
+| --- | --- | --- | --- |
+| System user | A Linux user on each server the project deploys to; home `/srv/users/<system name>` | **Add system user**, or a compose `principals` alias on first deploy | Access level, SSH keys, optional password |
+| Database login | A login on one managed database cluster, present on every member | **Create user** on the cluster's **Data** tab | Password (shown once, rotatable), connection role |
+
+### Names
+
+| Rule | Value |
+| --- | --- |
+| Allowed characters | A letter or `_` first, then letters, digits, `_` and `-` |
+| Typed name under `partial` | At most 16 characters (the system name adds `_` and 11 random characters) |
+| Linux login (system name) | At most 28 characters |
+| Database login (system name) | Within the engine's identifier limit; the Linux limit is the tighter one, so one name fits both forms |
+| Reserved | System account names, anything starting with `tp`, names ending in `-grp`, `systemd-*`; a cluster also refuses `postgres`, `root`, `mysql` and `superadmin` |
+| Uniqueness | One pool per organization across both forms, compared without regard to case (today each form is checked on its own) |
+
+### Access levels
+
+| Level | Meaning |
+| --- | --- |
+| **No access** | The account runs services and owns files. No SFTP, no SSH. |
+| **Files only** | SFTP into the home directory; no shell. |
+| **Shell** | SSH and SFTP. |
+
+### On the server
+
+| Item | Value |
+| --- | --- |
+| Home | `/srv/users/<system name>/home` |
+| Files for services and volumes | `/srv/users/<system name>/<environment>/services/…` and `…/volumes/…`, plus `common/` for shared assets. See [Where your files live](/docs/using/files-and-folders). |
+| User id | Chosen from 15001–60000; today each server picks its own |
+| Shared storage | Not yet; each server holds its own copy of the home directory |
+
+## Errors
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `username_in_use` | 409 | Another system user in the organization, or another login on the organization's clusters, already has the name. |
+| `username_reserved` | 400 | The system user's name is a reserved system account name. |
+| `username_too_long` | 400 | The typed name is too long for the chosen scheme or the Linux limit. |
+| `principal_scheme_locked` | 409 | The organization locks the name scheme and the request asked for a different one. |
+| `invalid_access`, `invalid_service_ids` | 400 | `access` is not `none`, `sftp` or `shell`, or a service id does not belong to the project. |
+| `invalid_public_key` | 400 | The SSH public key could not be parsed. |
+| `ssh_key_limit`, `ssh_key_duplicate` | 409 | The account already has 64 SSH keys, or already has that key. |
+| `invalid_password` | 400 | Password outside 8–128 characters, or containing control characters. |
+| `managed_user_exists` | 409 | A login with that name already exists on this cluster. |
+| `managed_user_has_bindings` | 409 | A binding still delivers the login to a service. |
+| `cannot_drop_root_user`, `cannot_rotate_replication_user`, `use_root_password_route` | 400 | The cluster's own logins cannot be deleted or rotated here; rotate root from the **Credentials** panel (**Rotate password**). |
+
+## Related
+
+- [Compose](/docs/using/compose#at-the-document-root) — declaring the system users a document's services run as.
+- [Managed databases](/docs/using/managed-databases#users-and-databases) — logins, databases, connection roles and name schemes.
+- [Storage and variables](/docs/using/storage-and-variables) — storage entries assigned to a system user.
+- [Where your files live](/docs/using/files-and-folders) — the folders on the server, how they are named and when a name is locked.
+- [Errors](/docs/using/reference/errors#system-users-principals) — every refusal code in one place.
+- [Terminology](/docs/getting-started/terminology) — the names TurboPanel uses for its parts.

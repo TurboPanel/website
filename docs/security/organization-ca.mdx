@@ -41,7 +41,7 @@ Operators and apps retrieve the Organization CA as **PEM text**, never as a priv
 | API | `GET /api/client/v1/tls/ca/download` |
 | Bindings | Materialized `<PREFIX>_CA_CERT` environment variable (PEM text; the consuming app writes it to a file if the driver requires a path) |
 
-The download is the **trust bundle**: the active generation plus any retired generation still in overlap. Private keys never cross the client API.
+The download is the **trust bundle**: the active generation plus any retired generation still in overlap. It saves as `turbopanel-org-ca-<organization id>.pem`, so bundles from several organizations don't overwrite each other. Private keys never cross the client API.
 
 ## Rotation runbook
 
@@ -66,7 +66,9 @@ the cost depends on which key it was.
 | An **Organization CA private key** | Rotate immediately, then retire the old generation as soon as overlap converges | Same fan-out, but the old generation must not linger in the bundle: while it does, anything signed by the leaked key is still trusted. |
 | The **Platform CA** | The daemon trust model's own rotation — see [Daemon trust model](/docs/security/daemon-trust-model) | Every daemon re-trusts; do not retire before every server has converged. |
 
-CA roots are minted for **10 years** and leaves for **90 days**. The long root
+CA roots are minted with an **ECDSA P-384** key for **15 years**, and leaves for **90 days**.
+An organization whose CA was minted earlier (RSA 2048, 10 years) keeps it until
+it is rotated. The long root
 is what makes retire-after-overlap safe; the short leaf is what bounds a leak
 you have not noticed yet.
 

@@ -24,7 +24,7 @@ A connected Linux daemon posts one sample about every **60 seconds**. The first 
 
 Live-mode samples are streamed to the chart and never stored: once the lease ends, history for that window is the normal one-minute data. Every chart group is collected on every sample — there is no slower cadence for any group.
 
-Charts are not wall-clock real time below that ~60 second baseline. A gap in the line is a **missing sample**, not zero usage — amber bands mark those holes. A solid vertical divider is a **topology change** (a NIC, disk, GPU, or sensor was added, removed, or replaced). The line breaks there on purpose so two different devices never look like one continuous trend.
+Charts are not wall-clock real time below that ~60 second baseline. A gap in the line is a **missing sample**, not zero usage — amber bands mark those holes. A device that was added, removed, or replaced (a NIC, disk, GPU, or sensor) starts or ends its own line: each device's readings are stored under its own id, so two different devices never look like one continuous trend.
 
 Metrics are Linux-only. A non-Linux server shows an unsupported-OS state instead of empty charts.
 
@@ -165,4 +165,4 @@ Per-device charts (GPU, extra NICs, filesystems, block devices, sensors, ingress
 
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, storage backends, cost model
 - [Metrics operations](/docs/deployment/metrics) — retention, capability plan, troubleshooting
-- [License tiers](/docs/deployment/tiers) — what each tier watches, and why S1 shows a Docker notice
+- [License tiers](/docs/deployment/tiers) — what each tier watches
