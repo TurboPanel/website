@@ -46,7 +46,7 @@ The **Uptime** tile is not a plotted series. It is time this server was connecte
 
 ## A chart is missing
 
-Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. No group is hidden by license tier: Docker metrics are on every plan. Self-hosted servers see every group their hardware supports. **Host health** (processes killed for memory, process limit, root disk queue, failed services, RAID, soonest TLS expiry) and the **About this host** card appear once the daemon is new enough to report them.
+Most groups only appear when that hardware or sidecar exists on the host. A VM with no GPU has no GPU charts, and no Physical signals group at all. A host whose kernel does not export Pressure Stall Information has no PSI charts. **CPU detail** and **Memory detail** are reported by every Linux host at every tier — they are not a capability to enable. No group is hidden by license tier: Docker metrics are on every plan. Self-hosted servers see every group their hardware supports. **Host health** (processes killed for memory, process limit, root disk queue, failed services, RAID, container health) and the **About this host** card are recorded already but are not in the web interface yet; see [Everything TurboPanel tracks](/docs/metrics/reference#coming).
 
 Empty is not the same as zero. A metric the host cannot measure stays blank; a metric that is legitimately zero (no swap configured, no retransmits) plots at 0%.
 
@@ -87,6 +87,7 @@ PSI needs a kernel that exports `/proc/pressure/` (mainstream Linux since 4.20; 
 ## Catalog
 
 <Cards>
+  <Card title="Everything TurboPanel tracks" description="The full inventory: every reading by group, with units, how often it is read, how long it is kept, and where you see it" href="/docs/metrics/reference" />
   <Card title="CPU" description="Busy modes, PSI, saturated cores, processes, and CPU diagnostics" href="/docs/metrics/cpu" />
   <Card title="Memory" description="Used vs cached, swap, PSI, paging, and memory diagnostics" href="/docs/metrics/memory" />
   <Card title="Storage" description="I/O PSI, disk throughput and latency, root filesystem" href="/docs/metrics/storage" />
@@ -164,5 +165,6 @@ Per-device charts (GPU, extra NICs, filesystems, block devices, sensors, ingress
 ## Related
 
 - [Server metrics architecture](/docs/architecture/server-metrics) — contract, storage backends, cost model
+- [Everything TurboPanel tracks](/docs/metrics/reference) — the full inventory of readings, events and host facts
 - [Metrics operations](/docs/deployment/metrics) — retention, capability plan, troubleshooting
 - [License tiers](/docs/deployment/tiers) — what each tier watches
