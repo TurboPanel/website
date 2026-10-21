@@ -145,7 +145,7 @@ sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i l
   instance-rollback.yml
 ```
 
-The dump, the `/etc/turbopanel` tarball, and `meta.json` are under `/backup/control-plane/<upgrade id>/` (`TURBOPANEL_BACKUP_DIR` when that is set). The playbook restores the `.prev` builds and restores the database only when the migration fingerprint changed. The newest three attempts are kept.
+The dump, the `/etc/turbopanel` tarball, and `meta.json` are under `/backup/panel/<upgrade id>/` (`TURBOPANEL_BACKUP_DIR` when that is set). The playbook restores the `.prev` builds and restores the database only when the migration fingerprint changed. The newest three attempts are kept.
 
 If the co-located daemon is too old to take that backup (`managed-upgrade-v1` missing), update only the daemon with a pinned manifest — [Upgrade and rollback](/docs/deployment/upgrade). That command does not install the control plane.
 

@@ -14,7 +14,7 @@ const FOOTER_LINKS = [
   { href: '/about/logo', label: 'Logo & brand' },
   { href: '/terms', label: 'Terms' },
   { href: '/privacy', label: 'Privacy' },
-  { href: '/acceptable-use', label: 'Acceptable use' },
+  { href: '/aup', label: 'Acceptable use' },
 ] as const
 
 export function SiteFooter() {

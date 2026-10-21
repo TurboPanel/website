@@ -180,7 +180,7 @@ Time sync is healthy again after [clock sync lost](#clock_sync_lost).
 
 ### Topology generation changed [#topology_generation_changed]
 
-The daemon's enumerated set of NICs, disks, GPUs, filesystems, or sensors changed shape. Charts draw a vertical divider here so two different devices never look like one line.
+The daemon's enumerated set of NICs, disks, GPUs, filesystems, or sensors changed shape. The event marks the moment; charts keep each device's readings under its own id, so two different devices never share a line.
 
 ### Boot generation changed [#boot_generation_changed]
 

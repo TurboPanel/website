@@ -28,7 +28,7 @@ Stacked counts in the interval:
 
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
-| 2xx | `ingress.responses2xx` | Success |
+| 2xx | `ingress.responses2xx` | Success *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 | 3xx | `ingress.responses3xx` | Redirects |
 | 4xx | `ingress.responses4xx` | Client errors (auth, not found, bad request) |
 | 5xx | `ingress.responses5xx` | Server / upstream errors, as the client saw them |

@@ -59,9 +59,9 @@ Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is
 
 A storage entry's copy can be backed up on a schedule or on demand, and restored from any of its backups. **This is API-only today: the app has no screen for it yet.** (Managed databases have the app's Backups tab: see [Managed databases](/docs/using/managed-databases#backups).)
 
-**What can be backed up.** A copy on a server of your own that is either a **Docker volume** (`docker` provider), or a **host directory** (`path` provider) under `/srv/users/` (a system user's volumes) or under the server's own default storage directory. Copies on remote providers (NFS, S3 and the like), `file` and `object` entries, and copies with no server are refused with `backup_target_unsupported`. Only organization **owners** and **managers** may back up or restore.
+**What can be backed up.** A copy on a server of your own that is either a **Docker volume** (`docker` provider), or a **host directory** (`path` provider) in a system user's `volumes/` folder under `/srv/users/` (see [Where your files live](/docs/using/files-and-folders)) or under the server's own default storage directory. Copies on remote providers (NFS, S3 and the like), `file` and `object` entries, and copies with no server are refused with `backup_target_unsupported`. Only organization **owners** and **managers** may back up or restore.
 
-**How a backup is made.** A live archive: the data is read while the app keeps running, so nothing is paused or stopped and nothing is down. A database or other file that is being written at that moment can be captured mid-write, so for data like that prefer a managed database or take the backup while the app is quiet. The server archives the copy in a short-lived helper container with no network access that mounts the data read-only, writes a `.tar.gz` file under its backup directory (`/backup`, or the directory set with `TURBOPANEL_BACKUP_DIR`), and records its size and SHA-256 checksum. Backups stay on that server's own disk, so they do not protect against losing the server.
+**How a backup is made.** A live archive: the data is read while the app keeps running, so nothing is paused or stopped and nothing is down. A database or other file that is being written at that moment can be captured mid-write, so for data like that prefer a managed database or take the backup while the app is quiet. The server archives the copy in a short-lived helper container with no network access that mounts the data read-only, writes a `.tar.gz` file under `volumes/<copy id>/` in its backup directory (`/backup`, or the directory set with `TURBOPANEL_BACKUP_DIR`; the app stores the path relative to that directory), and records its size and SHA-256 checksum. Backups stay on that server's own disk, so they do not protect against losing the server.
 
 All of these are under `/api/client/v1/storage/{id}/copies/{copyId}`:
 
@@ -194,6 +194,7 @@ The same list is `nativeAppVariables` in the answer of `GET /environments/:id/de
 ## Related
 
 - [Writing compose](/docs/using/compose) — the document that references all of this.
+- [Where your files live](/docs/using/files-and-folders) — where a Directory entry sits on the server and when its name is locked.
 - [Deploying and running an environment](/docs/using/deploy) — the prepared preview that shows the resolved `.env` and secret paths.
 - [Managed databases](/docs/using/managed-databases) — where binding-owned variables come from.
 - [Storage architecture](/docs/architecture/storage-architecture) — the platform's storage classes underneath.

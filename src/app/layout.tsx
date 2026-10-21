@@ -1,18 +1,24 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { plusJakartaSans } from '@/lib/plus-jakarta-sans-font'
 import './globals.css'
 import { ClientRootProvider } from '@/components/ClientRootProvider'
 import { Providers } from '@/components/Providers'
 import { StickySiteChrome } from '@/components/StickySiteChrome'
-const geistSans = Geist({
+const geistSans = localFont({
+  src: '../fonts/geist-latin-wght-normal.woff2',
+  weight: '100 900',
+  style: 'normal',
   variable: '--font-geist-sans',
-  subsets: ['latin'],
+  display: 'swap',
 })
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: '../fonts/geist-mono-latin-wght-normal.woff2',
+  weight: '100 900',
+  style: 'normal',
   variable: '--font-geist-mono',
-  subsets: ['latin'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {

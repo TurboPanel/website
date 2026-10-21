@@ -9,11 +9,11 @@
 
 **Two-plan comparison + informational tier ladder**, in this order:
 
-1. Hero — HA slogan (*We run the panel. You run what matters.*) + one waitlist CTA
+1. Hero — HA slogan (*We run the panel. You run what matters.*) + docs link (no waitlist CTA)
 2. Plan cards — TurboPanel High Availability (green accent) beside Self-hosted (blue accent); both carry the **Private alpha · Not yet available** badge
 3. **Tier ladder** — the S1–S7/SX table for TurboPanel High Availability (see below)
 4. Total cost of ownership — bordered comparison table
-5. Closing band — waitlist CTA + roadmap link
+5. Closing band — roadmap link
 6. FAQ — two-column definition list
 
 ## Tier ladder (the one place with dollar figures)
@@ -28,8 +28,8 @@ The ladder is **planned pricing, not a purchase flow**. `AGENTS.md` → *Pricing
 | Tier cell | Mono tier label (`S1`…`SX`) in `--tp-green` — the HA accent, because the ladder belongs to the HA offering only |
 | Scope | Placed directly under the plan cards with an eyebrow that names **TurboPanel High Availability**. Never imply it applies to self-hosted (that card stays *Free*) |
 | Badge | The section header repeats **Private alpha · Not yet available** as a chip beside the eyebrow |
-| Placement rules | A two-item list beneath the table: **cores and RAM are a hard floor** (physical cores only); **NICs, drives, GPUs only raise the recommended tier** and never block access |
-| CTA | None inside the section. No "Buy", "Subscribe", "Choose", or "Start on Sn" affordances anywhere near the table. The page's only CTAs remain `Join the waitlist` + secondary docs links |
+| Placement rules | A three-item list beneath the table: **cores and RAM are a hard floor** (physical cores only); **NICs, drives, GPUs only raise the recommended tier** and never block access; **default assignment** is smallest purchased tier that fits in bind order, while organization owners can **pick** any tier at or above required on a server when spare licenses exist |
+| CTA | None inside the section. No "Buy", "Subscribe", "Choose", or "Start on Sn" affordances anywhere near the table. The page's only CTAs are secondary docs/roadmap links; no waitlist or sign-up CTA |
 | Responsive | Table scrolls horizontally inside `overflow-x-auto` below `sm`; the page body never scrolls sideways |
 
 ## Typography
