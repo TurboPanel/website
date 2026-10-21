@@ -2,6 +2,7 @@
   "title": "Server metrics",
   "pages": [
     "index",
+    "reference",
     "cpu",
     "memory",
     "storage",
