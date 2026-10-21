@@ -22,7 +22,7 @@ This is the complete list of what a TurboPanel server reports about itself: each
 | **Where it is stored** | Each table has a **Kept on** column. **Both** means TurboPanel High Availability and Self-hosted keep the reading in history. **Self-hosted only** means the reading is recorded in history only on a self-hosted control plane; on TurboPanel High Availability it appears in the live view but is empty in history. |
 | **Plans** | Every group on this page is collected on every plan, Docker included. A plan never switches a metric on or off. Because a server's box size sets how many network interfaces, drives, GPUs and extra filesystems are watched on TurboPanel High Availability, a server with more of them than that has the extra devices reported as unwatched. Self-hosted watches every device it finds. See [License tiers](/docs/deployment/tiers). |
 | **Sizes** | Every minute sample carries the sizes its percentages are measured against ([below](#sizes)), so a resize or a memory balloon shows up as a step, not as a wrong percentage. |
-| **Limits on a server** | A sample may carry at most **16 events**; the 16 most severe are kept and the daemon sends the rest in the next sample. A sample dated more than 5 minutes away from the control plane's clock, in either direction, is refused. |
+| **Limits on a server** | A sample may carry at most **16 events**; the 16 most severe are kept and the rest are held for the next sample (up to 64 extra events are carried; beyond that they are dropped). A sample dated more than 5 minutes away from the control plane's clock, in either direction, is refused. |
 | **Coming** | A stored-sample check (exactly one per minute per server), a limit of 120 events an hour, a tighter 60 second bound on samples dated in the future, and a 5 GiB cap on the self-hosted metrics store are written but not released yet. They are listed under [Coming](#coming). |
 
 ## What “Not reported” means [#not-reported]
@@ -121,7 +121,7 @@ Read every minute unless noted. Detail: [Storage](/docs/metrics/storage), [Files
 | Each extra (non-root) filesystem: available bytes, free inodes, size, inode total | bytes, count | Both | [Filesystems](/docs/metrics/filesystems) |
 | Per drive: read speed, write speed, operations, read latency, write latency, queue depth | bytes per second, per second, milliseconds, count | Both. With a single drive the whole-host figures above are the drive's figures, so this group appears with two or more drives | [Block devices](/docs/metrics/block-devices) |
 | Per drive: busy percent (utilization) | percent | Self-hosted only | [Block devices](/docs/metrics/block-devices) |
-| Per drive: model, firmware and SMART verdict (text, refreshed every 30 minutes) | text | Both (hosted history only for the text) | Coming; see [Coming](#coming) |
+| Per drive: model and SMART verdict (text, refreshed every 30 minutes) | text | Both (hosted history only for the text) | Coming; see [Coming](#coming) |
 | Software-RAID arrays degraded | count | Both | Not charted yet; see [Coming](#coming). A degraded array also raises an [event](/docs/metrics/events#raid_degraded) |
 | Software-RAID arrays resyncing | count | Self-hosted only | Not charted yet |
 | Read-only filesystems, RAID state (text, refreshed every 5 minutes) | text | Hosted history only | Coming |
@@ -291,7 +291,7 @@ Events are things that happened at a moment: an out-of-memory kill, a disk fault
 Checks run at different rhythms: most on every sample, hung tasks every 2 minutes, clock sync every 5 minutes, drive SMART every 10 minutes.
 
 - **Kept:** as long as the numbers (about 3 months on TurboPanel High Availability, 90 days by default on Self-hosted).
-- **Limit today:** at most 16 events per sample; over that, the 16 most severe are kept and the rest are held for the next sample.
+- **Limit today:** at most 16 events per sample; over that, the 16 most severe are kept and the rest are held for the next sample (up to 64 extra events are carried; beyond that they are dropped).
 - **Where:** the [Recent events](/docs/metrics/events) panel on the Metrics screen. The panel is left out when nothing happened in the range.
 - Hardware-health events (the disk, thermal, power, memory and GPU groups) are on for physical servers by default.
 
