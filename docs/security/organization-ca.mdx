@@ -33,13 +33,14 @@ Topology — who dials whom, SANs, and the ProxySQL hostgroup model — lives in
 
 ## How clients obtain it
 
-Operators and apps retrieve the Organization CA as **PEM text**, never as a private key and never as a filesystem path:
+Operators and apps retrieve the Organization CA as **PEM text**, never as a private key. A site that runs on the server itself can also be handed a **file** holding that text, so nothing needs to be downloaded:
 
 | Channel | Detail |
 | --- | --- |
 | App | **Connect → Download CA certificate** |
 | API | `GET /api/client/v1/tls/ca/download` |
-| Bindings | Materialized `<PREFIX>_CA_CERT` environment variable (PEM text; the consuming app writes it to a file if the driver requires a path) |
+| Bindings, apps in containers | `<PREFIX>_CA_CERT` environment variable (PEM text; the app writes it to a file if the driver requires a path) |
+| Bindings, sites on the server (such as a PHP site) | `<PREFIX>_CA_FILE` environment variable (the path of a file holding the PEM text). There is deliberately no `<PREFIX>_CA_CERT` for these sites, because the web server would mangle a multi-line value |
 
 The download is the **trust bundle**: the active generation plus any retired generation still in overlap. It saves as `turbopanel-org-ca-<organization id>.pem`, so bundles from several organizations don't overwrite each other. Private keys never cross the client API.
 
@@ -48,7 +49,7 @@ The download is the **trust bundle**: the active generation plus any retired gen
 Rotation uses the same **rotate-before-retire** order as the Platform CA. Do not retire first: clients and daemons still on the outgoing generation must keep a trusted chain while new leaves are issued.
 
 1. **Rotate** — `POST /api/client/v1/tls/ca/rotate` mints a new **active** generation. The previous active generation becomes **retired** but stays in the trust bundle.
-2. **Overlap** — fan-out re-issues ProxySQL and engine leaves under the new generation and rematerializes bindings so `<PREFIX>_CA_CERT` carries the updated bundle.
+2. **Overlap** — fan-out re-issues ProxySQL and engine leaves under the new generation and rematerializes bindings so `<PREFIX>_CA_CERT` carries the updated bundle. Sites on the server get the updated bundle in their CA file on the next deploy.
 3. **Confirm** — `GET /api/client/v1/tls/ca/rotation` until every tracked command is terminal-success.
 4. **Retire** — `POST /api/client/v1/tls/ca/retire` drops the old generation from the bundle. The control plane refuses with **409** until overlap has converged.
 
@@ -89,7 +90,7 @@ A bounded, cursor-driven sweep renews due leaves and fans the same apply / ingre
 
 | Client TLS mode | After Organization CA rotation |
 | --- | --- |
-| `verify-ca` / `verify-full` | Re-download the trust bundle. Redeploy binding-consuming environments so `<PREFIX>_CA_CERT` refreshes. Until both happen, drivers that pin the old PEM will fail handshake. |
+| `verify-ca` / `verify-full` | Re-download the trust bundle. Redeploy binding-consuming environments so `<PREFIX>_CA_CERT` (or the file behind `<PREFIX>_CA_FILE`) refreshes. Until both happen, drivers that pin the old PEM will fail handshake. |
 | `require` and lower | No client action. The ingress cert chain stays trusted through the overlap bundle; the server still presents a valid leaf. |
 
 ## Non-goal
