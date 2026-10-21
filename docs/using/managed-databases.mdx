@@ -153,6 +153,16 @@ Over the API, `POST` and `PATCH /api/client/v1/environments/{id}/managed/users[/
 
 A login's name must be unique across every cluster on servers the same organization owns — `username_in_use` if another cluster has it, `managed_user_exists` if this one does. `postgres`, `root`, `mysql` and `superadmin` are reserved, and so is every name that starts with `tp_` (TurboPanel uses that prefix for its own accounts).
 
+### Connect straight through (PostgreSQL only) [#straight-through]
+
+Each PostgreSQL login has a switch, **Connect straight through (no connection sharing)**. When it is on, the login's connection goes straight through the database front door to the server: one server connection per client session, no connection reuse, and no read split.
+
+- **Why it exists.** Some drivers send a Flush message after preparing a query, for example the Node `postgres` driver and tools built on it, such as drizzle. The shared path of the front door does not support that message, so every query that carries values fails with "Feature not supported". A login that connects straight through is not affected.
+- **Who has it on.** Migration-level logins have it on by default, so migration tools work out of the box. It is off for every other login. You can turn it on or off for any login, or go back to the default.
+- **Limits.** It cannot be combined with a limit on source addresses: a login with a source limit always uses the normal path, because the limit is enforced there. It is not available for MySQL or MariaDB logins, the root login or the replication login. A Migration-level login set to read-only routing keeps the shared path and its replica routing.
+
+Over the API, `POST` and `PATCH` on the managed users take `straightThrough` (`null` on `PATCH` goes back to the default), and each login reports `straightThrough` (the value in effect) and `straightThroughDefault` (true when it is the default rather than your choice). A `PATCH` with `dryRun: true` lists the change in plain words.
+
 ### The three jobs: read-only, read/write and migration
 
 Each login has one level on each database it is listed for. The levels are jobs, not sizes: your app reads and writes data, a migration tool changes the shape of the database, and a reporting tool only looks.
@@ -490,6 +500,9 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_login_source_range_not_exact`                                                                                                                                                                     | 400       | The range cannot be matched exactly. List the addresses or use a prefix.                                                                                               |
 | `managed_login_max_connections_invalid`                                                                                                                                                                    | 400       | `maxConnections` must be a whole number from 1 to 10000.                                                                                                               |
 | `managed_login_limits_need_daemon_update`                                                                                                                                                                  | 409       | The server's daemon is too old to enforce login limits; update the server first.                                                                                       |
+| `straight_through_conflicts_with_source_limit` | 400 | A login that connects straight through cannot be limited to certain addresses. Turn one off. |
+| `straight_through_postgres_only` | 400 | Connecting straight through is only available for PostgreSQL logins. |
+| `straight_through_login_not_allowed` | 400 | Connecting straight through can only be set on logins you created, not on the cluster administrator or replication logins. |
 | `managed_readwrite_needs_daemon_update`                                                                                                                                                                    | 409       | The server's daemon is too old to make a MySQL or MariaDB read/write login data changes only; update the server first.                                                 |
 | `managed_user_has_bindings`, `managed_database_has_bindings`                                                                                                                                               | 409       | Sever the service bindings first.                                                                                                                                      |
 | `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route`                                                                                       | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**.                                                                               |
