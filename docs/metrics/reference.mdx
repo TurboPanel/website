@@ -19,8 +19,8 @@ This is the complete list of what a TurboPanel server reports about itself: each
 | **Live view** | While someone watches a short range, the daemon also sends a 10 second stream. The stream feeds the chart and is **not stored**; the minute sample is what history keeps. |
 | **Slower readings** | A few readings are expensive, so they are refreshed less often and the latest value rides along with every minute sample. The refresh times are in the tables below and summed up in [How often each thing is read](#cadence). |
 | **How long it is kept** | **TurboPanel High Availability** keeps about **3 months**. **Self-hosted** keeps **90 days** by default (`TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`). Charts look back at most 90 days. Events and connection history are kept as long as the numbers. |
-| **Where it is stored** | Each table has a **Kept on** column. **Both** means TurboPanel High Availability and Self-hosted keep the reading in history. **Self-hosted only** means the reading is recorded in history only on a self-hosted control plane; on TurboPanel High Availability it appears in the live view but is empty in history. |
-| **Plans** | Every group on this page is collected on every plan, Docker included. A plan never switches a metric on or off. Because a server's box size sets how many network interfaces, drives, GPUs and extra filesystems are watched on TurboPanel High Availability, a server with more of them than that has the extra devices reported as unwatched. Self-hosted watches every device it finds. See [License tiers](/docs/deployment/tiers). |
+| **Where it is stored** | Each table has a **Kept on** column. **Both** means TurboPanel High Availability and Self-hosted keep the reading in history, and the two keep exactly the same readings. **Live view only** means neither keeps the reading in history: it appears in the 10 second live view and is empty in history on both. |
+| **Plans** | Every group on this page is collected on every plan, Docker included. A plan never switches a metric on or off, and a plan does not limit how many network interfaces, drives, GPUs, extra filesystems or sensors are stored: a server keeps what it has, up to 64 of each kind. See [License tiers](/docs/deployment/tiers). |
 | **Sizes** | Every minute sample carries the sizes its percentages are measured against ([below](#sizes)), so a resize or a memory balloon shows up as a step, not as a wrong percentage. |
 | **Limits on a server** | A sample may carry at most **16 events**; the 16 most severe are kept and the rest are held for the next sample (up to 64 extra events are carried; beyond that they are dropped). A sample dated more than 5 minutes away from the control plane's clock, in either direction, is refused. |
 | **Coming** | A stored-sample check (exactly one per minute per server), a limit of 120 events an hour, a tighter 60 second bound on samples dated in the future, and a 5 GiB cap on the self-hosted metrics store are written but not released yet. They are listed under [Coming](#coming). |
@@ -32,7 +32,7 @@ A value is blank, never zero, when TurboPanel does not have it. Blank has four c
 - **The host cannot measure it.** No swap, no GPU, no interrupt-pressure file in an older kernel, a virtual machine with no real sensors. The chart or the group is hidden or empty.
 - **The daemon is older than the control plane.** A daemon that has not updated yet sends the plain sample, without the newer readings (OOM kills, container health, the sizes, host facts). They fill in once the daemon updates.
 - **The reading was out of range.** A percentage is held between 0 and 100; any other impossible value (a negative size, for example) is stored as blank.
-- **TurboPanel does not store it on purpose.** Nine readings are not stored on either store, to make room for the sizes. They show as no data everywhere, and each one can be worked out another way:
+- **TurboPanel does not store it on purpose.** Some readings are not stored on either store, so that TurboPanel High Availability and Self-hosted keep exactly the same readings. 68 contract values stay in the wire contract and the descriptors but are stored by neither edition: the hosted layout has no slot for them and the self-hosted schema has no column. They show as no data in history on both, and are still shown in the 10 second live view. Nine of them were dropped to make room for the sizes, and each of those can be worked out another way:
 
 | Not stored | Get it another way |
 | ---------- | ------------------ |
@@ -46,7 +46,7 @@ A value is blank, never zero, when TurboPanel does not have it. Blank has four c
 | Router backends up | Backends total minus the names of unhealthy backends. |
 | Router requests | Caddy counts every request first. |
 
-A reading can also be **Self-hosted only** in history (see the tables). That is different from the nine above: those are empty everywhere, these are only empty in TurboPanel High Availability history.
+The other readings marked **Live view only** in the tables are among those 68 too: empty in history on both stores, and still shown in the live view.
 
 ## Sizes and totals [#sizes]
 
@@ -73,15 +73,15 @@ Read every minute. Detail: [CPU](/docs/metrics/cpu).
 | User, system, I/O wait, steal (time taken by the host machine this server runs on), soft interrupts | percent | Both | [CPU utilization](/docs/metrics/cpu#cpu-modes) |
 | CPU pressure (some tasks waited for a CPU) | percent of the minute | Both | [CPU pressure](/docs/metrics/cpu#cpu-pressure) |
 | Interrupt pressure (hardware interrupts stalled the machine). Not reported when the kernel has no interrupt-pressure file | percent of the minute | Both | Not charted yet; see [Coming](#coming) |
-| Processes running, processes blocked, total processes | count | Self-hosted only | [Processes](/docs/metrics/cpu#cpu-processes), overview tile |
+| Processes running, processes blocked, total processes | count | Live view only | [Processes](/docs/metrics/cpu#cpu-processes), overview tile |
 | Process-limit use (share of the kernel's process ID limit) | percent | Both | Not charted yet; see [Coming](#coming) |
-| CPU frequency (average, minimum, maximum) | MHz | Self-hosted only | [CPU frequency](/docs/metrics/cpu#cpu-detail-frequency) |
-| Context switches, interrupts | per second | Self-hosted only | [Context switches and interrupts](/docs/metrics/cpu#cpu-detail-scheduling) |
-| Process forks | per second | Self-hosted only | [Process forks](/docs/metrics/cpu#cpu-detail-forks) |
-| Hardware-interrupt time | percent | Self-hosted only | [IRQ time](/docs/metrics/cpu#cpu-detail-irq) |
+| CPU frequency (average, minimum, maximum) | MHz | Live view only | [CPU frequency](/docs/metrics/cpu#cpu-detail-frequency) |
+| Context switches, interrupts | per second | Live view only | [Context switches and interrupts](/docs/metrics/cpu#cpu-detail-scheduling) |
+| Process forks | per second | Live view only | [Process forks](/docs/metrics/cpu#cpu-detail-forks) |
+| Hardware-interrupt time | percent | Live view only | [IRQ time](/docs/metrics/cpu#cpu-detail-irq) |
 | Cores saturated | count | Not stored (see [Not reported](#not-reported)) | [Cores saturated](/docs/metrics/cpu#cpu-saturated-cores) |
 
-Host facts for CPU (text, refreshed every 5 minutes, hosted history only): load average, the busiest process by CPU, the CPU model.
+Host facts for CPU (text, refreshed every 5 minutes, kept on both): load average, the busiest process by CPU, the CPU model.
 
 ## Memory and swap [#memory]
 
@@ -95,16 +95,16 @@ Read every minute. Detail: [Memory](/docs/metrics/memory).
 | Memory pressure, some and full | percent of the minute | Both | [Memory pressure](/docs/metrics/memory#memory-pressure) |
 | Processes killed for memory (OOM kills) | count in the minute | Both | Not charted yet; see [Coming](#coming). The same kill also raises an [event](/docs/metrics/events#oom_kill) |
 | Committed memory | bytes | Both | [Committed memory](/docs/metrics/memory#memory-detail-commit) |
-| Swap in and swap out | bytes per second | Self-hosted only | [Swap I/O](/docs/metrics/memory#memory-swap-io) |
-| Free memory, anonymous pages, shared memory | bytes | Self-hosted only | [Free and cached memory](/docs/metrics/memory#memory-detail-primary), [Shared memory](/docs/metrics/memory#memory-detail-other-gauges) |
-| Reclaimable kernel slab | bytes | Self-hosted only | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
-| Dirty pages, pages being written back | bytes | Self-hosted only | [Dirty and writeback pages](/docs/metrics/memory#memory-detail-dirty) |
-| Page scans (direct and by the background reclaimer) | per second | Self-hosted only | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) |
-| Compaction stalls | per second | Self-hosted only | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) |
+| Swap in and swap out | bytes per second | Live view only | [Swap I/O](/docs/metrics/memory#memory-swap-io) |
+| Free memory, anonymous pages, shared memory | bytes | Live view only | [Free and cached memory](/docs/metrics/memory#memory-detail-primary), [Shared memory](/docs/metrics/memory#memory-detail-other-gauges) |
+| Reclaimable kernel slab | bytes | Live view only | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
+| Dirty pages, pages being written back | bytes | Live view only | [Dirty and writeback pages](/docs/metrics/memory#memory-detail-dirty) |
+| Page scans (direct and by the background reclaimer) | per second | Live view only | [Page reclaim](/docs/metrics/memory#memory-detail-reclaim) |
+| Compaction stalls | per second | Live view only | [Compaction stalls](/docs/metrics/memory#memory-detail-compaction) |
 | Major page faults | per second | Not stored | [Major page faults](/docs/metrics/memory#memory-major-faults) |
 | Unreclaimable kernel slab | bytes | Not stored | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
 
-Host facts for memory (text, hosted history only): the biggest process by memory, the last process the kernel killed for memory.
+Host facts for memory (text, kept on both): the biggest process by memory, the last process the kernel killed for memory.
 
 ## Disk, filesystems and disk I/O [#disk]
 
@@ -120,11 +120,11 @@ Read every minute unless noted. Detail: [Storage](/docs/metrics/storage), [Files
 | Root filesystem free inodes, inode total | count | Both | [Root filesystem free inodes](/docs/metrics/storage#root-filesystem-inodes) |
 | Each extra (non-root) filesystem: available bytes, free inodes, size, inode total | bytes, count | Both | [Filesystems](/docs/metrics/filesystems) |
 | Per drive: read speed, write speed, operations, read latency, write latency, queue depth | bytes per second, per second, milliseconds, count | Both. With a single drive the whole-host figures above are the drive's figures, so this group appears with two or more drives | [Block devices](/docs/metrics/block-devices) |
-| Per drive: busy percent (utilization) | percent | Self-hosted only | [Block devices](/docs/metrics/block-devices) |
-| Per drive: model and SMART verdict (text, refreshed every 30 minutes) | text | Both (hosted history only for the text) | Coming; see [Coming](#coming) |
+| Per drive: busy percent (utilization) | percent | Live view only | [Block devices](/docs/metrics/block-devices) |
+| Per drive: model and SMART verdict (text, refreshed every 30 minutes) | text | Both | Coming; see [Coming](#coming) |
 | Software-RAID arrays degraded | count | Both | Not charted yet; see [Coming](#coming). A degraded array also raises an [event](/docs/metrics/events#raid_degraded) |
-| Software-RAID arrays resyncing | count | Self-hosted only | Not charted yet |
-| Read-only filesystems, RAID state (text, refreshed every 5 minutes) | text | Hosted history only | Coming |
+| Software-RAID arrays resyncing | count | Live view only | Not charted yet |
+| Read-only filesystems, RAID state (text, refreshed every 5 minutes) | text | Both | Coming |
 
 ### Storage accounting [#storage-accounting]
 
@@ -134,9 +134,9 @@ The daemon walks the hosting, backup and log folders every **15 minutes** and re
 | ------ | ---- | ------- | ------ |
 | Hosting used | bytes | Both | [Hosting root](/docs/metrics/managed-storage#managed-storage-hosting), overview tile |
 | Backups used, backups free | bytes | Both | [Backups](/docs/metrics/managed-storage#managed-storage-backup) |
-| Logs free | bytes | Self-hosted only | [Logs](/docs/metrics/managed-storage#managed-storage-logs) |
+| Logs free | bytes | Live view only | [Logs](/docs/metrics/managed-storage#managed-storage-logs) |
 | Hosting free, Docker used, logs used | bytes | Not stored | See [Not reported](#not-reported) |
-| Largest sites on disk (text, refreshed every 5 minutes) | text | Hosted history only | Coming |
+| Largest sites on disk (text, refreshed every 5 minutes) | text | Both | Coming |
 
 ### Managed databases on the host [#managed-databases]
 
@@ -145,8 +145,8 @@ The daemon counts managed database containers every **5 minutes**, found by thei
 | Metric | Unit | Kept on | Screen |
 | ------ | ---- | ------- | ------ |
 | Postgres, MySQL and MariaDB instances running and healthy | count | Both | [Managed databases](/docs/metrics/managed-storage#managed-storage-engines) |
-| Connections used and the connection limit, per engine | count | Self-hosted only | [Managed database connections](/docs/metrics/managed-storage#managed-storage-connections) |
-| Engine versions (text, refreshed every 30 minutes) | text | Hosted history only | Coming |
+| Connections used and the connection limit, per engine | count | Live view only | [Managed database connections](/docs/metrics/managed-storage#managed-storage-connections) |
+| Engine versions (text, refreshed every 30 minutes) | text | Both | Coming |
 
 ## Network [#network]
 
@@ -155,11 +155,11 @@ Read every minute. Detail: [Network](/docs/metrics/network).
 | Metric | Unit | Kept on | Screen |
 | ------ | ---- | ------- | ------ |
 | TCP retransmits | percent of segments | Both | [TCP retransmit rate](/docs/metrics/network#network-retransmit) |
-| Softnet drops (packets the kernel dropped before a program saw them) | per second | Self-hosted only | [Softnet drops](/docs/metrics/network#network-softnet-drops) |
+| Softnet drops (packets the kernel dropped before a program saw them) | per second | Live view only | [Softnet drops](/docs/metrics/network#network-softnet-drops) |
 | Connection-tracking table use, open file handles use | percent | Both | [Kernel resource usage](/docs/metrics/network#kernel-resources) |
 | Per interface: receive and transmit speed | bytes per second | Both | [Network](/docs/metrics/network) |
-| Per interface: receive and transmit errors, receive and transmit drops | per second | Both from the third interface on. For the first two interfaces TurboPanel High Availability keeps one combined problems figure (errors plus drops); Self-hosted keeps all four | [Network](/docs/metrics/network) |
-| Per interface: link state and speed (text) | text | Hosted history only | Coming |
+| Per interface: receive and transmit errors, receive and transmit drops | per second | Both from the third interface on. For the first two interfaces both keep one combined problems figure (errors plus drops) | [Network](/docs/metrics/network) |
+| Per interface: link state and speed (text) | text | Both | Coming |
 
 Interfaces that belong to the TurboFabric mesh are not listed as ordinary interfaces.
 
@@ -174,7 +174,7 @@ Read every minute, on physical servers and on virtual machines with a real passe
 | GPU memory activity | percent | Both | [GPU](/docs/metrics/gpu) |
 | PCIe receive and transmit | bytes per second | Both | [GPU](/docs/metrics/gpu) |
 | Throttling | percent | Both | [GPU](/docs/metrics/gpu#throttle) |
-| GPU model, driver version, memory size (text) | text | Hosted history only | Coming |
+| GPU model, driver version, memory size (text) | text | Both | Coming |
 
 GPU temperature, memory temperature and power are listed under [Temperatures and power](#physical-signals).
 
@@ -203,9 +203,9 @@ Docker metrics are on every plan. Container health and totals are refreshed ever
 | Containers' CPU (share of the whole host), containers' memory | percent, bytes | Both | Not charted yet; see [Coming](#coming) |
 | Image layers, container writable layers, volumes, build cache | bytes | Both | [Image layers](/docs/metrics/managed-docker#managed-docker-layers), [Container writable layers](/docs/metrics/managed-docker#managed-docker-containers), [Volumes](/docs/metrics/managed-docker#managed-docker-volumes), [Build cache](/docs/metrics/managed-docker#managed-docker-build-cache) |
 | What a prune would reclaim, in total | bytes | Both | Not charted yet |
-| What a prune would reclaim from images, volumes and build cache separately | bytes | Self-hosted only | [Build cache](/docs/metrics/managed-docker#managed-docker-build-cache), [Volumes](/docs/metrics/managed-docker#managed-docker-volumes) |
-| Images, containers and volumes | count | Self-hosted only | [Object counts](/docs/metrics/managed-docker#managed-docker-counts) |
-| Docker version, names of unhealthy containers (text, refreshed every 5 minutes) | text | Hosted history only | Coming |
+| What a prune would reclaim from images, volumes and build cache separately | bytes | Live view only | [Build cache](/docs/metrics/managed-docker#managed-docker-build-cache), [Volumes](/docs/metrics/managed-docker#managed-docker-volumes) |
+| Images, containers and volumes | count | Live view only | [Object counts](/docs/metrics/managed-docker#managed-docker-counts) |
+| Docker version, names of unhealthy containers (text, refreshed every 5 minutes) | text | Both | Coming |
 
 An unexpected exit is one that is not a deploy and not a stop you asked for.
 
@@ -222,12 +222,12 @@ Read every minute. TurboPanel reads the hosting Caddy for **totals only**; there
 | Requests finished within 100 ms, 500 ms, 1 s | count in the minute | Both | [Ingress (Caddy)](/docs/metrics/ingress) |
 | Requests in flight | count | Both | [Ingress (Caddy)](/docs/metrics/ingress) |
 | Days until the soonest hosting certificate expires (read every 6 hours) | days | Both | [Soonest TLS expiry](/docs/metrics/router#router-tls-expiry) |
-| 3xx responses, requests within 10 ms, 50 ms and 5 s, retries, upstreams healthy and total | count | Self-hosted only | [Ingress (Caddy)](/docs/metrics/ingress) |
+| 3xx responses, requests within 10 ms, 50 ms and 5 s, retries, upstreams healthy and total | count | Live view only | [Ingress (Caddy)](/docs/metrics/ingress) |
 | 2xx responses | count | Not stored | See [Not reported](#not-reported) |
 
 Percentiles (p50, p90, p99) are worked out when you open the chart; they are never stored, because a stored percentile cannot be combined across time.
 
-Host facts for the web layer (text, refreshed every 5 minutes, hosted history only): Caddy version, the soonest-expiring certificate's name, PHP versions, web engine versions, the busiest PHP pool.
+Host facts for the web layer (text, refreshed every 5 minutes, kept on both): Caddy version, the soonest-expiring certificate's name, PHP versions, web engine versions, the busiest PHP pool.
 
 ## Web traffic: the hosting router (Traefik) [#router]
 
@@ -238,9 +238,9 @@ Present only when Docker is on the host. Detail: [Router (Traefik)](/docs/metric
 | Backends in total | count | Both | [Backends and services](/docs/metrics/router#router-backends) |
 | Backend 5xx errors | count in the minute | Both | [Backend requests](/docs/metrics/router#router-backend-requests) |
 | Backend latency (average) | milliseconds | Both | [Backend latency](/docs/metrics/router#router-backend-latency) |
-| Services, routers, retries | count | Self-hosted only | [Backends and services](/docs/metrics/router#router-backends) |
-| Open connections | count | Self-hosted only | [Open connections](/docs/metrics/router#router-connections) |
-| Config reloads, time since the last reload | count, seconds | Self-hosted only | [Config reloads](/docs/metrics/router#router-config), [Since last config reload](/docs/metrics/router#router-config-age) |
+| Services, routers, retries | count | Live view only | [Backends and services](/docs/metrics/router#router-backends) |
+| Open connections | count | Live view only | [Open connections](/docs/metrics/router#router-connections) |
+| Config reloads, time since the last reload | count, seconds | Live view only | [Config reloads](/docs/metrics/router#router-config), [Since last config reload](/docs/metrics/router#router-config-age) |
 | Backends up, requests | count | Not stored | See [Not reported](#not-reported) |
 
 ## Database proxy (ProxySQL) [#database-proxy]
@@ -254,7 +254,7 @@ Present only when managed databases run. Read every minute. Detail: [Database pr
 | Active transactions, client connections, backend connections | count | Both | [Database proxy](/docs/metrics/database-proxy) |
 | Clients aborted, connections refused at the limit, connection errors | count in the minute | Both | [Database proxy](/docs/metrics/database-proxy) |
 | Backends up, backends in total | count | Both | [Database proxy](/docs/metrics/database-proxy) |
-| Client connections opened, backend connections opened and aborted, bytes to and from the backends | count, bytes | Self-hosted only | [Database proxy](/docs/metrics/database-proxy) |
+| Client connections opened, backend connections opened and aborted, bytes to and from the backends | count, bytes | Live view only | [Database proxy](/docs/metrics/database-proxy) |
 
 ## Host health and facts [#facts]
 
@@ -263,16 +263,16 @@ Short pieces of text and a few counts that describe the host rather than chart o
 | Fact | Unit | Kept on |
 | ---- | ---- | ------- |
 | Failed system services (count) | count | Both |
-| Names of failed services | text | Hosted history only |
-| Kernel release, operating system release, boot identity | text | Hosted history only |
-| Virtualisation (for example a virtual machine or not), cloud provider | text | Hosted history only |
-| TurboPanel daemon version | text | Hosted history only |
-| Clock sync state | text | Hosted history only |
-| Pending updates, reboot required | text | Hosted history only |
-| Drive models and SMART verdicts, GPU model and driver, network link speeds | text | Hosted history only |
-| Software versions: Docker, Caddy, Traefik, PHP, web engines, database engines | text | Hosted history only |
+| Names of failed services | text | Both |
+| Kernel release, operating system release, boot identity | text | Both |
+| Virtualisation (for example a virtual machine or not), cloud provider | text | Both |
+| TurboPanel daemon version | text | Both |
+| Clock sync state | text | Both |
+| Pending updates, reboot required | text | Both |
+| Drive models and SMART verdicts, GPU model and driver, network link speeds | text | Both |
+| Software versions: Docker, Caddy, Traefik, PHP, web engines, database engines | text | Both |
 
-The newest of these is meant to show as **About this host** in the web interface, and the counts as **Host health**. Neither is in the web interface yet; see [Coming](#coming). Self-hosted keeps no host text in history today.
+The newest of these is meant to show as **About this host** in the web interface, and the counts as **Host health**. Neither is in the web interface yet; see [Coming](#coming). Self-hosted keeps the same host text in history as TurboPanel High Availability.
 
 ## Events [#events]
 
@@ -326,7 +326,7 @@ A slower reading shows the same value for several minutes in a row. That is not 
 These are written but not released. This page will drop the label when they are.
 
 - **Host health and About this host** in the web interface, and a chart for each health number that has none yet (OOM kills, interrupt pressure, process-limit use, root disk queue and operations, failed services, degraded RAID arrays, container health, containers' CPU and memory).
-- **A host-facts route** that returns the newest facts, and facts recorded on Self-hosted.
+- **A host-facts route** that returns the newest facts.
 - **Exactly one stored sample a minute per server**: a duplicate is refused, a sample sent too early is refused with a wait time.
 - **120 events an hour per server**: events over the budget are dropped, most severe kept first, and the sample itself is still stored.
 - **A 60 second bound on samples dated in the future.** Today the bound is 5 minutes either way.
