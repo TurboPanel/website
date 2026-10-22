@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:e78d58fe41705207f7494714baec85ee844644139688795ba6a35a8d1b4d5f8f
+pnpm-lock.yaml sha256:87e37a1e748fddecc20fed5b18001542677c8552f3221d1b41902f5a0dfd4f3c
 -->
 
 ## Production dependencies
