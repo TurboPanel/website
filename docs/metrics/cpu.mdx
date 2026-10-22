@@ -51,7 +51,7 @@ Share of the sample during which **every** task was stalled handling interrupts.
 
 ## Cores saturated [#cpu-saturated-cores]
 
-`host.cpu.saturatedCoreCount` — how many logical CPUs were at or above **90% busy** in that sample. *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
+`host.cpu.saturatedCoreCount` — how many logical CPUs were at or above **90% busy** in that sample. *Not stored on the hosted layout (v12), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
 
 Averages hide hotspots. A 16-core host at 10% busy can still have one core at 100% (a single-threaded runtime, a stuck process, a poorly pinned interrupt). If PSI is up and this count is 1 or 2 while the stacked utilization chart looks calm, the problem is concentration, not fleet-wide load. A count near the core total with high PSI is the machine saturated the obvious way. This is a single host scalar so a 64-core host costs the same to store as a 2-core one; there is no per-core series.
 
