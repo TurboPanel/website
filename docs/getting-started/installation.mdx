@@ -67,7 +67,7 @@ When self-hosted is publicly available, you provision a control plane on Debian 
 
 <Steps>
   <Step>
-    Provision a 64-bit Linux host (Debian 12+ recommended).
+    Provision a 64-bit Linux host running Debian 13 (trixie).
   </Step>
   <Step>
     Install the control plane:
@@ -134,8 +134,8 @@ Replace host and port with where the control plane is reachable from the server.
 
 | OS | Architecture |
 | -- | ------------ |
-| Debian 12+ | `x86_64` (amd64), `aarch64` (arm64) |
-| Raspberry Pi OS **64-bit** | `aarch64` (arm64) only |
+| Debian 13 (trixie) | `x86_64` (amd64), `aarch64` (arm64) |
+| Raspberry Pi OS **64-bit** (Debian 13 based) | `aarch64` (arm64) only |
 
 32-bit ARM (including 32-bit Raspberry Pi OS) is **not** supported.
 
@@ -143,7 +143,7 @@ Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 
 ## Prerequisites (all paths)
 
-- **64-bit** Linux server (Debian 12+ recommended for Ansible paths; Raspberry Pi OS 64-bit on arm64)
+- **64-bit** Linux server (Debian 13 (trixie); Raspberry Pi OS 64-bit, which is Debian 13 based, on arm64)
 - Docker (optional — installed on demand when a server runs container workloads)
 - SSH access to GitHub for platform repo clones on co-located dev hosts (`git@github.com:TurboPanel/...`)
 - For contributor dev: see [Prerequisites](/docs/development/prerequisites)

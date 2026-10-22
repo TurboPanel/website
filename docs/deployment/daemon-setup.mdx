@@ -63,11 +63,13 @@ Full table: [Control plane](/docs/deployment/control-plane#control-plane-listene
 
 ### Supported platforms
 
-| OS                           | Architecture      | Notes                           |
-| ---------------------------- | ----------------- | ------------------------------- |
-| Debian 12+ (Bookworm/Trixie) | `x86_64` (amd64)  | Recommended for managed servers |
-| Debian 12+ (Bookworm/Trixie) | `aarch64` (arm64) | Supported                       |
-| Raspberry Pi OS **64-bit**   | `aarch64` (arm64) | Supported on 64-bit images only |
+| OS                                           | Architecture      | Notes                           |
+| -------------------------------------------- | ----------------- | ------------------------------- |
+| Debian 13 (trixie)                           | `x86_64` (amd64)  | Recommended for managed servers |
+| Debian 13 (trixie)                           | `aarch64` (arm64) | Supported                       |
+| Raspberry Pi OS **64-bit** (Debian 13 based) | `aarch64` (arm64) | Supported on 64-bit images only |
+
+Debian 12 (bookworm) and older are not supported.
 
 **Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during Ansible provisioning with an explicit architecture error.
 
