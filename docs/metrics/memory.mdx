@@ -70,7 +70,7 @@ The chart hides when both series stay empty.
 
 ## Major page faults [#memory-major-faults]
 
-`host.memory.majorPageFaultsPerSecond` — faults that required a disk read (not the cheap minor faults satisfied from RAM). *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
+`host.memory.majorPageFaultsPerSecond` — faults that required a disk read (not the cheap minor faults satisfied from RAM). *Not stored on the hosted layout (v12), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.*
 
 A burst at process start is normal (demand paging). A sustained rate, especially with swap-in, means the working set does not fit. Pair with I/O PSI if the disk is the one paying for it.
 
@@ -108,7 +108,7 @@ Kernel object caches — dentries, inodes, network buffers — not your applicat
 | Series | Wire name | What it is |
 | ------ | --------- | ---------- |
 | Reclaimable | `diagnostics.slabReclaimableBytes` | Kernel caches it can drop (directory and inode caches, and similar). Same idea as file cache: useful until RAM is needed |
-| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects that stay until their owner is gone (sockets, file structs). **Does not shrink just because a user process exits** *Not stored on the hosted layout (v8), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
+| Unreclaimable | `diagnostics.slabUnreclaimableBytes` | Kernel objects that stay until their owner is gone (sockets, file structs). **Does not shrink just because a user process exits** *Not stored on the hosted layout (v12), so on Cloudflare-hosted servers this line is absent; self-hosted still records it.* |
 
 | What you see | Typical reading |
 | ------------ | --------------- |
