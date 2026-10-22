@@ -32,7 +32,7 @@ A value is blank, never zero, when TurboPanel does not have it. Blank has four c
 - **The host cannot measure it.** No swap, no GPU, no interrupt-pressure file in an older kernel, a virtual machine with no real sensors. The chart or the group is hidden or empty.
 - **The daemon is older than the control plane.** A daemon that has not updated yet sends the plain sample, without the newer readings (OOM kills, container health, the sizes, host facts). They fill in once the daemon updates.
 - **The reading was out of range.** A percentage is held between 0 and 100; any other impossible value (a negative size, for example) is stored as blank.
-- **TurboPanel does not store it on purpose.** Some readings are not stored on either store, so that TurboPanel High Availability and Self-hosted keep exactly the same readings. Nine of them were dropped to make room for the sizes. They show as no data in history everywhere, and each one can be worked out another way:
+- **TurboPanel does not store it on purpose.** Some readings are not stored on either store, so that TurboPanel High Availability and Self-hosted keep exactly the same readings. 68 contract values stay in the wire contract and the descriptors but are stored by neither edition: the hosted layout has no slot for them and the self-hosted schema has no column. They show as no data in history on both, and are still shown in the 10 second live view. Nine of them were dropped to make room for the sizes, and each of those can be worked out another way:
 
 | Not stored | Get it another way |
 | ---------- | ------------------ |
@@ -46,7 +46,7 @@ A value is blank, never zero, when TurboPanel does not have it. Blank has four c
 | Router backends up | Backends total minus the names of unhealthy backends. |
 | Router requests | Caddy counts every request first. |
 
-The readings marked **Live view only** in the tables are not stored either. They are empty in history on both stores, the same as the nine above, and are still shown in the live view.
+The other readings marked **Live view only** in the tables are among those 68 too: empty in history on both stores, and still shown in the live view.
 
 ## Sizes and totals [#sizes]
 
@@ -81,7 +81,7 @@ Read every minute. Detail: [CPU](/docs/metrics/cpu).
 | Hardware-interrupt time | percent | Live view only | [IRQ time](/docs/metrics/cpu#cpu-detail-irq) |
 | Cores saturated | count | Not stored (see [Not reported](#not-reported)) | [Cores saturated](/docs/metrics/cpu#cpu-saturated-cores) |
 
-Host facts for CPU (text, refreshed every 5 minutes, hosted history only): load average, the busiest process by CPU, the CPU model.
+Host facts for CPU (text, refreshed every 5 minutes, kept on both): load average, the busiest process by CPU, the CPU model.
 
 ## Memory and swap [#memory]
 
@@ -104,7 +104,7 @@ Read every minute. Detail: [Memory](/docs/metrics/memory).
 | Major page faults | per second | Not stored | [Major page faults](/docs/metrics/memory#memory-major-faults) |
 | Unreclaimable kernel slab | bytes | Not stored | [Slab memory](/docs/metrics/memory#memory-detail-slab) |
 
-Host facts for memory (text, hosted history only): the biggest process by memory, the last process the kernel killed for memory.
+Host facts for memory (text, kept on both): the biggest process by memory, the last process the kernel killed for memory.
 
 ## Disk, filesystems and disk I/O [#disk]
 
@@ -121,7 +121,7 @@ Read every minute unless noted. Detail: [Storage](/docs/metrics/storage), [Files
 | Each extra (non-root) filesystem: available bytes, free inodes, size, inode total | bytes, count | Both | [Filesystems](/docs/metrics/filesystems) |
 | Per drive: read speed, write speed, operations, read latency, write latency, queue depth | bytes per second, per second, milliseconds, count | Both. With a single drive the whole-host figures above are the drive's figures, so this group appears with two or more drives | [Block devices](/docs/metrics/block-devices) |
 | Per drive: busy percent (utilization) | percent | Live view only | [Block devices](/docs/metrics/block-devices) |
-| Per drive: model and SMART verdict (text, refreshed every 30 minutes) | text | Both (hosted history only for the text) | Coming; see [Coming](#coming) |
+| Per drive: model and SMART verdict (text, refreshed every 30 minutes) | text | Both | Coming; see [Coming](#coming) |
 | Software-RAID arrays degraded | count | Both | Not charted yet; see [Coming](#coming). A degraded array also raises an [event](/docs/metrics/events#raid_degraded) |
 | Software-RAID arrays resyncing | count | Live view only | Not charted yet |
 | Read-only filesystems, RAID state (text, refreshed every 5 minutes) | text | Both | Coming |
@@ -227,7 +227,7 @@ Read every minute. TurboPanel reads the hosting Caddy for **totals only**; there
 
 Percentiles (p50, p90, p99) are worked out when you open the chart; they are never stored, because a stored percentile cannot be combined across time.
 
-Host facts for the web layer (text, refreshed every 5 minutes, hosted history only): Caddy version, the soonest-expiring certificate's name, PHP versions, web engine versions, the busiest PHP pool.
+Host facts for the web layer (text, refreshed every 5 minutes, kept on both): Caddy version, the soonest-expiring certificate's name, PHP versions, web engine versions, the busiest PHP pool.
 
 ## Web traffic: the hosting router (Traefik) [#router]
 
