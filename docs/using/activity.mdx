@@ -36,7 +36,7 @@ The page refreshes by itself every two seconds while it is open and pauses while
 | State | Meaning |
 | --- | --- |
 | **In progress** | Waiting for the server, sent to it, or running. This covers every action, not only deploys. |
-| **Failed** | It failed or timed out in the last seven days. The row carries the reason. |
+| **Failed** | It failed or timed out in the last seven days. The row carries the reason. A deploy that timed out because no result came back may still have finished on the server, so check the site before deploying again. |
 
 When nothing is running and nothing failed, the page says *Nothing running or failed right now.*
 
