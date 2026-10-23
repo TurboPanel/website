@@ -11,7 +11,7 @@ This group is one chart per hardware sensor the daemon trusts enough to export: 
 
 **Fan is not in the sensor catalogue.** The read path never implemented fan RPM as a metric, so v6 removed the slot entirely rather than carry an empty one; there is no RPM chart. Fan *faults* are a separate mechanism — [`fan_fault` and `fan_alarm` events](/docs/metrics/events#fan_fault) — and are unaffected.
 
-The physical-host plan allows up to 19 signals (11 on the entry tier). A physical host with no working sensors still emits nothing — expected, not an error.
+A physical host reports up to 19 signals, on every plan. A physical host with no working sensors still emits nothing — expected, not an error.
 
 ## The reading [#value]
 
@@ -32,4 +32,4 @@ A missing chart for a sensor you expect usually means the daemon could not read 
 - [GPU](/docs/metrics/gpu) — utilization, memory, PCIe, and throttle for the cards whose thermals live here
 - [Block devices](/docs/metrics/block-devices) — throughput, IOPS, and latency for the drives whose temperatures live here
 - [Hardware events](/docs/metrics/events#temp_alarm)
-- [License tiers](/docs/deployment/tiers) — signal slots per tier
+- [License tiers](/docs/deployment/tiers) — how a server is placed
