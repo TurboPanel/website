@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:87e37a1e748fddecc20fed5b18001542677c8552f3221d1b41902f5a0dfd4f3c
+pnpm-lock.yaml sha256:87f159c1d2fcf557614d6c67bb9e69a1cddcf1c7c023701f81d533d24821f74a
 -->
 
 ## Production dependencies
@@ -312,7 +312,7 @@ pnpm-lock.yaml sha256:87e37a1e748fddecc20fed5b18001542677c8552f3221d1b41902f5a0d
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.3.8
+### @next/env@16.4.1
 
 - License: MIT
 - Copyright: Next.js Team
@@ -1539,7 +1539,7 @@ pnpm-lock.yaml sha256:87e37a1e748fddecc20fed5b18001542677c8552f3221d1b41902f5a0d
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/devlop#readme
 
-### dompurify@3.4.16
+### dompurify@3.4.17
 
 - License: (MPL-2.0 OR Apache-2.0)
 - Copyright: Dr.-Ing. Mario Heiderich, Cure53
@@ -2422,7 +2422,7 @@ pnpm-lock.yaml sha256:87e37a1e748fddecc20fed5b18001542677c8552f3221d1b41902f5a0d
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.3.8
+### next@16.4.1
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3329,7 +3329,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.8
+### @next/swc-linux-x64-gnu@16.4.1
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -4981,12 +4981,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/strip-json-comments#readme
-
-### supports-color@10.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/supports-color#readme
 
 ### supports-color@7.2.0
 
