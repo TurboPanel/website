@@ -23,3 +23,5 @@ overrides:
   source-map-js: 1.2.2
   # GHSA-587h-7wmj-h5pm and two related advisories: vite <= 6.4.3 bundles a vulnerable dev-server editor opener (Windows only); force the fixed release.
   vite: 6.4.4
+  # GHSA-xjj6-f33q-929c: undici < 6.29.1 crashes on a response with too many content-encodings (DoS); pulled in by @ai-sdk/provider-utils.
+  undici: ^6.29.1
