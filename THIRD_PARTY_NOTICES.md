@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:87f159c1d2fcf557614d6c67bb9e69a1cddcf1c7c023701f81d533d24821f74a
+pnpm-lock.yaml sha256:e00cfe02191c84e5e2e88adfe117cc33249e5b607fa964b7591bc364f6bbfa16
 -->
 
 ## Production dependencies
@@ -2923,7 +2923,7 @@ pnpm-lock.yaml sha256:87f159c1d2fcf557614d6c67bb9e69a1cddcf1c7c023701f81d533d248
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/type-fest#readme
 
-### undici@6.28.1
+### undici@6.29.1
 
 - License: MIT
 - Homepage: https://undici.nodejs.org
@@ -3073,7 +3073,7 @@ pnpm-lock.yaml sha256:87f159c1d2fcf557614d6c67bb9e69a1cddcf1c7c023701f81d533d248
 - Copyright: Eemeli Aro
 - Homepage: https://eemeli.org/yaml/
 
-### zod@4.4.3
+### zod@4.6.7
 
 - License: MIT
 - Copyright: Colin McDonnell
