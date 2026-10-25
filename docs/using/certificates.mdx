@@ -139,7 +139,7 @@ The **www** choice on a domain decides what happens to the other spelling of the
 | -------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **Only** the name you typed                              | Only that name answers.                                   | That name.                                                                                         |
 | **Both names**                                           | Both names show the site.                                 | Both names.                                                                                        |
-| `www.example.com → example.com` (or the other way round) | The second name redirects to the first, keeping the path. | Both names: a browser opens the redirected name over HTTPS too, so it needs a certificate as well. |
+| `www.example.com → example.com` (or the other way round) | The first name redirects to the second, keeping the path. | Both names: a browser opens the redirected name over HTTPS too, so it needs a certificate as well. |
 
 Every name the choice adds needs its own DNS record pointing at the server. Until it has one, the block shows **Waiting for DNS** for that name, and Let's Encrypt waits for it.
 
