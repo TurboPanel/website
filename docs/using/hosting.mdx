@@ -36,7 +36,7 @@ The bind is frozen into the server's web server configuration at deploy time, so
 
 - A deployed (or at least placed) environment — hosting rows attach to a service in one.
 - For a public hostname: DNS for it pointing at the serving server's public address.
-- For Let's Encrypt: an organization owner or manager has turned on **Allow Let's Encrypt certificates** under **Organization settings › Domains & certificates**, the hostname's bind is `public`, and ports 80 and 443 on that server are reachable from the internet.
+- For Let's Encrypt: **Allow Let's Encrypt certificates** is on under **Organization settings › Domains & certificates** (it is for new organizations; an owner or manager turns it on in an older one), the hostname's bind is `public`, and ports 80 and 443 on that server are reachable from the internet.
 - For a published TCP/UDP port: nothing else on that server already publishes the same port.
 
 ## Add a hostname
@@ -152,7 +152,7 @@ The state of the **Certificate** block is decided by the control plane, not gues
 | **Secure** | Let's Encrypt, renews automatically, with the days left. | Nothing. |
 | **Renewal failed**, or **Couldn't get a certificate** if none was ever issued | The reason line from the server. Visitors see a warning when the current certificate runs out. | **Check DNS**, fix what it names, then **Try again**. |
 
-A domain declared in the compose document (`x-turbopanel.hosting[]`) has its certificate set there too, so the block explains that and offers no button. This includes the hostname typed under **Visitors reach it at** on the **Set up production** screen of a new project, which is written into the environment's compose. Compose's own `tls.mode: automatic` is not supported yet and is refused at deploy; a fix is in progress. Until then, add a Let's Encrypt certificate for the exact hostname in the library ([below](#lets-encrypt)), pick it in that route's **TLS certificate** picker on the **Hosting** tab (this writes `tls.mode: certificate` with `certificateRef`), and deploy. This route skips the DNS check, and it always needs that deploy.
+A domain declared in the compose document (`x-turbopanel.hosting[]`) has its certificate set there too, so the block offers no **Use Let's Encrypt** button. This includes the hostname typed under **Visitors reach it at** on the **Set up production** screen of a new project, which is written into the environment's compose with `tls: { mode: automatic }` when the organization allows Let's Encrypt certificates. To ask for one on another compose domain, pick **Let's Encrypt (automatic)** in the route's **TLS certificate** picker on the **Hosting** tab and deploy. At each deploy TurboPanel finds or creates the organization's Let's Encrypt certificate for the name (and the www name the route adds), and the server asks Let's Encrypt for it. This path does not wait for DNS: the server keeps retrying until the name points at it. The block then offers **Check DNS** and **Try again**. See [Certificates](/docs/using/certificates#domains-declared-in-compose).
 
 The same two actions are in the API, both needing **Manage** on the organization:
 
@@ -165,11 +165,11 @@ The same two actions are in the API, both needing **Manage** on the organization
 
 ### Let's Encrypt
 
-Let's Encrypt is **off by default for every organization**. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it is an explicit opt-in, and turning it back off is immediate: no new certificate can be requested, and a deploy that still pins a Let's Encrypt (`automatic`) row is refused with `acme_requires_org_opt_in` until you turn the opt-in back on or pin another certificate. Certificates the servers already have are not revoked; they stay on the server. The encrypted copies of their keys that TurboPanel stores are erased, because nothing needs them any more.
+Let's Encrypt is **on for new organizations**; an organization made before that keeps its earlier choice, which was off unless someone turned it on. Some operators do not want the platform contacting a public CA on their servers' behalf at all, so it can be turned off, and turning it off is immediate: no new certificate can be requested, and a deploy that still pins a Let's Encrypt (`automatic`) row, or whose compose asks for `tls.mode: automatic`, is refused with `acme_requires_org_opt_in` and a message that names the setting, until you turn it back on or choose another certificate. Certificates the servers already have are not revoked; they stay on the server. The encrypted copies of their keys that TurboPanel stores are erased, because nothing needs them any more.
 
 <Steps>
   <Step>
-    **Organization settings › Domains & certificates**, turn on **Allow Let's Encrypt certificates**. Until this is on, the *Let's Encrypt* source is disabled in **Add certificate** and the API refuses with `lets_encrypt_not_enabled`.
+    **Organization settings › Domains & certificates**, check that **Allow Let's Encrypt certificates** is on. Until it is on, the *Let's Encrypt* source is disabled in **Add certificate** and the API refuses with `lets_encrypt_not_enabled`.
   </Step>
   <Step>
     **Add certificate**, source *Let's Encrypt*, list the exact **Hostnames** — no wildcards (`wildcard_unsupported`), and only the port-80 check (HTTP-01) is supported (`dns_01_unsupported`). The row is created with status `automatic`. This form does not check DNS.
@@ -178,7 +178,7 @@ Let's Encrypt is **off by default for every organization**. Some operators do no
     Make sure each hostname resolves to the serving server and that ports 80 and 443 on it are open to the internet.
   </Step>
   <Step>
-    On the Hosting tab, set the hosting's bind to `public` and pick the row in its **TLS certificate** picker. Deploy: picking a library row does not send anything to the servers by itself. The server's web server asks Let's Encrypt for the certificate during that deploy and renews it on its own. Once it has the certificate, TurboPanel keeps an encrypted copy of it and its key (see [Stored copy](#stored-copy)).
+    On the Hosting tab, set the hosting's bind to `public` and pick the row in its **TLS certificate** picker and save. As with **Use Let's Encrypt**, TurboPanel sends the change to the servers without a full redeploy when it can (see [Let's Encrypt for one domain](#lets-encrypt-for-one-domain)); otherwise deploy, and the certificate is requested during that deploy. Unlike the button, this path does not check DNS first. The server's web server then renews the certificate on its own. Once it has the certificate, TurboPanel keeps an encrypted copy of it and its key (see [Stored copy](#stored-copy)).
   </Step>
 </Steps>
 
@@ -229,11 +229,11 @@ x-turbopanel:
       pathPrefix: /api
       targetPort: 3000
       forceHttps: true
-      tls: { mode: certificate, certificateRef: shop-cert } # internal | certificate (+ certificateRef) | automatic
+      tls: { mode: automatic } # internal | certificate (+ certificateRef) | automatic
       bind: { scope: public, ipRef: edge } # public | datacenter | local
 ```
 
-`internal` (the default) is a self-signed certificate. `certificate` pins a library certificate, which can be a Let's Encrypt row. `automatic` is recognised but not supported yet: it is refused at deploy with `hosting_tls_mode_unsupported` while a fix is in progress. `certificateRef` names a library certificate by its id or its display name; `ipRef` names a registered IP by its id or its address. An unknown reference is refused at deploy (`hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved`); the editor's linter flags it earlier when it knows the organization's library.
+`internal` (the default when `tls` is left out) is a self-signed certificate. `certificate` pins a library certificate. `automatic` gets a free Let's Encrypt certificate for the hostname, and for the www name the route adds; it needs the organization's **Allow Let's Encrypt certificates** and a `public` bind, and is requested once the site is deployed on a server. `certificateRef` names a library certificate by its id or its display name; `ipRef` names a registered IP by its id or its address. An unknown reference is refused at deploy (`hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved`); the editor's linter flags it earlier when it knows the organization's library.
 
 ### Certificate lifetimes
 
@@ -254,14 +254,13 @@ x-turbopanel:
 | `invalid_hosting_options` | 400 | A field has the wrong shape (a bad port, a `tcp` row with no ports, more than 10 ports). | See the options table. |
 | `lets_encrypt_not_enabled` | 403 | The organization has not opted in. | **Organization settings › Domains & certificates → Allow Let's Encrypt certificates**. |
 | `hosting_not_http`, `hosting_has_no_hostnames` | 400 | **Use Let's Encrypt** on a hosting that is not a web (HTTP) hosting, or that has no hostnames yet. | Add a hostname to a web hosting first. |
-| `letsencrypt_hostname_unsupported` | 400 | One of the domain's names is a wildcard, an IP address or a private name. | Use public names only, or another certificate. |
+| `letsencrypt_hostname_unsupported` | 400 | One of the domain's names is a wildcard, an IP address or a private name. Also refused at deploy for a compose route that asks for `tls.mode: automatic`. | Use public names only, or another certificate. |
 | `wildcard_unsupported`, `dns_01_unsupported` | 400 | A `*.` hostname, or a DNS-01 challenge, on a Let's Encrypt row. | List each hostname; HTTP-01 only. |
 | `private_hostname_unsupported` | 400 | A loopback or private hostname on a Let's Encrypt row. | Use a public name, or a self-signed or Organization CA certificate. |
 | `tls_fingerprint_conflict` | 409 | This certificate is already in the library. | Pin the existing row. |
 | `organization_ca_exists`, `organization_ca_retire_required` | 409 | An organization CA already exists, or the current one must be retired before a new one is minted. | Use the Organization CA panel's rotate flow. |
-| `acme_requires_public_bind` | 400 (deploy) | A Let's Encrypt row is pinned on a `datacenter` or `local` hosting. | Set the bind to `public`. |
-| `acme_requires_org_opt_in` | 400 (deploy) | An `automatic` (Let's Encrypt) row is pinned but the organization's opt-in is off. | Turn the opt-in back on, or pin another certificate. |
-| `hosting_tls_mode_unsupported` | 422 (deploy) | A compose route asks for `tls.mode: automatic`, which is not supported yet. | Use `certificate` with a `certificateRef` to a Let's Encrypt library row, or `internal`. |
+| `acme_requires_public_bind` | 400 (deploy) | A Let's Encrypt row is pinned on, or a compose route asks for `tls.mode: automatic` on, a `datacenter` or `local` hosting. | Set the bind to `public`. |
+| `acme_requires_org_opt_in` | 400 (deploy) | An `automatic` (Let's Encrypt) row is pinned, or a compose route asks for `tls.mode: automatic`, but the organization's setting is off. | Turn the setting on, or choose another certificate. |
 | `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 (deploy) | The pinned row is gone, does not cover the hostnames, or is not `ready`/`automatic`. | Re-pin. |
 | `hosting_route_conflict`, `hosting_hostname_conflict` | 409 (deploy) | Two rows in the environment claim the same hostname and path, or a compose-declared hostname collides with another hosting in the organization. | Change one of them. |
 | `host_port_conflict` | 422 (deploy) | Two services on one server publish the same port. | Change the published port. |

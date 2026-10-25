@@ -13,8 +13,8 @@ This chapter walks through getting a site a trusted certificate, step by step. T
 
 Choosing Let's Encrypt does not by itself produce a certificate. It is a request that TurboPanel carries out once everything it needs is in place:
 
-1. **The organization allows it.** An organization owner or manager turns on **Allow Let's Encrypt certificates** once. It is off by default.
-2. **You ask for it on the domain.** On the environment's **Hosting** tab, press **Use Let's Encrypt** on the domain (or tick the box while adding it).
+1. **The organization allows it.** The setting **Allow Let's Encrypt certificates** is on for new organizations. An organization made before that keeps its earlier choice, so an owner or manager may need to turn it on once.
+2. **You ask for it on the domain.** On the environment's **Hosting** tab, press **Use Let's Encrypt** on the domain (or tick the box while adding it). For a domain declared in compose, such as the one typed on the **Set up production** screen, the choice is `tls.mode: automatic` (see [Domains declared in compose](#domains-declared-in-compose)).
 3. **The domain points at the server.** TurboPanel looks up the domain's DNS records first. Until every name points at the server, the domain waits and TurboPanel checks again every few minutes.
 4. **The site is on the server.** The certificate is requested by the web server on the server that serves the site, so it can only start once the environment is deployed there. If the environment is already deployed, TurboPanel sends the change to the server without a full redeploy when it can; otherwise the certificate is requested during the next deploy.
 5. **Let's Encrypt checks the domain, and the certificate is in place.** Let's Encrypt calls the domain on port 80 to confirm the server holds it, then issues the certificate. This usually takes a minute or two. From then on the server renews it on its own, and TurboPanel tells you if it stops working.
@@ -44,12 +44,12 @@ Until the last step, visitors get a self-signed certificate and their browser wa
 
 <Steps>
   <Step>
-    **Allow Let's Encrypt for the organization.** An organization owner or
-    manager opens **Organization settings › Domains & certificates** (also
-    reachable as **Servers › TLS**) and turns on **Allow Let's Encrypt
-    certificates**. This is needed once per organization. Without it the **Use
-    Let's Encrypt** button does not show, and a request is refused with a link
-    to this setting.
+    **Check that the organization allows Let's Encrypt.** It is on for new
+    organizations. In an older organization, an organization owner or manager
+    opens **Organization settings › Domains & certificates** (also reachable as
+    **Servers › TLS**) and turns on **Allow Let's Encrypt certificates**, once.
+    Without it the **Use Let's Encrypt** button does not show, and a request is
+    refused with a link to this setting.
   </Step>
   <Step>
     **Add the domain to the environment.** Open the environment's **Hosting**
@@ -66,7 +66,9 @@ Until the last step, visitors get a self-signed certificate and their browser wa
     **Choose Let's Encrypt.** While adding the domain, tick **Get a free Let's
     Encrypt certificate when I save** and save. For a domain that already
     exists, press **Use Let's Encrypt** in its **Certificate** block. Either way
-    TurboPanel checks the domain's DNS straight away.
+    TurboPanel checks the domain's DNS straight away. For a domain declared in
+    compose, pick **Let's Encrypt (automatic)** instead; see [Domains declared
+    in compose](#domains-declared-in-compose).
   </Step>
   <Step>
     **Point the DNS at the server.** If the **Certificate** block says **Waiting
@@ -101,7 +103,8 @@ The certificate is requested by the web server on the server that serves the sit
 | The environment is deployed, every server is online and up to date, no deploy is running, and nothing else in the environment has changed since its last deploy | TurboPanel sends only the domain change to the servers, with no build and no restart. The request starts within moments.                                                |
 | The environment is deployed, but something else in it has changed and is not deployed yet, a server is offline or on an older version, or a deploy is running   | Nothing is sent, so that changes nobody deployed do not go out with it. The block says _Deploy this environment to start it_; the next deploy requests the certificate. |
 | DNS was not ready when you asked                                                                                                                                | Nothing is set yet. When a later check finds DNS ready, TurboPanel sets the certificate on the domain and follows the rows above.                                       |
-| You picked a Let's Encrypt certificate from the library in the **TLS certificate** picker, instead of pressing **Use Let's Encrypt**                            | Nothing is sent by itself. Deploy the environment to start it.                                                                                                          |
+| You picked a Let's Encrypt certificate from the library in the **TLS certificate** picker, instead of pressing **Use Let's Encrypt**                            | The same as the button: sent without a full redeploy when the second row allows it, otherwise on the next deploy. This path does not check DNS first.                   |
+| A domain declared in compose asks for `tls.mode: automatic`                                                                                                     | Requested during the deploy that applies it. The server keeps retrying until DNS is right; see [Domains declared in compose](#domains-declared-in-compose).             |
 
 ## Watch the status
 
@@ -153,28 +156,16 @@ Let's Encrypt no longer emails anyone before a certificate expires, so TurboPane
 
 Once the server has a certificate, TurboPanel also keeps an encrypted copy of it and its private key. The key is never shown or returned. See [Stored copy](/docs/using/hosting#stored-copy).
 
-## A domain from the Set up production screen
+## Domains declared in compose
 
-When you create a project, the **Set up production** screen asks where **Visitors reach it at**. That hostname is written into the environment's compose document, so compose owns the domain and its certificate setting. Today such a domain shows its **Certificate** block without the **Use Let's Encrypt** button, and compose's own `tls.mode: automatic` is refused at deploy. This is a known limitation, and a fix is in progress.
+A domain can also be declared in the environment's compose document, under `x-turbopanel.hosting[]`. The hostname you type under **Visitors reach it at** on the **Set up production** screen of a new project is written there. For such a domain, compose holds the certificate choice:
 
-Until then, get the certificate this way:
-
-<Steps>
-  <Step>
-    Make sure **Allow Let's Encrypt certificates** is on, and point the domain's DNS at the server.
-  </Step>
-  <Step>
-    In **Organization settings › Domains & certificates**, **Add certificate** with source *Let's Encrypt*, and list the exact hostname.
-  </Step>
-  <Step>
-    On the environment's **Hosting** tab, open the route and pick that certificate in its **TLS certificate** picker. This writes `tls: { mode: certificate, certificateRef: … }` into the compose document.
-  </Step>
-  <Step>
-    Deploy the environment. The certificate is requested during the deploy.
-  </Step>
-</Steps>
-
-This route does not check DNS for you, and it always needs the deploy.
+- **Set up production** writes `tls: { mode: automatic }` with the hostname when the organization allows Let's Encrypt certificates and the name can get one. The screen says _Gets a free Let's Encrypt certificate on the first deploy, once the name points at the server._ When the setting is off, the screen says so, the name gets a self-signed certificate, and **Open Domains & certificates** links to the setting.
+- For a domain already in compose, open the route on the **Hosting** tab and pick **Let's Encrypt (automatic)** in its **TLS certificate** picker. This writes `tls.mode: automatic` into the compose document. Deploy to apply it.
+- At each deploy, TurboPanel finds or creates the organization's Let's Encrypt certificate for the name (and for the www name, when the route's www choice adds one) and the server asks Let's Encrypt for it. The certificate is still only requested once the site is deployed on a server.
+- This path does not wait for DNS. If the name does not point at the server yet, the server keeps retrying on its own, and each failed check counts against Let's Encrypt's limit. Point the DNS first, or press **Check DNS** on the domain's **Certificate** block before you deploy.
+- The **Certificate** block of such a domain shows the same statuses, with **Check DNS** and **Try again**. To stop using Let's Encrypt, change the route's certificate in compose.
+- If the organization setting is off, the deploy is refused with `acme_requires_org_opt_in` and a message that names **Allow Let's Encrypt certificates** under **Organization settings › Domains & certificates** and who can turn it on. Turn the setting on, or set `tls.mode` to `internal` for a self-signed certificate.
 
 ## Uploaded and self-signed certificates
 
@@ -217,17 +208,16 @@ Today TurboPanel proves a domain only through the port-80 check. Two things are 
 
 ## Errors
 
-| Code                                                                         | Status       | Meaning                                                                                                               | What to do                                                                                       |
-| ---------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `lets_encrypt_not_enabled`                                                   | 403          | The organization has not turned on **Allow Let's Encrypt certificates**.                                              | An owner or manager turns it on in **Organization settings › Domains & certificates**.           |
-| `hosting_not_http`, `hosting_has_no_hostnames`                               | 400          | The domain is not a web (HTTP) hosting, or it has no hostnames yet.                                                   | Add a hostname to a web hosting first.                                                           |
-| `acme_requires_public_bind`                                                  | 400          | The domain's bind is `datacenter` or `local`. Also refused at deploy.                                                 | Set the bind to **Public**.                                                                      |
-| `letsencrypt_hostname_unsupported`                                           | 400          | A name, or a www name the www choice adds, is a wildcard, an IP address or a private name.                            | Use public names only, or upload a certificate.                                                  |
-| `www_redirect_conflict`                                                      | 400          | The www choice cannot apply: the name has no www spelling, or both spellings are already domains in this environment. | Set **www** to **Only** the name, or remove one of the two domains.                              |
-| `hosting_owned_by_compose`                                                   | 409          | The domain is declared in the compose document.                                                                       | Use the [library route](#a-domain-from-the-set-up-production-screen).                            |
-| `wildcard_unsupported`, `dns_01_unsupported`, `private_hostname_unsupported` | 400          | A wildcard, a DNS check or a private name on a library Let's Encrypt certificate.                                     | List each public hostname; only the port-80 check is supported today.                            |
-| `acme_requires_org_opt_in`                                                   | 400 (deploy) | A Let's Encrypt certificate is chosen but the organization's setting is off.                                          | Turn the setting back on, or pick another certificate.                                           |
-| `hosting_tls_mode_unsupported`                                               | 422 (deploy) | A compose route asks for `tls.mode: automatic`, which is not supported yet.                                           | Use `certificate` with a `certificateRef` to a Let's Encrypt library certificate, or `internal`. |
+| Code                                                                         | Status       | Meaning                                                                                                                                                         | What to do                                                                                          |
+| ---------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `lets_encrypt_not_enabled`                                                   | 403          | The organization has not turned on **Allow Let's Encrypt certificates**.                                                                                        | An owner or manager turns it on in **Organization settings › Domains & certificates**.              |
+| `hosting_not_http`, `hosting_has_no_hostnames`                               | 400          | The domain is not a web (HTTP) hosting, or it has no hostnames yet.                                                                                             | Add a hostname to a web hosting first.                                                              |
+| `acme_requires_public_bind`                                                  | 400          | The domain's bind is `datacenter` or `local`. Also refused at deploy, including for a compose route that asks for `tls.mode: automatic`.                        | Set the bind to **Public**.                                                                         |
+| `letsencrypt_hostname_unsupported`                                           | 400          | A name, or a www name the www choice adds, is a wildcard, an IP address or a private name. Also refused at deploy for a compose route.                          | Use public names only, or upload a certificate.                                                     |
+| `www_redirect_conflict`                                                      | 400          | The www choice cannot apply: the name has no www spelling, or both spellings are already domains in this environment.                                           | Set **www** to **Only** the name, or remove one of the two domains.                                 |
+| `hosting_owned_by_compose`                                                   | 409          | The domain is declared in the compose document and does not ask for `tls.mode: automatic`.                                                                      | Choose its certificate in compose; see [Domains declared in compose](#domains-declared-in-compose). |
+| `wildcard_unsupported`, `dns_01_unsupported`, `private_hostname_unsupported` | 400          | A wildcard, a DNS check or a private name on a library Let's Encrypt certificate.                                                                               | List each public hostname; only the port-80 check is supported today.                               |
+| `acme_requires_org_opt_in`                                                   | 400 (deploy) | A Let's Encrypt certificate is chosen, or a compose route asks for `tls.mode: automatic`, but the organization's setting is off. The message names the setting. | Turn the setting on, or pick another certificate (`internal` in compose).                           |
 
 ## Related
 
