@@ -253,7 +253,7 @@ Destroy. Removes containers and volumes, tears down hostnames and releases.
 
 ### Command statuses
 
-`queued` → `dispatching` → `sent` → `acked` → `running` → one of `succeeded`, `failed`, `timed_out`, `cancelled`. Commands carry a delivery deadline; one the daemon never picks up becomes `timed_out` and is recorded in history as stalled with the reason above.
+`queued` → `dispatching` → `sent` → `acked` → `running` → one of `succeeded`, `failed`, `timed_out`, `cancelled`. Commands carry a delivery deadline; one the daemon never picks up becomes `timed_out` and is recorded in history as stalled with the reason above. A deploy that is running also becomes `timed_out` when it runs past the organization's deploy time limit: 30 minutes by default, or a whole number from 5 to 240 minutes set by an organization manager. The time is counted only while the server keeps reporting; a server on an older daemon keeps a fixed 10 minute limit.
 
 ### The prepared shape
 

@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383dc09bd0
+pnpm-lock.yaml sha256:e00cfe02191c84e5e2e88adfe117cc33249e5b607fa964b7591bc364f6bbfa16
 -->
 
 ## Production dependencies
@@ -312,7 +312,7 @@ pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383d
 - Copyright: Yokozuna59
 - Homepage: https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme
 
-### @next/env@16.3.8
+### @next/env@16.4.1
 
 - License: MIT
 - Copyright: Next.js Team
@@ -1539,7 +1539,7 @@ pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383d
 - Copyright: Titus Wormer
 - Homepage: https://github.com/wooorm/devlop#readme
 
-### dompurify@3.4.16
+### dompurify@3.4.17
 
 - License: (MPL-2.0 OR Apache-2.0)
 - Copyright: Dr.-Ing. Mario Heiderich, Cure53
@@ -2422,7 +2422,7 @@ pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383d
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.3.8
+### next@16.4.1
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -2923,7 +2923,7 @@ pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383d
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/type-fest#readme
 
-### undici@6.28.1
+### undici@6.29.1
 
 - License: MIT
 - Homepage: https://undici.nodejs.org
@@ -3073,7 +3073,7 @@ pnpm-lock.yaml sha256:1dca9ae7e0355a0a17629bc768fa25af989abc13e7bb2e315bc762383d
 - Copyright: Eemeli Aro
 - Homepage: https://eemeli.org/yaml/
 
-### zod@4.4.3
+### zod@4.6.7
 
 - License: MIT
 - Copyright: Colin McDonnell
@@ -3329,7 +3329,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.3.8
+### @next/swc-linux-x64-gnu@16.4.1
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -4982,12 +4982,6 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/strip-json-comments#readme
 
-### supports-color@10.2.2
-
-- License: MIT
-- Copyright: Sindre Sorhus
-- Homepage: https://github.com/chalk/supports-color#readme
-
 ### supports-color@7.2.0
 
 - License: MIT
@@ -5109,7 +5103,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Gary Court
 - Homepage: https://github.com/garycourt/uri-js
 
-### vite@6.4.3
+### vite@6.4.4
 
 - License: MIT
 - Copyright: Evan You
