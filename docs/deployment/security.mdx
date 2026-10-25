@@ -14,18 +14,21 @@ TurboPanel's security model spans the control plane (management interface and AP
 ## Control Plane Security
 
 Site **hosting** certificates (sites on :80/:443) are separate from the
-control-plane leaf. Operators pin a library cert, use Caddy `tls internal`, or
-pin a Let's Encrypt row that Caddy issues on the serving host. See
+control-plane leaf. Operators pin a library cert, use the self-signed
+certificate the server's web server makes, or pin a Let's Encrypt row that the
+web server on the serving server gets and renews. See
+[Certificates](/docs/using/certificates) and
 [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ### TLS/SSL Configuration
 
 <Callout type="info" title="Production Requirement">
-  For production deployments, always use a reverse proxy (nginx, Caddy, Traefik) for HTTPS. Never
-  expose the control plane directly on HTTP in production.
+  Never expose the control plane on plain HTTP in production. It serves HTTPS
+  itself on **:8443** (below); an outer reverse proxy in front of it is
+  optional.
 </Callout>
 
-Self-hosted Caddy listens on **:8443**. Every hostname is served there. The certificate is chosen by the name.
+The self-hosted control plane's built-in web server listens on **:8443**. Every hostname is served there. The certificate is chosen by the name.
 
 | Source | Listen | Platform CA served | `--insecure-tls` |
 | --- | --- | --- | --- |
@@ -39,13 +42,13 @@ Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt)
 baseline response-header set on every response: `Strict-Transport-Security`
 (one year, `includeSubDomains`), `X-Content-Type-Options: nosniff`, and
 `X-Frame-Options: DENY`. This is control-plane only — per-site hosting sites
-are a separate Caddy config the daemon generates and do not inherit these
-headers.
+are a separate web server configuration the daemon generates and do not
+inherit these headers.
 
-Self-hosted deployments ship **Caddy** on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to Caddy or the control plane socket:
+Self-hosted deployments ship a built-in web server on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to that web server or the control plane socket:
 
 ```nginx
-# nginx example — proxy to Caddy HTTPS or upstream HTTP
+# Example outer reverse proxy — pass to the built-in web server on :8443
 server {
     listen 443 ssl;
     server_name turbopanel.example.com;
@@ -61,11 +64,11 @@ server {
 }
 ```
 
-### ACME issuance failure visibility
+### Let's Encrypt failure visibility
 
-A `tlsMode: 'acme'` site hosting relies entirely on Caddy's automatic HTTPS
-to obtain and renew a Let's Encrypt certificate on the serving host. The
-daemon's `AcmeIssuanceObserver` live-probes every such hostname every 60
+A site hosting pinned to a Let's Encrypt row relies entirely on the web server
+on the serving server to obtain and renew the certificate. The daemon's
+certificate check probes every such hostname every 60
 seconds (a `fetch()` against the system trust store — any HTTP response at
 all means the TLS handshake already succeeded against a publicly-trusted
 certificate) and reports a state change back to the control plane: a
@@ -73,8 +76,9 @@ debounced failure (two consecutive bad polls, so the first few seconds a
 fresh deploy spends waiting on a real certificate never false-alarms) or an
 immediate recovery. The failure message lands on the certificate's
 `acme.lastError` field and shows as "Issuance failing: …" in the TLS
-library screen. This is purely additive — it never changes a `managed`
-row's `status`, so a recorded failure cannot itself block a deploy that
+library screen and sends the `certificate.renewal_failed`
+[notification](/docs/using/notifications). This is purely additive — it never
+changes an `automatic` row's `status`, so a recorded failure cannot itself block a deploy that
 would otherwise succeed.
 
 ### Authentication
@@ -141,16 +145,16 @@ Platform containers (the database proxy, managed engines, backups) and Compose f
 | Socket | For | What it allows |
 | ------ | --- | -------------- |
 | `docker.sock` | The daemon account | Everything the profile allows. Build sessions (`/session`, `/grpc`) are a finding here. |
-| `ro/docker.sock` | The Traefik ingress proxies | Read only: ping, version, events and container details. Everything else is `403`. |
+| `ro/docker.sock` | The ingress proxies | Read only: ping, version, events and container details. Everything else is `403`. |
 | `build/docker.sock` (stage 4) | The daemon's own image builds | Build sessions open only here. |
 
 **Stage 4: builds.** A Docker build speaks a stream the gate cannot read, and every build choice (network, mounts, extra privileges) rides inside it. So builds are allowed on one socket only. Only the daemon account may open it: Linux checks the caller when it connects, the socket belongs to root and a group that holds nothing but the daemon account, and no header or token can stand in for it. Site builds that are not Docker builds run in the [build sandbox](/docs/security/site-isolation#builds), which has no Docker access at all. The daemon does not use this socket for its builds yet, so enforce mode stays off until it does.
 
-**The ingress switch.** Without it (set `docker_gate_ingress_socket` to `false`), each host's Traefik reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, Traefik mounts the read-only socket's directory instead, and the proxy container is removed once no service Traefik file on the host still names it. A customer container on the ingress network can no longer list or inspect other containers and read their settings (such as database passwords) through the proxy, and a compromised Traefik reaches only the read-only endpoints, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for site and app containers or for the main socket.
+**The ingress switch.** Without it (set `docker_gate_ingress_socket` to `false`), each host's ingress proxy reads container labels through a `docker-socket-proxy` container that mounts the real Docker socket. With the switch on, the ingress proxy mounts the read-only socket's directory instead, and the socket proxy container is removed once no ingress service file on the host still names it. A customer container on the ingress network can no longer list or inspect other containers and read their settings (such as database passwords) through the proxy, and a compromised ingress proxy reaches only the read-only endpoints, not the socket proxy (which also passed container `logs`, `export` and `archive` reads). It changes nothing for the daemon, for site and app containers or for the main socket.
 
-The switch is **on by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on`, written by the converge. If the file is present and `/run/turbopanel-gate/ro` exists, the daemon renders Traefik against the read-only socket; if either is missing, it keeps the socket proxy.
+The switch is **on by default**. Its state is one file, `/opt/turbopanel/lib/docker-gate/ingress-socket.on`, written by the converge. If the file is present and `/run/turbopanel-gate/ro` exists, the daemon renders the ingress proxy against the read-only socket; if either is missing, it keeps the socket proxy.
 
-To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. `true` is the default, so every converge turns it on; `false` removes the switch file and keeps the socket proxy. Empty leaves the switch as it is. Any other value fails the converge before anything changes. If the gate cannot be installed, the update fails and the host keeps its previous ingress wiring until the gate is fixed. In both directions Traefik keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it, and a TCP or UDP service that Traefik rendered before the switch keeps using the socket proxy until it is redeployed.
+To turn it on or off, run the daemon's `daemon-converge` playbook as root with the role variable `docker_gate_ingress_socket` set to `true` or `false`. `true` is the default, so every converge turns it on; `false` removes the switch file and keeps the socket proxy. Empty leaves the switch as it is. Any other value fails the converge before anything changes. If the gate cannot be installed, the update fails and the host keeps its previous ingress wiring until the gate is fixed. In both directions the ingress proxy keeps its old wiring until the next ingress apply (the next deploy on that host) re-renders it, and a TCP or UDP service that the ingress proxy rendered before the switch keeps using the socket proxy until it is redeployed.
 
 **Proof script.** `scripts/docker-gate-proof.sh` in the [turbopaneld](https://github.com/TurboPanel/turbopaneld) repository is the canary check. It is not installed on hosts: run it from a checkout, as root, on a managed host that has Docker, ideally a test host (`sudo bash docker-gate-proof.sh`). It starts and removes throwaway containers on pinned images and prints `PASS` or `FAIL` for each check, and exits non-zero if any fails.
 
@@ -313,7 +317,7 @@ Recommended:
 
 ### Service users (self-hosted)
 
-Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, control plane and app), and `tpcaddy` (UID 9993, Caddy). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [Control plane AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
+Managed hosts use dedicated users: `tp` (UID 9999, daemon + Ansible), `tpctrl` (UID 9998, control plane and app), and `tpcaddy` (UID 9993, the control plane's web server). Full UID/GID map (Redis, Postgres, RabbitMQ, optional web-server accounts): [Control plane AGENTS.md — Production UID/GID allocation](https://github.com/TurboPanel/turbopanel/blob/trunk/AGENTS.md#production-uidgid-allocation). Neither should run as root in steady state.
 
 Each Hosting Account has a home at `/srv/users/<username>`, laid out as described in [Site isolation](/docs/security/site-isolation#the-home-layout) and [Where your files live](/docs/using/files-and-folders). The host picks its UID/GID from **15001–60000**. An override set on the user must be **≥ 15001**; lower values are refused, and the reserved `tp*` band 9989–9999 is never used. Accounts from earlier releases keep their IDs. The purge finds Hosting Accounts by home folder, not by ID. See [Purge and data export](/docs/deployment/purge#what-the-purge-removes).
 
@@ -393,7 +397,7 @@ graph TD
   <Tab value="Self-Hosted">
 
 ```bash
-# Self-hosted: Caddy on 8443. Every hostname is served there.
+# Self-hosted: the built-in web server on 8443. Every hostname is served there.
 # A Let's Encrypt or publicly trusted upload omits --instance-ca / --insecure-tls.
 
 # Remote managed server — the one installer, pointed at your control plane.

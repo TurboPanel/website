@@ -1,11 +1,11 @@
 ---
 title: Configuration
-description: What an environment really runs, how it differs from the Base, how to change a line for one environment or for all of them, and the API behind the Configuration tab
+description: What an environment really runs, how it differs from the Base, how to change a line for one environment or for all of them, and the API behind the environment's Services tab
 ---
 
 # Configuration
 
-An environment's **Configuration** tab answers one question: *what does this environment actually run?* It shows the [Base](/docs/using/projects#the-model) with this environment's own changes applied. The merge is done by the control plane with the same rules a deploy uses, so what you read here is what the next deploy sends. Nothing on the tab deploys: editing and saving change the stored configuration only.
+An environment's **Services** tab (the configuration view this chapter is named after) answers one question: *what does this environment actually run?* It shows the [Base](/docs/using/projects#the-model) with this environment's own changes applied. The merge is done by the control plane with the same rules a deploy uses, so what you read here is what the next deploy sends. Nothing on the tab deploys: editing and saving change the stored configuration only.
 
 ## The model
 
@@ -26,12 +26,12 @@ Each row on the tab carries a **source tag** saying where its value comes from: 
 
 ## Read the tab
 
-Open the environment, then **Configuration**. It has five sections:
+Open the environment, then **Services**. It has five sections:
 
 | Section | What it lists |
 | --- | --- |
 | **Apps** | Each app with its kind, who it **Runs as**, what changed, and a link to the service page. |
-| **Domains** | The environment's hostnames, with **Add or change domains** (the domain page, where [Let's Encrypt](/docs/using/hosting#lets-encrypt-for-one-domain) is switched on). Domains belong to this environment only. |
+| **Hosting** | The environment's hostnames, each with the service that answers it and its certificate state, with **Add or change hostnames** (the **Hosting** tab, where [Let's Encrypt](/docs/using/certificates) is switched on). Hostnames belong to this environment only. |
 | **Variables** | The effective variables. Secrets are never shown. A variable set on the project reaches every environment; a change in this environment replaces the project value here only. |
 | **Linux users** | The Linux user each app runs as. |
 | **Data** | The data stores: databases and storage volumes. |
@@ -44,7 +44,7 @@ A project with a single environment has nothing to compare, so the tab shows no 
 
 ## Change a line
 
-Variables and **Runs as** can be edited on the tab. The older **Compose**, **Hosting**, **Bindings** and **Storage** views are one tab away (**Configuration → Compose** and so on) for everything else.
+Variables and **Runs as** can be edited on the tab. The older **Compose**, **Hosting**, **Bindings** and **Storage** views are one tab away (**Services → Compose** and so on) for everything else.
 
 <Steps>
   <Step>

@@ -9,7 +9,7 @@ This guide helps resolve common issues when deploying or running TurboPanel in p
 
 ## Introduction
 
-Production issues typically fall into TLS/Caddy misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. The self-hosted browser entrypoint is **HTTPS on port 8443**. Co-located development uses that same listener.
+Production issues typically fall into TLS or web server misconfiguration, instance socket permissions, daemon WebSocket connectivity, Postgres socket access, or Ansible playbook failures. The self-hosted browser entrypoint is **HTTPS on port 8443**. Co-located development uses that same listener.
 
 | Port     | When                                                              |
 | -------- | ----------------------------------------------------------------- |
@@ -17,18 +17,18 @@ Production issues typically fall into TLS/Caddy misconfiguration, instance socke
 | **80**   | Only during Let's Encrypt issuance or renewal.                    |
 | **443**  | Hosting only.                                                     |
 
-Hosting Caddy also binds **80** while hosted sites are deployed. A control plane with no hosted sites leaves **80** closed except during that issuance or renewal window. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+The hosting web server (the one that serves sites) also binds **80** while hosted sites are deployed. A control plane with no hosted sites leaves **80** closed except during that issuance or renewal window. See [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 ## Port conflicts (8443 / 80 / 443)
 
-**Problem:** Control-plane Caddy cannot bind `:8443`. During Let's Encrypt issuance or renewal, another process holds port 80.
+**Problem:** The control plane's web server cannot bind `:8443`. During Let's Encrypt issuance or renewal, another process holds port 80.
 
 **Solutions:**
 
-1. For `:8443`, stop or move the process that holds it. The managed Caddyfile binds `:8443` literally and does not read `CADDY_PORT` (only the co-located development overlay does), so the port cannot be changed
-2. When the apply reports `port 80 is held by <process>` (for example `port 80 is held by nginx`), stop that process or move it off port 80, then apply again. Hosting Caddy is the expected holder when hosted sites are already deployed
+1. For `:8443`, stop or move the process that holds it. The managed web server configuration binds `:8443` literally and does not read `CADDY_PORT` (only the co-located development overlay does), so the port cannot be changed
+2. When the apply reports `port 80 is held by <process>` naming the process, stop that process or move it off port 80, then apply again. The hosting web server is the expected holder when hosted sites are already deployed
 3. Check listeners: `ss -tlnp | grep -E '8443|80|443'`
-4. Port **443** is hosting Caddy. Leave it for hosted sites
+4. Port **443** is the hosting web server. Leave it for hosted sites
 
 ## UI or API not loading
 
@@ -37,7 +37,7 @@ Hosting Caddy also binds **80** while hosted sites are deployed. A control plane
 **Solutions:**
 
 1. Check the control plane: `systemctl status turbopanel-instance`
-2. Check Caddy: `systemctl status turbopanel-caddy`
+2. Check the control plane's web server: `systemctl status turbopanel-caddy`
 3. Test health over HTTPS: `curl -k https://localhost:8443/api/health` (omit `-k` when the leaf is publicly trusted). Trust the Platform CA for a self-hosted name.
 4. Logs: `journalctl -u turbopanel-instance -u turbopanel-caddy -f`
 5. **Static UI:** ensure the UI export exists in `/opt/turbopanel/share/ui` if `TURBOPANEL_UI_MODE=static`
