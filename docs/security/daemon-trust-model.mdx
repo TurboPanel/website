@@ -63,7 +63,7 @@ Channel manifest from GitHub Releases → `run.sh` reconciles `/opt/turbopanel` 
 | Host metrics samples | Charts and alerting (see [server metrics](/docs/architecture/server-metrics)) |
 | Command results / logs (on demand) | Operator actions |
 | Public daemon key fingerprint | Authentication |
-| Let's Encrypt certificate chain and private key, for a hostname Caddy on this server issued | Stored encrypted by the control plane (see [Stored copy](/docs/using/hosting#stored-copy)) |
+| Let's Encrypt certificate chain and private key, for a hostname the web server on this server obtained | Stored encrypted by the control plane (see [Stored copy](/docs/using/hosting#stored-copy)) |
 
 Daemons do **not** upload arbitrary filesystem contents unless a specific command requests it (e.g. managed logs tail).
 

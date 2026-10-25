@@ -67,7 +67,7 @@ Sites and Node apps are stripped out of the runtime compose the daemon runs; the
 
 ### Sites: engines, files and users
 
-A `site` service is served by one **engine** on the server, chosen with `engine`. Each engine runs under its own service account and serves files on the loopback address; the host's hosting Caddy fronts it.
+A `site` service is served by one **engine** on the server, chosen with `engine`. Each engine runs under its own service account and serves files on the loopback address; TurboPanel's web server on ports 80 and 443 sits in front of it.
 
 | `engine` | Engine account |
 | --- | --- |
@@ -118,7 +118,7 @@ services:
         - hostname: shop.example.com
           targetPort: 3000
           forceHttps: true
-          tls: { mode: acme }
+          tls: { mode: certificate, certificateRef: shop-cert }
           bind: { scope: public }
       cron:
         - name: reindex
@@ -131,7 +131,7 @@ services:
 | `serviceKind` | all | `container` (default), `site`, `node`. |
 | `description` | all | Free text shown on the service card and the Overview. |
 | `principal` | `site`, `node` (refused on `container`) | Alias of a root `principals` entry — the account the service runs as. Required for sites and Node apps. |
-| `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| acme, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
+| `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| automatic, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. `internal` (the default) is self-signed; `certificate` pins a library certificate by `certificateRef`, which can be a Let's Encrypt row; `automatic` is not supported yet and is refused at deploy (`hosting_tls_mode_unsupported`). See [Certificates](/docs/using/certificates). Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
 | `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, buildKind?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `buildKind` is `native` (the default) or `railpack`; `railpack` builds a container image from the source and is valid only on a `container` service (see [Releases and rollback](#releases-and-rollback)). `deployOnPush: false` keeps a git push from deploying the service (an app deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `sourceKind` | `site` | `release` (the default: the site serves a built, read-only release of its repository) or `managed-directory` (a writable `public/` folder you fill over SFTP; see [Sites: engines, files and users](#sites-engines-files-and-users)). Refused together with a `source`. |
