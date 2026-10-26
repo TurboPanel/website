@@ -396,7 +396,7 @@ export default function AboutLogoPage() {
             In prose the product name is one word with a capital T and P:{" "}
             <strong className="font-semibold text-[var(--tp-text)]">
               TurboPanel
-            </strong>
+            </strong>{" "}
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
             the T mark supplies the leading T and the wordmark above continues
             it, tucked under the blue crossbar. Never render “TurboPanel” beside
