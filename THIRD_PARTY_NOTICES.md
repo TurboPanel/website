@@ -16,7 +16,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, WOFF2) rather t
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:e00cfe02191c84e5e2e88adfe117cc33249e5b607fa964b7591bc364f6bbfa16
+pnpm-lock.yaml sha256:6b2a66e7e19569067e0dbdccdde99821b4c2ff47640c3c1fb1e245829ab51e4f
 -->
 
 ## Production dependencies
@@ -4728,6 +4728,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: George Zahariev
 - Homepage: http://preludels.com
+
+### prettier@3.9.9
+
+- License: MIT
+- Copyright: James Long
+- Homepage: https://prettier.io
 
 ### prop-types@15.8.1
 
