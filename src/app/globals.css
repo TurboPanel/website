@@ -664,14 +664,6 @@ body {
   font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
 }
 
-/** Logotype “urboPanel” — Plus Jakarta ExtraBold Italic + skew (see Logo.tsx). */
-.tp-wordmark {
-  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
-  font-weight: 800;
-  font-style: italic;
-  letter-spacing: -0.02em;
-}
-
 .tp-section-title {
   font-family: var(--font-display), var(--font-geist-sans), 'Avenir Next', 'Segoe UI', sans-serif;
   font-size: clamp(1.75rem, 4vw, 2.35rem);

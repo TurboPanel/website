@@ -16,9 +16,9 @@ describe('computeTurboPanelWordmarkLockup', () => {
 
     expect(lockup).toMatchObject({
       lockupHeight: 32,
-      wordSize: 26,
+      wordSize: 28,
       wordBottomOffset: -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
-      skew: '-15deg',
+      skew: '-14deg',
       text: 'urboPanel',
     })
   })
@@ -170,7 +170,9 @@ describe('websiteWordmarkLockup', () => {
   it('can emit a mark-only website lockup', () => {
     const lockup = websiteWordmarkLockup(false, true)
     expect(lockup.lockupWidth).toBe(lockup.markWidth)
-    expect(lockup.lockupWidth).toBeLessThan(websiteWordmarkLockup(false).lockupWidth)
+    expect(lockup.lockupWidth).toBeLessThan(
+      websiteWordmarkLockup(false).lockupWidth,
+    )
   })
 
   it('can emit a compact mark-only website lockup', () => {

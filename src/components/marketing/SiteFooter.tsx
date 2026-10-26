@@ -11,7 +11,7 @@ const FOOTER_LINKS = [
   { href: '/changelog', label: 'Changelog' },
   { href: '/docs', label: 'Docs' },
   { href: '/docs/api', label: 'API reference' },
-  { href: '/about/logo', label: 'Logo & brand' },
+  { href: '/about/logo', label: 'Graphics & Logos' },
   { href: '/terms', label: 'Terms' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/aup', label: 'Acceptable use' },
