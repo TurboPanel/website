@@ -8,8 +8,9 @@ This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material).
 
 ## Bundled fonts
 
-The site serves these typefaces from `src/fonts/` (latin subset, variable weight, WOFF2) rather than fetching them at build time. Each is licensed under the SIL Open Font License 1.1; the full text ships in `LICENSES/`.
+The site serves these typefaces from `src/fonts/` (latin subset, WOFF2) rather than fetching them at build time, and offers the wordmark face for download under `public/brand/fonts/`. Each is licensed under the SIL Open Font License 1.1; the full text ships in `LICENSES/`.
 
+- Exo 2 (Black Italic; variable italic TTF offered for download) — Copyright 2013 The Exo 2 Project Authors (https://github.com/googlefonts/Exo-2.0) — `LICENSES/OFL-1.1-Exo-2.txt`
 - Plus Jakarta Sans (normal and italic) — Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) — `LICENSES/OFL-1.1-Plus-Jakarta-Sans.txt`
 - Geist — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist.txt`
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
@@ -3185,7 +3186,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Charles Samborski
 - Homepage: https://github.com/bcoe/v8-coverage#readme
 
-### @esbuild/linux-x64@0.28.1
+### @esbuild/linux-arm64@0.28.1
 
 - License: MIT
 - Homepage: https://github.com/evanw/esbuild#readme
@@ -3277,13 +3278,13 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/lovell/colour#readme
 
-### @img/sharp-libvips-linux-x64@1.3.4
+### @img/sharp-libvips-linux-arm64@1.3.4
 
 - License: LGPL-3.0-or-later
 - Copyright: Lovell Fuller
 - Homepage: https://sharp.pixelplumbing.com
 
-### @img/sharp-linux-x64@0.35.5
+### @img/sharp-linux-arm64@0.35.5
 
 - License: Apache-2.0
 - Copyright: Lovell Fuller
@@ -3319,17 +3320,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Justin Ridgewell
 - Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
 
-### @napi-rs/lzma-linux-x64-gnu@1.5.1
-
-- License: MIT
-- Homepage: https://github.com/Brooooooklyn/lzma#readme
-
 ### @next/eslint-plugin-next@16.2.9
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.4.1
+### @next/swc-linux-arm64-gnu@16.4.1
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -3354,7 +3350,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/SukkaW/nolyfill#readme
 
-### @rollup/rollup-linux-x64-gnu@4.62.4
+### @rollup/rollup-linux-arm64-gnu@4.62.4
 
 - License: MIT
 - Copyright: Lukas Taegert-Atkinson
@@ -3375,7 +3371,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
 
-### @tailwindcss/oxide-linux-x64-gnu@4.3.0
+### @tailwindcss/oxide-linux-arm64-gnu@4.3.0
 
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
@@ -3476,7 +3472,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://typescript-eslint.io
 
-### @unrs/resolver-binding-linux-x64-gnu@1.12.2
+### @unrs/resolver-binding-linux-arm64-gnu@1.12.2
 
 - License: MIT
 - Homepage: https://github.com/unrs/unrs-resolver
@@ -4509,7 +4505,7 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme
 
-### lightningcss-linux-x64-gnu@1.32.0
+### lightningcss-linux-arm64-gnu@1.32.0
 
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme

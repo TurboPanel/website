@@ -7,7 +7,11 @@ import {
   MarketingSection,
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-primitives";
-import { BRAND_COLORS, BRAND_LOGO_VARIANTS } from "@/lib/brand-assets";
+import {
+  BRAND_COLORS,
+  BRAND_LOGO_VARIANTS,
+  BRAND_WORDMARK_FONT,
+} from "@/lib/brand-assets";
 import { TURBOPANEL_WORDMARK_STYLE } from "@/lib/wordmark-lockup";
 import { wordmarkFont } from "@/lib/wordmark-font";
 
@@ -105,7 +109,7 @@ export default function AboutLogoPage() {
     <MarketingPageShell active="overview">
       <MarketingHero
         eyebrow="Brand"
-        title="Graphics & logos"
+        title="Graphics & Logos"
         description="When you need the official TurboPanel logo for a website or publication, use one of the downloads below. Please use logos in accordance with these guidelines."
       />
 
@@ -119,6 +123,47 @@ export default function AboutLogoPage() {
           {BRAND_LOGO_VARIANTS.map((variant) => (
             <LogoVariantBlock key={variant.id} variant={variant} />
           ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection id="font">
+        <MarketingSectionHeader
+          eyebrow="Wordmark font"
+          title={`${BRAND_WORDMARK_FONT.family} ${BRAND_WORDMARK_FONT.styleName}`}
+          description="The letters that continue the T are live text, not artwork. Use this face at weight 900 italic for any lockup that needs the full name; the T itself is always the SVG mark."
+        />
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
+          <div>
+            <p className="text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
+              The web file is the single Black Italic cut the site serves
+              itself. The TTF carries every italic weight for desktop and print
+              tools. The font is licensed under the{" "}
+              {BRAND_WORDMARK_FONT.license}; TurboPanel’s trademark covers the
+              lockup, not the typeface.
+            </p>
+            <ul className="mt-5 flex flex-wrap gap-2">
+              {BRAND_WORDMARK_FONT.assets.map((asset) => (
+                <li key={asset.href}>
+                  <DownloadLink href={asset.href}>{asset.label}</DownloadLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex items-center justify-center rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-8">
+            <span
+              className={`${wordmarkFont.className} text-5xl text-[var(--tp-text)] sm:text-6xl`}
+              style={{
+                display: "inline-block",
+                fontWeight: BRAND_WORDMARK_FONT.weight,
+                fontStyle: "italic",
+                transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
+                transformOrigin: "left bottom",
+              }}
+              aria-hidden
+            >
+              urboPanel
+            </span>
+          </div>
         </div>
       </MarketingSection>
 
@@ -170,10 +215,10 @@ export default function AboutLogoPage() {
               Clear space
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              Downloadable SVGs are ink-tight (no embedded pad). Keep empty space
-              around the mark at least as tall as the green acceleration bars —
-              apply that margin in layout, not by editing the file. Do not let
-              other logos, type, or UI chrome collide with that margin.
+              Downloadable SVGs are ink-tight (no embedded pad). Keep empty
+              space around the mark at least as tall as the green acceleration
+              bars — apply that margin in layout, not by editing the file. Do
+              not let other logos, type, or UI chrome collide with that margin.
             </p>
           </div>
           <div>
@@ -201,9 +246,11 @@ export default function AboutLogoPage() {
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
             the T mark supplies the leading T and the{" "}
             <span
-              className={`${wordmarkFont.className} tracking-tight text-[var(--tp-text)]`}
+              className={`${wordmarkFont.className} text-[var(--tp-text)]`}
               style={{
                 display: "inline-block",
+                fontWeight: BRAND_WORDMARK_FONT.weight,
+                fontStyle: "italic",
                 transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
                 transformOrigin: "left bottom",
               }}
@@ -212,12 +259,13 @@ export default function AboutLogoPage() {
             </span>{" "}
             wordmark tucks under the blue crossbar in{" "}
             <strong className="font-semibold text-[var(--tp-text)]">
-              Plus Jakarta Sans ExtraBold Italic
-            </strong>
-            {" "}
-            (weight 800, native italic plus light CSS skew to the T’s ~22° lean;
-            baseline aligned to the T stem tip). Never render “TurboPanel” beside
-            the mark. The mark may appear alone when space is tight.
+              {BRAND_WORDMARK_FONT.family} {BRAND_WORDMARK_FONT.styleName}
+            </strong>{" "}
+            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own 8° italic plus
+            a {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew to match the T’s 22°
+            lean; first letter against the stem, baseline at the stem tip, no
+            extra letter spacing). Never render “TurboPanel” beside the mark.
+            The mark may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>
@@ -247,14 +295,17 @@ export default function AboutLogoPage() {
       <MarketingSection>
         <p className="max-w-2xl text-sm leading-relaxed text-[var(--tp-text-muted)]">
           Open-source licenses do not grant trademark rights. Questions about
-          trademark use or partnership lockups can go through the usual TurboPanel
-          contact channels. Policy:{' '}
-          <Link href="/open-source" className="text-[var(--tp-accent)] hover:underline">
+          trademark use or partnership lockups can go through the usual
+          TurboPanel contact channels. Policy:{" "}
+          <Link
+            href="/open-source"
+            className="text-[var(--tp-accent)] hover:underline"
+          >
             Open source
           </Link>
-          . Product UI tokens stay in{' '}
+          . Product UI tokens stay in{" "}
           <span className="font-mono">ui/src/lib/theme.ts</span>; marketing
-          tokens in{' '}
+          tokens in{" "}
           <span className="font-mono">website/src/app/globals.css</span>.
         </p>
       </MarketingSection>

@@ -20,6 +20,35 @@ export type BrandLogoVariant = Readonly<{
   assets: ReadonlyArray<BrandAsset>
 }>
 
+export type BrandFontAsset = Readonly<{
+  label: string
+  href: string
+  format: 'WOFF2' | 'TTF' | 'TXT'
+}>
+
+/** The wordmark face: “urboPanel” under the T is set in this font. */
+export const BRAND_WORDMARK_FONT = {
+  family: 'Exo 2',
+  styleName: 'Black Italic',
+  weight: 900,
+  /** CSS skew added to the font's own 8° italic so the letters lean with the T stem. */
+  extraSkewDeg: 14,
+  license: 'SIL Open Font License 1.1',
+  assets: [
+    {
+      label: 'WOFF2 (web, Black Italic, latin)',
+      href: '/brand/fonts/exo-2-latin-900-italic.woff2',
+      format: 'WOFF2',
+    },
+    {
+      label: 'TTF (variable italic, desktop and print)',
+      href: '/brand/fonts/Exo2-Italic-VariableFont_wght.ttf',
+      format: 'TTF',
+    },
+    { label: 'License (OFL 1.1)', href: '/brand/fonts/OFL-Exo-2.txt', format: 'TXT' },
+  ] as ReadonlyArray<BrandFontAsset>,
+} as const
+
 export const BRAND_LOGO_VARIANTS: ReadonlyArray<BrandLogoVariant> = [
   {
     id: 'standard',

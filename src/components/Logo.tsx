@@ -1,4 +1,4 @@
-/** Website logotype — T mark + Plus Jakarta ExtraBold Italic “urboPanel”. */
+/** Website logotype — T mark + Exo 2 Black Italic “urboPanel”. */
 
 import {
   TURBOPANEL_MARK_INK,
@@ -42,6 +42,8 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
           left: wordLockup.wordLeft,
           bottom: wordLockup.wordBottomOffset,
           fontSize: wordLockup.wordSize,
+          fontWeight: 900,
+          fontStyle: 'italic',
           lineHeight: 1,
           letterSpacing: `${wordLockup.letterSpacingEm}em`,
           display: 'block',

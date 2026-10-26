@@ -4,34 +4,29 @@ import { wordmarkFont } from '@/lib/wordmark-font'
 
 vi.mock('next/font/local', () => ({
   default: vi.fn((options: { variable: string }) => ({
-    className: 'mock-plus-jakarta',
-    style: { fontFamily: 'Plus Jakarta Sans' },
+    className: 'mock-exo-2',
+    style: { fontFamily: 'Exo 2' },
     variable: options.variable,
   })),
 }))
 
 describe('wordmarkFont', () => {
-  it('reuses the single self-hosted Plus Jakarta loader used for display', () => {
+  it('loads the single self-hosted Exo 2 Black Italic face', () => {
     const loaded = vi.mocked(localFont)
     expect(loaded.mock.calls).toHaveLength(1)
     const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
       src: [
         {
-          path: '../fonts/plus-jakarta-sans-latin-wght-normal.woff2',
-          weight: '500 800',
-          style: 'normal',
-        },
-        {
-          path: '../fonts/plus-jakarta-sans-latin-wght-italic.woff2',
-          weight: '500 800',
+          path: '../fonts/exo-2-latin-900-italic.woff2',
+          weight: '900',
           style: 'italic',
         },
       ],
-      variable: '--font-display',
+      variable: '--font-wordmark',
       display: 'swap',
     })
-    expect(wordmarkFont.variable).toBe('--font-display')
-    expect(wordmarkFont.className).toBe('mock-plus-jakarta')
+    expect(wordmarkFont.variable).toBe('--font-wordmark')
+    expect(wordmarkFont.className).toBe('mock-exo-2')
   })
 })
