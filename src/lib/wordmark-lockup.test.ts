@@ -4,6 +4,7 @@ import {
   TURBOPANEL_WORDMARK_BASELINE_EM,
   TURBOPANEL_WORDMARK_CHROME_SIZE,
   TURBOPANEL_WORDMARK_LOCKUP_TUNING,
+  TURBOPANEL_WORDMARK_OVERSHOOT_EM,
   TURBOPANEL_WORDMARK_PROFILE,
   websiteWordmarkLockup,
   wordBaselineDropPx,
@@ -19,7 +20,9 @@ describe('wordBaselineDropPx', () => {
     expect(TURBOPANEL_WORDMARK_LOCKUP_TUNING.wordBaselineOnMarkBase).toBe(true)
     // Figtree: ascent 0.95 em, descent 0.25 em -> 0.25 - (1.2 - 1) / 2.
     expect(TURBOPANEL_WORDMARK_BASELINE_EM).toBe(0.15)
-    expect(wordBaselineDropPx(29)).toBeCloseTo(4.35)
+    // Round letters dip 12/1000 em below the baseline; the drop stops short by that.
+    expect(TURBOPANEL_WORDMARK_OVERSHOOT_EM).toBe(0.012)
+    expect(wordBaselineDropPx(29)).toBeCloseTo(4.002)
     expect(wordBaselineDropPx(0)).toBe(0)
   })
 })
@@ -41,8 +44,8 @@ describe('computeTurboPanelWordmarkLockup', () => {
       skew: '-14deg',
       text: 'urboPanel',
     })
-    // 33px word, no profile nudge: the baseline drop alone.
-    expect(lockup.wordBottomOffset).toBeCloseTo(-4.95)
+    // 33px word, no profile nudge: 33 * (0.15 - 0.012).
+    expect(lockup.wordBottomOffset).toBeCloseTo(-4.554)
   })
 
   it('honours mark-only width', () => {
