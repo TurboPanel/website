@@ -65,7 +65,7 @@ Voice rules:
 
 Register new marketing routes in `SiteHeader` (`ActivePage` + `LINKS` when nav-visible — `LINKS` also feeds the mobile `MobileNavMenu` panel), `SiteFooter` (`FOOTER_LINKS`), and `src/app/sitemap.ts`.
 
-Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/`.
+Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/` (the five `*-og.svg` cards). They carry the T mark and the Figtree wordmark as outlined paths, not live text, because share platforms do not load web fonts; the outlines use the header lockup geometry from `src/lib/wordmark-lockup.ts` (31 px word, +0.02 em spacing, −14° skew, lowest ink on the base of the T), so redraw them when those constants change.
 
 ## Stack
 
