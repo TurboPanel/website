@@ -2522,12 +2522,6 @@ pnpm-lock.yaml sha256:6b2a66e7e19569067e0dbdccdde99821b4c2ff47640c3c1fb1e245829a
 - Copyright: Andrey Sitnik
 - Homepage: https://postcss.org/
 
-### prettier@3.9.9
-
-- License: MIT
-- Copyright: James Long
-- Homepage: https://prettier.io
-
 ### pretty-ms@9.3.0
 
 - License: MIT
@@ -4734,6 +4728,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: George Zahariev
 - Homepage: http://preludels.com
+
+### prettier@3.9.9
+
+- License: MIT
+- Copyright: James Long
+- Homepage: https://prettier.io
 
 ### prop-types@15.8.1
 
