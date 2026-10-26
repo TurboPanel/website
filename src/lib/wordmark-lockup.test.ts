@@ -17,9 +17,9 @@ const bottomFor = (wordSize: number, downPx: number): number =>
 describe('wordBaselineDropPx', () => {
   it('drops the word by the baseline distance when the lockup sits on the base', () => {
     expect(TURBOPANEL_WORDMARK_LOCKUP_TUNING.wordBaselineOnMarkBase).toBe(true)
-    expect(wordBaselineDropPx(29)).toBeCloseTo(
-      29 * TURBOPANEL_WORDMARK_BASELINE_EM,
-    )
+    // Figtree: ascent 0.95 em, descent 0.25 em -> 0.25 - (1.2 - 1) / 2.
+    expect(TURBOPANEL_WORDMARK_BASELINE_EM).toBe(0.15)
+    expect(wordBaselineDropPx(29)).toBeCloseTo(4.35)
     expect(wordBaselineDropPx(0)).toBe(0)
   })
 })
@@ -41,6 +41,8 @@ describe('computeTurboPanelWordmarkLockup', () => {
       skew: '-14deg',
       text: 'urboPanel',
     })
+    // 33px word, no profile nudge: the baseline drop alone.
+    expect(lockup.wordBottomOffset).toBeCloseTo(-4.95)
   })
 
   it('honours mark-only width', () => {
