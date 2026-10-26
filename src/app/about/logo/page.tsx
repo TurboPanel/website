@@ -260,10 +260,11 @@ export default function AboutLogoPage() {
             (weight {BRAND_WORDMARK_FONT.weight}, the font’s own{" "}
             {BRAND_WORDMARK_FONT.italicAngleDeg}° italic plus a{" "}
             {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew, just past the T’s 22°
-            lean; first letter against the stem, baseline on the base of the T,
-            letter spacing {TURBOPANEL_WORDMARK_STYLE.letterSpacingEm} em).
-            Never render “TurboPanel” beside the mark. The mark may appear alone
-            when space is tight.
+            lean; first letter against the stem, the word’s lowest ink on the
+            base of the T, letter spacing{" "}
+            {TURBOPANEL_WORDMARK_STYLE.letterSpacingEm} em). Never render
+            “TurboPanel” beside the mark. The mark may appear alone when space
+            is tight.
           </p>
         </div>
       </MarketingSection>
