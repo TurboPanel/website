@@ -23,7 +23,7 @@ describe('BRAND_WORDMARK_FONT', () => {
     expect(formats).toEqual(['WOFF2', 'TTF', 'TXT'])
   })
 
-  it('hosts the licence file the page links to', () => {
+  it('hosts the license file the page links to', () => {
     expect(BRAND_WORDMARK_FONT.assets.map((asset) => asset.href)).toContain(
       BRAND_WORDMARK_FONT.licenseFileHref,
     )

@@ -57,8 +57,8 @@ function WordmarkTile({
       <div className="flex flex-1 items-center justify-center">
         <span
           role="img"
-          aria-label="TurboPanel wordmark: the T mark followed by urboPanel"
-          className="relative inline-block [--s:1.5] sm:[--s:2.5] md:[--s:3] lg:[--s:4]"
+          aria-label={`TurboPanel wordmark on ${label.toLowerCase()}`}
+          className="relative inline-block [--s:1.25] min-[400px]:[--s:1.5] sm:[--s:2.5] md:[--s:3] lg:[--s:4]"
           style={{
             width: `calc(var(--s) * ${FULL_LOCKUP.lockupWidth}px)`,
             height: `calc(var(--s) * ${FULL_LOCKUP.lockupHeight}px)`,
@@ -219,9 +219,8 @@ export default function AboutLogoPage() {
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
               Figtree is an open-source geometric sans-serif designed by{" "}
-              {BRAND_WORDMARK_FONT.designer}. It is friendly, reads well at
-              small sizes and in print, and has true italics, so the slant is
-              drawn by the designer rather than faked by skewing an upright
+              {BRAND_WORDMARK_FONT.designer}. It has true italics, so the slant
+              is drawn by the designer rather than faked by skewing an upright
               face. TurboPanel uses the ExtraBold cut.
             </p>
             <dl className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm">
@@ -273,19 +272,19 @@ export default function AboutLogoPage() {
             <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
               {BRAND_WORDMARK_FONT.copyright}. You may use, embed, study and
               share the font, including in print and commercial work. Keep the
-              copyright notice and license text with any copy you share, and do
-              not sell the font on its own. This is a summary; the license text
-              is what applies. TurboPanel’s trademark covers the lockup, not the
-              typeface.
+              copyright notice and license text with any copy you share, keep
+              modified versions under the same license, and do not sell the font
+              on its own. This is a summary; the license text is what applies.
+              TurboPanel’s trademark covers the lockup, not the typeface.
             </p>
             <ul className="mt-4 space-y-1.5 text-sm">
               <li>
-                <Link
+                <a
                   href={BRAND_WORDMARK_FONT.licenseFileHref}
                   className="text-[var(--tp-accent)] hover:underline"
                 >
                   Read the license text
-                </Link>
+                </a>
               </li>
               <li>
                 <a

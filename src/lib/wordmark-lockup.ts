@@ -61,7 +61,7 @@ export const TURBOPANEL_WORDMARK_LOCKUP_TUNING = {
   sizeTrimPx: 1,
   /**
    * Final word size as % of under-bar band fit (+ profile boost).
-   * 97 = the caps rise a little into the crossbar band (the chosen look).
+   * 97 = just under a full band fill (the chosen look).
    */
   wordBandTargetPercent: 97,
 } as const

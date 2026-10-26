@@ -41,11 +41,11 @@ export const BRAND_WORDMARK_FONT = {
   /** Where the typeface is developed. */
   sourceUrl: 'https://github.com/erikdkennedy/figtree',
   license: 'SIL Open Font License 1.1',
-  /** Copyright line from the font's own licence file. */
+  /** Copyright line from the font's own license file. */
   copyright: 'Copyright 2022 The Figtree Project Authors',
-  /** The licence file we host next to the font downloads. */
+  /** The license file we host next to the font downloads. */
   licenseFileHref: '/brand/fonts/OFL-Figtree.txt',
-  /** The licence's home page, with the full text and FAQ. */
+  /** The license's home page, with the full text and FAQ. */
   licenseUrl: 'https://openfontlicense.org',
   /** Word color next to the T mark: light and dark site themes. */
   inkLight: '#0f172a',
