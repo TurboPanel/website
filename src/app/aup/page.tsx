@@ -14,8 +14,6 @@ export const metadata: Metadata = {
     'Plain-language rules for the hosted TurboPanel service: build freely, keep it lawful, and share fairly.',
 }
 
-const LAST_UPDATED = 'September 12, 2026'
-
 const LINK = 'text-[var(--tp-accent)] hover:underline'
 const BODY = 'text-sm leading-relaxed text-[var(--tp-text-muted)]'
 
@@ -165,7 +163,7 @@ export default function AcceptableUsePage() {
   return (
     <MarketingPageShell active="aup">
       <MarketingHero
-        eyebrow={`Legal · Updated ${LAST_UPDATED}`}
+        eyebrow="Legal"
         title="Acceptable Use Policy"
         description="A short set of ground rules that keeps the hosted TurboPanel service fast, safe, and fair for everyone on it."
       />

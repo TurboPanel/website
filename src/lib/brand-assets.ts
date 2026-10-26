@@ -3,6 +3,8 @@
  * Keep filenames in sync with files on disk — the /about/logo page lists these.
  */
 
+import { TURBOPANEL_WORDMARK_STYLE } from '@/lib/wordmark-lockup'
+
 export type BrandAsset = Readonly<{
   label: string
   href: string
@@ -19,6 +21,49 @@ export type BrandLogoVariant = Readonly<{
   previewAspect: 'landscape' | 'square'
   assets: ReadonlyArray<BrandAsset>
 }>
+
+export type BrandFontAsset = Readonly<{
+  label: string
+  href: string
+  format: 'WOFF2' | 'TTF' | 'TXT'
+}>
+
+/** The wordmark face: “urboPanel” under the T is set in this font. */
+export const BRAND_WORDMARK_FONT = {
+  family: 'Figtree',
+  styleName: 'ExtraBold Italic',
+  weight: 800,
+  /** The face's own italic angle, from its font metrics. */
+  italicAngleDeg: 9.5,
+  /** CSS skew added to the italic so the letters lean with the T stem. */
+  extraSkewDeg: -Number.parseFloat(TURBOPANEL_WORDMARK_STYLE.skew),
+  designer: 'Erik D. Kennedy',
+  /** Where the typeface is developed. */
+  sourceUrl: 'https://github.com/erikdkennedy/figtree',
+  license: 'SIL Open Font License 1.1',
+  /** Copyright line from the font's own license file. */
+  copyright: 'Copyright 2022 The Figtree Project Authors',
+  /** The license file we host next to the font downloads. */
+  licenseFileHref: '/brand/fonts/OFL-Figtree.txt',
+  /** The license's home page, with the full text and FAQ. */
+  licenseUrl: 'https://openfontlicense.org',
+  /** Word color next to the T mark: light and dark site themes. */
+  inkLight: '#0f172a',
+  inkDark: '#ffffff',
+  assets: [
+    {
+      label: 'WOFF2 (web, ExtraBold Italic, latin)',
+      href: '/brand/fonts/figtree-latin-800-italic.woff2',
+      format: 'WOFF2',
+    },
+    {
+      label: 'TTF (variable italic, desktop and print)',
+      href: '/brand/fonts/Figtree-Italic-VariableFont_wght.ttf',
+      format: 'TTF',
+    },
+    { label: 'License (OFL 1.1)', href: '/brand/fonts/OFL-Figtree.txt', format: 'TXT' },
+  ] as ReadonlyArray<BrandFontAsset>,
+} as const
 
 export const BRAND_LOGO_VARIANTS: ReadonlyArray<BrandLogoVariant> = [
   {

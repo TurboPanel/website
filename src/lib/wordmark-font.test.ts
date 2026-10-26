@@ -4,34 +4,25 @@ import { wordmarkFont } from '@/lib/wordmark-font'
 
 vi.mock('next/font/local', () => ({
   default: vi.fn((options: { variable: string }) => ({
-    className: 'mock-plus-jakarta',
-    style: { fontFamily: 'Plus Jakarta Sans' },
+    className: 'mock-figtree',
+    style: { fontFamily: 'Figtree' },
     variable: options.variable,
   })),
 }))
 
 describe('wordmarkFont', () => {
-  it('reuses the single self-hosted Plus Jakarta loader used for display', () => {
+  it('loads the single self-hosted Figtree ExtraBold Italic face', () => {
     const loaded = vi.mocked(localFont)
     expect(loaded.mock.calls).toHaveLength(1)
     const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
-      src: [
-        {
-          path: '../fonts/plus-jakarta-sans-latin-wght-normal.woff2',
-          weight: '500 800',
-          style: 'normal',
-        },
-        {
-          path: '../fonts/plus-jakarta-sans-latin-wght-italic.woff2',
-          weight: '500 800',
-          style: 'italic',
-        },
-      ],
-      variable: '--font-display',
+      src: '../fonts/figtree-latin-800-italic.woff2',
+      weight: '800',
+      style: 'italic',
+      variable: '--font-wordmark',
       display: 'swap',
     })
-    expect(wordmarkFont.variable).toBe('--font-display')
-    expect(wordmarkFont.className).toBe('mock-plus-jakarta')
+    expect(wordmarkFont.variable).toBe('--font-wordmark')
+    expect(wordmarkFont.className).toBe('mock-figtree')
   })
 })
