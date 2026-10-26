@@ -16,7 +16,7 @@ import { TURBOPANEL_WORDMARK_STYLE } from "@/lib/wordmark-lockup";
 import { wordmarkFont } from "@/lib/wordmark-font";
 
 export const metadata: Metadata = {
-  title: "TurboPanel logo",
+  title: "Graphics & Logos",
   description:
     "Official TurboPanel logo downloads and usage guidelines for websites, publications, and product UI.",
 };
@@ -154,8 +154,6 @@ export default function AboutLogoPage() {
               className={`${wordmarkFont.className} text-5xl text-[var(--tp-text)] sm:text-6xl`}
               style={{
                 display: "inline-block",
-                fontWeight: BRAND_WORDMARK_FONT.weight,
-                fontStyle: "italic",
                 transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
                 transformOrigin: "left bottom",
               }}
@@ -249,8 +247,6 @@ export default function AboutLogoPage() {
               className={`${wordmarkFont.className} text-[var(--tp-text)]`}
               style={{
                 display: "inline-block",
-                fontWeight: BRAND_WORDMARK_FONT.weight,
-                fontStyle: "italic",
                 transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
                 transformOrigin: "left bottom",
               }}

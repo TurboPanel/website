@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
-import { exo2Wordmark } from '@/lib/exo-2-font'
 import { plusJakartaSans } from '@/lib/plus-jakarta-sans-font'
 import './globals.css'
 import { ClientRootProvider } from '@/components/ClientRootProvider'
@@ -43,7 +42,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${exo2Wordmark.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased`}
       >
         <Providers>
           <StickySiteChrome />

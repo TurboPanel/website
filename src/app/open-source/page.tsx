@@ -285,7 +285,7 @@ export default function OpenSourcePage() {
             in the UI repository.
           </p>
           <p>
-            See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Logo & brand</Link>
+            See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Graphics & Logos</Link>
             {' '}
             for download links, clear space, and do-not rules, and{' '}
             <a

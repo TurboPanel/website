@@ -3,6 +3,8 @@
  * Keep filenames in sync with files on disk — the /about/logo page lists these.
  */
 
+import { TURBOPANEL_WORDMARK_STYLE } from '@/lib/wordmark-lockup'
+
 export type BrandAsset = Readonly<{
   label: string
   href: string
@@ -32,7 +34,7 @@ export const BRAND_WORDMARK_FONT = {
   styleName: 'Black Italic',
   weight: 900,
   /** CSS skew added to the font's own 8° italic so the letters lean with the T stem. */
-  extraSkewDeg: 14,
+  extraSkewDeg: -Number.parseFloat(TURBOPANEL_WORDMARK_STYLE.skew),
   license: 'SIL Open Font License 1.1',
   assets: [
     {

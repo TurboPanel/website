@@ -42,8 +42,6 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
           left: wordLockup.wordLeft,
           bottom: wordLockup.wordBottomOffset,
           fontSize: wordLockup.wordSize,
-          fontWeight: 900,
-          fontStyle: 'italic',
           lineHeight: 1,
           letterSpacing: `${wordLockup.letterSpacingEm}em`,
           display: 'block',

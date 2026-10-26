@@ -16,13 +16,9 @@ describe('wordmarkFont', () => {
     expect(loaded.mock.calls).toHaveLength(1)
     const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
-      src: [
-        {
-          path: '../fonts/exo-2-latin-900-italic.woff2',
-          weight: '900',
-          style: 'italic',
-        },
-      ],
+      src: '../fonts/exo-2-latin-900-italic.woff2',
+      weight: '900',
+      style: 'italic',
       variable: '--font-wordmark',
       display: 'swap',
     })
