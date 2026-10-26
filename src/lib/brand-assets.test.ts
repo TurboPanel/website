@@ -13,8 +13,20 @@ describe('BRAND_WORDMARK_FONT', () => {
     expect(BRAND_WORDMARK_FONT.weight).toBe(800)
     expect(BRAND_WORDMARK_FONT.italicAngleDeg).toBe(9.5)
     expect(BRAND_WORDMARK_FONT.extraSkewDeg).toBe(14)
+    expect(BRAND_WORDMARK_FONT.designer).toBe('Erik D. Kennedy')
+    expect(BRAND_WORDMARK_FONT.license).toBe('SIL Open Font License 1.1')
+    expect(BRAND_WORDMARK_FONT.licenseUrl.startsWith('https://')).toBe(true)
+    expect(BRAND_WORDMARK_FONT.sourceUrl.startsWith('https://')).toBe(true)
+    expect(BRAND_WORDMARK_FONT.inkLight).toBe('#0f172a')
+    expect(BRAND_WORDMARK_FONT.inkDark).toBe('#ffffff')
     const formats = BRAND_WORDMARK_FONT.assets.map((asset) => asset.format)
     expect(formats).toEqual(['WOFF2', 'TTF', 'TXT'])
+  })
+
+  it('hosts the licence file the page links to', () => {
+    expect(BRAND_WORDMARK_FONT.assets.map((asset) => asset.href)).toContain(
+      BRAND_WORDMARK_FONT.licenseFileHref,
+    )
   })
 
   it('links only to font files that ship under public/brand/fonts', () => {

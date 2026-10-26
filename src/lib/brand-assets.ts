@@ -37,7 +37,19 @@ export const BRAND_WORDMARK_FONT = {
   italicAngleDeg: 9.5,
   /** CSS skew added to the italic so the letters lean with the T stem. */
   extraSkewDeg: -Number.parseFloat(TURBOPANEL_WORDMARK_STYLE.skew),
+  designer: 'Erik D. Kennedy',
+  /** Where the typeface is developed. */
+  sourceUrl: 'https://github.com/erikdkennedy/figtree',
   license: 'SIL Open Font License 1.1',
+  /** Copyright line from the font's own licence file. */
+  copyright: 'Copyright 2022 The Figtree Project Authors',
+  /** The licence file we host next to the font downloads. */
+  licenseFileHref: '/brand/fonts/OFL-Figtree.txt',
+  /** The licence's home page, with the full text and FAQ. */
+  licenseUrl: 'https://openfontlicense.org',
+  /** Word color next to the T mark: light and dark site themes. */
+  inkLight: '#0f172a',
+  inkDark: '#ffffff',
   assets: [
     {
       label: 'WOFF2 (web, ExtraBold Italic, latin)',

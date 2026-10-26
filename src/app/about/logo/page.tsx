@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { MarketingPageShell } from "@/components/marketing/MarketingPageShell";
 import {
@@ -12,13 +13,18 @@ import {
   BRAND_LOGO_VARIANTS,
   BRAND_WORDMARK_FONT,
 } from "@/lib/brand-assets";
-import { TURBOPANEL_WORDMARK_STYLE } from "@/lib/wordmark-lockup";
-import { wordmarkFont } from "@/lib/wordmark-font";
+import {
+  TURBOPANEL_WORDMARK_STYLE,
+  websiteWordmarkLockup,
+} from "@/lib/wordmark-lockup";
+
+/** The header lockup's geometry; the previews enlarge exactly this box. */
+const FULL_LOCKUP = websiteWordmarkLockup(false);
 
 export const metadata: Metadata = {
   title: "Graphics & Logos",
   description:
-    "Official TurboPanel logo downloads and usage guidelines for websites, publications, and product UI.",
+    "Official TurboPanel logo, wordmark and wordmark font (Figtree, with its license) downloads and usage guidelines for websites, publications, and product UI.",
 };
 
 const DO_NOT = [
@@ -30,6 +36,57 @@ const DO_NOT = [
   "Do not set the full word “TurboPanel” next to the T mark — the mark is the T; visible wordmark letters are “urboPanel”.",
   "Do not use outdated “TP” letter tiles as the product logo.",
 ] as const;
+
+/** The real header lockup, enlarged with a transform so its geometry is untouched. */
+function WordmarkTile({
+  label,
+  background,
+  ink,
+}: Readonly<{ label: string; background: string; ink: string }>) {
+  return (
+    <figure
+      className="flex min-h-[14rem] flex-col justify-between gap-6 overflow-hidden rounded-xl border border-[var(--tp-border)] p-6"
+      style={{ background, "--tp-wordmark-ink": ink } as CSSProperties}
+    >
+      <figcaption
+        className="text-xs font-semibold uppercase tracking-[0.12em]"
+        style={{ color: ink, opacity: 0.6 }}
+      >
+        {label}
+      </figcaption>
+      <div className="flex flex-1 items-center justify-center">
+        <span
+          role="img"
+          aria-label="TurboPanel wordmark: the T mark followed by urboPanel"
+          className="relative inline-block [--s:1.5] sm:[--s:2.5] md:[--s:3] lg:[--s:4]"
+          style={{
+            width: `calc(var(--s) * ${FULL_LOCKUP.lockupWidth}px)`,
+            height: `calc(var(--s) * ${FULL_LOCKUP.lockupHeight}px)`,
+          }}
+        >
+          <span
+            className="absolute left-0 top-0 block origin-top-left"
+            style={{ transform: "scale(var(--s))" }}
+          >
+            <Logo />
+          </span>
+        </span>
+      </div>
+    </figure>
+  );
+}
+
+function WordmarkSpec({
+  label,
+  children,
+}: Readonly<{ label: string; children: ReactNode }>) {
+  return (
+    <>
+      <dt className="text-[var(--tp-text-muted)]">{label}</dt>
+      <dd className="text-[var(--tp-text)]">{children}</dd>
+    </>
+  );
+}
 
 function DownloadLink({
   href,
@@ -126,42 +183,142 @@ export default function AboutLogoPage() {
         </div>
       </MarketingSection>
 
-      <MarketingSection id="font">
+      <MarketingSection id="wordmark">
         <MarketingSectionHeader
-          eyebrow="Wordmark font"
-          title={`${BRAND_WORDMARK_FONT.family} ${BRAND_WORDMARK_FONT.styleName}`}
-          description="The letters that continue the T are live text, not artwork. Use this face at weight 800 italic for any lockup that needs the full name; the T itself is always the SVG mark."
+          eyebrow="Wordmark"
+          title="The T and the word"
+          description="The T is always the SVG mark. The letters that continue it are live text, set so the word starts at the T’s stem and its lowest point sits on the base of the T."
         />
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
-          <div>
-            <p className="text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              The web file is the single ExtraBold Italic cut the site serves
-              itself. The TTF carries every italic weight for desktop and print
-              tools. The font is licensed under the{" "}
-              {BRAND_WORDMARK_FONT.license}; TurboPanel’s trademark covers the
-              lockup, not the typeface.
+        <div className="grid gap-4">
+          <WordmarkTile
+            label="On light"
+            background="#f5f7fa"
+            ink={BRAND_WORDMARK_FONT.inkLight}
+          />
+          <WordmarkTile
+            label="On dark"
+            background="#0b1220"
+            ink={BRAND_WORDMARK_FONT.inkDark}
+          />
+        </div>
+        <p className="mt-3 text-sm text-[var(--tp-text-muted)]">
+          Shown enlarged. It is the same lockup the site header uses, so the
+          proportions never change.
+        </p>
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-2">
+          <article
+            id="font"
+            className="rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
+              Typeface
             </p>
-            <ul className="mt-5 flex flex-wrap gap-2">
+            <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--tp-text)]">
+              {BRAND_WORDMARK_FONT.family} {BRAND_WORDMARK_FONT.styleName}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
+              Figtree is an open-source geometric sans-serif designed by{" "}
+              {BRAND_WORDMARK_FONT.designer}. It is friendly, reads well at
+              small sizes and in print, and has true italics, so the slant is
+              drawn by the designer rather than faked by skewing an upright
+              face. TurboPanel uses the ExtraBold cut.
+            </p>
+            <dl className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm">
+              <WordmarkSpec label="Weight">
+                {BRAND_WORDMARK_FONT.weight} (ExtraBold)
+              </WordmarkSpec>
+              <WordmarkSpec label="Lean">
+                The font’s own {BRAND_WORDMARK_FONT.italicAngleDeg}° italic plus{" "}
+                {BRAND_WORDMARK_FONT.extraSkewDeg}°, just past the T’s 22° stem
+              </WordmarkSpec>
+              <WordmarkSpec label="Letter spacing">
+                +{TURBOPANEL_WORDMARK_STYLE.letterSpacingEm} em
+              </WordmarkSpec>
+              <WordmarkSpec label="Position">
+                First letter against the T’s stem, lowest point of the letters
+                on the base of the T
+              </WordmarkSpec>
+              <WordmarkSpec label="Text color">
+                <span className="font-mono">
+                  {BRAND_WORDMARK_FONT.inkLight}
+                </span>{" "}
+                on light,{" "}
+                <span className="font-mono">{BRAND_WORDMARK_FONT.inkDark}</span>{" "}
+                on dark
+              </WordmarkSpec>
+              <WordmarkSpec label="Designer">
+                <a
+                  href={BRAND_WORDMARK_FONT.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--tp-accent)] hover:underline"
+                >
+                  {BRAND_WORDMARK_FONT.designer}
+                </a>
+              </WordmarkSpec>
+            </dl>
+          </article>
+
+          <article
+            id="font-license"
+            className="rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-6"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
+              Font license
+            </p>
+            <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--tp-text)]">
+              {BRAND_WORDMARK_FONT.license}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
+              {BRAND_WORDMARK_FONT.copyright}. You may use, embed, study and
+              share the font, including in print and commercial work. Keep the
+              copyright notice and license text with any copy you share, and do
+              not sell the font on its own. This is a summary; the license text
+              is what applies. TurboPanel’s trademark covers the lockup, not the
+              typeface.
+            </p>
+            <ul className="mt-4 space-y-1.5 text-sm">
+              <li>
+                <Link
+                  href={BRAND_WORDMARK_FONT.licenseFileHref}
+                  className="text-[var(--tp-accent)] hover:underline"
+                >
+                  Read the license text
+                </Link>
+              </li>
+              <li>
+                <a
+                  href={BRAND_WORDMARK_FONT.licenseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--tp-accent)] hover:underline"
+                >
+                  SIL Open Font License home page, with the FAQ
+                </a>
+              </li>
+              <li>
+                <a
+                  href={BRAND_WORDMARK_FONT.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--tp-accent)] hover:underline"
+                >
+                  Figtree project
+                </a>
+              </li>
+            </ul>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tp-text-muted)]">
+              Font files
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
               {BRAND_WORDMARK_FONT.assets.map((asset) => (
                 <li key={asset.href}>
                   <DownloadLink href={asset.href}>{asset.label}</DownloadLink>
                 </li>
               ))}
             </ul>
-          </div>
-          <div className="flex items-center justify-center rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-8">
-            <span
-              className={`${wordmarkFont.className} text-5xl text-[var(--tp-wordmark-ink)] sm:text-6xl`}
-              style={{
-                display: "inline-block",
-                transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
-                transformOrigin: "left bottom",
-              }}
-              aria-hidden
-            >
-              urboPanel
-            </span>
-          </div>
+          </article>
         </div>
       </MarketingSection>
 
@@ -242,29 +399,9 @@ export default function AboutLogoPage() {
               TurboPanel
             </strong>
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
-            the T mark supplies the leading T and the{" "}
-            <span
-              className={`${wordmarkFont.className} text-[var(--tp-wordmark-ink)]`}
-              style={{
-                display: "inline-block",
-                transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
-                transformOrigin: "left bottom",
-              }}
-            >
-              urboPanel
-            </span>{" "}
-            wordmark tucks under the blue crossbar in{" "}
-            <strong className="font-semibold text-[var(--tp-text)]">
-              {BRAND_WORDMARK_FONT.family} {BRAND_WORDMARK_FONT.styleName}
-            </strong>{" "}
-            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own{" "}
-            {BRAND_WORDMARK_FONT.italicAngleDeg}° italic plus a{" "}
-            {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew, just past the T’s 22°
-            lean; first letter against the stem, the word’s lowest ink on the
-            base of the T, letter spacing{" "}
-            {TURBOPANEL_WORDMARK_STYLE.letterSpacingEm} em). Never render
-            “TurboPanel” beside the mark. The mark may appear alone when space
-            is tight.
+            the T mark supplies the leading T and the wordmark above continues
+            it, tucked under the blue crossbar. Never render “TurboPanel” beside
+            the mark. The mark may appear alone when space is tight.
           </p>
         </div>
       </MarketingSection>
