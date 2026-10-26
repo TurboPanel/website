@@ -1,4 +1,4 @@
-/** Website logotype — T mark + Exo 2 Black Italic “urboPanel”. */
+/** Website logotype — T mark + Figtree Black Italic “urboPanel”. */
 
 import {
   TURBOPANEL_MARK_INK,
@@ -36,7 +36,7 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
         aria-hidden
       />
       <span
-        className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-text)] transition-[opacity,transform,font-size,left,bottom] duration-75 ease-out motion-reduce:transition-none`}
+        className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-wordmark-ink)] transition-[opacity,transform,font-size,left,bottom] duration-75 ease-out motion-reduce:transition-none`}
         style={{
           opacity: markOnly ? 0 : 1,
           left: wordLockup.wordLeft,

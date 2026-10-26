@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import {
   computeTurboPanelWordmarkLockup,
+  TURBOPANEL_WORDMARK_BASELINE_EM,
   TURBOPANEL_WORDMARK_CHROME_SIZE,
+  TURBOPANEL_WORDMARK_LOCKUP_TUNING,
   TURBOPANEL_WORDMARK_PROFILE,
   websiteWordmarkLockup,
+  wordBaselineDropPx,
   wordmarkLetterSpacingPx,
 } from '@/lib/wordmark-lockup'
+
+/** Expected `bottom` for a word: profile/override nudge plus the baseline drop. */
+const bottomFor = (wordSize: number, downPx: number): number =>
+  -(downPx + wordBaselineDropPx(wordSize))
+
+describe('wordBaselineDropPx', () => {
+  it('drops the word by the baseline distance when the lockup sits on the base', () => {
+    expect(TURBOPANEL_WORDMARK_LOCKUP_TUNING.wordBaselineOnMarkBase).toBe(true)
+    expect(wordBaselineDropPx(29)).toBeCloseTo(
+      29 * TURBOPANEL_WORDMARK_BASELINE_EM,
+    )
+    expect(wordBaselineDropPx(0)).toBe(0)
+  })
+})
 
 describe('computeTurboPanelWordmarkLockup', () => {
   it('matches website chrome geometry at default size', () => {
@@ -16,8 +33,11 @@ describe('computeTurboPanelWordmarkLockup', () => {
 
     expect(lockup).toMatchObject({
       lockupHeight: 32,
-      wordSize: 28,
-      wordBottomOffset: -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      wordSize: 33,
+      wordBottomOffset: bottomFor(
+        33,
+        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      ),
       skew: '-14deg',
       text: 'urboPanel',
     })
@@ -41,7 +61,10 @@ describe('computeTurboPanelWordmarkLockup', () => {
     })
     expect(implied).toEqual(explicit)
     expect(implied.wordBottomOffset).toBe(
-      -TURBOPANEL_WORDMARK_PROFILE.console.wordDownPx,
+      bottomFor(
+        implied.wordSize,
+        TURBOPANEL_WORDMARK_PROFILE.console.wordDownPx,
+      ),
     )
   })
 
@@ -57,7 +80,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       wordDownPx: 5,
     })
     expect(boosted.wordSize).toBeGreaterThan(baseline.wordSize)
-    expect(boosted.wordBottomOffset).toBe(-5)
+    expect(boosted.wordBottomOffset).toBe(bottomFor(boosted.wordSize, 5))
   })
 
   it('keeps the profile down offset when only wordBoostPx is set', () => {
@@ -67,7 +90,10 @@ describe('computeTurboPanelWordmarkLockup', () => {
       wordBoostPx: 8,
     })
     expect(boosted.wordBottomOffset).toBe(
-      -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      bottomFor(
+        boosted.wordSize,
+        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      ),
     )
   })
 
@@ -82,7 +108,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       wordDownPx: 9,
     })
     expect(lowered.wordSize).toBe(baseline.wordSize)
-    expect(lowered.wordBottomOffset).toBe(-9)
+    expect(lowered.wordBottomOffset).toBe(bottomFor(lowered.wordSize, 9))
   })
 
   it('sizes the full lockup wider than the mark when the word is present', () => {
@@ -91,7 +117,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       profile: 'website',
     })
     expect(lockup.lockupWidth).toBeGreaterThan(lockup.markWidth)
-    expect(lockup.letterSpacingEm).toBe(0)
+    expect(lockup.letterSpacingEm).toBe(-0.01)
   })
 
   it('floors word size at 1px for a degenerate lockup', () => {
@@ -140,7 +166,10 @@ describe('computeTurboPanelWordmarkLockup', () => {
     })
     expect(withZeroBoost.wordSize).toBeLessThan(withProfileBoost.wordSize)
     expect(withZeroBoost.wordBottomOffset).toBe(
-      -TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      bottomFor(
+        withZeroBoost.wordSize,
+        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
+      ),
     )
   })
 
@@ -154,7 +183,9 @@ describe('computeTurboPanelWordmarkLockup', () => {
       profile: 'website',
       wordDownPx: 0,
     })
-    expect(withZeroDown.wordBottomOffset).toBe(-0)
+    expect(withZeroDown.wordBottomOffset).toBe(
+      bottomFor(withZeroDown.wordSize, 0),
+    )
     expect(withZeroDown.wordSize).toBe(withProfileDown.wordSize)
   })
 })
@@ -207,8 +238,8 @@ describe('websiteWordmarkLockup', () => {
 })
 
 describe('wordmarkLetterSpacingPx', () => {
-  it('returns zero when letter spacing is unset', () => {
-    expect(wordmarkLetterSpacingPx(24)).toBe(0)
-    expect(wordmarkLetterSpacingPx(0)).toBe(0)
+  it('scales the tight letter spacing with the font size', () => {
+    expect(wordmarkLetterSpacingPx(24)).toBeCloseTo(-0.24)
+    expect(wordmarkLetterSpacingPx(0)).toBeCloseTo(0)
   })
 })

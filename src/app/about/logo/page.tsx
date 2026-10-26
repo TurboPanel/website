@@ -257,10 +257,11 @@ export default function AboutLogoPage() {
             <strong className="font-semibold text-[var(--tp-text)]">
               {BRAND_WORDMARK_FONT.family} {BRAND_WORDMARK_FONT.styleName}
             </strong>{" "}
-            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own 8° italic plus
-            a {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew to match the T’s 22°
-            lean; first letter against the stem, baseline at the stem tip, no
-            extra letter spacing). Never render “TurboPanel” beside the mark.
+            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own{" "}
+            {BRAND_WORDMARK_FONT.italicAngleDeg}° italic plus a{" "}
+            {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew, just past the T’s 22°
+            lean; first letter against the stem, baseline on the base of the T,
+            letter spacing −0.01 em). Never render “TurboPanel” beside the mark.
             The mark may appear alone when space is tight.
           </p>
         </div>
