@@ -15,7 +15,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, variable weight
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:e00cfe02191c84e5e2e88adfe117cc33249e5b607fa964b7591bc364f6bbfa16
+pnpm-lock.yaml sha256:6b2a66e7e19569067e0dbdccdde99821b4c2ff47640c3c1fb1e245829ab51e4f
 -->
 
 ## Production dependencies
@@ -2520,6 +2520,12 @@ pnpm-lock.yaml sha256:e00cfe02191c84e5e2e88adfe117cc33249e5b607fa964b7591bc364f6
 - License: MIT
 - Copyright: Andrey Sitnik
 - Homepage: https://postcss.org/
+
+### prettier@3.9.9
+
+- License: MIT
+- Copyright: James Long
+- Homepage: https://prettier.io
 
 ### pretty-ms@9.3.0
 
