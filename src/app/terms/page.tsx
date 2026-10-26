@@ -121,8 +121,8 @@ export default function TermsPage() {
 
         <H3>11. Changes to these terms</H3>
         <P>
-          TurboPanel may update these Terms as the product changes. Material changes will be reflected
-          on this page with an updated date above; continued use of the hosted service after a change
+          TurboPanel may update these Terms as the product changes. Material changes will be posted
+          on this page; continued use of the hosted service after a change
           takes effect means you accept the revised Terms.
         </P>
 

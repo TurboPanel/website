@@ -68,7 +68,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Static sites and SFTP access',
       "Secrets and environment variables, scheduled tasks, and free Let's Encrypt certificates chosen right from the project",
       'Logins for an app database (owner, read/write and read-only) made in one step',
-      'Deleting a project removes everything it owns on every server in one step',
+      'Deleting a project removes everything it owns in one step',
     ],
   },
   {
@@ -82,7 +82,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Managed Postgres, MySQL and MariaDB on a single server, a failover pair, or a three-member cluster',
       'Automatic failover works on all three engines; every failure scenario is being proven, including a host losing power and a site staying up through a failover',
       'Backups that survive the loss of a host, and restore checked on every engine',
-      "Forward-only upgrades for the panel's own database, with a backup taken first and a tested restore (in place)",
+      "Forward-only upgrades for the panel's own database, with a backup taken before each one; a tested restore is next",
       'Our hosted control plane is up on its own high-availability production servers and already runs this website; next are a written release checklist and a rehearsed rollback',
       'Self-hosted install and upgrade from the previous release, proven on a fresh host',
       "A choice of PHP versions for the server's OS, in every PHP mode, with 8.4 as the default",
