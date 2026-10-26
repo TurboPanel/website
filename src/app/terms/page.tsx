@@ -9,8 +9,6 @@ export const metadata: Metadata = {
   description: 'The terms governing use of the TurboPanel hosted service.',
 }
 
-const LAST_UPDATED = '2026-10-15'
-
 function H3({ children }: Readonly<{ children: React.ReactNode }>) {
   return <h3 className="mt-8 text-lg font-semibold text-[var(--tp-text)]">{children}</h3>
 }
@@ -25,7 +23,7 @@ export default function TermsPage() {
       <MarketingHero
         eyebrow="Legal"
         title="Terms of Service"
-        description={`Last updated ${LAST_UPDATED}. These terms cover the hosted TurboPanel service at turbopanel.app. The self-hosted software is separately licensed — see below.`}
+        description="These terms cover the hosted TurboPanel service at turbopanel.app. The self-hosted software is separately licensed — see below."
       />
 
       <MarketingSection className="pt-0">

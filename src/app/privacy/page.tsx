@@ -8,8 +8,6 @@ export const metadata: Metadata = {
   description: 'What TurboPanel collects, why, and how to control it.',
 }
 
-const LAST_UPDATED = '2026-09-12'
-
 function H3({ children }: Readonly<{ children: React.ReactNode }>) {
   return <h3 className="mt-8 text-lg font-semibold text-[var(--tp-text)]">{children}</h3>
 }
@@ -24,7 +22,7 @@ export default function PrivacyPage() {
       <MarketingHero
         eyebrow="Legal"
         title="Privacy Policy"
-        description={`Last updated ${LAST_UPDATED}. This covers the hosted TurboPanel service at turbopanel.app. A self-hosted instance sends TurboPanel nothing — the data described below lives entirely on your own servers and your own database.`}
+        description="This covers the hosted TurboPanel service at turbopanel.app. A self-hosted instance sends TurboPanel nothing — the data described below lives entirely on your own servers and your own database."
       />
 
       <MarketingSection className="pt-0">
