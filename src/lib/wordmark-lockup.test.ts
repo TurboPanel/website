@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   computeTurboPanelWordmarkLockup,
-  TURBOPANEL_WORDMARK_BASELINE_EM,
+  TURBOPANEL_WORDMARK_ASCENT_EM,
   TURBOPANEL_WORDMARK_CHROME_SIZE,
+  TURBOPANEL_WORDMARK_DESCENT_EM,
   TURBOPANEL_WORDMARK_LOCKUP_TUNING,
   TURBOPANEL_WORDMARK_OVERSHOOT_EM,
   TURBOPANEL_WORDMARK_PROFILE,
   websiteWordmarkLockup,
+  wordBaselineAboveBoxBottomPx,
   wordBaselineDropPx,
   wordmarkLetterSpacingPx,
 } from '@/lib/wordmark-lockup'
@@ -15,14 +17,27 @@ import {
 const bottomFor = (wordSize: number, downPx: number): number =>
   -(downPx + wordBaselineDropPx(wordSize))
 
+describe('wordBaselineAboveBoxBottomPx', () => {
+  it('follows the browser rounding of ascent and descent to whole pixels', () => {
+    expect(TURBOPANEL_WORDMARK_ASCENT_EM).toBe(0.95)
+    expect(TURBOPANEL_WORDMARK_DESCENT_EM).toBe(0.25)
+    // 31px: ascent 29.45 -> 29, descent 7.75 -> 8, (31 + 8 - 29) / 2.
+    expect(wordBaselineAboveBoxBottomPx(31)).toBe(5)
+    // 33px measured in the browser: ascent 31, descent 8 -> 5.
+    expect(wordBaselineAboveBoxBottomPx(33)).toBe(5)
+    // 29px: ascent 27.55 -> 28, descent 7.25 -> 7 -> 4, where 0.15 em would say 4.35.
+    expect(wordBaselineAboveBoxBottomPx(29)).toBe(4)
+    expect(wordBaselineAboveBoxBottomPx(0)).toBe(0)
+  })
+})
+
 describe('wordBaselineDropPx', () => {
-  it('drops the word by the baseline distance when the lockup sits on the base', () => {
+  it('drops the word so its lowest ink sits on the base of the T', () => {
     expect(TURBOPANEL_WORDMARK_LOCKUP_TUNING.wordBaselineOnMarkBase).toBe(true)
-    // Figtree: ascent 0.95 em, descent 0.25 em -> 0.25 - (1.2 - 1) / 2.
-    expect(TURBOPANEL_WORDMARK_BASELINE_EM).toBe(0.15)
     // The lowest letter (e) dips 12.74/1000 em below the baseline at weight 800.
     expect(TURBOPANEL_WORDMARK_OVERSHOOT_EM).toBe(0.0127)
-    expect(wordBaselineDropPx(29)).toBeCloseTo(3.9817, 3)
+    expect(wordBaselineDropPx(29)).toBeCloseTo(4 - 29 * 0.0127, 4)
+    expect(wordBaselineDropPx(31)).toBeCloseTo(4.6063, 3)
     expect(wordBaselineDropPx(0)).toBe(0)
   })
 })
@@ -36,16 +51,16 @@ describe('computeTurboPanelWordmarkLockup', () => {
 
     expect(lockup).toMatchObject({
       lockupHeight: 32,
-      wordSize: 33,
+      wordSize: 31,
       wordBottomOffset: bottomFor(
-        33,
+        31,
         TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
       ),
       skew: '-14deg',
       text: 'urboPanel',
     })
-    // 33px word, no profile nudge: 33 * (0.15 - 0.0127).
-    expect(lockup.wordBottomOffset).toBeCloseTo(-4.5309, 3)
+    // 31px word, no profile nudge: baseline 5px above the box bottom, less 31 * 0.0127.
+    expect(lockup.wordBottomOffset).toBeCloseTo(-4.6063, 3)
   })
 
   it('honours mark-only width', () => {
@@ -122,7 +137,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       profile: 'website',
     })
     expect(lockup.lockupWidth).toBeGreaterThan(lockup.markWidth)
-    expect(lockup.letterSpacingEm).toBe(-0.01)
+    expect(lockup.letterSpacingEm).toBe(0.02)
   })
 
   it('floors word size at 1px for a degenerate lockup', () => {
@@ -243,8 +258,8 @@ describe('websiteWordmarkLockup', () => {
 })
 
 describe('wordmarkLetterSpacingPx', () => {
-  it('scales the tight letter spacing with the font size', () => {
-    expect(wordmarkLetterSpacingPx(24)).toBeCloseTo(-0.24)
+  it('scales the letter spacing with the font size', () => {
+    expect(wordmarkLetterSpacingPx(24)).toBeCloseTo(0.48)
     expect(wordmarkLetterSpacingPx(0)).toBeCloseTo(0)
   })
 })
