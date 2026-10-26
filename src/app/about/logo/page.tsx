@@ -130,12 +130,12 @@ export default function AboutLogoPage() {
         <MarketingSectionHeader
           eyebrow="Wordmark font"
           title={`${BRAND_WORDMARK_FONT.family} ${BRAND_WORDMARK_FONT.styleName}`}
-          description="The letters that continue the T are live text, not artwork. Use this face at weight 900 italic for any lockup that needs the full name; the T itself is always the SVG mark."
+          description="The letters that continue the T are live text, not artwork. Use this face at weight 800 italic for any lockup that needs the full name; the T itself is always the SVG mark."
         />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
           <div>
             <p className="text-sm leading-relaxed text-[var(--tp-text-muted)] sm:text-base">
-              The web file is the single Black Italic cut the site serves
+              The web file is the single ExtraBold Italic cut the site serves
               itself. The TTF carries every italic weight for desktop and print
               tools. The font is licensed under the{" "}
               {BRAND_WORDMARK_FONT.license}; TurboPanel’s trademark covers the

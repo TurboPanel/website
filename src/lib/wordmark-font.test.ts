@@ -11,13 +11,13 @@ vi.mock('next/font/local', () => ({
 }))
 
 describe('wordmarkFont', () => {
-  it('loads the single self-hosted Figtree Black Italic face', () => {
+  it('loads the single self-hosted Figtree ExtraBold Italic face', () => {
     const loaded = vi.mocked(localFont)
     expect(loaded.mock.calls).toHaveLength(1)
     const [options] = loaded.mock.calls[0]!
     expect(options).toEqual({
-      src: '../fonts/figtree-latin-900-italic.woff2',
-      weight: '900',
+      src: '../fonts/figtree-latin-800-italic.woff2',
+      weight: '800',
       style: 'italic',
       variable: '--font-wordmark',
       display: 'swap',

@@ -31,8 +31,8 @@ export type BrandFontAsset = Readonly<{
 /** The wordmark face: “urboPanel” under the T is set in this font. */
 export const BRAND_WORDMARK_FONT = {
   family: 'Figtree',
-  styleName: 'Black Italic',
-  weight: 900,
+  styleName: 'ExtraBold Italic',
+  weight: 800,
   /** The face's own italic angle, from its font metrics. */
   italicAngleDeg: 9.5,
   /** CSS skew added to the italic so the letters lean with the T stem. */
@@ -40,8 +40,8 @@ export const BRAND_WORDMARK_FONT = {
   license: 'SIL Open Font License 1.1',
   assets: [
     {
-      label: 'WOFF2 (web, Black Italic, latin)',
-      href: '/brand/fonts/figtree-latin-900-italic.woff2',
+      label: 'WOFF2 (web, ExtraBold Italic, latin)',
+      href: '/brand/fonts/figtree-latin-800-italic.woff2',
       format: 'WOFF2',
     },
     {
