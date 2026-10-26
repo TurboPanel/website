@@ -12,6 +12,8 @@
   --tp-surface: #ffffff;
   --tp-surface-muted: #edf2f8;
   --tp-text: #0f172a;
+  /* “urboPanel” next to the T mark: text colour in light, white in dark. */
+  --tp-wordmark-ink: var(--tp-text);
   --tp-text-muted: #475569;
   --tp-border: rgba(15, 23, 42, 0.14);
   /* Dual brand — keep in step with ui `src/lib/theme.ts` */
@@ -74,6 +76,7 @@
   --tp-surface: #111a2b;
   --tp-surface-muted: #172136;
   --tp-text: #e2e8f0;
+  --tp-wordmark-ink: #ffffff;
   --tp-text-muted: #a8b5cc;
   --tp-border: rgba(148, 163, 184, 0.3);
   --tp-green: #3dd68c;

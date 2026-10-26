@@ -151,7 +151,7 @@ export default function AboutLogoPage() {
           </div>
           <div className="flex items-center justify-center rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-8">
             <span
-              className={`${wordmarkFont.className} text-5xl text-[var(--tp-text)] sm:text-6xl`}
+              className={`${wordmarkFont.className} text-5xl text-[var(--tp-wordmark-ink)] sm:text-6xl`}
               style={{
                 display: "inline-block",
                 transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
@@ -244,7 +244,7 @@ export default function AboutLogoPage() {
             — never “Turbo Panel”, “turboPanel”, or “TP Panel”. In site chrome,
             the T mark supplies the leading T and the{" "}
             <span
-              className={`${wordmarkFont.className} text-[var(--tp-text)]`}
+              className={`${wordmarkFont.className} text-[var(--tp-wordmark-ink)]`}
               style={{
                 display: "inline-block",
                 transform: `skewX(${TURBOPANEL_WORDMARK_STYLE.skew})`,
@@ -257,11 +257,13 @@ export default function AboutLogoPage() {
             <strong className="font-semibold text-[var(--tp-text)]">
               {BRAND_WORDMARK_FONT.family} {BRAND_WORDMARK_FONT.styleName}
             </strong>{" "}
-            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own 8° italic plus
-            a {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew to match the T’s 22°
-            lean; first letter against the stem, baseline at the stem tip, no
-            extra letter spacing). Never render “TurboPanel” beside the mark.
-            The mark may appear alone when space is tight.
+            (weight {BRAND_WORDMARK_FONT.weight}, the font’s own{" "}
+            {BRAND_WORDMARK_FONT.italicAngleDeg}° italic plus a{" "}
+            {BRAND_WORDMARK_FONT.extraSkewDeg}° CSS skew, just past the T’s 22°
+            lean; first letter against the stem, baseline on the base of the T,
+            letter spacing {TURBOPANEL_WORDMARK_STYLE.letterSpacingEm} em).
+            Never render “TurboPanel” beside the mark. The mark may appear alone
+            when space is tight.
           </p>
         </div>
       </MarketingSection>

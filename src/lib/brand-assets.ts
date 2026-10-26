@@ -30,24 +30,26 @@ export type BrandFontAsset = Readonly<{
 
 /** The wordmark face: “urboPanel” under the T is set in this font. */
 export const BRAND_WORDMARK_FONT = {
-  family: 'Exo 2',
+  family: 'Figtree',
   styleName: 'Black Italic',
   weight: 900,
-  /** CSS skew added to the font's own 8° italic so the letters lean with the T stem. */
+  /** The face's own italic angle, from its font metrics. */
+  italicAngleDeg: 9.5,
+  /** CSS skew added to the italic so the letters lean with the T stem. */
   extraSkewDeg: -Number.parseFloat(TURBOPANEL_WORDMARK_STYLE.skew),
   license: 'SIL Open Font License 1.1',
   assets: [
     {
       label: 'WOFF2 (web, Black Italic, latin)',
-      href: '/brand/fonts/exo-2-latin-900-italic.woff2',
+      href: '/brand/fonts/figtree-latin-900-italic.woff2',
       format: 'WOFF2',
     },
     {
       label: 'TTF (variable italic, desktop and print)',
-      href: '/brand/fonts/Exo2-Italic-VariableFont_wght.ttf',
+      href: '/brand/fonts/Figtree-Italic-VariableFont_wght.ttf',
       format: 'TTF',
     },
-    { label: 'License (OFL 1.1)', href: '/brand/fonts/OFL-Exo-2.txt', format: 'TXT' },
+    { label: 'License (OFL 1.1)', href: '/brand/fonts/OFL-Figtree.txt', format: 'TXT' },
   ] as ReadonlyArray<BrandFontAsset>,
 } as const
 
