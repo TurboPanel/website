@@ -19,8 +19,6 @@ type Phase = Readonly<{
   discussionUrl?: string
 }>
 
-const LAST_UPDATED = '2026-10-12'
-
 const IDEAS_URL = 'https://github.com/TurboPanel/turbopanel/discussions/categories/ideas'
 const RELEASES_URL = 'https://github.com/TurboPanel/turbopanel/releases'
 
@@ -68,7 +66,9 @@ const PHASES: ReadonlyArray<Phase> = [
       'PHP and WordPress sites on Caddy, nginx, Apache or OpenLiteSpeed, with a PHP mode per site',
       "Node apps that run natively as the Hosting Account, built in a sandbox",
       'Static sites and SFTP access',
-      "Secrets and environment variables, scheduled tasks, and one-click Let's Encrypt certificates",
+      "Secrets and environment variables, scheduled tasks, and free Let's Encrypt certificates chosen right from the project",
+      'Logins for an app database (owner, read/write and read-only) made in one step',
+      'Deleting a project removes everything it owns in one step',
     ],
   },
   {
@@ -76,18 +76,18 @@ const PHASES: ReadonlyArray<Phase> = [
     shortLabel: 'Launch',
     status: 'In Progress',
     summary:
-      'Prove managed databases on every engine, then move TurboPanel onto its first production servers.',
+      'TurboPanel now runs on its own production servers. Next: prove managed databases on every engine and finish the launch checklist.',
     discussionUrl: IDEAS_URL,
     focus: [
       'Managed Postgres, MySQL and MariaDB on a single server, a failover pair, or a three-member cluster',
       'Automatic failover works on all three engines; every failure scenario is being proven, including a host losing power and a site staying up through a failover',
       'Backups that survive the loss of a host, and restore checked on every engine',
-      "Forward-only upgrades for the panel's own database, with a backup taken first and a tested restore",
-      'Our hosted control plane on its own high-availability servers, with a written release checklist and a rehearsed rollback',
+      "Forward-only upgrades for the panel's own database, with a backup taken before each one; a tested restore is next",
+      'Our hosted control plane is up on its own high-availability production servers and already runs this website; next are a written release checklist and a rehearsed rollback',
       'Self-hosted install and upgrade from the previous release, proven on a fresh host',
       "A choice of PHP versions for the server's OS, in every PHP mode, with 8.4 as the default",
       'Branded new-site, 404 and error pages on every web engine',
-      'The redesigned project and environment editor',
+      'The redesigned project and environment editor, now with hosting settings in plain words and saves that finish in one step',
       'Hardening of the daemon, sign-in and release signing, an outside security review, and a support channel',
     ],
   },
@@ -119,6 +119,8 @@ const PHASES: ReadonlyArray<Phase> = [
       'A read-only Viewer role',
       'Point-and-click backhaul: choose which network carries server-to-server traffic, in priority order',
       'Release signing key rotation and anti-rollback for signed manifests',
+      'One certificate per hostname, shared by every server that serves it, with its progress and any problem shown in the project',
+      "Let's Encrypt by DNS record, including wildcard certificates",
     ],
   },
   {
@@ -372,7 +374,7 @@ export default function RoadmapPage() {
       <MarketingHero
         eyebrow="Product roadmap · Private alpha"
         title="In private alpha. Building toward beta."
-        description={`Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, hosting and deploys are built. We are now proving managed database failover on every engine and getting TurboPanel onto its first production servers. Last updated ${LAST_UPDATED}.`}
+        description="Neither TurboPanel High Availability nor self-hosted is publicly available yet. Server management, hosting and deploys are built, and TurboPanel now runs on its own production servers, including this website. We are now proving managed database failover on every engine and finishing the launch checklist."
         aside={
           <StatusAside
             shipped={shipped}
