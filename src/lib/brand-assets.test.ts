@@ -8,9 +8,9 @@ import {
 } from '@/lib/brand-assets'
 
 describe('BRAND_WORDMARK_FONT', () => {
-  it('describes the self-hosted Figtree Black Italic wordmark face', () => {
+  it('describes the self-hosted Figtree ExtraBold Italic wordmark face', () => {
     expect(BRAND_WORDMARK_FONT.family).toBe('Figtree')
-    expect(BRAND_WORDMARK_FONT.weight).toBe(900)
+    expect(BRAND_WORDMARK_FONT.weight).toBe(800)
     expect(BRAND_WORDMARK_FONT.italicAngleDeg).toBe(9.5)
     expect(BRAND_WORDMARK_FONT.extraSkewDeg).toBe(14)
     const formats = BRAND_WORDMARK_FONT.assets.map((asset) => asset.format)

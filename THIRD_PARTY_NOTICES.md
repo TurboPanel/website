@@ -10,7 +10,7 @@ This file complements `NOTICE` (the Apache-2.0 NOTICE for first-party material).
 
 The site serves these typefaces from `src/fonts/` (latin subset, WOFF2) rather than fetching them at build time, and offers the wordmark face for download under `public/brand/fonts/`. Each is licensed under the SIL Open Font License 1.1; the full text ships in `LICENSES/`.
 
-- Figtree (Black Italic; variable italic TTF offered for download) — Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree) — `LICENSES/OFL-1.1-Figtree.txt`
+- Figtree (ExtraBold Italic; variable italic TTF offered for download) — Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree) — `LICENSES/OFL-1.1-Figtree.txt`
 - Plus Jakarta Sans (normal and italic) — Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) — `LICENSES/OFL-1.1-Plus-Jakarta-Sans.txt`
 - Geist — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist.txt`
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`

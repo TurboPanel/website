@@ -1,4 +1,4 @@
-/** Website logotype — T mark + Figtree Black Italic “urboPanel”. */
+/** Website logotype — T mark + Figtree ExtraBold Italic “urboPanel”. */
 
 import {
   TURBOPANEL_MARK_INK,
