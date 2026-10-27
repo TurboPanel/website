@@ -41,11 +41,18 @@ function WordmarkTile({
   label,
   background,
   ink,
-}: Readonly<{ label: string; background: string; ink: string }>) {
+  outlineEm,
+}: Readonly<{ label: string; background: string; ink: string; outlineEm: number }>) {
   return (
     <figure
       className="flex min-h-[14rem] flex-col justify-between gap-6 overflow-hidden rounded-xl border border-[var(--tp-border)] p-6"
-      style={{ background, '--tp-wordmark-ink': ink } as CSSProperties}
+      style={
+        {
+          background,
+          '--tp-wordmark-ink': ink,
+          '--tp-wordmark-stroke': `${outlineEm}em`,
+        } as CSSProperties
+      }
     >
       <figcaption
         className="text-xs font-semibold uppercase tracking-[0.12em]"
@@ -188,8 +195,18 @@ export default function AboutLogoPage() {
           description="The T is always the SVG mark. The letters that continue it are live text, set so the word starts at the T’s stem and its lowest point sits on the base of the T."
         />
         <div className="grid gap-4">
-          <WordmarkTile label="On light" background="#f5f7fa" ink={BRAND_WORDMARK_FONT.inkLight} />
-          <WordmarkTile label="On dark" background="#0b1220" ink={BRAND_WORDMARK_FONT.inkDark} />
+          <WordmarkTile
+            label="On light"
+            background="#f5f7fa"
+            ink={BRAND_WORDMARK_FONT.inkLight}
+            outlineEm={BRAND_WORDMARK_FONT.outlineLightEm}
+          />
+          <WordmarkTile
+            label="On dark"
+            background="#0b1220"
+            ink={BRAND_WORDMARK_FONT.inkDark}
+            outlineEm={BRAND_WORDMARK_FONT.outlineDarkEm}
+          />
         </div>
         <p className="mt-3 text-sm text-[var(--tp-text-muted)]">
           Shown enlarged. It is the same lockup the site header uses, so the proportions never
@@ -228,6 +245,12 @@ export default function AboutLogoPage() {
               <WordmarkSpec label="Text color">
                 <span className="font-mono">{BRAND_WORDMARK_FONT.inkLight}</span> on light,{' '}
                 <span className="font-mono">{BRAND_WORDMARK_FONT.inkDark}</span> on dark
+              </WordmarkSpec>
+              <WordmarkSpec label="Outline">
+                {BRAND_WORDMARK_FONT.outlineLightEm} em hairline in the same ink on light, none on
+                dark. Dark text on a light background looks thinner than white text on dark, so the
+                outline evens that out. The weight stays ExtraBold in both, so the letters never
+                shift between themes.
               </WordmarkSpec>
               <WordmarkSpec label="Designer">
                 <a

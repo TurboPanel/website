@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { BRAND_COLORS, BRAND_LOGO_VARIANTS, BRAND_WORDMARK_FONT } from '@/lib/brand-assets'
@@ -15,8 +15,16 @@ describe('BRAND_WORDMARK_FONT', () => {
     expect(BRAND_WORDMARK_FONT.sourceUrl.startsWith('https://')).toBe(true)
     expect(BRAND_WORDMARK_FONT.inkLight).toBe('#0f172a')
     expect(BRAND_WORDMARK_FONT.inkDark).toBe('#ffffff')
+    expect(BRAND_WORDMARK_FONT.outlineLightEm).toBe(0.025)
+    expect(BRAND_WORDMARK_FONT.outlineDarkEm).toBe(0)
     const formats = BRAND_WORDMARK_FONT.assets.map((asset) => asset.format)
     expect(formats).toEqual(['WOFF2', 'TTF', 'TXT'])
+  })
+
+  it('keeps the wordmark outline tokens in the stylesheet equal to the constants', () => {
+    const css = readFileSync(path.join(process.cwd(), 'src/app/globals.css'), 'utf8')
+    expect(css).toContain(`--tp-wordmark-stroke: ${BRAND_WORDMARK_FONT.outlineLightEm}em;`)
+    expect(css).toContain(`--tp-wordmark-stroke: ${BRAND_WORDMARK_FONT.outlineDarkEm}em;`)
   })
 
   it('hosts the license file the page links to', () => {

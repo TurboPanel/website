@@ -60,6 +60,13 @@ export const BRAND_WORDMARK_FONT = {
   /** Word color next to the T mark: light and dark site themes. */
   inkLight: '#0f172a',
   inkDark: '#ffffff',
+  /**
+   * Hairline outline in the ink color, in em of the word's font size: light mode only. Dark ink on
+   * light looks thinner than white on dark; the outline evens that out without touching layout.
+   * Mirrors --tp-wordmark-stroke in globals.css (a test keeps the two equal).
+   */
+  outlineLightEm: 0.025,
+  outlineDarkEm: 0,
   assets: [
     {
       label: 'WOFF2 (web, ExtraBold Italic, latin)',
