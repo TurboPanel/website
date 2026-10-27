@@ -1,9 +1,6 @@
 /** Website logotype — T mark + Figtree ExtraBold Italic “urboPanel”. */
 
-import {
-  TURBOPANEL_MARK_INK,
-  websiteWordmarkLockup,
-} from '@/lib/wordmark-lockup'
+import { TURBOPANEL_MARK_INK, websiteWordmarkLockup } from '@/lib/wordmark-lockup'
 import { wordmarkFont } from '@/lib/wordmark-font'
 
 type LogoProps = Readonly<{

@@ -1,11 +1,7 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  BRAND_COLORS,
-  BRAND_LOGO_VARIANTS,
-  BRAND_WORDMARK_FONT,
-} from '@/lib/brand-assets'
+import { BRAND_COLORS, BRAND_LOGO_VARIANTS, BRAND_WORDMARK_FONT } from '@/lib/brand-assets'
 
 describe('BRAND_WORDMARK_FONT', () => {
   it('describes the self-hosted Figtree ExtraBold Italic wordmark face', () => {
@@ -25,16 +21,14 @@ describe('BRAND_WORDMARK_FONT', () => {
 
   it('hosts the license file the page links to', () => {
     expect(BRAND_WORDMARK_FONT.assets.map((asset) => asset.href)).toContain(
-      BRAND_WORDMARK_FONT.licenseFileHref,
+      BRAND_WORDMARK_FONT.licenseFileHref
     )
   })
 
   it('links only to font files that ship under public/brand/fonts', () => {
     for (const asset of BRAND_WORDMARK_FONT.assets) {
       expect(asset.href.startsWith('/brand/fonts/')).toBe(true)
-      expect(existsSync(path.join(process.cwd(), 'public', asset.href))).toBe(
-        true,
-      )
+      expect(existsSync(path.join(process.cwd(), 'public', asset.href))).toBe(true)
     }
   })
 })
@@ -61,9 +55,7 @@ describe('BRAND_LOGO_VARIANTS', () => {
   })
 
   it('ships a landscape standard lockup and a square mark', () => {
-    const byId = new Map(
-      BRAND_LOGO_VARIANTS.map((variant) => [variant.id, variant]),
-    )
+    const byId = new Map(BRAND_LOGO_VARIANTS.map((variant) => [variant.id, variant]))
     const standard = byId.get('standard')
     const square = byId.get('square')
     if (!standard) {

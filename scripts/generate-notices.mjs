@@ -80,9 +80,7 @@ export function runGenerateNotices({
     prodGrouped = spawnPnpmLicenses(true)
   } catch (error) {
     io.error(
-      error instanceof Error
-        ? error.message
-        : 'generate-notices: failed to read pnpm licenses',
+      error instanceof Error ? error.message : 'generate-notices: failed to read pnpm licenses'
     )
     leave(1)
     return 1
@@ -91,12 +89,12 @@ export function runGenerateNotices({
   const packages = attachPnpmNoticeFiles(
     enrichMissingPackageLicenses(
       packagesFromPnpmLicenses(allGrouped, pnpmLicenseKeys(prodGrouped)),
-      (pkg) => readPnpmInstallLicense(root, allGrouped, pkg, exists, readFile),
+      (pkg) => readPnpmInstallLicense(root, allGrouped, pkg, exists, readFile)
     ),
     allGrouped,
     root,
     exists,
-    readFile,
+    readFile
   )
   const policy = evaluateLicensePolicy(packages, {
     repoLicense: NOTICE_POLICY_REPO_LICENSE,
@@ -167,8 +165,7 @@ export function readPnpmInstallLicense(root, grouped, pkg, exists, readFile) {
   if (!rel) return undefined
   const dir = path.isAbsolute(rel) ? rel : path.join(root, rel)
   return (
-    licenseFromPackageJson(dir, exists, readFile) ??
-    licenseFromLicenseFile(dir, exists, readFile)
+    licenseFromPackageJson(dir, exists, readFile) ?? licenseFromLicenseFile(dir, exists, readFile)
   )
 }
 
@@ -235,15 +232,11 @@ function isJavascriptPnpmCli(cli) {
  *   ) => { status: number | null, stdout: string, stderr: string }
  * }} [opts]
  */
-export function loadPnpmLicenses(
-  root,
-  prodOnly,
-  { env, spawn = spawnSync } = {},
-) {
+export function loadPnpmLicenses(root, prodOnly, { env, spawn = spawnSync } = {}) {
   const cli = pnpmCliPath(env)
   if (!cli) {
     throw new Error(
-      'generate-notices: no pnpm CLI in npm_execpath — run `pnpm notices:generate` or `pnpm notices:check`',
+      'generate-notices: no pnpm CLI in npm_execpath — run `pnpm notices:generate` or `pnpm notices:check`'
     )
   }
   // pnpm 12 ships a native binary (`pnpm-native`). Spawn that directly;
@@ -258,7 +251,7 @@ export function loadPnpmLicenses(
   const result = spawn(command, args, { cwd: root, encoding: 'utf8' })
   if (result.status !== 0) {
     throw new Error(
-      `generate-notices: pnpm licenses list failed (${result.status}): ${result.stderr || result.stdout || 'no output'}`,
+      `generate-notices: pnpm licenses list failed (${result.status}): ${result.stderr || result.stdout || 'no output'}`
     )
   }
   return parsePnpmLicensesJson(result.stdout)
@@ -295,7 +288,7 @@ function finishNoticesWrite({
     }
     if (!noticesAreCurrent(readFile(noticesPath, 'utf8'), markdown)) {
       io.error(
-        `generate-notices: ${NOTICES_FILE_NAME} is stale relative to the lockfile. Run pnpm notices:generate and commit the result.`,
+        `generate-notices: ${NOTICES_FILE_NAME} is stale relative to the lockfile. Run pnpm notices:generate and commit the result.`
       )
       leave(1)
       return 1

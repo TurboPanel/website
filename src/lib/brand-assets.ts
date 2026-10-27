@@ -74,7 +74,11 @@ export const BRAND_LOGO_VARIANTS: ReadonlyArray<BrandLogoVariant> = [
     previewAspect: 'landscape',
     assets: [
       { label: 'SVG (vector, color)', href: '/brand/turbopanel-logo.svg', format: 'SVG' },
-      { label: 'SVG (white / transparent)', href: '/brand/turbopanel-logo-white.svg', format: 'SVG' },
+      {
+        label: 'SVG (white / transparent)',
+        href: '/brand/turbopanel-logo-white.svg',
+        format: 'SVG',
+      },
       { label: 'SVG (mono / transparent)', href: '/brand/turbopanel-logo-mono.svg', format: 'SVG' },
       { label: 'PNG 64', href: '/brand/turbopanel-logo-64.png', format: 'PNG' },
       { label: 'PNG 256', href: '/brand/turbopanel-logo-256.png', format: 'PNG' },
@@ -85,8 +89,7 @@ export const BRAND_LOGO_VARIANTS: ReadonlyArray<BrandLogoVariant> = [
   {
     id: 'square',
     title: 'TurboPanel logo — square',
-    description:
-      'Square canvas for avatars, app icons, and places that need a 1:1 mark.',
+    description: 'Square canvas for avatars, app icons, and places that need a 1:1 mark.',
     previewSrc: '/brand/turbopanel-logo-square.svg',
     previewAspect: 'square',
     assets: [
