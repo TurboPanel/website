@@ -47,7 +47,7 @@ export function Mermaid({ chart, title, ariaLabel }: MermaidProps) {
           observer.disconnect()
         }
       },
-      { rootMargin: '200px 0px' },
+      { rootMargin: '200px 0px' }
     )
     observer.observe(el)
     return () => observer.disconnect()
@@ -97,7 +97,7 @@ function MermaidContent({
 
         const { svg: rendered } = await mermaid.render(
           id.replaceAll(':', ''),
-          chart.replaceAll(String.raw`\n`, '\n'),
+          chart.replaceAll(String.raw`\n`, '\n')
         )
 
         if (cancelled) return
@@ -124,7 +124,9 @@ function MermaidContent({
           className="overflow-x-auto rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400"
         >
           <p className="font-medium">
-            {accessibleName ? `${accessibleName} could not be rendered` : 'Diagram could not be rendered'}
+            {accessibleName
+              ? `${accessibleName} could not be rendered`
+              : 'Diagram could not be rendered'}
           </p>
           <pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{error}</pre>
         </div>
@@ -145,6 +147,7 @@ function MermaidContent({
     // `globals.css` — the alt text varies with the chart's accessible name.
     <figure data-tp-diagram className="my-6">
       <div className="overflow-x-auto">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL of an SVG rendered in the browser, size unknown until then; nothing to optimize */}
         <img
           id={id}
           src={svgToDataUrl(svg)}
@@ -159,12 +162,7 @@ function MermaidContent({
 
 function DiagramPlaceholder({ status }: Readonly<{ status: string }>) {
   return (
-    <div
-      className={DIAGRAM_PLACEHOLDER_CLASS}
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
+    <div className={DIAGRAM_PLACEHOLDER_CLASS} role="status" aria-live="polite" aria-busy="true">
       <span className="sr-only">{status}</span>
     </div>
   )
