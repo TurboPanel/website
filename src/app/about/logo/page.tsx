@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { CSSProperties, ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { MarketingHero } from '@/components/marketing/MarketingHero'
@@ -8,7 +9,12 @@ import {
   MarketingSection,
   MarketingSectionHeader,
 } from '@/components/marketing/marketing-primitives'
-import { BRAND_COLORS, BRAND_LOGO_VARIANTS, BRAND_WORDMARK_FONT } from '@/lib/brand-assets'
+import {
+  BRAND_COLORS,
+  BRAND_LOGO_PREVIEW_SIZE,
+  BRAND_LOGO_VARIANTS,
+  BRAND_WORDMARK_FONT,
+} from '@/lib/brand-assets'
 import { TURBOPANEL_WORDMARK_STYLE, websiteWordmarkLockup } from '@/lib/wordmark-lockup'
 
 /** The header lockup's geometry; the previews enlarge exactly this box. */
@@ -97,6 +103,7 @@ function LogoVariantBlock({
     variant.previewAspect === 'square'
       ? 'aspect-square max-w-[200px]'
       : 'aspect-[628/370] max-w-[280px]'
+  const previewSize = BRAND_LOGO_PREVIEW_SIZE[variant.previewAspect]
 
   return (
     <article
@@ -123,18 +130,26 @@ function LogoVariantBlock({
           <div
             className={`flex w-full items-center justify-center rounded-xl border border-[var(--tp-border)] bg-[var(--tp-surface)] p-8 ${previewBox}`}
           >
-            <img src={variant.previewSrc} alt="" className="h-full w-full object-contain" />
+            <Image
+              src={variant.previewSrc}
+              alt=""
+              width={previewSize.width}
+              height={previewSize.height}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div
             className={`flex w-full items-center justify-center rounded-xl border border-[var(--tp-border)] bg-[#0b1220] p-8 ${previewBox}`}
           >
-            <img
+            <Image
               src={
                 variant.id === 'square'
                   ? '/brand/turbopanel-logo-square-white.svg'
                   : '/brand/turbopanel-logo-white.svg'
               }
               alt=""
+              width={previewSize.width}
+              height={previewSize.height}
               className="h-full w-full object-contain"
             />
           </div>
