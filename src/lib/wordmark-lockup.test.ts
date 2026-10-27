@@ -52,10 +52,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
     expect(lockup).toMatchObject({
       lockupHeight: 32,
       wordSize: 31,
-      wordBottomOffset: bottomFor(
-        31,
-        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
-      ),
+      wordBottomOffset: bottomFor(31, TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx),
       skew: '-14deg',
       text: 'urboPanel',
     })
@@ -81,10 +78,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
     })
     expect(implied).toEqual(explicit)
     expect(implied.wordBottomOffset).toBe(
-      bottomFor(
-        implied.wordSize,
-        TURBOPANEL_WORDMARK_PROFILE.console.wordDownPx,
-      ),
+      bottomFor(implied.wordSize, TURBOPANEL_WORDMARK_PROFILE.console.wordDownPx)
     )
   })
 
@@ -110,10 +104,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       wordBoostPx: 8,
     })
     expect(boosted.wordBottomOffset).toBe(
-      bottomFor(
-        boosted.wordSize,
-        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
-      ),
+      bottomFor(boosted.wordSize, TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx)
     )
   })
 
@@ -186,10 +177,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
     })
     expect(withZeroBoost.wordSize).toBeLessThan(withProfileBoost.wordSize)
     expect(withZeroBoost.wordBottomOffset).toBe(
-      bottomFor(
-        withZeroBoost.wordSize,
-        TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx,
-      ),
+      bottomFor(withZeroBoost.wordSize, TURBOPANEL_WORDMARK_PROFILE.website.wordDownPx)
     )
   })
 
@@ -203,9 +191,7 @@ describe('computeTurboPanelWordmarkLockup', () => {
       profile: 'website',
       wordDownPx: 0,
     })
-    expect(withZeroDown.wordBottomOffset).toBe(
-      bottomFor(withZeroDown.wordSize, 0),
-    )
+    expect(withZeroDown.wordBottomOffset).toBe(bottomFor(withZeroDown.wordSize, 0))
     expect(withZeroDown.wordSize).toBe(withProfileDown.wordSize)
   })
 })
@@ -221,9 +207,7 @@ describe('websiteWordmarkLockup', () => {
   it('can emit a mark-only website lockup', () => {
     const lockup = websiteWordmarkLockup(false, true)
     expect(lockup.lockupWidth).toBe(lockup.markWidth)
-    expect(lockup.lockupWidth).toBeLessThan(
-      websiteWordmarkLockup(false).lockupWidth,
-    )
+    expect(lockup.lockupWidth).toBeLessThan(websiteWordmarkLockup(false).lockupWidth)
   })
 
   it('can emit a compact mark-only website lockup', () => {
@@ -243,14 +227,14 @@ describe('websiteWordmarkLockup', () => {
         size: TURBOPANEL_WORDMARK_CHROME_SIZE.website.compact,
         markOnly: false,
         profile: 'website',
-      }),
+      })
     )
     expect(defaultLockup).toEqual(
       computeTurboPanelWordmarkLockup({
         size: TURBOPANEL_WORDMARK_CHROME_SIZE.website.default,
         markOnly: false,
         profile: 'website',
-      }),
+      })
     )
     expect(compact.lockupWidth).toBeGreaterThan(compact.markWidth)
     expect(defaultLockup.lockupWidth).toBeGreaterThan(defaultLockup.markWidth)

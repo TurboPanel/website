@@ -64,7 +64,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Projects from a GitHub repository: a hostname per branch with HTTPS, and a deploy on every push',
       'Docker Compose projects with a managed database attached, including backup and restore',
       'PHP and WordPress sites on Caddy, nginx, Apache or OpenLiteSpeed, with a PHP mode per site',
-      "Node apps that run natively as the Hosting Account, built in a sandbox",
+      'Node apps that run natively as the Hosting Account, built in a sandbox',
       'Static sites and SFTP access',
       "Secrets and environment variables, scheduled tasks, and free Let's Encrypt certificates chosen right from the project",
       'Logins for an app database (owner, read/write and read-only) made in one step',
@@ -339,13 +339,17 @@ function StatusAside({
           <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text-muted)]">
             Built
           </dt>
-          <dd className="tp-display mt-1 text-2xl font-semibold text-[var(--tp-text)]">{shipped}</dd>
+          <dd className="tp-display mt-1 text-2xl font-semibold text-[var(--tp-text)]">
+            {shipped}
+          </dd>
         </div>
         <div className="rounded-xl border border-[var(--tp-accent)]/35 bg-[color-mix(in_srgb,var(--tp-accent)_10%,var(--tp-bg))] px-3 py-3 text-center">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text-muted)]">
             Building
           </dt>
-          <dd className="tp-display mt-1 text-2xl font-semibold text-[var(--tp-text)]">{building}</dd>
+          <dd className="tp-display mt-1 text-2xl font-semibold text-[var(--tp-text)]">
+            {building}
+          </dd>
         </div>
         <div className="rounded-xl border border-[var(--tp-border)] bg-[var(--tp-bg)] px-3 py-3 text-center">
           <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--tp-text-muted)]">
@@ -355,8 +359,8 @@ function StatusAside({
         </div>
       </dl>
       <p className="mt-5 text-sm leading-relaxed text-[var(--tp-text-muted)]">
-        Every phase below moves TurboPanel High Availability and self-hosted closer to a public beta —
-        neither is available yet.
+        Every phase below moves TurboPanel High Availability and self-hosted closer to a public beta
+        — neither is available yet.
       </p>
     </div>
   )
