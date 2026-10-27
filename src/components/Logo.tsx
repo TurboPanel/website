@@ -44,6 +44,9 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
           fontSize: wordLockup.wordSize,
           lineHeight: 1,
           letterSpacing: `${wordLockup.letterSpacingEm}em`,
+          // Light mode adds a hairline outline in the ink color (see --tp-wordmark-stroke).
+          WebkitTextStroke: 'var(--tp-wordmark-stroke) currentColor',
+          paintOrder: 'stroke fill',
           display: 'block',
           // Snap under the T: fade + short left tuck (skew preserved).
           transform: markOnly
