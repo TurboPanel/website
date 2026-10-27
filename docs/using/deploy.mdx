@@ -182,7 +182,7 @@ Cancelling asks for no extra sign-in, because deploying again fully reverses it.
 | **Stop** | Lifecycle bar | Stops the environment's containers. Files, images and volumes stay on the server. | Kept |
 | **Start** | Lifecycle bar (shown when deployed but stopped) | Starts the existing containers again. No preview, no rebuild. | Kept |
 | **Restart** | API (`action: restart`) | Stop then start. | Kept |
-| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the host's Caddy — and the data volumes. | **Removed** |
+| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the server's web server — and the data volumes. | **Removed** |
 
 Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the app asks twice.
 
@@ -305,9 +305,8 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `hosting_route_conflict` | 409 | Two hosting rows in the environment claim the same hostname and path. |
 | `hosting_hostname_conflict` | 409 | A hostname declared in compose is already served by another hosting in the organization. |
 | `hosting_tls_ref_unresolved`, `hosting_ip_ref_unresolved` | 422 | A `certificateRef` or `ipRef` names something the organization does not have. |
-| `hosting_tls_mode_unsupported` | 422 | A `tls.mode` the platform does not implement. |
 | `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 | The pinned library certificate is gone, does not cover the hostname, or is not ready yet. |
-| `acme_requires_public_bind`, `acme_requires_org_opt_in` | 400 | Let's Encrypt needs a `public` bind, and the organization's Let's Encrypt opt-in under **Servers → TLS**. |
+| `acme_requires_public_bind`, `acme_requires_org_opt_in`, `letsencrypt_hostname_unsupported` | 400 | A Let's Encrypt certificate (a pinned library row, or compose `tls.mode: automatic`) needs a `public` bind, a name Let's Encrypt can issue for, and **Allow Let's Encrypt certificates** under **Organization settings › Domains & certificates**. The message names what to change. See [Certificates](/docs/using/certificates). |
 
 ### Acknowledge and retry
 

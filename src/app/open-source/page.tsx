@@ -116,17 +116,16 @@ export default function OpenSourcePage() {
       </MarketingHero>
 
       <MarketingSection>
-        <MarketingSectionHeader
-          eyebrow="License"
-          title="How each repository is licensed"
-        />
+        <MarketingSectionHeader eyebrow="License" title="How each repository is licensed" />
         <div className="overflow-x-auto rounded-2xl border border-[var(--tp-border)] bg-[var(--tp-surface)]">
           <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
             <thead className="bg-[var(--tp-surface-muted)]/80">
               <tr>
                 <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Repository</th>
                 <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">License</th>
-                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">Current notices (trunk)</th>
+                <th className="px-5 py-4 font-semibold text-[var(--tp-text)]">
+                  Current notices (trunk)
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +143,9 @@ export default function OpenSourcePage() {
                   <td className="px-5 py-4 font-mono text-[var(--tp-text-muted)]">
                     {repo.license}
                     {repo.licenseNote ? (
-                      <p className="mt-1 font-sans text-[var(--tp-text-muted)]">{repo.licenseNote}</p>
+                      <p className="mt-1 font-sans text-[var(--tp-text-muted)]">
+                        {repo.licenseNote}
+                      </p>
                     ) : null}
                   </td>
                   <td className="px-5 py-4">
@@ -161,20 +162,21 @@ export default function OpenSourcePage() {
           </table>
         </div>
         <p className="mt-4 text-sm text-[var(--tp-text-muted)]">
-          Third-party components shipped inside TurboPanel artifacts keep their own
-          licenses; the notices column is the current-development file on{' '}
-          <span className="font-mono">trunk</span>, not a relicense and not the
-          notices for a shipped artifact. For a release, use the{' '}
-          <span className="font-mono">THIRD_PARTY_NOTICES.md</span> that shipped
-          with that tag, commit, or packaged artifact — packaged daemon releases
-          stage it at{' '}
+          Third-party components shipped inside TurboPanel artifacts keep their own licenses; the
+          notices column is the current-development file on <span className="font-mono">trunk</span>
+          , not a relicense and not the notices for a shipped artifact. For a release, use the{' '}
+          <span className="font-mono">THIRD_PARTY_NOTICES.md</span> that shipped with that tag,
+          commit, or packaged artifact — packaged daemon releases stage it at{' '}
           <span className="font-mono">/opt/turbopanel/share/THIRD_PARTY_NOTICES.md</span>
           {'. '}
           Community health files in{' '}
-          <a href="https://github.com/TurboPanel/.github" className="text-[var(--tp-accent)] hover:underline">
+          <a
+            href="https://github.com/TurboPanel/.github"
+            className="text-[var(--tp-accent)] hover:underline"
+          >
             turbopanel/.github
-          </a>
-          {' '}use the path-based map in{' '}
+          </a>{' '}
+          use the path-based map in{' '}
           <a
             href="https://github.com/TurboPanel/.github/blob/trunk/LICENSES/README.md"
             className="text-[var(--tp-accent)] hover:underline"
@@ -189,7 +191,10 @@ export default function OpenSourcePage() {
             Contributor License Agreement
           </a>
           {'. The full model is in '}
-          <Link href="/docs/getting-started/licensing" className="text-[var(--tp-accent)] hover:underline">
+          <Link
+            href="/docs/getting-started/licensing"
+            className="text-[var(--tp-accent)] hover:underline"
+          >
             Licensing
           </Link>
           {'.'}
@@ -246,8 +251,12 @@ export default function OpenSourcePage() {
           ))}
         </ul>
         <div className="mt-8 flex flex-wrap gap-3">
-          <MarketingSecondaryCta href="/docs/getting-started/licensing">Licensing</MarketingSecondaryCta>
-          <MarketingSecondaryCta href="/docs/deployment/self-hosted">Preview self-hosted docs</MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/docs/getting-started/licensing">
+            Licensing
+          </MarketingSecondaryCta>
+          <MarketingSecondaryCta href="/docs/deployment/self-hosted">
+            Preview self-hosted docs
+          </MarketingSecondaryCta>
           <MarketingSecondaryCta href="https://github.com/TurboPanel/turbopanel/releases">
             Releases
           </MarketingSecondaryCta>
@@ -264,37 +273,36 @@ export default function OpenSourcePage() {
         />
         <div className="space-y-4 text-sm leading-relaxed text-[var(--tp-text-muted)]">
           <p>
-            Open-source licenses do not grant permission to use the TurboPanel name,
-            logos, or other trademarks. You may accurately state that a product is
-            based on, compatible with, or derived from TurboPanel. Modified
-            distributions must not use the TurboPanel name, logos, or trade dress in
-            a way that suggests they are official TurboPanel products without prior
-            written permission.
+            Open-source licenses do not grant permission to use the TurboPanel name, logos, or other
+            trademarks. You may accurately state that a product is based on, compatible with, or
+            derived from TurboPanel. Modified distributions must not use the TurboPanel name, logos,
+            or trade dress in a way that suggests they are official TurboPanel products without
+            prior written permission.
           </p>
           <p>
-            Third-party marks are never covered by TurboPanel’s licenses or by the
-            UI App Store additional permission. OS identity artwork stays under
-            its original copyright, license, and trademark terms — see{' '}
+            Third-party marks are never covered by TurboPanel’s licenses or by the UI App Store
+            additional permission. OS identity artwork stays under its original copyright, license,
+            and trademark terms — see{' '}
             <a
               href="https://github.com/TurboPanel/ui/blob/trunk/assets/os/NOTICE.md"
               className="text-[var(--tp-accent)] hover:underline"
             >
               assets/os/NOTICE.md
-            </a>
-            {' '}
+            </a>{' '}
             in the UI repository.
           </p>
           <p>
-            See <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">Logo & brand</Link>
-            {' '}
+            See{' '}
+            <Link href="/about/logo" className="text-[var(--tp-accent)] hover:underline">
+              Graphics & Logos
+            </Link>{' '}
             for download links, clear space, and do-not rules, and{' '}
             <a
               href="https://github.com/TurboPanel/.github/blob/trunk/TRADEMARKS.md"
               className="text-[var(--tp-accent)] hover:underline"
             >
               TRADEMARKS.md
-            </a>
-            {' '}
+            </a>{' '}
             for the trademark policy.
           </p>
         </div>

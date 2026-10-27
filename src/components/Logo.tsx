@@ -1,9 +1,6 @@
-/** Website logotype — T mark + Plus Jakarta ExtraBold Italic “urboPanel”. */
+/** Website logotype — T mark + Figtree ExtraBold Italic “urboPanel”. */
 
-import {
-  TURBOPANEL_MARK_INK,
-  websiteWordmarkLockup,
-} from '@/lib/wordmark-lockup'
+import { TURBOPANEL_MARK_INK, websiteWordmarkLockup } from '@/lib/wordmark-lockup'
 import { wordmarkFont } from '@/lib/wordmark-font'
 
 type LogoProps = Readonly<{
@@ -36,7 +33,7 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
         aria-hidden
       />
       <span
-        className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-text)] transition-[opacity,transform,font-size,left,bottom] duration-75 ease-out motion-reduce:transition-none`}
+        className={`${wordmarkFont.className} pointer-events-none absolute text-[var(--tp-wordmark-ink)] transition-[opacity,transform,font-size,left,bottom] duration-75 ease-out motion-reduce:transition-none`}
         style={{
           opacity: markOnly ? 0 : 1,
           left: wordLockup.wordLeft,
