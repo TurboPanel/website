@@ -71,7 +71,7 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 | Page | What it sets |
 | --- | --- |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. These settings are for this control plane. An organization's **Allow Let's Encrypt certificates** is a different switch and applies only to that organization's hosting certificates. |
-| **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when Caddy is still on this host. |
+| **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when the control plane's web server is still on this host. |
 | **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The stored token is never shown again. |
 | **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile for connected daemons. Self-hosted only. This is the Platform CA. |
 
@@ -202,7 +202,7 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `One or more public URL entries are invalid` | 400 | An entry is not a valid scheme + host + port. |
 | `One or more hostnames are invalid` | 422 | A hostname, its source, or its uploaded certificate failed validation. The body names the rows. |
 | `Let's Encrypt cannot issue a certificate for a loopback or private hostname` | 422 | That name stays on the Platform CA or an uploaded pair. |
-| `Let's Encrypt cannot issue a certificate for a wildcard hostname` | 422 | A wildcard is an uploaded certificate. The stock Caddy build speaks HTTP-01 only. |
+| `Let's Encrypt cannot issue a certificate for a wildcard hostname` | 422 | A wildcard is an uploaded certificate. Only the port-80 check (HTTP-01) is supported, and a wildcard needs a DNS check. |
 | `no co-located daemon connected to apply public URLs` | 503 | Apply needs the control plane's own daemon connected. |
 | `cert apply is not applicable on this runtime` | 422 | Apply is self-hosted only. |
 | `Sign-up is force-controlled by TURBOPANEL_IS_SIGNUP_ENABLED…` | 409 | Clear the variable to use the toggle. |

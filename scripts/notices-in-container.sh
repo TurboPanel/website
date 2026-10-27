@@ -27,7 +27,9 @@ fi
 node_ver=$(grep 'node-version:' .github/workflows/verify.yml | sed 's/.*node-version: *"\([^"]*\)".*/\1/' | head -n 1)
 pnpm_ver=$(grep '"packageManager"' package.json | sed 's/.*"pnpm@\([^"+]*\).*/\1/')
 
+# CI runs on x64; an arm64 host would list arm64 platform packages instead.
 "$runtime" run --rm \
+  --platform linux/amd64 \
   -v "$root:/work" \
   -v /work/node_modules \
   -w /work \

@@ -1,6 +1,6 @@
 {
   "name": "@turbopanel/website",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "Apache-2.0",
   "private": true,
   "engines": {
@@ -19,6 +19,7 @@
     "check:docs-ssr": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-docs-ssr.mjs",
     "check:vocabulary": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-vocabulary.mjs",
     "notices:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs",
+    "fmt:check:changed": "sh scripts/check-format-changed.sh",
     "notices:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs --check"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "prettier": "3.9.9",
     "tailwindcss": "^4.0.0",
     "typescript": "^5",
     "vitest": "^4.1.11",

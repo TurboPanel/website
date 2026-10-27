@@ -1,0 +1,231 @@
+---
+title: Certificates
+description: How a site gets a trusted certificate — the Let's Encrypt setting, the domain, DNS, the deploy that starts it, every status and its fix, www names, renewal, uploaded and self-signed certificates, and what is coming later
+---
+
+# Certificates
+
+A **certificate** is what lets a browser open your site over `https://` without a warning. It proves that the server answering really holds the domain name. TurboPanel can get a free certificate from **Let's Encrypt** for every public domain, install it on the server that serves the domain, and keep it renewed. You can also upload a certificate you bought, or use a self-signed one for a name that is not public.
+
+This chapter walks through getting a site a trusted certificate, step by step. The [Hosting](/docs/using/hosting) chapter has the full reference: the certificate library, the API and the compose spelling.
+
+## How it works
+
+Choosing Let's Encrypt does not by itself produce a certificate. It is a request that TurboPanel carries out once everything it needs is in place:
+
+1. **The organization allows it.** The setting **Allow Let's Encrypt certificates** is on for new organizations. An organization made before that keeps its earlier choice, so an owner or manager may need to turn it on once.
+2. **You ask for it on the domain.** On the environment's **Hosting** tab, press **Use Let's Encrypt** on the domain (or tick the box while adding it). For a domain declared in compose, such as the one typed on the **Set up production** screen, the choice is `tls.mode: automatic` (see [Domains declared in compose](#domains-declared-in-compose)).
+3. **The domain points at the server.** TurboPanel looks up the domain's DNS records first. Until every name points at the server, the domain waits and TurboPanel checks again every few minutes.
+4. **The site is on the server.** The certificate is requested by the web server on the server that serves the site, so it can only start once the environment is deployed there. If the environment is already deployed, TurboPanel sends the change to the server without a full redeploy when it can; otherwise the certificate is requested during the next deploy.
+5. **Let's Encrypt checks the domain, and the certificate is in place.** Let's Encrypt calls the domain on port 80 to confirm the server holds it, then issues the certificate. This usually takes a minute or two. From then on the server renews it on its own, and TurboPanel tells you if it stops working.
+
+Until the last step, visitors get a self-signed certificate and their browser warns them.
+
+### Words used here
+
+| Word                        | Meaning                                                                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DNS record**              | An entry at the company that runs your domain's DNS (often where you bought the domain) that says where the name points. Changes can take a few minutes to a few hours to be seen everywhere. |
+| **A record**                | Points a name at an IPv4 address, such as `203.0.113.10`.                                                                                                                                     |
+| **AAAA record**             | Points a name at an IPv6 address, such as `2001:db8::10`. Let's Encrypt tries IPv6 first, so a wrong AAAA record can break the certificate even when the A record is right.                   |
+| **CAA record**              | An optional record that lists which certificate authorities may issue for the domain. If the domain has one, it must allow `letsencrypt.org`.                                                 |
+| **Port 80**                 | The plain `http://` port. Let's Encrypt uses it to check the domain, so it must be open to the internet even if the site itself only uses HTTPS.                                              |
+| **Self-signed certificate** | A certificate the server makes for itself. The connection is encrypted, but browsers warn visitors because nobody they trust vouches for it.                                                  |
+
+## Before you begin
+
+- An environment with a service that answers web requests, placed on a server.
+- A **public** domain name you control, such as `shop.example.com`. Wildcards (`*.example.com`), IP addresses and private names (`nas.lan`, `localhost`) cannot get a Let's Encrypt certificate today.
+- Access to the domain's DNS records.
+- Ports 80 and 443 on the server open to the internet, from everywhere: Let's Encrypt checks from several places around the world, so a firewall that blocks some countries can make the check fail.
+- **Manage** on the organization to request a certificate, and an organization owner or manager to turn on the setting.
+
+## Get a Let's Encrypt certificate
+
+<Steps>
+  <Step>
+    **Check that the organization allows Let's Encrypt.** It is on for new
+    organizations. In an older organization, an organization owner or manager
+    opens **Organization settings › Domains & certificates** (also reachable as
+    **Servers › TLS**) and turns on **Allow Let's Encrypt certificates**, once.
+    Without it the **Use Let's Encrypt** button does not show, and a request is
+    refused with a link to this setting.
+  </Step>
+  <Step>
+    **Add the domain to the environment.** Open the environment's **Hosting**
+    tab. Under the service that should answer, add a hosting with the
+    **Hostnames**, leave **Protocol** at *HTTP*, and set the **Bind** to
+    **Public**. Only a public domain can get a Let's Encrypt certificate.
+  </Step>
+  <Step>
+    **Choose the www name.** Under **www**, pick what happens to the other
+    spelling of the name: only the name you typed, both names, or a redirect
+    from one to the other. See [www names](#www-names) below.
+  </Step>
+  <Step>
+    **Choose Let's Encrypt.** While adding the domain, tick **Get a free Let's
+    Encrypt certificate when I save** and save. For a domain that already
+    exists, press **Use Let's Encrypt** in its **Certificate** block. Either way
+    TurboPanel checks the domain's DNS straight away. For a domain declared in
+    compose, pick **Let's Encrypt (automatic)** instead; see [Domains declared
+    in compose](#domains-declared-in-compose).
+  </Step>
+  <Step>
+    **Point the DNS at the server.** If the **Certificate** block says **Waiting
+    for DNS**, it lists each name that does not point at the server yet and the
+    address it should point at. At your DNS provider, set an A record (and an
+    AAAA record if the server has an IPv6 address) for each listed name to that
+    address, and remove any old record that points somewhere else. Press **Check
+    DNS** to look again; it only looks. TurboPanel's own background check, every
+    few minutes, pins the certificate and moves on by itself as soon as DNS is
+    right.
+  </Step>
+  <Step>
+    **Deploy, if asked.** If the block says **Deploy this environment to start
+    it**, press **Deploy now** (or deploy the environment as usual). The
+    certificate is requested during that deploy. If the block says **This
+    usually takes a minute or two**, there is nothing to do: TurboPanel already
+    sent the change to the server.
+  </Step>
+  <Step>
+    **Check it is secure.** Within a minute or two the block reads **Secure**,
+    with the days left. Open the site in a browser to confirm there is no
+    warning.
+  </Step>
+</Steps>
+
+## When the certificate is requested
+
+The certificate is requested by the web server on the server that serves the site, so nothing is requested until the domain's settings reach that server.
+
+| Situation                                                                                                                                                       | What happens                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The environment has never been deployed                                                                                                                         | Nothing is requested yet. The block shows **Getting a certificate** with _Deploy this environment to start it_. The first deploy requests it.                                                                                                                                 |
+| The environment is deployed, every server is online and up to date, no deploy is running, and nothing else in the environment has changed since its last deploy | TurboPanel sends only the domain change to the servers, with no build and no restart. The request starts within moments.                                                                                                                                                      |
+| The environment is deployed, but something else in it has changed and is not deployed yet, a server is offline or on an older version, or a deploy is running   | Nothing is sent, so that changes nobody deployed do not go out with it. The block says _Deploy this environment to start it_; the next deploy requests the certificate.                                                                                                       |
+| DNS was not ready when you asked                                                                                                                                | Nothing is set yet. When a later check finds DNS ready, TurboPanel sets the certificate on the domain and follows the rows above.                                                                                                                                             |
+| You picked a Let's Encrypt certificate from the library in the **TLS certificate** picker, instead of pressing **Use Let's Encrypt**                            | When the certificate is the only change in that save, the same as the button: sent without a full redeploy when the second row allows it. When the same save also changes something else, such as the bind, it waits for the next deploy. This path does not check DNS first. |
+| A domain declared in compose asks for `tls.mode: automatic`                                                                                                     | Requested during the deploy that applies it. The server keeps retrying until DNS is right; see [Domains declared in compose](#domains-declared-in-compose).                                                                                                                   |
+
+## Watch the status
+
+The **Certificate** block under each domain on the **Hosting** tab shows where it stands. The environment's **Services** tab lists the same word next to each hostname (_Certificate: Secure_), and the library under **Domains & certificates** shows _Issuance failing_ with the reason when a Let's Encrypt certificate is in trouble.
+
+| Status                                                            | What it means                                                                                                                                               | What to do                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Self-signed certificate**                                       | No trusted certificate is chosen yet. Browsers warn visitors.                                                                                               | Press **Use Let's Encrypt**, or pick an uploaded certificate.                                                                                                                                                                        |
+| **Waiting for DNS**                                               | You asked for Let's Encrypt, but at least one name does not point at the server yet. The block lists each one and where it points now.                      | Fix the DNS records it names, then press **Check DNS** or wait for the next check. After 7 days of waiting TurboPanel gives up and the block shows **Self-signed certificate** again; press **Use Let's Encrypt** once DNS is fixed. |
+| **Getting a certificate** · _Deploy this environment to start it_ | The certificate is chosen, but the server has not received it yet.                                                                                          | Press **Deploy now**.                                                                                                                                                                                                                |
+| **Getting a certificate** · _This usually takes a minute or two_  | The server has the settings and is asking Let's Encrypt.                                                                                                    | Wait. If it lasts more than a few minutes, check the causes below.                                                                                                                                                                   |
+| **Secure**                                                        | A Let's Encrypt certificate is in place and renews automatically. Shows the days left.                                                                      | Nothing.                                                                                                                                                                                                                             |
+| **Couldn't get a certificate**                                    | Let's Encrypt could not issue the first certificate. The block shows the error text the server reported.                                                    | Press **Check DNS**, fix what it names or what the error text points to, then press **Try again**.                                                                                                                                   |
+| **Renewal failed**                                                | A certificate was issued before, but the site no longer shows a valid one, or it has expired. Visitors see a warning once the current certificate runs out. | As above: **Check DNS**, fix, **Try again**.                                                                                                                                                                                         |
+| **Uploaded certificate**                                          | A certificate you uploaded. Shows the days left; warnings appear at 14, 3 and 1 days, and once it has run out.                                              | Upload a new one before it runs out and pick it.                                                                                                                                                                                     |
+
+### When it does not work
+
+When a certificate fails, the **Certificate** block shows the error text the server reported when it checked the live site. The `certificate.renewal_failed` [notification](/docs/using/notifications) puts the same failure in plain words. The server only sees the result on port 443, so the cause behind it is often one of these:
+
+| Likely cause                                               | What you see                                                                                                                                                                                                               | Fix                                                                                                                                                                                                                              |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The domain does not point at the server                    | **Waiting for DNS** with the name and where it points now, or a failure whose error text is about DNS or a name that cannot be found.                                                                                      | Set the A record to the server's address and remove old ones. Wait for the change to be seen, then **Check DNS**.                                                                                                                |
+| The AAAA record is wrong or old                            | Often **Getting a certificate** that never finishes, or **Couldn't get a certificate**. TurboPanel's DNS check passes as soon as one address matches, so a correct A record next to a wrong AAAA record can still pass it. | Point the AAAA record at the server's IPv6 address, or delete it if the server has none.                                                                                                                                         |
+| A CAA record does not allow Let's Encrypt                  | **Couldn't get a certificate**, usually with error text about a self-signed or untrusted certificate, because the server never received a real one.                                                                        | Look up the domain's CAA records. Add one that allows `letsencrypt.org`, or remove them.                                                                                                                                         |
+| Port 80 or 443 is closed                                   | **Couldn't get a certificate**, with error text about a refused connection, a timeout, or a self-signed certificate.                                                                                                       | Open ports 80 and 443 on the server and on any firewall or cloud security group in front of it, for the whole internet.                                                                                                          |
+| A proxy or content delivery network in front of the domain | **Getting a certificate** that never finishes, or **Couldn't get a certificate**.                                                                                                                                          | It must pass `http://<domain>/.well-known/acme-challenge/` through to the server unchanged, or be turned off while the certificate is issued.                                                                                    |
+| Let's Encrypt's rate limit                                 | **Couldn't get a certificate** after several failed tries in a short time, often while one of the causes above was being fixed.                                                                                            | Wait. Let's Encrypt allows 5 failed checks per name per hour, and 5 identical certificates (the same set of names) per week, with no way to raise either. Fix the cause before trying again, so retries do not use up the limit. |
+
+When you press **Use Let's Encrypt**, TurboPanel checks DNS before it asks Let's Encrypt, so a domain that clearly does not point at the server never uses up a failed check. A library pick and compose `tls.mode: automatic` skip that check, so point DNS first on those paths. The fix for most problems is to correct DNS, wait for it to be seen, and then press **Try again** once.
+
+## www names
+
+The **www** choice on a domain decides what happens to the other spelling of the name, with or without `www.`:
+
+| Choice                                                   | What visitors get                                         | What the certificate covers                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Only** the name you typed                              | Only that name answers.                                   | That name.                                                                                         |
+| **Both names**                                           | Both names show the site.                                 | Both names.                                                                                        |
+| `www.example.com → example.com` (or the other way round) | The first name redirects to the second, keeping the path. | Both names: a browser opens the redirected name over HTTPS too, so it needs a certificate as well. |
+
+Every name the choice adds needs its own DNS record pointing at the server. Until it has one, the block shows **Waiting for DNS** for that name, and Let's Encrypt waits for it.
+
+## Renewal and lifetimes
+
+A Let's Encrypt certificate is valid for **90 days** today. Let's Encrypt is shortening that to **64 days from 2027-02-10** and **45 days from 2028-02-16**. You do not need to do anything about it: the web server on the server renews each certificate automatically, well before it runs out.
+
+Renewal runs the same check as the first certificate, so the domain must keep pointing at the server and port 80 must stay open for as long as the site uses the certificate.
+
+Let's Encrypt no longer emails anyone before a certificate expires, so TurboPanel watches instead. Every server checks each of its Let's Encrypt domains about once a minute by opening the live site. When the site stops showing a valid certificate, TurboPanel marks the domain **Renewal failed** (or **Couldn't get a certificate**) and sends the `certificate.renewal_failed` [notification](/docs/using/notifications) to every member of the organization, once per failure. Route it to an email or chat channel so it reaches someone. TurboPanel learns about a problem from the live site, so it raises the alert when the certificate is no longer valid, not at the first failed renewal attempt.
+
+Once the server has a certificate, TurboPanel also keeps an encrypted copy of it and its private key. The key is never shown or returned. See [Stored copy](/docs/using/hosting#stored-copy).
+
+## Domains declared in compose
+
+A domain can also be declared in the environment's compose document, under `x-turbopanel.hosting[]`. The hostname you type under **Visitors reach it at** on the **Set up production** screen of a new project is written there. For such a domain, compose holds the certificate choice:
+
+- **Set up production** writes `tls: { mode: automatic }` with the hostname when the organization allows Let's Encrypt certificates and the name can get one. The screen says _Gets a free Let's Encrypt certificate on the first deploy, once the name points at the server._ When the setting is off, the screen says so, the name gets a self-signed certificate, and **Open Domains & certificates** links to the setting.
+- For a domain already in compose, open the route on the **Hosting** tab and pick **Let's Encrypt (automatic)** in its **TLS certificate** picker. This writes `tls.mode: automatic` into the compose document. Deploy to apply it.
+- At each deploy, TurboPanel finds or creates the organization's Let's Encrypt certificate for the name (and for the www name, when the route's www choice adds one) and the server asks Let's Encrypt for it. The certificate is still only requested once the site is deployed on a server.
+- This path does not wait for DNS. If the name does not point at the server yet, the server keeps retrying on its own, and each failed check counts against Let's Encrypt's limit. Point the DNS first and check it yourself before you deploy: the domain, and its **Certificate** block, only appear on the **Hosting** tab after the first deploy that declares it.
+- After that deploy, the **Certificate** block of such a domain shows the same statuses. Once it fails, it offers **Check DNS** and **Try again**. To stop using Let's Encrypt, change the route's certificate in compose.
+- If the organization setting is off, the deploy is refused with `acme_requires_org_opt_in` and, for a compose route, a message that names **Allow Let's Encrypt certificates** under **Organization settings › Domains & certificates** and who can turn it on. Turn the setting on, or set `tls.mode` to `internal` for a self-signed certificate.
+
+## Uploaded and self-signed certificates
+
+The organization's certificate library, under **Organization settings › Domains & certificates**, holds every certificate you can pick for a domain.
+
+**Upload a certificate** you got elsewhere, for example a wildcard certificate or one from your company's certificate authority:
+
+<Steps>
+  <Step>
+    **Add certificate**, source *Uploaded*. Paste the **Certificate PEM** (the
+    certificate first, then any intermediate certificates) and the **Private key
+    PEM**, and optionally a **Display name**.
+  </Step>
+  <Step>
+    On the environment's **Hosting** tab, pick it in the domain's **TLS
+    certificate** picker. Only certificates that cover every hostname of the
+    domain are offered.
+  </Step>
+  <Step>
+    Deploy. You renew an uploaded certificate yourself: upload the new one
+    before the old one runs out, pick it, and deploy. The **Certificate** block
+    warns at 14, 3 and 1 days.
+  </Step>
+</Steps>
+
+**Self-signed certificates** are for names browsers never need to trust, such as a `datacenter` or `local` hostname. A domain with no certificate chosen already gets one made by the server. To have one in the library, **Add certificate** with source _Self-signed_ and list the **Hostnames**; it is valid for about 90 days, and you make a new one to renew it.
+
+## Several servers serving one name
+
+When an environment runs on more than one server, each server that serves the domain asks Let's Encrypt for its own certificate and renews it itself. TurboPanel does not yet get one certificate and share it between servers.
+
+Let's Encrypt checks port 80 at whatever address the domain's DNS gives. A server that DNS does not point at may therefore be unable to get its own certificate, and a visitor who reaches that server can see a warning. Point the domain at the servers that should answer it, and check each one. Getting one certificate per domain for the whole organization and sharing it with every server is planned. Today a site that moves to another server also gets a new certificate there.
+
+## Coming later: DNS checks and wildcard certificates
+
+Today TurboPanel proves a domain only through the port-80 check. Two things are planned on top of it:
+
+- **A DNS check.** TurboPanel will show a TXT record (a DNS record that holds a short text value) to add at your DNS provider, and finish the certificate once it sees it. This works for names that cannot be reached on port 80. TurboPanel will not ask for, or store, a login for your DNS provider. Because the value changes with each renewal, TurboPanel will show the new record and notify you ahead of time.
+- **Wildcard certificates**, such as `*.example.com`, which cover every name one level below the domain. They need the DNS check. Until then, upload a wildcard certificate you got elsewhere.
+
+## Errors
+
+| Code                                                                         | Status       | Meaning                                                                                                                                                                             | What to do                                                                                          |
+| ---------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `lets_encrypt_not_enabled`                                                   | 403          | The organization has not turned on **Allow Let's Encrypt certificates**.                                                                                                            | An owner or manager turns it on in **Organization settings › Domains & certificates**.              |
+| `hosting_not_http`, `hosting_has_no_hostnames`                               | 400          | The domain is not a web (HTTP) hosting, or it has no hostnames yet.                                                                                                                 | Add a hostname to a web hosting first.                                                              |
+| `acme_requires_public_bind`                                                  | 400          | The domain's bind is `datacenter` or `local`. Also refused at deploy, including for a compose route that asks for `tls.mode: automatic`.                                            | Set the bind to **Public**.                                                                         |
+| `letsencrypt_hostname_unsupported`                                           | 400          | A name, or a www name the www choice adds, is a wildcard, an IP address or a private name. Also refused at deploy for a compose route.                                              | Use public names only, or upload a certificate.                                                     |
+| `www_redirect_conflict`                                                      | 400          | The www choice cannot apply: the name has no www spelling, or both spellings are already domains in this environment.                                                               | Set **www** to **Only** the name, or remove one of the two domains.                                 |
+| `hosting_owned_by_compose`                                                   | 409          | The domain is declared in the compose document and does not ask for `tls.mode: automatic`.                                                                                          | Choose its certificate in compose; see [Domains declared in compose](#domains-declared-in-compose). |
+| `wildcard_unsupported`, `dns_01_unsupported`, `private_hostname_unsupported` | 400          | A wildcard, a DNS check or a private name on a library Let's Encrypt certificate.                                                                                                   | List each public hostname; only the port-80 check is supported today.                               |
+| `acme_requires_org_opt_in`                                                   | 400 (deploy) | A Let's Encrypt certificate is chosen, or a compose route asks for `tls.mode: automatic`, but the organization's setting is off. For a compose route the message names the setting. | Turn the setting on, or pick another certificate (`internal` in compose).                           |
+
+## Related
+
+- [Hosting — hostnames, ports and TLS](/docs/using/hosting) — the certificate library, bind scopes, the API and the compose spelling.
+- [Deploying and running an environment](/docs/using/deploy) — deploys and the refusals they can return.
+- [Writing compose](/docs/using/compose) — the `x-turbopanel.hosting[]` declaration and its `tls` setting.
+- [Notifications](/docs/using/notifications) — channels and rules for `certificate.renewal_failed`.
+- [Hostnames and TLS](/docs/deployment/hostnames-and-tls) — certificates for the control plane's own hostnames.

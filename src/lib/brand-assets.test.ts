@@ -1,5 +1,37 @@
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { BRAND_COLORS, BRAND_LOGO_VARIANTS } from '@/lib/brand-assets'
+import { BRAND_COLORS, BRAND_LOGO_VARIANTS, BRAND_WORDMARK_FONT } from '@/lib/brand-assets'
+
+describe('BRAND_WORDMARK_FONT', () => {
+  it('describes the self-hosted Figtree ExtraBold Italic wordmark face', () => {
+    expect(BRAND_WORDMARK_FONT.family).toBe('Figtree')
+    expect(BRAND_WORDMARK_FONT.weight).toBe(800)
+    expect(BRAND_WORDMARK_FONT.italicAngleDeg).toBe(9.5)
+    expect(BRAND_WORDMARK_FONT.extraSkewDeg).toBe(14)
+    expect(BRAND_WORDMARK_FONT.designer).toBe('Erik D. Kennedy')
+    expect(BRAND_WORDMARK_FONT.license).toBe('SIL Open Font License 1.1')
+    expect(BRAND_WORDMARK_FONT.licenseUrl.startsWith('https://')).toBe(true)
+    expect(BRAND_WORDMARK_FONT.sourceUrl.startsWith('https://')).toBe(true)
+    expect(BRAND_WORDMARK_FONT.inkLight).toBe('#0f172a')
+    expect(BRAND_WORDMARK_FONT.inkDark).toBe('#ffffff')
+    const formats = BRAND_WORDMARK_FONT.assets.map((asset) => asset.format)
+    expect(formats).toEqual(['WOFF2', 'TTF', 'TXT'])
+  })
+
+  it('hosts the license file the page links to', () => {
+    expect(BRAND_WORDMARK_FONT.assets.map((asset) => asset.href)).toContain(
+      BRAND_WORDMARK_FONT.licenseFileHref
+    )
+  })
+
+  it('links only to font files that ship under public/brand/fonts', () => {
+    for (const asset of BRAND_WORDMARK_FONT.assets) {
+      expect(asset.href.startsWith('/brand/fonts/')).toBe(true)
+      expect(existsSync(path.join(process.cwd(), 'public', asset.href))).toBe(true)
+    }
+  })
+})
 
 describe('BRAND_LOGO_VARIANTS', () => {
   it('lists downloadable assets for each logo variant', () => {

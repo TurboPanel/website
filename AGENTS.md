@@ -65,7 +65,7 @@ Voice rules:
 
 Register new marketing routes in `SiteHeader` (`ActivePage` + `LINKS` when nav-visible — `LINKS` also feeds the mobile `MobileNavMenu` panel), `SiteFooter` (`FOOTER_LINKS`), and `src/app/sitemap.ts`.
 
-Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/`.
+Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/` (the five `*-og.svg` cards). They carry the T mark and the Figtree wordmark as outlined paths, not live text, because share platforms do not load web fonts; the outlines use the header lockup geometry from `src/lib/wordmark-lockup.ts` (31 px word, +0.02 em spacing, −14° skew, lowest ink on the base of the T), so redraw them when those constants change.
 
 ## Stack
 
@@ -196,7 +196,7 @@ These are non-negotiable for this site (detail + checklist live in Master):
 
 - Tokens: `--tp-*` in `globals.css`; dual brand `--tp-blue` `#3366cc` (primary via `--tp-accent` — links, CTAs, docs) + `--tp-green` `#3dd68c` (secondary HA / live); brand stripe blue→green; restrained **frosted chrome** via `--tp-glass-*` / `.tp-glass` (sticky chrome, cards — not dense docs tables)
 - Logo kit: static files in `public/brand/` (`turbopanel-logo*`); site chrome via `src/components/Logo.tsx`; public guidelines at **`/about/logo`**
-- Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist
+- Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist; wordmark “urboPanel”: **Figtree ExtraBold Italic** only (`src/lib/figtree-font.ts`, `--font-wordmark`, skew in `wordmark-lockup.ts`; downloads under `public/brand/fonts/`)
 - **No entrance fade/slide animations** — SSG content must paint instantly
 - At most **one** pulsing hero CTA per page (`MarketingPrimaryCta` `emphasis` / `tp-cta-emphasis`); honor `prefers-reduced-motion`
 - Roadmap / narrative: **vertical timeline** + featured “now” panel — never a wizard-style horizontal stepper

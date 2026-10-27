@@ -1,2 +1,2 @@
-/** Wordmark uses the shared Plus Jakarta loader (800 italic via CSS). */
-export { plusJakartaSans as wordmarkFont } from '@/lib/plus-jakarta-sans-font'
+/** Wordmark uses the self-hosted Figtree ExtraBold Italic loader (800 italic only). */
+export { figtreeWordmark as wordmarkFont } from '@/lib/figtree-font'

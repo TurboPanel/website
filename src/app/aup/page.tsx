@@ -14,8 +14,6 @@ export const metadata: Metadata = {
     'Plain-language rules for the hosted TurboPanel service: build freely, keep it lawful, and share fairly.',
 }
 
-const LAST_UPDATED = 'September 12, 2026'
-
 const LINK = 'text-[var(--tp-accent)] hover:underline'
 const BODY = 'text-sm leading-relaxed text-[var(--tp-text-muted)]'
 
@@ -84,8 +82,8 @@ const RULES: ReadonlyArray<Rule> = [
           control plane, and third parties alike.
         </p>
         <p>
-          Testing the security of <em>your own</em> TurboPanel-hosted deployment is fine. If you find
-          a vulnerability in TurboPanel itself, please report it through our{' '}
+          Testing the security of <em>your own</em> TurboPanel-hosted deployment is fine. If you
+          find a vulnerability in TurboPanel itself, please report it through our{' '}
           <Link href="/security" className={LINK}>
             security page
           </Link>{' '}
@@ -165,7 +163,7 @@ export default function AcceptableUsePage() {
   return (
     <MarketingPageShell active="aup">
       <MarketingHero
-        eyebrow={`Legal · Updated ${LAST_UPDATED}`}
+        eyebrow="Legal"
         title="Acceptable Use Policy"
         description="A short set of ground rules that keeps the hosted TurboPanel service fast, safe, and fair for everyone on it."
       />
@@ -221,7 +219,10 @@ export default function AcceptableUsePage() {
           </div>
 
           <div className="mt-16">
-            <MarketingSectionHeader eyebrow="When things go wrong" title="Enforcement and reporting" />
+            <MarketingSectionHeader
+              eyebrow="When things go wrong"
+              title="Enforcement and reporting"
+            />
             <div className="space-y-4">
               <MarketingCard id="enforcement" className="scroll-mt-28">
                 <h3 className="text-lg font-semibold text-[var(--tp-text)]">How we enforce this</h3>
@@ -235,7 +236,9 @@ export default function AcceptableUsePage() {
               </MarketingCard>
 
               <MarketingCard id="report" className="scroll-mt-28">
-                <h3 className="text-lg font-semibold text-[var(--tp-text)]">Reporting a violation</h3>
+                <h3 className="text-lg font-semibold text-[var(--tp-text)]">
+                  Reporting a violation
+                </h3>
                 <p className={`mt-3 ${BODY}`}>
                   If you think another customer is breaking this policy, or that your own deployment
                   has been compromised and is being misused, email{' '}
