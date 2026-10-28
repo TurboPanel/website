@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { ApiReferenceReact } from '@scalar/api-reference-react'
 import '@scalar/api-reference-react/style.css'
@@ -132,7 +133,7 @@ export default function ApiDocsPage() {
   const apiDocsConfig = useSyncExternalStore(
     subscribeClientApiDocsConfig,
     getClientApiDocsConfigSnapshot,
-    () => null,
+    () => null
   )
   const openApiUrl = apiDocsConfig?.openApiUrl ?? null
   const daemonOpenApiUrl = apiDocsConfig?.daemonOpenApiUrl ?? null
@@ -199,13 +200,7 @@ export default function ApiDocsPage() {
         authentication: buildScalarBearerAuthentication(),
       },
     ]
-  }, [
-    primaryOpenApiUrl,
-    daemonOpenApiUrl,
-    servers,
-    sessionCookieName,
-    forceDarkModeState,
-  ])
+  }, [primaryOpenApiUrl, daemonOpenApiUrl, servers, sessionCookieName, forceDarkModeState])
 
   useEffect(() => {
     if (!scalarConfiguration) return
@@ -218,9 +213,9 @@ export default function ApiDocsPage() {
 
   return (
     <div className="scalar-api-reference">
-      <a href="/docs" className="scalar-back-link">
+      <Link href="/docs" className="scalar-back-link">
         ← Documentation
-      </a>
+      </Link>
       <ApiReferenceReact
         key={`${primaryOpenApiUrl}-${daemonOpenApiUrl ?? ''}-${sessionCookieName}`}
         configuration={scalarConfiguration}

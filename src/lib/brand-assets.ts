@@ -12,13 +12,23 @@ export type BrandAsset = Readonly<{
   note?: string
 }>
 
+export type BrandLogoPreviewAspect = 'landscape' | 'square'
+
+/** Intrinsic size (the SVG viewBox) of each preview shape, color and white alike. */
+export const BRAND_LOGO_PREVIEW_SIZE: Readonly<
+  Record<BrandLogoPreviewAspect, Readonly<{ width: number; height: number }>>
+> = {
+  landscape: { width: 628, height: 370 },
+  square: { width: 628, height: 628 },
+}
+
 export type BrandLogoVariant = Readonly<{
   id: string
   title: string
   description: string
   /** Preview image (always color SVG/PNG for recognition). */
   previewSrc: string
-  previewAspect: 'landscape' | 'square'
+  previewAspect: BrandLogoPreviewAspect
   assets: ReadonlyArray<BrandAsset>
 }>
 
@@ -50,6 +60,13 @@ export const BRAND_WORDMARK_FONT = {
   /** Word color next to the T mark: light and dark site themes. */
   inkLight: '#0f172a',
   inkDark: '#ffffff',
+  /**
+   * Hairline outline in the ink color, in em of the word's font size: light mode only. Dark ink on
+   * light looks thinner than white on dark; the outline evens that out without touching layout.
+   * Mirrors --tp-wordmark-stroke in globals.css (a test keeps the two equal).
+   */
+  outlineLightEm: 0.025,
+  outlineDarkEm: 0,
   assets: [
     {
       label: 'WOFF2 (web, ExtraBold Italic, latin)',

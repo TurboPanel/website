@@ -12,8 +12,11 @@
   --tp-surface: #ffffff;
   --tp-surface-muted: #edf2f8;
   --tp-text: #0f172a;
-  /* “urboPanel” next to the T mark: text colour in light, white in dark. */
+  /* “urboPanel” next to the T mark: text colour in light, white in dark. A hairline outline in the
+     same ink in light mode only makes dark-on-light carry the weight of white-on-dark without
+     changing the letter shapes, so nothing shifts between themes. */
   --tp-wordmark-ink: var(--tp-text);
+  --tp-wordmark-stroke: 0.025em;
   --tp-text-muted: #475569;
   --tp-border: rgba(15, 23, 42, 0.14);
   /* Dual brand — keep in step with ui `src/lib/theme.ts` */
@@ -77,6 +80,7 @@
   --tp-surface-muted: #172136;
   --tp-text: #e2e8f0;
   --tp-wordmark-ink: #ffffff;
+  --tp-wordmark-stroke: 0em;
   --tp-text-muted: #a8b5cc;
   --tp-border: rgba(148, 163, 184, 0.3);
   --tp-green: #3dd68c;
