@@ -45,7 +45,7 @@ pnpm check:docs-ssr
 
 ## Marketing accuracy
 
-Claims on `src/app/**` must match shipped product behavior. Check the [roadmap](https://turbopanel.io/roadmap) and sibling repo READMEs before asserting features. Pricing copy follows [AGENTS.md](./AGENTS.md) — coordinate with `/pricing` when changing commercial messaging.
+Claims on `src/app/**` must match shipped product behavior. Check the [roadmap](https://turbopanel.io/roadmap) and sibling repo READMEs before asserting features. Pricing copy follows [src/app/AGENTS.md](./src/app/AGENTS.md) — coordinate with `/pricing` when changing commercial messaging.
 
 Larger information-architecture changes: ask in [Discord](https://turbopanel.io/discord) or open an issue first with the proposed nav / page split.
 
@@ -72,7 +72,7 @@ That converges the website checkout alongside the control plane, daemon, and UI 
 
 [Routing guide](https://github.com/TurboPanel/.github/blob/trunk/CONTRIBUTING.md) · [Contributor License Agreement](https://github.com/TurboPanel/.github/blob/trunk/CLA.md) · [Documentation issue template](https://github.com/TurboPanel/website/issues/new?template=documentation.yml)
 
-Agent conventions, design system workflow, and file layout: [AGENTS.md](./AGENTS.md).
+Agent conventions, design system workflow, and file layout: [AGENTS.md](./AGENTS.md), plus the nested `AGENTS.md` files it lists.
 
 ## License
 
