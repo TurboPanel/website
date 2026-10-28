@@ -252,6 +252,35 @@ The app renders one sentence per code from these; the sentences here are the sam
 | `private_family_mismatch`                                                                                                          | 422    | IPv4 and IPv6 mixed where one family is required.                                                      |
 | `failover_requires_trusted_datacenter`                                                                                             | 422    | A failover replica must sit in a trusted datacenter.                                                   |
 
+## Cloudflare Tunnels
+
+See [Cloudflare Tunnels](/docs/deployment/tunnels).
+
+| Code                       | Status | Meaning                                                                                                                                      |
+| -------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tunnel_invalid`           | 400    | The tunnel name, placement, Cloudflare account or datacenter in the request is missing or has the wrong shape; the response names the field. |
+| `datacenter_required`      | 400    | An **All servers** tunnel needs the datacenter it covers.                                                                                    |
+| `datacenter_invalid`       | 400    | The datacenter is not one of this organization's.                                                                                            |
+| `server_invalid`           | 400    | A server in the placement is not one of this organization's.                                                                                 |
+| `server_not_in_datacenter` | 400    | Every server in the placement must be in the tunnel's datacenter.                                                                            |
+| `badge_rejected`           | 400    | Cloudflare did not accept the API token. Check that it is a scoped API token, not a Global API Key, and has not expired.                     |
+| `tunnel_exists`            | 409    | A tunnel with this name already exists in the organization.                                                                                  |
+| `tunnel_limit`             | 409    | The organization has reached its limit of 50 tunnels.                                                                                        |
+| `server_never_carries`     | 409    | A chosen server is marked **Never carries tunnels**. Choose another server or clear the setting.                                             |
+| `badge_cannot_tunnel`      | 409    | No API token on this Cloudflare account can create, edit or remove tunnels. Add a token with the Cloudflare Tunnel permission.               |
+| `tunnel_in_use`            | 409    | Delete refused: the tunnel still carries hostnames. Remove them first.                                                                       |
+| `secrets_unavailable`      | 503    | The control plane cannot read its stored secrets right now, so it cannot use the API token.                                                  |
+| `provider_unavailable`     | 502    | Cloudflare could not be reached or refused the request; `message` has the reason with any token removed.                                     |
+| `hostname_invalid`         | 400    | The hostname is not a valid lower-case host name.                                                                                            |
+| `hostname_in_use`          | 409    | This hostname is already on a tunnel in the organization.                                                                                    |
+| `doorway_limit`            | 409    | The tunnel carries 200 hostnames, or the organization carries 2000 tunnel hostnames in all.                                                  |
+| `tunnel_not_ready`         | 409    | The tunnel does not exist at Cloudflare yet, so it cannot take a hostname.                                                                   |
+| `carrier_missing`          | 409    | The Cloudflare account that owns this tunnel is no longer connected.                                                                         |
+| `badge_cannot_dns`         | 409    | No API token can edit DNS for this hostname's zone. Add a token with the DNS permission for it, or add the name yourself.                    |
+| `zone_not_found`           | 409    | Cloudflare has no zone for this hostname in the connected account.                                                                           |
+| `hosting_mismatch`         | 409    | The hostname belongs to a site of another organization.                                                                                      |
+| `carry_invalid`            | 400    | The **Never carries tunnels** setting must be true or false.                                                                                 |
+
 ## Managed databases
 
 | Code                                                                                                                 | Status    | Meaning                                                                                                                                                                         |
