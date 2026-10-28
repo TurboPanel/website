@@ -13,7 +13,7 @@ Two Linux users on the box:
 | **`alpha`** | Caddy, Let's Encrypt (`noc@turbopanel.io`), `alpha.turbopanel.net`, webhook HMAC secret, hook on `127.0.0.1:8790` |
 | **`website`** | Git clones, Next builds, three blue-green environments. Never reads `hook.env` |
 
-Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in [`scripts/vps/`](./scripts/vps/README.md).
+Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in [`scripts/vps/`](./README.md).
 
 **Branch map:** `trunk` → `testing.turbopanel.io`; `staging` → `staging.turbopanel.io`; `live` → `turbopanel.io` (`www` 301 to apex). GitHub push webhook: `https://alpha.turbopanel.net/hooks/github`.
 

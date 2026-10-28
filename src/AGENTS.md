@@ -35,9 +35,9 @@ Skip the skill for pure content/MDX copy, API/config wiring, Workers/deploy scri
 
 | What | Path |
 | --- | --- |
-| Skill (read first) | [`.agents/skills/ui-ux-pro-max/SKILL.md`](.agents/skills/ui-ux-pro-max/SKILL.md) |
+| Skill (read first) | [`.agents/skills/ui-ux-pro-max/SKILL.md`](../.agents/skills/ui-ux-pro-max/SKILL.md) |
 | Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
-| Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) |
+| Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](../design-system/turbopanel-website/MASTER.md) |
 | Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `home.md`, `setups.md`, `pricing.md`, `roadmap.md`, `about-logo.md`, `docs.md`; page wins over Master) |
 | CSS tokens | `src/app/globals.css` (`--tp-*`, `--tp-glass-*`, `--font-display`) |
 | Shared CTAs | `src/components/marketing/MarketingPrimaryCta.tsx` (+ secondary / primitives nearby) |
