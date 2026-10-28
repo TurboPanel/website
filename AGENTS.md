@@ -101,7 +101,7 @@ website/
 ├── .agents/skills/ui-ux-pro-max/   # Installed design skill (SKILL.md + search.py)
 ├── design-system/turbopanel-website/  # MASTER.md + optional pages/
 ├── docs/                 # Fumadocs MDX (canonical)
-│   └── database/         # Stub page: descriptions live in the database as COMMENT ON (see Key conventions)
+│   └── database/         # Stub page: descriptions live in the database as COMMENT ON (see `docs/AGENTS.md`)
 ├── src/app/              # App Router (+ globals.css tokens)
 ├── src/components/       # Shared UI (marketing/ docs chrome)
 ├── src/lib/              # env, source, scalar helpers

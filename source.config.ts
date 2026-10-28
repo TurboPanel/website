@@ -126,7 +126,7 @@ function mdxStringAttribute(name: string, value: string) {
  * switching needs either dual SVGs or a runtime re-render, which complicates
  * the MDX pipeline for little gain while diagrams are sparse. The client
  * component lazy-loads the Mermaid runtime only when a diagram nears the
- * viewport — see `src/components/mdx/Mermaid.tsx` and AGENTS.md.
+ * viewport — see `src/components/mdx/Mermaid.tsx` and src/AGENTS.md.
  */
 function toMermaidMdx(code: string, fenceMeta: MermaidFenceMeta = {}) {
   const parsed = stripMermaidDirectives(code)
