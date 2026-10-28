@@ -47,7 +47,7 @@ With **All servers** you can also exclude servers ("all except these"). Only **A
 
 A tunnel on a single server has no backup path. TurboPanel shows a warning, and a second server makes it more resilient.
 
-One server can carry many tunnels. Each tunnel runs as its own system service, and its run token is kept in a file that only the system can read, so restarting the TurboPanel daemon does not drop your tunnels.
+One server can carry many tunnels. Each tunnel runs as its own system service. TurboPanel sends the tunnel's run token, encrypted for that one server, to every server that carries the tunnel, and the server starts the connector. The token is kept in a file that only the system can read, so restarting the TurboPanel daemon does not drop your tunnels. When a tunnel is removed or moved off a server, TurboPanel stops the connector there.
 
 An organization can have up to 50 tunnels, each carrying up to 200 hostnames, and up to 2000 tunnel hostnames in all.
 
@@ -65,7 +65,9 @@ By default a hostname on a tunnel is **local only**. The web server on the serve
 
 Switch the lock off for a name that is also a public name of the same site, because the public side must answer everyone. A name with the lock off is served to everybody who reaches the server.
 
-The lock is applied when the site is deployed. After you add or remove a server that carries the tunnel, deploy the site again so its list of allowed servers is current. Until then a newly added server's forwarded requests are dropped, and a removed server stays allowed.
+The lock is applied at the site's next deploy. After you add or remove a server that carries the tunnel, deploy the site again so its list of allowed servers is current. Until then a newly added server's forwarded requests are dropped, and a removed server stays allowed.
+
+The deploy is refused in two cases. If the server that runs the site has a daemon too old to apply the lock, update the daemon first. If a locked name is set to use a public certificate, switch the lock off for that name or stop using the public certificate, because a name that only a tunnel reaches cannot get one.
 
 ## Certificates
 
