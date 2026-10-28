@@ -13,6 +13,7 @@
     "metrics",
     "network-addressing",
     "hostnames-and-tls",
+    "tunnels",
     "tiers",
     "tier-catalogue",
     "security",
