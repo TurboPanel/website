@@ -6,7 +6,16 @@
 
 **Default branch:** `trunk`
 
-**Docs content:** MDX under `docs/` (Fumadocs; `source.config.ts` → `dir: 'docs'`). **`docs/using/` is the user guide** — written for the person signed in to the console, not the operator. Every chapter keeps one shape: the model (concept) → *Before you begin* → numbered `<Steps>` procedures using the console's own labels (*How is this served?*, *Using project compose*, *Preview ▾ / Deploy / Redeploy ▾*) → reference tables → an errors table (code · status · meaning, every code and status read from the route that emits it — `deploy-routes-helpers.ts`, `deploy-prepare.ts`, the area's `routes.ts` — never from memory) → *Related*. Hosted/self-hosted deltas go in `<Tabs items={['Self-hosted', 'TurboPanel High Availability']}>` only where behaviour differs. The part's index carries the private-alpha callout; new chapters are listed in `docs/using/meta.json`. The planned chapter list and what each must cover lives on the Road to 0.1.x page's *Documentation* track. Daemon-cell / Durable Object architecture docs must use the **SQLite-backed** Durable Object pricing model (rows read/written, `setAlarm()` = 1 row written, deletes = writes, KV-style methods billed as rows; compute requests incl. WS connect + 20:1 incoming-WS-message ratio + alarm invocations; 128 MB duration; hibernation) — **never legacy KV-backed DO pricing** — and the canonical source is `~/turbopanel/AGENTS.md` (Daemon Cell). (Leave the actual docs/diagrams to the website-docs phase.)
+
+## Nested Guides
+
+The nearest `AGENTS.md` to the file you edit applies on top of this one:
+
+- [`docs/AGENTS.md`](./docs/AGENTS.md) — editing MDX under `docs/`: the user guide shape, metrics cost and glossary pages, the database stub, inline MDX components.
+- [`src/AGENTS.md`](./src/AGENTS.md) — editing `src/` UI: the marketing and docs design contract, TypeScript style, site chrome, docs layout, Scalar and control-plane URL wiring.
+- [`src/app/AGENTS.md`](./src/app/AGENTS.md) — editing routes under `src/app/`: pricing copy rules and the marketing route table.
+- [`.github/AGENTS.md`](./.github/AGENTS.md) — editing workflows or releases: promotion (including the break-glass form) and Sonar analysis.
+- [`scripts/vps/AGENTS.md`](./scripts/vps/AGENTS.md) — editing the production hosting scripts for `alpha.turbopanel.net`.
 
 ## Pricing (copy source of truth)
 
@@ -14,20 +23,7 @@
 
 **Neither offering is publicly available yet.** TurboPanel High Availability and self-hosted are **both** in private alpha and both **not yet publicly available** — we are working toward a beta release. Every surface that names one must name both with that same status; never present self-hosted as ready-to-use today just because the docs/install steps exist.
 
-Marketing and docs **must** match live product pages. Canonical public page: **https://turbopanel.io/pricing**.
-
-| Surface | Presentation |
-| --- | --- |
-| **TurboPanel High Availability** | **Private alpha · Not yet available** — no dollar figures on marketing pages; no waitlist or sign-up CTA (there is no waiting list); never "request access now" / "get started now" phrasing |
-| **Self-hosted control plane** | **Private alpha · Not yet available** — planned to be **free, unlimited servers** once it ships; CTA is **`Preview self-hosted docs`** (`/docs/deployment/self-hosted`), not "install now" / "self-host today" phrasing |
-
-**Exception — the tier ladder:** the S1–S7/SX per-server **price ladder** (`$X.XX` per tier plus the hard-floor / recommended placement rules) may appear on `/pricing` as *planned* pricing for TurboPanel High Availability. This is the one place dollar figures are permitted on a marketing page. It does not change maturity status or the CTA: the card and the tier table keep the **Private alpha · Not yet available** label, there is still no waitlist or sign-up CTA, and no copy next to the table may imply a purchase path ("Buy now", "Subscribe", "Choose S3", "Start on S1"). The ladder is informational; `/pricing` is not a checkout. The ladder never applies to self-hosted — that card stays "Free, unlimited servers" with no dollar figures. Canonical ladder values (cores/RAM ceilings, prices, slot entitlements) come from the control-plane repo (`turbopanel/src/features/tiers/ladder.ts`, the one matrix the placement bands and the billing catalogue both read); the page override is `design-system/turbopanel-website/pages/pricing.md`; the operator-facing explanation is [`docs/deployment/tiers.mdx`](docs/deployment/tiers.mdx).
-
-Do not reintroduce `$X` placeholders or pay-X-get-X copy on `src/app/**` outside the tier ladder above. Do not use CTA copy that implies either path is usable today (e.g. "Get started now", "Request early access", "Start on TurboPanel High Availability", "Install self-hosted") — use private-alpha / preview-docs language instead, and do not add a waitlist (there isn't one). On the roadmap, the internal `Complete` phase status maps to the public label **Built**, not "Shipped" (see `design-system/turbopanel-website/pages/roadmap.md`) — no status label should imply a public release has happened yet.
-
-**Infrastructure metrics costs (distinct from product pricing):** Cloudflare Analytics Engine price constants, limits, formulas, and the verification date live in exactly one doc — [`docs/architecture/server-metrics.mdx`](docs/architecture/server-metrics.mdx) (Cost section). Keep that section dated when Cloudflare pricing changes; do not scatter AE pricing constants into app code or other pages.
-
-**Operator metric glossary:** [`docs/metrics/`](docs/metrics/) — what each Metrics-screen chart and event means. Heading ids match console chart ids (`cpu-pressure`, `memory-pressure`, …) so a later console click can open `/docs/metrics/<group>#<chart-id>`. Add or update a heading in the same change as a new console metric. **PSI** is explained on [`/docs/metrics#pressure-stall-information`](docs/metrics/index.mdx). **Memory detail** (free/cached/anon, slab, dirty/writeback, shared, committed, reclaim, compaction) is explained on [`/docs/metrics/memory#memory-detail`](docs/metrics/memory.mdx). Architecture/cost stays in `docs/architecture/server-metrics.mdx`; storage/ops stays in `docs/deployment/metrics.mdx`.
+The price table, tier ladder exception and CTA rules live in [`src/app/AGENTS.md`](./src/app/AGENTS.md).
 
 ## Messaging (brand voice source of truth)
 
@@ -49,23 +45,6 @@ Voice rules:
 - **Infrastructure story:** TurboPanel High Availability runs on **"a global edge network"** — close to users and their servers, fast and always on, worldwide. Never name the underlying vendor or its products in marketing/docs copy.
 - **Claim boundary:** "always-on" and "High Availability" describe the **control plane only**. Never imply customer workloads become highly available automatically — "always-on hosting" and "your apps never go down" are off-limits.
 - Open source is a trust property, not the pitch. Never lead with "open-source" as the product definition.
-
-## Marketing routes (App Router)
-
-| Route | File | Purpose |
-| --- | --- | --- |
-| `/` | `src/app/page.tsx` | Home |
-| `/setups` | `src/app/setups/page.tsx` | Architecture patterns (single server → unlimited mesh); nav label "Patterns" |
-| `/pricing` | `src/app/pricing/page.tsx` | Managed vs self-hosted positioning + the planned S1–S7/SX tier ladder |
-| `/roadmap` | `src/app/roadmap/page.tsx` | Product phases (vertical timeline) |
-| `/open-source` | `src/app/open-source/page.tsx` | License table (incl. per-release third-party notices), repo map, third-party marks, FAQ |
-| `/security` | `src/app/security/page.tsx` | Supported versions, private reporting |
-| `/changelog` | `src/app/changelog/page.tsx` | Human-written release highlights |
-| `/about/logo` | `src/app/about/logo/page.tsx` | Brand guidelines |
-
-Register new marketing routes in `SiteHeader` (`ActivePage` + `LINKS` when nav-visible — `LINKS` also feeds the mobile `MobileNavMenu` panel), `SiteFooter` (`FOOTER_LINKS`), and `src/app/sitemap.ts`.
-
-Screenshots for READMEs: `public/screenshots/` (served at `https://turbopanel.io/screenshots/…`). Social preview sources: `public/brand/social/` (the five `*-og.svg` cards). They carry the T mark and the Figtree wordmark as outlined paths, not live text, because share platforms do not load web fonts; the outlines use the header lockup geometry from `src/lib/wordmark-lockup.ts` (31 px word, +0.02 em spacing, −14° skew, lowest ink on the base of the T; the light website card also carries the 0.025 em outline, drawn as a 0.775 stroke in lockup units), so redraw them when those constants change.
 
 ## Stack
 
@@ -110,107 +89,10 @@ vagrant ssh -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:$PATH"; cd 
 
 **Vitest convention:** place suites at `src/**/*.test.ts`. Import `describe` / `it` / `expect` from `vitest`. Unit coverage targets `src/lib/**/*.ts` only (`vitest.config.ts`); Next routes and marketing/docs chrome stay out of the Sonar denominator via `sonar.coverage.exclusions`.
 
-## Marketing & docs UI design (ui-ux-pro-max)
+## Key conventions
 
-This repo is the **public marketing + docs site**, not the signed-in product console. Visual work here must follow the installed **ui-ux-pro-max** skill and the persisted TurboPanel Website design system. Do not invent a parallel look from generic SaaS defaults.
-
-### This repo vs product console (`~/ui`)
-
-| | **website** (this repo) | **ui** (`~/ui`) |
-| --- | --- | --- |
-| Surface | Marketing pages, landing/heroes, docs chrome, pricing/roadmap | Org console, admin, install/sign-in product UI |
-| North star | Fast, trustworthy, **light-first** marketing + readable docs; dark mode supported | Dark-first OLED ops console, dense tables |
-| Design system | `design-system/turbopanel-website/` | `design-system/turbopanel/` |
-| Skill path | `.agents/skills/ui-ux-pro-max/` | `.agents/skills/ui-ux-pro-max/` |
-| Tokens | `--tp-*` in `src/app/globals.css` | `src/lib/theme.ts` (Tamagui) |
-| Stack search | `--stack nextjs` (also `react` / `html-tailwind` as needed) | `--stack react-native` |
-
-Shared brand cues: primary blue `#3366cc`, secondary green `#3dd68c`. Do **not** copy OLED console density, Tamagui patterns, or console page overrides into this site — and do not apply this site’s spacious marketing layout to the console.
-
-### When to use (mandatory)
-
-Invoke the skill **before designing or changing visuals** when the task touches any of:
-
-- Marketing pages (`src/app/page.tsx`, `/setups`, `/pricing`, `/roadmap`, heroes, landing sections)
-- Docs chrome / layout visuals (site header, sticky chrome, Fumadocs shell theming, sidebar chrome — not pure MDX prose edits)
-- Typography, color, spacing, elevation, motion, or CTA treatment
-- New or refactored marketing components under `src/components/marketing/`
-- Visual review / consistency passes on public pages
-
-Skip the skill for pure content/MDX copy, API/config wiring, Workers/deploy scripts, or non-visual refactors — unless the change alters how something looks, moves, or is interacted with.
-
-### Canonical paths
-
-| What | Path |
-| --- | --- |
-| Skill (read first) | [`.agents/skills/ui-ux-pro-max/SKILL.md`](.agents/skills/ui-ux-pro-max/SKILL.md) |
-| Search CLI | `.agents/skills/ui-ux-pro-max/scripts/search.py` |
-| Master (global SoT) | [`design-system/turbopanel-website/MASTER.md`](design-system/turbopanel-website/MASTER.md) |
-| Page overrides | `design-system/turbopanel-website/pages/<page>.md` when present (e.g. `home.md`, `setups.md`, `pricing.md`, `roadmap.md`, `about-logo.md`, `docs.md`; page wins over Master) |
-| CSS tokens | `src/app/globals.css` (`--tp-*`, `--tp-glass-*`, `--font-display`) |
-| Shared CTAs | `src/components/marketing/MarketingPrimaryCta.tsx` (+ secondary / primitives nearby) |
-
-### Mandatory first steps
-
-From the **website repo root**, before building or restyling UI:
-
-1. **Read** `design-system/turbopanel-website/MASTER.md`, then `pages/<page>.md` if it exists (page overrides Master). These are the curated site contract — do not let later skill searches override them.
-2. **Read** `.agents/skills/ui-ux-pro-max/SKILL.md` (workflow, domains, anti-pattern priorities).
-3. **Search** the skill DB only as a supplemental aid (prefer `python3` if `python` is missing). Searches fill gaps for a11y, interaction, UX, and `--stack nextjs`; they must **not** override Master, page overrides, or product constraints:
-
-```bash
-# Persisted site system — supplemental; curated Master / pages win
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "developer tool devops control plane B2B" --design-system -p "TurboPanel Website"
-
-# Domain deep-dives as needed
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain style
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain color
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain typography
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain ux
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain landing
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain icons
-
-# Stack guidance for this repo
-python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --stack nextjs
-```
-
-4. **Reuse** existing marketing primitives (`MarketingPrimaryCta`, `MarketingPageShell`, hero/canvas helpers) before inventing new ones.
-5. **Implement** with `--tp-*` tokens — no one-off hex in components.
-
-Do **not** regenerate Master with `--persist --force` unless an explicit redesign was requested. Master already exists and is curated.
-
-### Decision order
-
-Apply in this order (later steps only fill gaps; they do not override earlier project rules):
-
-1. **Product constraints** (below) — non-negotiable brand / tokens / motion rules
-2. Page override `design-system/turbopanel-website/pages/<page>.md` (if present)
-3. Master `design-system/turbopanel-website/MASTER.md`
-4. Skill guidance (`SKILL.md` + `search.py`) — required for a11y, interaction, UX, and `--stack nextjs`; do **not** let generic skill palettes replace `--tp-*` tokens or curated Master / page decisions
-5. Existing marketing / docs chrome components in this repo
-6. New code
-
-### Product constraints (keep)
-
-These are non-negotiable for this site (detail + checklist live in Master):
-
-- Tokens: `--tp-*` in `globals.css`; dual brand `--tp-blue` `#3366cc` (primary via `--tp-accent` — links, CTAs, docs) + `--tp-green` `#3dd68c` (secondary HA / live); brand stripe blue→green; restrained **frosted chrome** via `--tp-glass-*` / `.tp-glass` (sticky chrome, cards — not dense docs tables)
-- Logo kit: static files in `public/brand/` (`turbopanel-logo*`); site chrome via `src/components/Logo.tsx`; public guidelines at **`/about/logo`**
-- Display: **Plus Jakarta Sans** (`--font-display` / `.tp-display`); body stays Geist; wordmark “urboPanel”: **Figtree ExtraBold Italic** only (`src/lib/figtree-font.ts`, `--font-wordmark`, skew in `wordmark-lockup.ts`; downloads under `public/brand/fonts/`). Light mode adds a 0.025 em hairline outline in the ink color (`--tp-wordmark-stroke`, kept equal to `BRAND_WORDMARK_FONT.outlineLightEm` by a test) while the weight stays 800 in both themes, so the word never shifts between themes
-- **No entrance fade/slide animations** — SSG content must paint instantly
-- At most **one** pulsing hero CTA per page (`MarketingPrimaryCta` `emphasis` / `tp-cta-emphasis`); honor `prefers-reduced-motion`
-- Roadmap / narrative: **vertical timeline** + featured “now” panel — never a wizard-style horizontal stepper
-- Prefer sections/lists over decorative card grids; hairline borders over heavy shadows
-
-### Anti-patterns / do-not
-
-- Skip the skill and freestyle a purple/indigo SaaS or cream+serif “AI default” look
-- Apply `~/ui` OLED console / Tamagui / dense-ops patterns to marketing or docs chrome
-- Raw hex in components when a `--tp-*` token exists
-- Entrance choreography, staggered reveals, GSAP scroll theaters, multiple pulsing CTAs
-- Emoji-as-icons; layout-shifting hover scales on cards
-- Silent `--persist --force` of Master (discards curated decisions)
-- Fetch `/api/config` on every static page just to theme or link Sign in (use `control-plane-hosts` / `env` helpers)
+- **Vocabulary CI guard:** forbidden daemon-as-agent and Apple-associated chrome phrases, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts` (keep the list aligned with the daemon, instance, UI, and `.github` copies). `scripts/check-vocabulary.mjs` walks the tree and exits non-zero on hits.
+- **Third-party notices:** `pnpm notices:generate` writes `THIRD_PARTY_NOTICES.md` from the resolved pnpm graph. It complements first-party `NOTICE` (Apache-2.0 attribution) and inlines dependency NOTICE files; it does not replace `NOTICE`. CI `pnpm notices:check` fails on a stale file or an unreviewed production license class. Product-facing copy that describes licenses must also name this file (and that third-party marks are never covered by TurboPanel licenses or the UI App Store additional permission). Canonical operator doc: [`docs/getting-started/licensing.mdx`](./docs/getting-started/licensing.mdx). When bumping a dependency from a Mac, regenerate with `scripts/notices-in-container.sh` (and `--check` to verify) instead of `pnpm notices:generate`. The file lists packages for the platform it is generated on, and CI checks on Linux, so a host-side generate can fail that check.
 
 ## File layout
 
@@ -230,89 +112,6 @@ website/
 ├── scripts/vps/          # Caddyfile, hook, deploy.sh, systemd units for alpha.turbopanel.net
 └── AGENTS.md
 ```
-
-## Releases and promotion
-
-`.github/workflows/release.yml` publishes a notes-only GitHub Release on a `v[0-9]*` tag push (or a dry-run dispatch). **Automatic promotion (two PRs, the normal path):** website is notes-only, so an rc is a tag on a trunk commit, not a rebuilt artifact. `promote-prs.yml` keeps a trunk → staging PR "Release Candidate x.y.z-rc.N" open after every green `Verify` on trunk (opened with the Release App token so `ci-ok` runs). Merging it (merge commit) fires `publish-rc.yml` on the push to `staging`: it takes the merged PR's head commit and the version worked out from the tags and publishes `vx.y.z-rc.N` as a notes-only release (no approval gate), then opens/refreshes the staging → live PR "Release x.y.z". Merging that fires `publish-release.yml`: newest rc.N → `vx.y.z` (`releases/latest`) behind the `release` environment approval (allowed branches: `trunk` and `live`). **The tags work out the version; the committed files must agree.** The base is the newest release tag's next patch, unless an unreleased rc or a `start/vX.Y.0` marker names a higher version; canaries (in the other repos) are `<base>-canary.<N>` with N restarting at 1 per base. TurboPanel/dev's Version From Tags action (`scripts/promote/version.sh`) works them out. The committed version lives in `package.json` `version` and `sonar.projectVersion`; `node scripts/set-version.mjs X.Y.Z` rewrites both and `--check X.Y.Z` names each one that disagrees (`scripts/set-version.test.ts`). Website has no canary build, so `publish-rc.yml` runs `--check` on the merged trunk commit with the version from the tags, and **no rc is published until the committed version is that version**. Who bumps it: right after each release the TurboPanel Release App opens a PR "chore: start X.Y.Z" (the next patch, a commit GitHub signs) from `publish-release.yml`'s last job (`start-version-pr`, TurboPanel/dev's Start Version PR action with `auto-merge: "true"`), and it merges itself once its checks pass; until then no rc is published. A minor or major is started with turbopaneld's **Start Next Version** workflow (`bump: minor|major`), which pushes the `start/` marker in all four repos and opens the same "chore: start X.Y.0" PR in each. **Repos release independently — website is never gated on another repo's release.** PRs into staging/live skip Sonar. `release.yml` ignores tag pushes by `[bot]` actors so an App-created tag does not race the promotion with a from-source rebuild.
-
-**Promotion, break-glass (`.github/workflows/promote.yml`):** the same three jobs as a manual form, for when the automatic path cannot run: `to=rc` tags a commit-ish (`source`, usually `trunk`; notes-only — no assets, the number is `package.json`'s) as the next `v<base>-rc.<N>` and fast-forwards `staging`; `to=release` turns the newest `v<base>-rc.<N>` into `v<base>` (`releases/latest`; the rolling `rc` pointer is re-pointed at it) and fast-forwards `live`. The tag is created at the source commit (an existing tag elsewhere = burned version, fails). The three jobs are `TurboPanel/dev`'s `gh-promote.yml` → `gh-release.yml` → `gh-promote-finalize.yml` pinned to ONE dev sha, passed again as `dev-ref`. Approval = the `release` environment (prepare, then finalize). `to=release` needs the TurboPanel Release App secrets (`RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY`) and refuses to start without them. Full contract: `../dev/AGENTS.md` → Release promotion.
-
-## Key conventions
-
-### SonarQube (CI-based analysis)
-
-- Analysis runs in GitHub Actions (`.github/workflows/verify.yml`) with
-  `SONAR_TOKEN` and `sonar-project.properties`
-  (`sonar.projectKey=turbopanel_website`, `sonar.organization=turbopanel`). The job
-  runs lint + checks + typecheck + **`pnpm test:coverage`** (Vitest v8 LCOV at
-  `coverage/lcov.info`), then scans with
-  `sonar.javascript.lcov.reportPaths=coverage/lcov.info`. The scan waits on the
-  quality gate (`sonar.qualitygate.wait=true`); if the gate fails, the workflow
-  stops.
-- Vitest coverage `include` is `src/lib/**/*.ts` (`vitest.config.ts`).
-  `sonar.coverage.exclusions` must keep Next routes (`src/app/**`), marketing/docs
-  chrome (`src/components/**`), `**/*.tsx`, and the Fumadocs loader wiring
-  (`src/lib/source.ts`) out of the coverage denominator so untested pages do
-  not fail Sonar-way **Coverage on New Code ≥ 80%**. Font options
-  (`wordmark-font.ts`) and the client-mount snapshot hook
-  (`use-client-mounted.ts`) are unit-tested.
-- **`sonar.sources` / `sonar.tests` / `sonar.test.inclusions`** must stay set in
-  `sonar-project.properties` (and mirrored in vestigial
-  `.sonarcloud.properties`). Tests are co-located (`**/*.test.ts` under `src`).
-- **Automatic Analysis must stay off** for `turbopanel_website` (SonarCloud →
-  project **Administration → Analysis Method**). CI and Automatic Analysis
-  cannot run together — Automatic Analysis enabled makes the CI scanner fail.
-- Sonar-way **Coverage on New Code ≥ 80%** needs LCOV on CI. After switching
-  from Automatic Analysis, reset **New Code** (Administration → New Code) so the
-  baseline is not months of uncovered history, or the gate will fail even with
-  fresh coverage reports.
-
-### TypeScript style (SonarQube)
-
-- Prefer **`String#replaceAll()`** over **`String#replace()` with a global regex** when replacing every occurrence of a substring (`typescript:S7781`).
-- Use **`String.raw`** for string literals that contain backslashes so escapes stay readable and correct (`typescript:S7780`).
-- Prefer **optional chaining** over manual null checks (`typescript:S6582`).
-- Avoid **nested ternaries** — use `if`/`switch` or helpers (`typescript:S3358`).
-- Extract helpers when **cognitive complexity** exceeds 15 (`typescript:S3776`).
-
-### Site & docs conventions
-
-- **Database reference (`docs/database/`) is removed for 0.2.x.** It is a hand-written stub that points readers at `COMMENT ON` metadata (`\d+` in `psql`); the generated data-dictionary pages and the turbopanel CI check that compared them are gone, and nothing generates anything here. Do not recreate generated pages; a browsable reference may return after 0.2.x. `/docs/database/*` sub-paths redirect to the stub in `next.config.js`.
-- **Site chrome** (`src/components/StickySiteChrome.tsx`) — sticky banner + `SiteHeader` (Sign in, social icons, theme toggle). Social icons (`SocialNavLinks`): GitHub (external) + Discord (`/discord` → invite via `next.config.js` redirects). Theme toggle visuals follow `html.dark` via Tailwind `dark:` (no mount-gated light→dark FOUC). On scroll the evolving-fast banner collapses and the nav shrinks; `--tp-chrome-height` (via ResizeObserver) feeds Fumadocs `--fd-banner-height` and Scalar `--scalar-custom-header-height` so docs/API sidebars fill the remaining viewport without a dead scroll strip. Soft navigations that change `pathname` (and have no URL hash) scroll to top and expand the full-size chrome; hash/anchor targets leave scroll alone. Docs sidebar theme switch is disabled (`themeSwitch.enabled: false`) — theme lives only in the site nav. **Responsive:** the full nav row needs ~800px beside the logo, so below `lg` the links, social icons, and theme toggle move into `MobileNavMenu` (hamburger disclosure; panel is `absolute` inside the header, scrim portalled to `<body>` because the chrome's `backdrop-filter` is a containing block). The Sign in CTA stays in the bar down to 360px and lives only in the panel below that.
-- **Control-plane URL for Sign in / API docs:** canonical map in `src/lib/control-plane-hosts.ts` (`WEBSITE_HOST_TO_CONTROL_PLANE` for origins, `CONTROL_PLANE_SERVER_LABELS` for the Scalar server labels); helpers in `src/lib/env.ts` (`getControlPlaneBaseUrl`, `getControlPlaneServers`). Local website → `https://localhost:8443` (label `Local Dev`); marketing hosts map to TurboPanel High Availability (`turbopanel.io` → `turbopanel.app`, `testing.turbopanel.io` → `testing.turbopanel.dev`, `staging.turbopanel.io` → `staging.turbopanel.dev`). Sign-in and `/docs/api` resolve locally from that map — do **not** fetch `/api/config` on every static page load. The API routes derive the same values from the request `Host`; there is no `API_HOSTNAMES` deployment variable (removed — add one back only for a genuine emergency override, and then re-thread it through `env.ts`).
-- **`/api/config`** remains for external consumers (Scalar embeds, tools). It sets `Cache-Control: public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800` — see the file header in `src/app/api/config/route.ts`.
-- **Docs typography:** MDX bodies **must** stay wrapped in Fumadocs' `DocsBody` (`src/app/docs/(main)/[[...slug]]/page.tsx`) — that wrapper is the only thing that applies the `prose` layer. Rendering the MDX directly inside `DocsPage` drops it, and headings collapse to 16px/400 while tables lose every border and cell padding. The TurboPanel treatment layered on top lives under `#nd-page .prose` in `globals.css` (display-font headings, ruled `h2` sections, banded tables, recessed code blocks, card blockquotes, framed diagrams). Target `.prose`, not `article` — `DocsPage` renders no `<article>`. Fumadocs tags **heading anchor links** with `data-card` as well as real `<Card>`s, so card rules must be scoped with `.block`.
-- **Code block labels:** `rehypeCodeOptions.addLanguageClass` (`source.config.ts`) keeps `language-*` on the inner `<code>`; `mdx-components.tsx` maps it to a human label and passes it as the block's `title`, which is what makes Fumadocs render the header bar. Add new languages to `LANGUAGE_LABELS` there.
-- **MDX inline components:** keep `<File>` (and other inline JSX) on the *same line* as the surrounding prose. A JSX tag starting its own line is parsed as a block, which splits the paragraph and strands punctuation on its own row.
-- **Docs SSR:** `DocsLayoutClient` always renders Fumadocs `DocsLayout` + children so SSG HTML includes the article body. Sidebar collapse is disabled (`sidebar.collapsible: false`) to avoid gating content behind a client mount. HTML evaluation lives in `src/lib/docs-ssr.ts`; after `pnpm build`, run `pnpm check:docs-ssr` (`scripts/check-docs-ssr.mjs` reads the built introduction page). `nav.title` is set so Fumadocs' nav-title slot is not an empty `<a>` in the sidebar header and the mobile `#nd-subnav`.
-- **Docs grid widths:** never pin `--fd-sidebar-width` in `globals.css`. Fumadocs holds it at `0px` and raises it to 268px only from `md:` up (the sidebar placeholder is `max-md:hidden`); a hard value reserves the sidebar column on phones and pushes the article into a narrow strip. `--fd-layout-width` is `100%`, not `100vw`, so the main column does not overrun by the scrollbar width. The mobile sidebar drawer (`#nd-sidebar-mobile` + its overlay) is lifted to `z-index: 60` so it clears the z-50 sticky site chrome.
-- **Vocabulary CI guard:** forbidden daemon-as-agent and Apple-associated chrome phrases, skip/allowlist, and per-file scan live in `src/lib/vocabulary.ts` (keep the list aligned with the daemon, instance, UI, and `.github` copies). `scripts/check-vocabulary.mjs` walks the tree and exits non-zero on hits.
-- **Third-party notices:** `pnpm notices:generate` writes `THIRD_PARTY_NOTICES.md` from the resolved pnpm graph. It complements first-party `NOTICE` (Apache-2.0 attribution) and inlines dependency NOTICE files; it does not replace `NOTICE`. CI `pnpm notices:check` fails on a stale file or an unreviewed production license class. Product-facing copy that describes licenses must also name this file (and that third-party marks are never covered by TurboPanel licenses or the UI App Store additional permission). Canonical operator doc: [`docs/getting-started/licensing.mdx`](./docs/getting-started/licensing.mdx). When bumping a dependency from a Mac, regenerate with `scripts/notices-in-container.sh` (and `--check` to verify) instead of `pnpm notices:generate`. The file lists packages for the platform it is generated on, and CI checks on Linux, so a host-side generate can fail that check.
-- **Mermaid diagrams:** client `<Mermaid>` lazy-loads the Mermaid chunk when a diagram nears the viewport (IntersectionObserver). Build-time SVG in `source.config.ts` is deferred because light/dark theme switching needs runtime re-render or dual SVGs — diagram pages still pay a large Mermaid chunk, but only after scroll proximity.
-- **`editOnGithub`** on docs pages and the MDX `<File>` chip both use **`DOCS_GITHUB`** in `src/lib/docs-github.ts` (`TurboPanel/website` on branch **`trunk`**); paths are `docs/…` (no monorepo prefix).
-- **`resolveSessionCookieNameFromBaseUrl`** is inlined in `src/lib/scalar-session-cookie.ts` — no `@turbopanel/validation` dependency.
-- **`getApiBaseUrl`** / control-plane localhost fallback is **`https://localhost:8443`** (Caddy HTTPS entrypoint; `CADDY_PORT` / `NEXT_PUBLIC_CADDY_PORT` are set on `turbopanel-website.service` by the daemon's `instance-launch` Ansible role). Wrangler is not browser-facing.
-- **Scalar in local dev** targets **`https://localhost:8443`** (Caddy) for spec + try-it. Cross-origin from the docs site (`WEBSITE_PORT`, default 19820) requires **`TURBOPANEL_UI_CORS_ORIGINS`** on the instance (Ansible injects it into `turbopanel-instance.service` on co-located dev).
-- **Scalar auth is surface-specific:** Client API docs use cookie auth only (`buildScalarCookieAuthentication`); Daemon API docs use Bearer JWT only (`buildScalarBearerAuthentication`). Pass an **array of configs** (one document each) to `ApiReferenceReact` / `Scalar.createApiReference` — do not use a shared `sources` list with both schemes in one `authentication` object (that lets users switch between cookie and Bearer on every surface).
-
-## Production hosting (`alpha.turbopanel.net`)
-
-Vanilla Next.js 16 (`output: 'standalone'`, `node server.js`) behind Caddy with Let's Encrypt. Stopgap until the marketing site can be a TurboPanel native app. **Not** Cloudflare Workers / OpenNext.
-
-Two Linux users on the box:
-
-| User | Owns |
-| --- | --- |
-| **`alpha`** | Caddy, Let's Encrypt (`noc@turbopanel.io`), `alpha.turbopanel.net`, webhook HMAC secret, hook on `127.0.0.1:8790` |
-| **`website`** | Git clones, Next builds, three blue-green environments. Never reads `hook.env` |
-
-Shared Node **26.7.0** at `/opt/node/current` (same pin as CI). Scripts live in [`scripts/vps/`](./scripts/vps/README.md).
-
-**Branch map:** `trunk` → `testing.turbopanel.io`; `staging` → `staging.turbopanel.io`; `live` → `turbopanel.io` (`www` 301 to apex). GitHub push webhook: `https://alpha.turbopanel.net/hooks/github`.
-
-`NEXT_PUBLIC_SITE_URL` is injected at **`pnpm build`** time inside `deploy.sh`. It is not a systemd runtime env — Next inlines `NEXT_PUBLIC_*` into the client bundle. The VPS is **1 GiB RAM**; `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` and a 1024 MiB Node heap so `next build` does not OOM during tsc (GitHub `verify` already typechecks, and `run-env-deploy.sh` waits for it: `scripts/vps/ci-gate.mjs` deploys a pushed SHA only after its required checks pass). The webhook logic (`hook-lib.mjs`: HMAC, push mapping, delivery-id replay guard) and the gate logic (`ci-gate-lib.mjs`) are unit-tested and counted in coverage; only the two entry scripts are excluded. CI runs `sh scripts/scan-secrets.sh --all` (every tracked file).
-
-Co-located Vagrant still runs `next dev` on `:19820` (`turbopanel-website.service`). Do not point contributor Vagrant at the VPS.
 
 ## Related
 
