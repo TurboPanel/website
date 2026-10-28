@@ -1,5 +1,6 @@
 /** Website logotype — T mark + Figtree ExtraBold Italic “urboPanel”. */
 
+import Image from 'next/image'
 import { TURBOPANEL_MARK_INK, websiteWordmarkLockup } from '@/lib/wordmark-lockup'
 import { wordmarkFont } from '@/lib/wordmark-font'
 
@@ -19,11 +20,13 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
       className="relative inline-block overflow-visible transition-[width,height] duration-100 ease-out motion-reduce:transition-none"
       style={{ width: lockup.lockupWidth, height: lockup.lockupHeight }}
     >
-      <img
+      <Image
         src="/brand/turbopanel-logo.svg"
         alt=""
         width={TURBOPANEL_MARK_INK.width}
         height={TURBOPANEL_MARK_INK.height}
+        // The site header shows it on every page, so fetch it with the document.
+        preload
         className="pointer-events-none absolute bottom-0 left-0 transition-[width,height] duration-100 ease-out motion-reduce:transition-none"
         style={{
           width: lockup.markWidth,
@@ -41,6 +44,9 @@ export function Logo({ compact = false, markOnly = false }: LogoProps) {
           fontSize: wordLockup.wordSize,
           lineHeight: 1,
           letterSpacing: `${wordLockup.letterSpacingEm}em`,
+          // Light mode adds a hairline outline in the ink color (see --tp-wordmark-stroke).
+          WebkitTextStroke: 'var(--tp-wordmark-stroke) currentColor',
+          paintOrder: 'stroke fill',
           display: 'block',
           // Snap under the T: fade + short left tuck (skew preserved).
           transform: markOnly
