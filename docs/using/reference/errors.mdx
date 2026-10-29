@@ -107,6 +107,7 @@ See [Hosting](/docs/using/hosting).
 | `key_mismatch`                                                                | 400    | Returned to servers, not users, on the same route: the private key does not belong to the first certificate in the chain.                                                     |
 | `organization_ca_exists`                                                      | 409    | An organization CA already exists.                                                                                                                                            |
 | `organization_ca_retire_required`                                             | 409    | The current CA must be retired before a new one is minted.                                                                                                                    |
+| `tls_organization_ca`                                                         | 409    | The Organization CA can't be deleted from the certificate library. Use Rotate on the Organization CA panel to replace it.                                                     |
 | `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409    | The CA rotation state machine refuses the step: one is already running, none is pending, or the servers have not yet picked up the new root.                                  |
 
 ## Storage, variables and bindings
