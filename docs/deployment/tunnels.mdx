@@ -1,0 +1,140 @@
+---
+title: Cloudflare Tunnels
+description: Connect a Cloudflare account, choose which servers carry a tunnel, and reach a site through it without opening ports
+---
+
+# Cloudflare Tunnels
+
+A Cloudflare tunnel lets a site be reached without opening ports 80 and 443 to the internet. A small connector program on your server holds an outbound connection to Cloudflare, and visitors reach it there. TurboPanel creates the tunnel, runs the connector on the servers you pick, and keeps the route to your site up to date.
+
+## Connect a Cloudflare Account
+
+An organization can connect several Cloudflare accounts, and each account can hold several **API tokens**. Tokens are stored encrypted, like other secrets. After you save one, only its last four characters are shown.
+
+Two kinds of token work:
+
+- An **account-owned token**, made under the account's own token page.
+- A **user-owned token**, made under your profile.
+
+A Global API Key is refused. It can do far more than tunnels need, so create a scoped token instead.
+
+Give each token only what the features you use need:
+
+| Feature                                   | Permission                             |
+| ----------------------------------------- | -------------------------------------- |
+| Create and run tunnels                    | Account → **Cloudflare Tunnel** → Edit |
+| DNS names for tunnel hostnames            | Zone → **DNS** → Edit                  |
+| Cloudflare origin certificates (optional) | Zone → **SSL and Certificates** → Edit |
+
+A tunnel belongs to the Cloudflare account, not to a zone. The DNS and certificate permissions can be limited to chosen zones.
+
+### Several Tokens on One Account
+
+You do not need one token that can do everything. A common setup is one token for tunnels and separate tokens for DNS and certificates, each limited to a zone. TurboPanel records what each token can reach and, for a job, tries the active tokens that qualify, the ones limited to fewer zones first. When Cloudflare refuses a token for one right, TurboPanel stops using that token for it and tries the next one. A token Cloudflare no longer accepts is marked **Needs Attention**.
+
+A token limited to a zone is often not allowed to list the account's zones. Use **Add Zone** on the token to name the zone it can reach. TurboPanel checks that the token can read that zone, and refuses a zone that belongs to another account or one the token cannot read.
+
+A token cannot be removed while something depends on it. That means the only active token that can run tunnels for an account that has tunnels, the only token that can edit DNS for a zone that has tunnel hostnames, or the last token that could revoke or renew a Cloudflare origin certificate. The refusal lists what depends on it (`badge_in_use`). Add another token that covers the same work first, then remove the old one.
+
+## What a Tunnel Points At
+
+A tunnel always points at `https://localhost` on the server that carries it. The web server on that server then sends the request to the right site. When the site runs on a different server in the same datacenter, the web server forwards it to that server's datacenter address. It never forwards across datacenters.
+
+TurboPanel sets the host name on the connection, so the web server sees the same name a visitor typed.
+
+## Choose Which Servers Carry a Tunnel
+
+Pick one placement for each tunnel:
+
+| Placement          | What it does                                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **One Server**     | The tunnel runs on the server you choose.                                                                      |
+| **Chosen Servers** | The tunnel runs on each server you tick.                                                                       |
+| **All Servers**    | The tunnel runs on every server in the datacenter, and a new server in that datacenter joins it automatically. |
+
+With **All Servers** you can also exclude servers ("all except these"). Only **All Servers** adds new servers on its own. Any server can be turned off with the **May Run Tunnels** toggle in the Servers panel, and no placement will use it.
+
+A tunnel on a single server has no backup path. TurboPanel shows a warning, and a second server makes it more resilient.
+
+One server can carry many tunnels. Each tunnel runs as its own system service. TurboPanel sends the tunnel's run token, encrypted for that one server, to every server that carries the tunnel, and the server starts the connector. The token is kept in a file that only the system can read, so restarting the TurboPanel daemon does not drop your tunnels. When a tunnel is removed or moved off a server, TurboPanel stops the connector there.
+
+An organization can have up to 50 tunnels, each carrying up to 200 hostnames, and up to 2000 tunnel hostnames in all.
+
+## Removing a Tunnel
+
+Remove a tunnel only after its hostnames are gone; otherwise the removal is refused (`tunnel_in_use`). If no server is running the tunnel's connector, the tunnel is removed at once. Otherwise TurboPanel tells the servers to stop the connector first, because Cloudflare only lets go of a tunnel that has no connected connector. The tunnel then shows as removing, and TurboPanel finishes the removal on its own after a wait that grows between tries. While a tunnel is being removed it takes no new hostnames and no placement change, and these requests are refused with `tunnel_removing` (409).
+
+## Add a Hostname
+
+Add a hostname to a tunnel to create its route. When the name belongs to a zone that one of your tokens can edit, TurboPanel also creates the DNS name, a proxied record that points at the tunnel. If the name is in no zone your tokens reach, the route is still made and you add the DNS name yourself.
+
+DNS is never a gate. You do not need DNS to exist before you add a hostname to a tunnel or to a site, and TurboPanel never blocks adding a name because DNS is not ready.
+
+A hostname can be both a site's name and a tunnel's name. Only another tunnel already carrying the name refuses it. A hostname whose site belongs to another organization is refused.
+
+### Tunnel-Only Names
+
+By default a hostname on a tunnel can be reached only through the tunnel. The web server on the server that runs the site answers only the local connector and the other servers that carry the same tunnel, and drops everyone else. A direct visit to the server's address for that name gets no answer.
+
+Switch the lock off for a name that is also a public name of the same site, because the public side must answer everyone. A name with the lock off is served to everybody who reaches the server.
+
+The lock is applied at the site's next deploy. After you add or remove a server that carries the tunnel, deploy the site again so its list of allowed servers is current. Until then a newly added server's forwarded requests are dropped, and a removed server stays allowed.
+
+The deploy is refused in two cases. If the server that runs the site has a daemon too old to apply the lock, update the daemon first. If a locked name is set to use a public certificate, switch the lock off for that name or stop using the public certificate, because a name that only a tunnel reaches cannot get one.
+
+## Certificates
+
+The hop from Cloudflare to your server is encrypted. By default the connector sends the hostname to your server as the name it is connecting to, and it does not check the certificate your server presents. The server presents a certificate TurboPanel makes for that name, so nothing public has to be issued for a name that only a tunnel uses.
+
+The hop from one of your servers to another in the same datacenter uses a certificate issued by your Organization CA. It is trusted only between your own servers, and only the exact addresses of the servers that carry the tunnel may send forwarded requests.
+
+### Cloudflare Origin Certificates
+
+If you want the connector to check the certificate, turn on **Verified Connection** on a tunnel. Each site that serves the tunnel's names then gets a Cloudflare origin certificate, and the connector verifies it. Browsers do not trust origin certificates, so this is only for the hop between Cloudflare and your server.
+
+- **Exact hostnames by default.** Each site gets one certificate listing exactly the names it serves. A wildcard certificate (the zone and every name one label below it) is made only when you ask for it. A wildcard does not cover a name two labels down.
+- **Needs an API token for certificates.** The token must be allowed to edit certificates for the zone.
+- **Refused when it would break a site.** Turning it on is refused when the site also serves a name that is not a tunnel name with a verified connection, when its names are in more than one zone, or when a wildcard you chose does not cover one of its names.
+- **Applied at the next deploy.** The server gets the new certificate with the site's next deploy.
+- **Checked only when every name is covered.** The connector verifies only once every name on the tunnel belongs to a site with a ready certificate. A name that is still waiting never makes the tunnel unreachable.
+- **Renewed and replaced.** A certificate is valid for a year and is renewed 30 days before it expires. When a site gains a name, a new certificate lists all its names and the old one is retired.
+- **Revoked when unused.** A retired certificate is revoked at Cloudflare only after no site uses it and 24 hours have passed. A certificate a site still uses cannot be revoked.
+
+The Origin Certificates list for a Cloudflare account also shows, read-only, every certificate Cloudflare holds for a zone. The ones TurboPanel did not make are marked **Created Elsewhere**. They cannot be installed, because their private key was never available to TurboPanel. Upload the certificate and key to the certificate library, or let TurboPanel issue a new one.
+
+### Let's Encrypt Wildcard Certificates
+
+For a public certificate that does not need an open port, TurboPanel can order a Let's Encrypt certificate by DNS challenge. Use **Order A Certificate** in the certificate library.
+
+- It needs a connected Cloudflare account with an API token that can edit DNS for the domain, and the **Allow Let's Encrypt certificates** setting turned on.
+- Enter exact names, or a domain to get a wildcard that covers the domain and every name directly under it. A wildcard is made only when you ask for it.
+- TurboPanel proves you own the names by adding a short-lived TXT record in your Cloudflare zone. It removes the record after validation, whether the order succeeds or fails. Only records TurboPanel made are removed.
+- It works before a site exists, for names behind a tunnel, and with no open port.
+- Each organization has one Let's Encrypt account, used for every order and renewal.
+- TurboPanel renews the certificate on its own. A failed order is retried later, and a failing renewal keeps the certificate you already have. At most ten new certificates are ordered per organization per day.
+- **Test Certificates** use Let's Encrypt's test service. Browsers do not trust them, so they cannot be used on a live site.
+
+## Connector Versions and Updates
+
+The server page shows the connector version it runs. One connector program is installed per server in a versioned folder and shared by all tunnels on it. Each TurboPanel daemon release pins one tested, checksummed connector version, so updating the daemon updates the connector.
+
+## Shared Servers
+
+Several organizations can share one server. Tunnels from different organizations run as separate services with separate tokens, but they share the machine. A program running on the server itself could pretend to be a visitor, because the web server trusts the local connector and the other servers of the tunnel for the visitor's address. You accept that when you share a server with others.
+
+A tunnel records the organization that owns it and the organization that hosts it. For now these must be the same. Hosting another organization's tunnel is not available yet.
+
+## Want Full Isolation?
+
+For most sites the shared connector on the server is fine. If you want a connector that belongs only to your project, run your own connector in the project's Compose file next to your site. It then runs and stops with the project, and nothing else on the server shares it.
+
+## Coming Later
+
+These are planned and are not available yet:
+
+- Tunnels that span several datacenters.
+- Managing DNS records on their own, beyond the name a tunnel hostname creates.
+- A client-certificate check on the connection from Cloudflare.
+- Adopting a tunnel that already exists in your Cloudflare account.
+
+If something goes wrong, look up the code in [Error codes](/docs/using/reference/errors#cloudflare-tunnels). See also [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
