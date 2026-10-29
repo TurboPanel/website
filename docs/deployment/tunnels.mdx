@@ -30,7 +30,7 @@ A tunnel belongs to the Cloudflare account, not to a zone. The DNS and certifica
 
 ### Several Tokens on One Account
 
-You do not need one token that can do everything. A common setup is one token for tunnels and separate tokens for DNS and certificates, each limited to a zone. TurboPanel records what each token can reach and, for a job, tries the active tokens that qualify, the ones limited to fewer zones first. When Cloudflare refuses a token for one right, TurboPanel stops using that token for it and tries the next one. A token Cloudflare no longer accepts is marked as needing attention.
+You do not need one token that can do everything. A common setup is one token for tunnels and separate tokens for DNS and certificates, each limited to a zone. TurboPanel records what each token can reach and, for a job, tries the active tokens that qualify, the ones limited to fewer zones first. When Cloudflare refuses a token for one right, TurboPanel stops using that token for it and tries the next one. A token Cloudflare no longer accepts is marked **Needs Attention**.
 
 A token limited to a zone is often not allowed to list the account's zones. Use **Add Zone** on the token to name the zone it can reach. TurboPanel checks that the token can read that zone, and refuses a zone that belongs to another account or one the token cannot read.
 
@@ -48,11 +48,11 @@ Pick one placement for each tunnel:
 
 | Placement          | What it does                                                                                                   |
 | ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| **One server**     | The tunnel runs on the server you choose.                                                                      |
-| **Chosen servers** | The tunnel runs on each server you tick.                                                                       |
-| **All servers**    | The tunnel runs on every server in the datacenter, and a new server in that datacenter joins it automatically. |
+| **One Server**     | The tunnel runs on the server you choose.                                                                      |
+| **Chosen Servers** | The tunnel runs on each server you tick.                                                                       |
+| **All Servers**    | The tunnel runs on every server in the datacenter, and a new server in that datacenter joins it automatically. |
 
-With **All servers** you can also exclude servers ("all except these"). Only **All servers** adds new servers on its own. Any server can be marked **Never carries tunnels**, and no placement will use it.
+With **All Servers** you can also exclude servers ("all except these"). Only **All Servers** adds new servers on its own. Any server can be turned off with the **May Run Tunnels** toggle in the Servers panel, and no placement will use it.
 
 A tunnel on a single server has no backup path. TurboPanel shows a warning, and a second server makes it more resilient.
 
@@ -72,9 +72,9 @@ DNS is never a gate. You do not need DNS to exist before you add a hostname to a
 
 A hostname can be both a site's name and a tunnel's name. Only another tunnel already carrying the name refuses it. A hostname whose site belongs to another organization is refused.
 
-### Local-Only Lock
+### Tunnel-Only Names
 
-By default a hostname on a tunnel is **local only**. The web server on the server that runs the site answers only the local connector and the other servers that carry the same tunnel, and drops everyone else. A direct visit to the server's address for that name gets no answer.
+By default a hostname on a tunnel can be reached only through the tunnel. The web server on the server that runs the site answers only the local connector and the other servers that carry the same tunnel, and drops everyone else. A direct visit to the server's address for that name gets no answer.
 
 Switch the lock off for a name that is also a public name of the same site, because the public side must answer everyone. A name with the lock off is served to everybody who reaches the server.
 
@@ -106,7 +106,7 @@ The Origin Certificates list for a Cloudflare account also shows, read-only, eve
 
 For a public certificate that does not need an open port, TurboPanel can order a Let's Encrypt certificate by DNS challenge. Use **Order A Certificate** in the certificate library.
 
-- It needs a connected Cloudflare account with an API token that can edit DNS for the domain, and Let's Encrypt certificates turned on for the organization.
+- It needs a connected Cloudflare account with an API token that can edit DNS for the domain, and the **Allow Let's Encrypt certificates** setting turned on.
 - Enter exact names, or a domain to get a wildcard that covers the domain and every name directly under it. A wildcard is made only when you ask for it.
 - TurboPanel proves you own the names by adding a short-lived TXT record in your Cloudflare zone. It removes the record after validation, whether the order succeeds or fails. Only records TurboPanel made are removed.
 - It works before a site exists, for names behind a tunnel, and with no open port.
