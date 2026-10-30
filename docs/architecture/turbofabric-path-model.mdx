@@ -90,6 +90,16 @@ Relay copy in the app: *Relay is a degraded fallback path and must be
 explicitly enabled. A datacenter gateway is not the same as an unrelated
 relay.*
 
+## Switched-off servers and server roles
+
+A server whose TurboFabric switch is off is not a peer of anything, so no
+path is ever computed to or from it. Each server also carries a role,
+**Gateway** (accepts connections; has a public or forwarded address) or
+**Client** (only connects out), automatic by default. The role is saved and
+shown but is not an input to path selection yet. It is separate from the
+`gateway` relay role used in step 3 of the selection contract. See [The TurboFabric
+mesh](/docs/using/network#servers-in-the-mesh).
+
 ## Related
 
 - [Datacenter networks](/docs/architecture/datacenter-networks)
