@@ -128,15 +128,16 @@ What counts: a folder in the state *planned*, *present*, *removing* or *orphan*.
 
 | Action | Files on the server |
 | --- | --- |
-| **Stop** an environment | Every folder under `/srv/users/<owner>` stays, so a start brings the same files back. The environment's compose folder, `/var/lib/turbopanel/deployments/<project id>/<environment id>/`, is **deleted**, including anything a relative bind such as `./data` wrote there. |
+| **Stop** an environment | The containers stop. Nothing on disk is removed, so a start brings the same files back. |
+| **Destroy** an environment | The containers and networks are removed, and so are anonymous volumes (an image's `VOLUME` line or a bare `- /path` mount) and a top-level volume authored with its own `name:` and no `external:`. Docker named volumes, volume folders and relative binds survive. Every folder under `/srv/users/<owner>` stays. The environment's compose folder, `/var/lib/turbopanel/deployments/<project id>/<environment id>/`, is kept, with anything a relative bind such as `./data` wrote there. Only what TurboPanel wrote into it is removed (the compose files, the overlay file, `.env`, `deployment.json`, `previous/` and `.staging/`), and the next deploy writes them again. |
 | **Redeploy** | A new sealed release is added; the previous releases stay for rollback (the newest five are kept) and `shared/` is never touched. |
 | **Delete** a service or volume | The folder is removed from every server that has it. If a server is offline, the folder shows as *removing* and is removed when the server returns; the name stays locked until then. |
-| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. |
+| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. The delete also removes the environment's compose folder, with anything a relative bind wrote there. Deleting a project does the same for each of its environments. |
 | Take a service **out of the compose document** | The folder is kept and marked **orphan**. Only an explicit delete removes files. |
-| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders stay, because stopping never removes data. |
-| **Remove** a Hosting Account | Refused on the server while any service or volume folder is left in any of its environment or `common` folders, or while a unit still runs as it. Delete those services and volumes first. Then the whole `/srv/users/<owner>` folder, its SSH keys, its resource group and its build caches are removed, along with the Linux user. Some files outside the home outlive it; see [below](#a-hosting-accounts-files-outside-the-home). |
+| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders and its compose folder stay, because stopping never removes data. |
+| **Remove** a Hosting Account | Refused on the server while any service or volume folder is left in any of its environment or `common` folders, while an older `sites/` folder in its home still has anything in it, or while a TurboPanel unit file still names the account, whether that unit is running or not. Delete those services and volumes first. Then the whole `/srv/users/<owner>` folder, its SSH keys, its resource group and its build caches are removed, along with the Linux user. Some files outside the home outlive it; see [below](#a-hosting-accounts-files-outside-the-home). |
 
-**Warning:** a stop deletes whatever a relative bind (`./data`, `./config`) holds. Put data that must survive a stop in a Docker named volume or in a volume folder under the Hosting Account's home, never in a relative bind.
+**Warning:** a Destroy deletes anonymous volumes (an image's `VOLUME` with nothing mounted on it) and a top-level volume authored with its own `name:` and no `external:`. Docker named volumes, volume folders under the Hosting Account's home and relative binds (`./data`) survive a Destroy. Relative binds stay until the environment is deleted.
 
 An empty environment folder is left in place when its last service goes. It costs nothing and does not lock any name.
 
@@ -158,20 +159,20 @@ Some of what a Hosting Account runs is kept outside `/srv/users/<owner>`, in pla
 | --- | --- | --- | --- |
 | `/etc/ssh/turbopanel/authorized_keys/<owner>` | root | The account's SSH keys | With the account |
 | `/etc/systemd/system/turbopanel-<owner>.slice` | root, 0644 | The account's resource group; every unit below runs inside it. A `-` in the name becomes `.` in the slice name. | With the account |
-| `/etc/systemd/system/turbopanel-app-<id>.service` | root, 0644 | A native app (Node) | When the app is removed |
+| `/etc/systemd/system/turbopanel-app-<id>.service` | root, 0644 | A native app (Node) | On every Destroy, and when the app is removed. The next deploy writes it again. |
 | `/etc/systemd/system/turbopanel-cron-<environment id>-<service>-<job>.service` and `.timer` | root, 0644 | A scheduled job | When the job is removed |
-| `/etc/systemd/system/turbopanel-php-<id>.service` | root, 0644 | A site's own PHP; see [PHP modes](/docs/using/php#what-each-site-gets) | With the site |
-| `/etc/turbopanel/node-app-env/<id>.env` | root, 0600, in a root-only 0700 folder | A native app's variables, read by systemd as it starts the app | When the app is removed |
-| `/etc/turbopanel/php/sites/<id>/` | root, group the owner, 0750; files 0640 | A site's PHP configuration | With the site |
-| `/etc/turbopanel/nginx/`, `apache/`, `openlitespeed/`, `site-caddy/` | root, group the web server, 0750; files 0640 | Web server configuration for the account's sites, **including their decrypted variables and secrets** | When the site is removed |
-| `/var/lib/turbopanel/deployments/<project id>/<environment id>/` | TurboPanel's account, 0750; `compose.yaml` and `.env` 0640 | The environment's compose files, with the last applied copy in `previous/`. A relative bind such as `./data` in a compose document points inside this folder. Compose secrets are written to `/run/turbopanel/deployments/…/secrets/`, 0600. | On every stop of the environment, **together with anything a relative bind wrote there**. Keep data that must last in a volume. |
+| `/etc/systemd/system/turbopanel-php-<id>.service`, and `turbopanel-php-<id>.socket` in FastCGI mode | root, 0644 | A site's own PHP; see [PHP modes](/docs/using/php#what-each-site-gets) | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/etc/turbopanel/node-app-env/<id>.env` | root, 0600, in a root-only 0700 folder | A native app's variables, read by systemd as it starts the app | On every Destroy, and when the app is removed. The next deploy writes it again. |
+| `/etc/turbopanel/php/sites/<id>/` | root, group the owner, 0750; files 0640 | A site's PHP configuration | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/etc/turbopanel/nginx/`, `apache/`, `openlitespeed/`, `site-caddy/` | root, group the web server, 0750; files 0640 | Web server configuration for the account's sites, **including their decrypted variables and secrets** | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/var/lib/turbopanel/deployments/<project id>/<environment id>/` | TurboPanel's account, 0750; `compose.yaml` and `.env` 0640 | The environment's compose files, with the last applied copy in `previous/`. A relative bind such as `./data` in a compose document points inside this folder. Compose secrets are written to `/run/turbopanel/deployments/…/secrets/`, 0600. | When the environment or its project is deleted, **together with anything a relative bind wrote there**. A Destroy removes only the compose files, the overlay file, `.env`, `deployment.json`, `previous/` and `.staging/`, and keeps the rest. |
 | `/var/lib/turbopanel/storage/<organization id>/<storage id>/<copy id>/data` | Given to the owner when the storage entry has one | A storage entry that has no folder in the home | **Not removed with the account** |
 | `/var/lib/docker/volumes/<name>` | Docker's | A Docker named volume | **Not removed with the account** |
 | `/var/lib/turbopanel-build/work/<build id>` | `work/` is root, group `tp`, 1770 | Scratch space for one sandboxed build | After the build |
 | `/var/lib/turbopanel-build/caches/<owner>/<project>` | root, 0700 | The account's build caches | With the account |
 | `/backup/volumes/<copy id>/` | TurboPanel's account, 0750; archives 0600 | Backups of a volume | **Not removed with the account** |
 
-**What outlives a removed account.** Storage under `/var/lib/turbopanel/storage`, Docker named volumes, `/backup` archives, and access entries the account was given on other accounts' volume folders stay on the server, still marked with the removed account's user id. The control plane never gives a used id to a new account in the same organization, but an id set by hand, or an account in another organization on the same server, could get the same number and so reach those files. This is being fixed. Until then, delete an account's storage and backups before removing it.
+**What outlives a removed account.** Storage under `/var/lib/turbopanel/storage`, Docker named volumes, `/backup` archives, and access entries the account was given on other accounts' volume folders stay on the server, still marked with the removed account's user id. The control plane takes ids from the counter of the organization that owns the server and never gives a used one out again, but an id set by hand could get the same number and so reach those files. This is being fixed. Until then, delete an account's storage and backups before removing it.
 
 ## Logs
 
@@ -185,7 +186,7 @@ Servers set up before the layout above can still have folders from the older one
 | --- | --- |
 | `/srv/users/<owner>/sites/<service>/` with `shared/`, `webroot/` and `releases/` | A site's folder |
 | `/srv/users/<owner>/volumes/<storage id>` | A volume folder |
-| `/srv/users/<owner>/data/` | The owner's own data folder |
+| `/srv/users/<owner>/data/` | The owner's own data folder. New homes do not get one, but where it exists a container may still bind it, like `tmp/`. |
 | `/var/lib/turbopanel/sites/<environment>/<service>/` | A site folder kept by TurboPanel itself |
 
 New folders are never made there. Accepting the older layout is due to be removed, so move anything still in it to the layout above.
