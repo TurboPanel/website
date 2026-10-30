@@ -167,7 +167,7 @@ A key that names a privilege — uid, gid, home, shell, keys, password — is re
 | Which server the environment runs on | The environment's pin on the **Hosting** tab. `x-turbopanel.placement` is refused at save. |
 | Replicas and placement constraints | Plain Compose: `deploy.replicas`, `deploy.placement.*`. |
 | A resource ceiling | Plain Compose: `deploy.resources.limits`, `mem_limit`, `cpus`. |
-| A network that spans servers | Plain Compose: `networks.<name>.driver: overlay`. TurboFabric carries it. |
+| A network that spans servers | Plain Compose: `networks.<name>.driver: overlay`. A shared trusted LAN or TurboFabric carries it. |
 | Container names | The project's **Keep original container names** setting. |
 | Variable and secret values | The variable store, referenced from the document as `${KEY}` — never written into it. |
 
@@ -288,7 +288,7 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
-| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network, or an overlay network would reach a server whose TurboFabric switch is off. |
+| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network, or an overlay network reaches a server in another datacenter while TurboFabric is off (the message names the servers). An overlay network whose servers all share a trusted LAN needs no TurboFabric. |
 
 ## Errors at save
 

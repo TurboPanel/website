@@ -92,7 +92,7 @@ Address, scope and allocation are immutable after creation; edit the description
 
 ## The TurboFabric mesh
 
-**Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used when two servers share no trusted datacenter — replication and managed-database traffic ride it instead of a public listener.
+**Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used between datacenters and over a shared network marked untrusted (the tunnel runs over that LAN, so plaintext never crosses it). Two servers that share a trusted datacenter have no tunnel: databases, app-to-database connections and cross-server container networks stay on the LAN, even with TurboFabric off or paused. Database failover replication never uses TurboFabric. The full rule and a table of what rides where are in [TurboFabric path model](/docs/architecture/turbofabric-path-model#which-pairs-get-a-tunnel).
 
 <Steps>
   <Step>
@@ -102,7 +102,7 @@ Address, scope and allocation are immutable after creation; edit the description
     **Relays**: per server, the **Role** (**gateway** for a datacenter — it must belong to one, with a subnet to advertise — or **member**), **Advertised LAN CIDRs** for a gateway, **Keepalive (seconds)**, an **Endpoint override**, and **Set preshared key** (write-only).
   </Step>
   <Step>
-    **Apply** reconciles every server. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.*
+    **Apply** reconciles every server. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.* Each server pair also shows its path, **LAN**, **TurboFabric**, **TurboFabric over LAN** or **No Path**, with a one-sentence reason; a server's **Network** tab shows how that server reaches each other server.
   </Step>
 </Steps>
 
@@ -110,7 +110,7 @@ Changing the container pool never renumbers existing relays; a pool that would s
 
 ### Servers in the mesh
 
-Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network, a managed database replicating over TurboFabric, or an app whose database connection goes over TurboFabric uses that server, or while it is the only server sharing a datacenter LAN. A deploy that would stretch an overlay network onto a switched-off server is refused (`turbofabric_required`).
+Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network, a managed database replicating over TurboFabric, or an app whose database connection goes over TurboFabric uses that server, or while it is the only server sharing a datacenter LAN. A cross-server container network whose servers all share a trusted LAN deploys with TurboFabric off; a mixed network, with some servers in another datacenter, needs TurboFabric on and is refused otherwise (`turbofabric_required`), naming the servers. Changing a datacenter's trust, a server's datacenter membership or a server's switch re-plans paths without a reboot.
 
 Each server also has a role:
 
@@ -134,14 +134,14 @@ Turning TurboFabric off for the organization pauses it. The app asks first, then
 | `PUT /api/client/v1/organizations/{id}/fabric` with `{"enabled": false}` | Pauses TurboFabric. |
 | `DELETE /api/client/v1/organizations/{id}/fabric` | Removes TurboFabric completely. |
 | `PATCH /api/client/v1/organizations/{id}/fabric/servers/{serverId}` with `enabled` and/or `role` | Switches one server on or off, or sets its role: `gateway`, `client`, or `null` for automatic. |
-| `GET /api/client/v1/organizations/{id}/fabric` | Returns the settings, `paused`, and `servers[]` with each server's switch and role. |
+| `GET /api/client/v1/organizations/{id}/fabric` | Returns the settings, `paused`, `servers[]` with each server's switch and role, and, with two or more servers, `pairs[]` with each pair's `path` (`lan`, `fabric`, `fabric_over_untrusted_lan` or `none`) and `reason`. |
 
 ## Reference
 
 | Item | Value |
 | --- | --- |
 | Datacenter priority | `0`–`1000`, default `100`, lower wins; tie → datacenter id |
-| Trusted | default on; untrusted is skipped for datacenter transport and refuses failover replicas |
+| Trusted | default on; untrusted is skipped for datacenter transport, tunnels over that network instead, and refuses failover replicas |
 | Address preference | IPv6 / IPv4 per datacenter |
 | Address scopes · allocations | `public` · `datacenter` — `dedicated` · `shared` |
 | Docker pools | ≤ 16, base + size, non-overlapping; size between the base prefix and `/30` (IPv4) or `/126` (IPv6) |
