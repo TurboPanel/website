@@ -106,7 +106,35 @@ Address, scope and allocation are immutable after creation; edit the description
   </Step>
 </Steps>
 
-Disabling is a real teardown: interfaces and allocated prefixes are reclaimed. Changing the container pool never renumbers existing relays; a pool that would strand one is refused (`fabric_container_pool_in_use`). The six path states and the selection rule are in [TurboFabric path model](/docs/architecture/turbofabric-path-model).
+Changing the container pool never renumbers existing relays; a pool that would strand one is refused (`fabric_container_pool_in_use`). The six path states and the selection rule are in [TurboFabric path model](/docs/architecture/turbofabric-path-model).
+
+### Servers in the mesh
+
+Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel, is not a peer of any other server and never gets a TurboFabric address. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network or a managed database replicating over TurboFabric uses that server. A deploy that would stretch an overlay network onto a switched-off server is refused (`turbofabric_required`).
+
+Each server also has a role:
+
+- **Gateway** — accepts connections from other servers. It needs a public address, or an address forwarded to it.
+- **Client** — only connects out to other servers.
+
+The role is automatic by default: **Gateway** when the server has a public address, **Client** when it does not. You can choose it yourself instead. In this release the role is saved and shown, but routing does not use it yet; letting a **Client** reach other datacenters through a **Gateway** comes later. This server role is separate from the relay **Role** above, which says whether a server shares its datacenter's LAN ranges across the mesh.
+
+### Routes on each server
+
+When the mesh is applied, or a member joins, leaves or changes, the daemon adds a route on every server for each other member's TurboFabric address and container range, plus the LAN ranges a gateway relay shares. No reboot is needed. A range that another network on the server already routes is skipped, so TurboFabric never takes over a route you already use. The daemon alone manages the `tp0` interface; the old `wg-quick@tp0` system unit is no longer used.
+
+### Turning TurboFabric off
+
+Turning TurboFabric off for the organization pauses it. The app asks first, then takes every tunnel down. Keys and cross-server container networks are kept, so turning it back on is instant. Pausing needs every member server to run a daemon new enough to keep its key; otherwise it is refused (`fabric_pause_needs_daemon_update`) and the message names the servers to update.
+
+**Remove TurboFabric Completely** is a separate action. It asks again, then deletes the tunnels, the keys and the cross-server container networks. Use it when you do not plan to turn TurboFabric back on.
+
+| API call | What it does |
+| --- | --- |
+| `PUT /api/client/v1/organizations/{id}/fabric` with `{"enabled": false}` | Pauses TurboFabric. |
+| `DELETE /api/client/v1/organizations/{id}/fabric` | Removes TurboFabric completely. |
+| `PATCH /api/client/v1/organizations/{id}/fabric/servers/{serverId}` with `enabled` and/or `role` | Switches one server on or off, or sets its role: `gateway`, `client`, or `null` for automatic. |
+| `GET /api/client/v1/organizations/{id}/fabric` | Returns the settings, `paused`, and `servers[]` with each server's switch and role. |
 
 ## Reference
 
@@ -151,6 +179,9 @@ The app renders every collision as a sentence; the codes are what the API answer
 | `fabric_prefix_pool_exhausted`, `fabric_address_pool_exhausted` | 409 | The container pool has no prefix or address left for another relay. |
 | `fabric_container_pool_in_use` | 409 | Shrinking the pool would strand an allocated relay prefix. |
 | `fabric_cidr_unavailable` | 409 | The mesh range collides with something registered. |
+| `fabric_server_in_use` | 409 | That server cannot be switched off: a cross-server container network or a managed database replicating over TurboFabric uses it. The message names it. |
+| `fabric_pause_needs_daemon_update` | 409 | TurboFabric stays on: the servers named in the message run a daemon too old to pause and keep its key. Update them, or remove TurboFabric completely. |
+| `fabric_teardown_not_queued` | 503 | A server's tunnel could not be taken down, so nothing changed. The server ids are in the response. |
 | `gateway_datacenter_required`, `gateway_datacenter_cidr_required` | 422 | A gateway must belong to a datacenter that has a subnet to advertise. |
 | `preferred_gateway_invalid` | 422 | The named gateway server is not a gateway in the mesh. |
 | `fabric_reconcile_pending`, `fabric_reconcile_failed`, `relay_missing` | 409 / 422 (deploy) | A deploy that needs the mesh found a reconcile still running, a host that failed to converge (its command id is in the response), or a relay the plan needs missing — see [Deploying](/docs/using/deploy#errors). |

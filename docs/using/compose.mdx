@@ -288,7 +288,7 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
-| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network. |
+| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network, or an overlay network would reach a server whose TurboFabric switch is off. |
 
 ## Errors at save
 
