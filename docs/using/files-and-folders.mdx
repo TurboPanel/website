@@ -39,6 +39,7 @@ Each **Hosting Account** has one folder tree on every server where its services 
 - **A service folder** is made only for services that run from files on the host: sites, uploaded-directory sites and native apps. A service that only runs a container from an image has no service folder; its data lives in volumes.
 - **A volume folder** is the bind-mount source for a storage entry of kind *Directory* on a host path. It belongs to the owner, so you can fill it and empty it over SFTP, but you cannot delete the folder itself.
 - **Which parts you can write.** You can write to `home/`, `tmp/`, `public/`, `shared/`, `logs/` and inside each volume. Every folder above those is root's, so a Hosting Account cannot rename, replace or delete a service, volume or environment folder, only empty the writable parts inside it.
+- **Who reads `public/`.** Its group is the web server's account, so the web server can read what you upload. A site served by nginx in front of Apache is read by both, so its `public/` carries the Hosting Account's own group instead, which both web servers join.
 - **Project names are not in paths.** The project's name and short name never appear on the server.
 
 Over SFTP with the jail on, the owner sees the same tree starting at `/`, and signs in to `/home`.
@@ -127,13 +128,15 @@ What counts: a folder in the state *planned*, *present*, *removing* or *orphan*.
 
 | Action | Files on the server |
 | --- | --- |
-| **Stop** an environment | Kept. Every folder stays, so a start brings the same files back. |
+| **Stop** an environment | Every folder under `/srv/users/<owner>` stays, so a start brings the same files back. The environment's compose folder, `/var/lib/turbopanel/deployments/<project id>/<environment id>/`, is **deleted**, including anything a relative bind such as `./data` wrote there. |
 | **Redeploy** | A new sealed release is added; the previous releases stay for rollback (the newest five are kept) and `shared/` is never touched. |
 | **Delete** a service or volume | The folder is removed from every server that has it. If a server is offline, the folder shows as *removing* and is removed when the server returns; the name stays locked until then. |
 | **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. |
 | Take a service **out of the compose document** | The folder is kept and marked **orphan**. Only an explicit delete removes files. |
 | A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders stay, because stopping never removes data. |
 | **Remove** a Hosting Account | Refused on the server while any service or volume folder is left in any of its environment or `common` folders, or while a unit still runs as it. Delete those services and volumes first. Then the whole `/srv/users/<owner>` folder, its SSH keys, its resource group and its build caches are removed, along with the Linux user. Some files outside the home outlive it; see [below](#a-hosting-accounts-files-outside-the-home). |
+
+**Warning:** a stop deletes whatever a relative bind (`./data`, `./config`) holds. Put data that must survive a stop in a Docker named volume or in a volume folder under the Hosting Account's home, never in a relative bind.
 
 An empty environment folder is left in place when its last service goes. It costs nothing and does not lock any name.
 
