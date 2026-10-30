@@ -139,7 +139,7 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     Install the control plane:
 
     ```bash
-    curl -fsSL turbopanel.sh | sh
+    curl -fsSL https://turbopanel.sh | sh
     ```
 
     Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing control plane, pass `TURBOPANEL_LICENSE` from that control plane's server install command.

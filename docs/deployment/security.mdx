@@ -403,7 +403,7 @@ graph TD
 # Remote managed server — the one installer, pointed at your control plane.
 # The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;
 # pass --instance-ca <path> to supply the PEM yourself instead.
-curl -fsSL turbopanel.sh \
+curl -fsSL https://turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
     TURBOPANEL_HOST=https://turbopanel.example.com:8443 sh
 ```
@@ -415,7 +415,7 @@ curl -fsSL turbopanel.sh \
 # Remote managed server connecting to TurboPanel High Availability
 # Hosted enrollments use the installer manifest default.
 # Set TURBOPANEL_HOST only when you have a documented custom hosted URL.
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
   </Tab>

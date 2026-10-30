@@ -73,7 +73,7 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     Install the control plane:
 
     ```bash
-    curl -fsSL turbopanel.sh | sh
+    curl -fsSL https://turbopanel.sh | sh
     ```
 
     Run with nothing else, the installer downloads the current release packages (control plane, web interface and the
@@ -114,11 +114,11 @@ co-located daemon — never enrol it with this command. Obtain a license from yo
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
