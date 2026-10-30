@@ -34,7 +34,13 @@ You do not need one token that can do everything. A common setup is one token fo
 
 A token limited to a zone is often not allowed to list the account's zones. Use **Add Zone** on the token to name the zone it can reach. TurboPanel checks that the token can read that zone, and refuses a zone that belongs to another account or one the token cannot read.
 
-A token cannot be removed while something depends on it. That means the only active token that can run tunnels for an account that has tunnels, the only token that can edit DNS for a zone that has tunnel hostnames, or the last token that could revoke or renew a Cloudflare origin certificate. The refusal lists what depends on it (`badge_in_use`). Add another token that covers the same work first, then remove the old one.
+Tunnels, DNS names, Cloudflare origin certificates and Let's Encrypt certificates belong to the Cloudflare account, not to the token that made them. Each time TurboPanel talks to Cloudflare about one of them, it uses a token of that account that has the rights the job needs. If you connect several Cloudflare accounts, you choose the account for a tunnel or certificate, never a token.
+
+### Replacing a Token
+
+To rotate a token, add the new token to the account, then remove the old one. Nothing has to be moved over: the new token takes over everything it has the rights for.
+
+Removing a token is refused only when no other token on the account covers something that still needs it: the only token that can run tunnels for an account that has tunnels, the only token that can edit DNS for a zone that has tunnel hostnames or a Let's Encrypt certificate, or the only token that can renew or revoke a Cloudflare origin certificate of a zone. The refusal names those items (`badge_in_use`). Add a token that covers them, then remove the old one.
 
 ## What a Tunnel Points At
 
