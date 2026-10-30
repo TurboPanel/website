@@ -76,10 +76,11 @@ flowchart TD
   C -->|"trusted list non-empty"| D["datacenter — lowest priority wins"]
   C -->|"empty, a shared untrusted network"| F["Healthy TurboFabric tunnel right now?"]
   F -->|yes| G["fabric — TurboFabric over LAN"]
+  F -->|"no, failover, keyed tunnel"| K["fabric address kept, tunnel marked down"]
   F -->|"no, failover, no keyed tunnel"| E["422 untrusted_network_needs_fabric"]
   F -->|"no, other purposes"| H["public — TLS mandatory"]
   C -->|"empty, no shared network"| F2["Healthy TurboFabric tunnel right now?"]
-  F2 -->|yes| G
+  F2 -->|yes| G2["fabric — across the internet"]
   F2 -->|no| H
   H -->|"public unusable"| I["a trusted datacenter that is down"]
 ```

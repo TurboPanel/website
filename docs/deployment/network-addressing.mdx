@@ -66,7 +66,7 @@ retail LAN, a provider-owned VLAN, a hotel network. Across an untrusted
 datacenter TurboPanel runs server-to-server traffic through a TurboFabric
 tunnel over that network (TurboFabric over LAN), encrypted, failover
 replication included. If TurboFabric is not carrying traffic between the two
-servers, the panel refuses new failover and read replicas there (`422
+servers, the control plane refuses new failover and read replicas there (`422
 untrusted_network_needs_fabric`). Running failover traffic keeps the tunnel
 address; other running traffic may fall to the public address, which is still
 TLS.
