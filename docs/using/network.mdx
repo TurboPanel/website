@@ -187,7 +187,7 @@ The app renders every collision as a sentence; the codes are what the API answer
 | `gateway_datacenter_required`, `gateway_datacenter_cidr_required` | 422 | A gateway must belong to a datacenter that has a subnet to advertise. |
 | `preferred_gateway_invalid` | 422 | The named gateway server is not a gateway in the mesh. |
 | `fabric_reconcile_pending`, `fabric_reconcile_failed`, `relay_missing` | 409 / 422 (deploy) | A deploy that needs the mesh found a reconcile still running, a host that failed to converge (its command id is in the response), or a relay the plan needs missing — see [Deploying](/docs/using/deploy#errors). |
-| `failover_requires_trusted_datacenter` | 422 | A managed failover replica needs a trusted datacenter shared with the primary. |
+| `untrusted_network_needs_fabric` | 422 | The servers share only an untrusted datacenter and TurboFabric is not carrying traffic between them right now. Check that TurboFabric is on and healthy for both, or mark the datacenter trusted. |
 
 ## Related
 

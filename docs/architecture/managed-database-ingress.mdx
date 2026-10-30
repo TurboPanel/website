@@ -98,8 +98,9 @@ transport — the last rung of the `local → datacenter → TurboFabric → pub
 ladder. The `datacenter` rung picks the lowest-`priority` shared **trusted**
 datacenter (`priority asc`, then id); an untrusted shared datacenter is skipped
 as if it were not shared. A failover pair whose only shared datacenters are
-untrusted is refused with **422** `failover_requires_trusted_datacenter` rather
-than silently falling through (see [Datacenter
+untrusted rides TurboFabric over the LAN, and is refused with **422**
+`untrusted_network_needs_fabric` when the tunnel cannot carry it, rather than
+silently falling through (see [Datacenter
 networks](/docs/architecture/datacenter-networks)):
 
 - The member publishes its replication/backend listener on **one concrete public
@@ -180,7 +181,7 @@ A **binding** connects a managed database user to a compose service:
 
 | Concern                | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Placement**          | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas stop at `datacenter` — an untrusted-only pair is **422** `failover_requires_trusted_datacenter`, never a silent fallback; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
+| **Placement**          | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas never use the public address — an untrusted-only pair rides TurboFabric over the LAN, or is **422** `untrusted_network_needs_fabric`; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
 | **Read split**         | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup                                                                                                                                                                                                                                                                                                                                               |
 | **Apply**              | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer)                                                                                                                                                                                                                                                                                                                  |
 | **Promote**            | Stop the old primary when its server is online, then promote the replica; the promote command follows the stop. A promote an operator starts continues when the old primary cannot be reached (that member is marked `needs_resync`); automatic failover refuses instead                                                                                                                                                            |
