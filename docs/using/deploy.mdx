@@ -94,6 +94,18 @@ A sequential deploy goes in this order:
 3. **Migrate** — any pre-deploy command runs. From here on the schema may have changed.
 4. **Start the new version**, then the **health gate**: every service must be healthy. A container with a `healthcheck` must report healthy; one without must stay running for a short stable window; a one-shot service must exit cleanly; a container that exits with an error or keeps restarting fails the gate. The gate gives up after `healthTimeoutSeconds`.
 
+### What the health step reports
+
+The progress bar shows **Check Service Health** while a deploy waits for the new version. It has one live line that updates in place (for example `Attempt 4, 6 s of up to 120 s: web health check is starting`), and it ends under the title of what was actually proven, with the time it took:
+
+| Step ends as | What it means |
+| --- | --- |
+| **Service Is Healthy** | Docker reported the service's own health check as healthy. The line reads `Healthy after 12 s`. |
+| **Service Is Running** | The service has no health check, so the only thing checked was that its container stayed running for the stable window (30 s, or the health timeout if shorter). The transcript says this once, when the wait starts. |
+| **Service Is Reachable** | A site owner's Node or Deno app (started directly, without a container) answered an HTTP request on its loopback port. Any status code counts as an answer, so this proves the app is listening, not that it is healthy. |
+| **Service Health Not Checked** | The environment deploys `inplace`, which brings the containers up without waiting. Use `sequential` to wait. |
+| **Service Did Not Become Healthy** or **Service Did Not Answer** | The wait ended without a pass. The line gives the time waited and the last status, for example `Did not become healthy within 120 s; last status: web (a1b2c3d4e5f6) health check is starting`. |
+
 How a sequential deploy that does not finish ends is shown in **Deployment history** instead of a plain *Failed*:
 
 | Outcome | Meaning | What to do |
