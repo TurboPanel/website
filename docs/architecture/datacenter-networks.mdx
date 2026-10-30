@@ -51,7 +51,10 @@ never use TurboFabric.
 
 Two servers that share a **trusted** datacenter have no TurboFabric tunnel at
 all: everything between them stays on the LAN, even with TurboFabric off or
-paused. The [TurboFabric path
+paused. A cross-server container network rides that LAN only when the trusted
+network has IPv4 addresses for both servers. While TurboFabric is off, a
+change that would break a running cross-server network (marking the network
+untrusted, or a server leaving it) is refused with `409`. The [TurboFabric path
 model](/docs/architecture/turbofabric-path-model#which-pairs-get-a-tunnel)
 has the full rule.
 

@@ -26,9 +26,12 @@ a pair of servers needs a tunnel at all:
 
 - **Shared trusted datacenter network** — no tunnel. All traffic between the
   two servers stays on that LAN, even when TurboFabric is off for the
-  organization or paused, and even when one server's TurboFabric switch is
-  off. Cross-server container networks among such servers need no tunnel and
-  no TurboFabric.
+  organization or paused. Cross-server container networks among such servers
+  need no tunnel and no TurboFabric, but only when the trusted network has
+  IPv4 addresses for both servers; on an IPv6-only trusted network the pair
+  keeps a tunnel, so TurboFabric must be on. A server whose TurboFabric switch
+  is off can still hold networks whose other servers all share its trusted
+  LAN, but nothing that needs a tunnel.
 - **Shared network marked untrusted** — a TurboFabric tunnel that runs over
   that LAN, encrypted. Plaintext never crosses an untrusted LAN.
 - **Different datacenters** — a TurboFabric tunnel.
@@ -51,7 +54,14 @@ datacenter, needs TurboFabric on and is refused otherwise
 (`turbofabric_required`); the message names the servers.
 
 Changing a datacenter's trust, a server's datacenter membership, or a
-server's TurboFabric switch re-plans the paths. No reboot is needed.
+server's TurboFabric switch re-plans the paths. No reboot is needed. While
+TurboFabric is off, a change that would turn a LAN pair holding a running
+cross-server container network into one that needs a tunnel is refused with
+`409` and a message naming the networks: marking the shared network
+untrusted, a server leaving it, or a daemon losing the LAN feature.
+
+Removing TurboFabric completely keeps the cross-server container networks
+whose servers all share a trusted LAN, since they never needed it.
 
 ### Where to See a Pair's Path
 
@@ -146,11 +156,13 @@ relay.*
 
 A server whose TurboFabric switch is off is not a peer of anything, so no
 tunnel path is ever computed to or from it. A pair that shares a trusted
-datacenter network still reaches each other over the LAN. Each server also carries a role,
-**Gateway** (accepts connections; has a public or forwarded address) or
-**Client** (only connects out), automatic by default. The role is saved and
-shown but is not an input to path selection yet. It is separate from the
-`gateway` relay role used in step 3 of the selection contract. See [The TurboFabric
+datacenter network still reaches each other over the LAN, so a switched-off
+server can still hold networks whose other servers all share its trusted LAN,
+but nothing that needs a tunnel. Each server also carries a role, **Gateway**
+(accepts connections; has a public or forwarded address) or **Client** (only
+connects out), automatic by default. The role is saved and shown but is not
+an input to path selection yet. It is separate from the `gateway` relay role
+used in step 3 of the selection contract. See [The TurboFabric
 mesh](/docs/using/network#servers-in-the-mesh).
 
 ## Related
