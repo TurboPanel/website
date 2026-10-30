@@ -104,7 +104,7 @@ When self-hosted is publicly available, you provision a control plane on Debian 
   See [Control plane](/docs/deployment/control-plane) for how TurboPanel High Availability coordination works.
 </Callout>
 
-When access is available, you create an organization in the app, obtain server licenses, and enroll servers with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default).
+When access is available, you create an organization in the app, obtain server licenses, and enroll servers with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default). TurboPanel High Availability is reached on the normal HTTPS port, 443; a self-hosted control plane is always on port 8443.
 
 ## Additional managed server daemons
 
@@ -128,7 +128,7 @@ curl -fsSL https://turbopanel.sh | \
 
 The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
 
-Replace host and port with where the control plane is reachable from the server. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
+Replace `<instance-host>` with the name or address the server reaches the control plane on. Keep port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
 
 ### Supported platforms (managed servers)
 
