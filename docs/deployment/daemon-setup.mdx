@@ -25,7 +25,7 @@ The daemon is the constant on every TurboPanel-managed host and the only party t
 ```mermaid
 graph TD
     subgraph "Control plane host"
-        Caddy["Caddy TLS (default :8443)"] --> Instance
+        Caddy["Caddy TLS (:8443)"] --> Instance
         CD[Co-located daemon] --> Instance
         CD --> Ansible
     end

@@ -43,8 +43,10 @@ When self-hosted is publicly available, operators follow this sequence:
     release packages, converged by the daemon's Ansible roles; private alpha preview).
   </Step>
   <Step>
-    Complete the install wizard (host PAM + superadmin) and trust the platform CA from
-    `GET /api/daemon/v1/instance/ca`.
+    Complete the install wizard at `https://<host>:8443/install` (host PAM + superadmin) and trust the
+    platform CA from `GET /api/daemon/v1/instance/ca`. The self-hosted control plane always listens on
+    **8443**; ports 80 and 443 belong to hosting. TurboPanel High Availability uses the normal HTTPS
+    port, 443.
   </Step>
   <Step>
     **[Daemon setup](/docs/deployment/daemon-setup)** — enroll each server with the `turbopanel.sh`

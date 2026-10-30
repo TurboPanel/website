@@ -55,6 +55,7 @@ graph TD
 | Feature | Self-hosted (Deno) | TurboPanel High Availability |
 | ------- | ------------------ | ---------------------------- |
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
+| **HTTPS port** | Always **8443**. Ports 80 and 443 on the host belong to hosting. | **443**, the normal HTTPS port |
 | **TLS** | Caddy. `:8443` is always the Platform CA recovery address. Each published hostname picks `platform-ca`, an uploaded pair, or Let's Encrypt. | Cloudflare-managed TLS |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
@@ -77,10 +78,12 @@ The Caddyfile is rendered by the daemon's `instance-launch` role into `/etc/turb
 | Port | When |
 | ---- | ---- |
 | **8443** | Always. Control plane HTTPS. |
-| **80** | Only during Let's Encrypt issuance or renewal. |
+| **80** | Hosting only. Hosting passes the Let's Encrypt challenge for a control-plane hostname to the control plane. |
 | **443** | Hosting only. |
 
-Port 80 is opened on hosting Caddy for that window, then closed. When another process holds it, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+This table is for the self-hosted control plane. TurboPanel High Availability has no listener on your servers.
+
+Hosting Caddy listens on port 80 for the issuance or renewal window when nothing else needs it, and the firewall keeps port 80 open while a control-plane hostname uses Let's Encrypt. The control plane's certificate is never shared with hosting. When another process holds it, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 `TURBOPANEL_TLS_PUBLIC=1` is set when any hostname is Let's Encrypt, or when the operator marks TLS public. A name that presents a Let's Encrypt or uploaded leaf gets a 404 from `GET /api/daemon/v1/instance/ca`. The daemon then uses the system trust store, or the uploaded issuer for a private pair, and the install command omits `--insecure-tls` for a publicly trusted leaf. An unlisted name on `:8443` still receives the Platform CA bundle.
 
