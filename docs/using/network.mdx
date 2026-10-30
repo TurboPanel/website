@@ -92,7 +92,7 @@ Address, scope and allocation are immutable after creation; edit the description
 
 ## The TurboFabric mesh
 
-**Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used when two servers share no trusted datacenter — replication and managed-database traffic ride it instead of a public listener.
+**Network → TurboFabric.** An opt-in encrypted mesh between the organization's servers (default off), used between datacenters and over a shared network marked untrusted (the tunnel runs over that LAN, so plaintext never crosses it). Two servers that share a trusted datacenter have no tunnel: databases, app-to-database connections and cross-server container networks stay on the LAN, even with TurboFabric off or paused. A cross-server container network rides that LAN only when the trusted network has IPv4 addresses for both servers, and while TurboFabric is off a change that would break a running one (marking the network untrusted, or a server leaving it) is refused. Database failover replication never uses TurboFabric. The full rule and a table of what rides where are in [TurboFabric path model](/docs/architecture/turbofabric-path-model#which-pairs-get-a-tunnel).
 
 <Steps>
   <Step>
@@ -102,7 +102,7 @@ Address, scope and allocation are immutable after creation; edit the description
     **Relays**: per server, the **Role** (**gateway** for a datacenter — it must belong to one, with a subnet to advertise — or **member**), **Advertised LAN CIDRs** for a gateway, **Keepalive (seconds)**, an **Endpoint override**, and **Set preshared key** (write-only).
   </Step>
   <Step>
-    **Apply** reconciles every server. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.*
+    **Apply** reconciles every server. **Paths** then lists every observed pair: the selected path, endpoint, last handshake, latency, and whether it is degraded. *No peer paths observed yet — Apply to probe.* Each server pair also shows its path, **LAN**, **TurboFabric**, **TurboFabric over LAN** or **No Path**, with a one-sentence reason; a server's **Network** tab shows how that server reaches each other server.
   </Step>
 </Steps>
 
@@ -110,7 +110,7 @@ Changing the container pool never renumbers existing relays; a pool that would s
 
 ### Servers in the mesh
 
-Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network, a managed database replicating over TurboFabric, or an app whose database connection goes over TurboFabric uses that server, or while it is the only server sharing a datacenter LAN. A deploy that would stretch an overlay network onto a switched-off server is refused (`turbofabric_required`).
+Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network that needs a tunnel, a managed database replicating over TurboFabric, or an app whose database connection goes over TurboFabric uses that server, or while it is the only server sharing a datacenter LAN. A cross-server container network whose servers all share a trusted LAN deploys with TurboFabric off; a mixed network, with some servers in another datacenter, needs TurboFabric on and is refused otherwise (`turbofabric_required`), naming the servers. Changing a datacenter's trust, a server's datacenter membership or a server's switch re-plans paths without a reboot. A server switched off can still hold networks whose other servers all share its trusted LAN, but nothing that needs a tunnel.
 
 Each server also has a role:
 
@@ -127,21 +127,21 @@ When the mesh is applied, or a member joins, leaves or changes, the daemon adds 
 
 Turning TurboFabric off for the organization pauses it. The app asks first, then takes every tunnel down. Keys and cross-server container networks are kept, so turning it back on is instant. Pausing needs every member server to run a daemon new enough to keep its key; otherwise it is refused (`fabric_pause_needs_daemon_update`) and the message names the servers to update.
 
-**Remove TurboFabric Completely** is a separate action. It asks again, then deletes the tunnels, the keys and the cross-server container networks. Use it when you do not plan to turn TurboFabric back on.
+**Remove TurboFabric Completely** is a separate action. It asks again, then deletes the tunnels, the keys and the cross-server container networks that need a tunnel. Networks whose servers all share a trusted LAN are kept. Use it when you do not plan to turn TurboFabric back on.
 
 | API call | What it does |
 | --- | --- |
 | `PUT /api/client/v1/organizations/{id}/fabric` with `{"enabled": false}` | Pauses TurboFabric. |
 | `DELETE /api/client/v1/organizations/{id}/fabric` | Removes TurboFabric completely. |
 | `PATCH /api/client/v1/organizations/{id}/fabric/servers/{serverId}` with `enabled` and/or `role` | Switches one server on or off, or sets its role: `gateway`, `client`, or `null` for automatic. |
-| `GET /api/client/v1/organizations/{id}/fabric` | Returns the settings, `paused`, and `servers[]` with each server's switch and role. |
+| `GET /api/client/v1/organizations/{id}/fabric` | Returns the settings, `paused`, `servers[]` with each server's switch and role, and, with two or more servers, `pairs[]` with each pair's `path` (`lan`, `fabric`, `fabric_over_untrusted_lan` or `none`) and `reason`. |
 
 ## Reference
 
 | Item | Value |
 | --- | --- |
 | Datacenter priority | `0`–`1000`, default `100`, lower wins; tie → datacenter id |
-| Trusted | default on; untrusted is skipped for datacenter transport and refuses failover replicas |
+| Trusted | default on; untrusted is skipped for datacenter transport, tunnels over that network instead, and refuses failover replicas |
 | Address preference | IPv6 / IPv4 per datacenter |
 | Address scopes · allocations | `public` · `datacenter` — `dedicated` · `shared` |
 | Docker pools | ≤ 16, base + size, non-overlapping; size between the base prefix and `/30` (IPv4) or `/126` (IPv6) |
@@ -165,6 +165,7 @@ The app renders every collision as a sentence; the codes are what the API answer
 | `network_cidr_required` | 400 | A range exists because of its CIDR — enter a new one instead of clearing it. |
 | `subnet_has_members` | 409 | Unassign the pinned servers first. |
 | `datacenter_has_members` | 409 | Remove the pins before deleting the datacenter. |
+| `lan_pair_in_use` | 409 | Marking the datacenter untrusted, or removing a server from it, would cut a cross-server container network that runs over its trusted LAN with no tunnel while TurboFabric is not running for those servers. The answer names the networks and servers; nothing is changed. |
 | `datacenter_has_networks` | 409 | A non-subnet network (a Docker registration pinned to this datacenter) still references it. |
 | `address_not_in_any_subnet` | 400 | That address is not in any subnet of this datacenter. |
 | `address_in_use` | 409 | That address is already pinned. |
@@ -179,7 +180,7 @@ The app renders every collision as a sentence; the codes are what the API answer
 | `fabric_prefix_pool_exhausted`, `fabric_address_pool_exhausted` | 409 | The container pool has no prefix or address left for another relay. |
 | `fabric_container_pool_in_use` | 409 | Shrinking the pool would strand an allocated relay prefix. |
 | `fabric_cidr_unavailable` | 409 | The mesh range collides with something registered. |
-| `fabric_server_in_use` | 409 | That server cannot be switched off: a cross-server container network, a managed database replicating over TurboFabric, or an app connecting to a database over TurboFabric uses it, or it is the only server sharing a datacenter LAN. The message names what depends on it. |
+| `fabric_server_in_use` | 409 | That server cannot be switched off: a cross-server container network that needs a tunnel, a managed database replicating over TurboFabric, or an app connecting to a database over TurboFabric uses it, or it is the only server sharing a datacenter LAN. The message names what depends on it. |
 | `fabric_paused` | 409 | Apply was asked for while TurboFabric is turned off for the organization, so there is nothing to apply. Turn it back on first. |
 | `fabric_pause_needs_daemon_update` | 409 | TurboFabric stays on: the servers named in the message run a daemon too old to pause and keep its key. Update them, or remove TurboFabric completely. |
 | `fabric_teardown_not_queued` | 503 | A server's tunnel could not be taken down. The servers that were reached have already dropped their tunnel (and, when removing TurboFabric completely, their key). The server ids are in the response; try again. |

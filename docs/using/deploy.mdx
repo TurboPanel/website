@@ -35,7 +35,7 @@ Three consequences shape how the buttons behave:
   </Step>
 </Steps>
 
-The pin is the anchor. Services that declare `deploy.replicas` or `deploy.placement.*` are placed by the planner across the organization's connected servers, respecting host-port conflicts, co-location and spread constraints and the per-server replica cap; services on more than one server must share a spanning (`driver: overlay`) network, which TurboFabric carries. **Preview ▾ → Prepared compose** shows one block per server whenever the plan spans more than one host.
+The pin is the anchor. Services that declare `deploy.replicas` or `deploy.placement.*` are placed by the planner across the organization's connected servers, respecting host-port conflicts, co-location and spread constraints and the per-server replica cap; services on more than one server must share a spanning (`driver: overlay`) network, which a shared trusted LAN or TurboFabric carries. **Preview ▾ → Prepared compose** shows one block per server whenever the plan spans more than one host.
 
 Any connected server is a valid target, including the host a self-hosted control plane runs on. A one-server installation can deploy to itself.
 
@@ -290,7 +290,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `server_placement_required` | 409 | No server resolves for the environment — set the pin or the project default on **Hosting**. Also the answer when the planner finds no eligible server. |
-| `turbofabric_required` | 422 | Services placed on different servers share a network that is not `driver: overlay`, or an overlay network would reach a server whose TurboFabric switch is off (the message names it). |
+| `turbofabric_required` | 422 | Services placed on different servers share a network that is not `driver: overlay`, or an overlay network reaches a server in another datacenter while TurboFabric is off (the message names the servers). An overlay network whose servers all share a trusted LAN needs no TurboFabric. |
 | `host_port_conflict` | 422 | Two services on the same server publish the same host port. |
 | `constraint_unsatisfiable`, `colocation_conflict`, `max_replicas_per_node_exceeded` | 422 | The planner cannot satisfy `deploy.placement` or `deploy.replicas` with the servers available; the message names the constraint. |
 | `resource_limit_exceeded` | 409 | A service asks for more CPU or memory than the organization or server ceiling allows. |
