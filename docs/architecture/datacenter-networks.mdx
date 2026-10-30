@@ -76,7 +76,7 @@ flowchart TD
   C -->|"trusted list non-empty"| D["datacenter — lowest priority wins"]
   C -->|"empty, a shared untrusted network"| F["Healthy TurboFabric tunnel right now?"]
   F -->|yes| G["fabric — TurboFabric over LAN"]
-  F -->|"no, failover"| E["422 untrusted_network_needs_fabric"]
+  F -->|"no, failover, no keyed tunnel"| E["422 untrusted_network_needs_fabric"]
   F -->|"no, other purposes"| H["public — TLS mandatory"]
   C -->|"empty, no shared network"| F2["Healthy TurboFabric tunnel right now?"]
   F2 -->|yes| G
@@ -91,11 +91,12 @@ is currently reported down.
 
 When the pair shares a datacenter marked untrusted, all server-to-server
 traffic between them goes through TurboFabric over the LAN, failover
-replication included. If TurboFabric is off, paused, switched off for one of
-the servers or not healthy, failover replicas are refused with
-`untrusted_network_needs_fabric`, and new read replicas are refused the same
-way. Traffic that is already running keeps its TLS public path; the engine's TLS
-stays on, so it is never sent in plain.
+replication included. If TurboFabric is off or switched off for one of the
+servers, new failover replicas are refused with `untrusted_network_needs_fabric`.
+If the tunnel is only unhealthy, new failover and read replicas are refused the
+same way. Failover traffic that is already running keeps the tunnel address and
+never uses the public address; other running traffic may fall to the public
+address, where the engine's TLS stays on, so it is never sent in plain.
 
 The tiebreak is `priority asc`, then `datacenterId asc`. Two datacenters with
 the same priority therefore still produce a deterministic answer, and the
