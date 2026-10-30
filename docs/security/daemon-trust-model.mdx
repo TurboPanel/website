@@ -10,7 +10,7 @@ The TurboPanel daemon (`turbopaneld`) is a **high-privilege** service on every m
 ## Enrollment
 
 1. Operator creates a **one-shot license** in the app.
-2. Installer runs `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`.
+2. Installer runs `curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=… sh`.
 3. Daemon proves possession of a generated Ed25519 key via challenge/response (`turbopanel-daemon-enroll-v1`).
 4. Control plane attaches daemon identity to a `server` row; license is consumed.
 

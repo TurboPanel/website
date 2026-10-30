@@ -56,7 +56,7 @@ control plane on this host. The installer names the canary build and prints a pr
 warning before it continues:
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 ```
 
 The installer resolves the `canary` manifest of all three repositories, downloads each package,
@@ -76,7 +76,7 @@ Caddy) and prints the wizard address:
    release: builds can break, change behaviour or need a fresh install
    at any time. Do not run it in production.
 
-   Supported release:  curl -fsSL turbopanel.sh | sh
+   Supported release:  curl -fsSL https://turbopanel.sh | sh
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   This installs the full TurboPanel control plane on this host.
@@ -104,7 +104,7 @@ single-host canary is a complete TurboPanel.
 To enrol a host by hand on the canary channel:
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE=<license from the wizard or the console> \
   TURBOPANEL_UPDATE_CHANNEL=canary \
   sh
@@ -126,7 +126,7 @@ other servers — and pins the manifest it resolved when the run started. The
 installer still moves this host in one shot:
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 ```
 
 It fetches the current canary packages, re-converges the host, applies any new
@@ -147,7 +147,7 @@ The rolling release keeps the newest **20** builds. Each keeps its own manifest 
 channel serves now — for a daemon, with the pin the installer already understands:
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE=<license> \
   TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/canary/manifest-0.1.3-canary.417.json \
   sh

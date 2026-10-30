@@ -37,7 +37,7 @@ Two rules:
     **Server name (optional)** — how the row will be labelled; the daemon's hostname is used otherwise. **Continue** mints the key. Refused when capacity is exhausted (`server_capacity_exceeded`) or, on High Availability, when every license is held (`no_license_available` — **Open billing**).
   </Step>
   <Step>
-    **Install command**: `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`, with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
+    **Install command**: `curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=… sh`, with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
   </Step>
   <Step>
     **Connect** waits for the daemon's first heartbeat, then opens the server. The key disappears from **Keys** the moment it is consumed.
@@ -169,7 +169,7 @@ Some default error pages still say which program wrote them, with no version, fo
 
 | Item | Value |
 | --- | --- |
-| Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
+| Install command | `curl -fsSL https://turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
 | Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
 | Reserved name | `this server` (the co-located server) |
 | Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics |
