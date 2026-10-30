@@ -36,7 +36,7 @@ The self-hosted control plane's built-in web server listens on **:8443**. Every 
 | **Uploaded** | `:8443` | 404 for that name | omitted when the certificate chains to a public root |
 | **Let's Encrypt** | `:8443` | 404 for that name | no |
 
-Ports **80** and **443** belong to hosting, never to the control plane. While a control-plane hostname uses Let's Encrypt, the firewall keeps hosting's port **80** open, and hosting passes only the certificate challenge to the control plane. The control plane's certificate is never shared with hosting, and a name nobody configured gets a self-signed certificate. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Ports **80** and **443** belong to hosting, never to the control plane. While a control-plane hostname uses Let's Encrypt, the firewall keeps hosting's port **80** open, and hosting passes only the certificate challenge to the control plane. The control plane's certificate is never shared with hosting. On hosting's 443, a name no site uses gets a self-signed certificate, never the control plane's; on `:8443`, an unlisted name gets the Platform CA catch-all leaf. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
