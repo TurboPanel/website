@@ -44,7 +44,7 @@ const COST_OF_OWN = [
  * Planned per-server tier ladder for TurboPanel High Availability. Values
  * mirror the control-plane catalogue (`turbopanel/src/features/tiers/ladder.ts`
  * + `src/features/tiers/tier-placement.ts`). Informational only — see
- * `AGENTS.md` → Pricing: never a purchase path.
+ * `src/app/AGENTS.md` → Pricing (copy source of truth, continued): never a purchase path.
  */
 const TIERS = [
   { tier: 'S1', machine: 'Up to 4 cores / 16 GB', price: '$5.00', example: 'A small VM, 4 cores and 16 GB' },
