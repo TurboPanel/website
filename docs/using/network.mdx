@@ -110,7 +110,7 @@ Changing the container pool never renumbers existing relays; a pool that would s
 
 ### Servers in the mesh
 
-Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network or a managed database replicating over TurboFabric uses that server. A deploy that would stretch an overlay network onto a switched-off server is refused (`turbofabric_required`).
+Each server has its own TurboFabric switch, and new servers start switched on. A server that is switched off has no tunnel and is not a peer of any other server, so it cannot be reached over TurboFabric. It keeps any TurboFabric address and settings it already has (its endpoint pin, preshared key and LAN sharing), so switching it back on restores them. Switching a server off is refused (`fabric_server_in_use`), with a sentence naming what depends on it, while a cross-server container network, a managed database replicating over TurboFabric, or an app whose database connection goes over TurboFabric uses that server, or while it is the only server sharing a datacenter LAN. A deploy that would stretch an overlay network onto a switched-off server is refused (`turbofabric_required`).
 
 Each server also has a role:
 
@@ -179,7 +179,8 @@ The app renders every collision as a sentence; the codes are what the API answer
 | `fabric_prefix_pool_exhausted`, `fabric_address_pool_exhausted` | 409 | The container pool has no prefix or address left for another relay. |
 | `fabric_container_pool_in_use` | 409 | Shrinking the pool would strand an allocated relay prefix. |
 | `fabric_cidr_unavailable` | 409 | The mesh range collides with something registered. |
-| `fabric_server_in_use` | 409 | That server cannot be switched off: a cross-server container network or a managed database replicating over TurboFabric uses it. The message names it. |
+| `fabric_server_in_use` | 409 | That server cannot be switched off: a cross-server container network, a managed database replicating over TurboFabric, or an app connecting to a database over TurboFabric uses it, or it is the only server sharing a datacenter LAN. The message names what depends on it. |
+| `fabric_paused` | 409 | Apply was asked for while TurboFabric is turned off for the organization, so there is nothing to apply. Turn it back on first. |
 | `fabric_pause_needs_daemon_update` | 409 | TurboFabric stays on: the servers named in the message run a daemon too old to pause and keep its key. Update them, or remove TurboFabric completely. |
 | `fabric_teardown_not_queued` | 503 | A server's tunnel could not be taken down. The servers that were reached have already dropped their tunnel (and, when removing TurboFabric completely, their key). The server ids are in the response; try again. |
 | `gateway_datacenter_required`, `gateway_datacenter_cidr_required` | 422 | A gateway must belong to a datacenter that has a subnet to advertise. |
