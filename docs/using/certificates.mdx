@@ -154,11 +154,11 @@ Every name the choice adds needs its own DNS record pointing at the server. Unti
 
 ## Certificate contact email
 
-Let's Encrypt writes to one address about an organization's certificates: warnings before one expires and notices about the account. You choose that address yourself. Open **Servers › TLS**, find **Certificate Contact Email** under **Let's Encrypt**, type one address (for example `ops@example.com`) and press **Save Contact Email**. Organization owners and managers can change it; clear the field and save to remove it.
+Let's Encrypt keeps one contact address per account for important notices about certificates, such as a certificate it has to revoke or a change to its service. It no longer sends reminders before a certificate expires, so TurboPanel's own status and notifications are what tell you about renewals. You choose the address yourself. Open **Organization Settings › Domains & Certificates**, find **Certificate Contact Email** under **Let's Encrypt**, type one address (for example `ops@example.com`) and press **Save Contact Email**. Organization owners and managers can see and change it; clear the field and save to remove it.
 
-TurboPanel never fills it in from a member's account. An organization can have several owners, and a person's address is not given to Let's Encrypt without being asked. Until an address is set, a certificate that TurboPanel orders once for several servers is not ordered, and the screen asks you to add one. Each change is recorded in the audit log.
+TurboPanel never fills it in from a member's account. An organization can have several owners, and a person's address is not given to Let's Encrypt without being asked. The setting is saved with the organization and recorded in the audit log, including the address it replaced. It is meant for certificates that TurboPanel orders once and shares across several servers, which is coming; certificates your servers order for themselves today do not use it.
 
-The address must be a single, public mailbox: one address only, no name in front of it, plain letters and digits, and a domain with a dot (so `me@localhost` and `me@10.0.0.1` are refused).
+The address must be a single mailbox with no name in front of it. Before the `@` use only letters, digits and `.`, `_`, `-`, `+` (no accented or non-Latin characters, and no `?`, `&`, `#`, `%` or `=`); after it, a public domain with a dot (so `me@localhost` and `me@10.0.0.1` are refused).
 
 ## Renewal and lifetimes
 
