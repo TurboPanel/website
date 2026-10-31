@@ -61,7 +61,7 @@ daemon below its floor still holds its socket so the update can reach it. See
   upgrade from **Admin → Updates**.
 
   ```bash
-  curl -fsSL turbopanel.sh \
+  curl -fsSL https://turbopanel.sh \
     | TURBOPANEL_DAEMON_ONLY=1 \
       TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/<tag>/manifest.json \
       sh
@@ -192,7 +192,7 @@ The same pins work from the installer. Each package keeps its own pin; a later c
 Pin the control plane on its own host. `TURBOPANEL_INSTANCE=1` marks the run as a control-plane install; without it, a run that names a pin is read as a daemon enrolment and stops asking for `TURBOPANEL_LICENSE`:
 
 ```bash
-curl -fsSL turbopanel.sh \
+curl -fsSL https://turbopanel.sh \
   | TURBOPANEL_INSTANCE=1 \
     TURBOPANEL_INSTANCE_MANIFEST_URL=https://github.com/TurboPanel/turbopanel/releases/download/v0.1.0/manifest.json sh
 ```
@@ -200,7 +200,7 @@ curl -fsSL turbopanel.sh \
 Pin a remote server's daemon. On a server enrolled with a self-hosted control plane, also pass `TURBOPANEL_HOST` with that control plane's URL, as in [Refresh a stuck daemon](/docs/deployment/daemon-update); without it the server is enrolled with the TurboPanel High Availability control plane:
 
 ```bash
-curl -fsSL turbopanel.sh \
+curl -fsSL https://turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
     TURBOPANEL_HOST=<control plane URL> \
     TURBOPANEL_MANIFEST_URL=https://github.com/TurboPanel/turbopaneld/releases/download/v0.1.0/manifest.json sh

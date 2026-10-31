@@ -24,7 +24,7 @@ web server on the serving server gets and renews. See
 
 <Callout type="info" title="Production Requirement">
   Never expose the control plane on plain HTTP in production. It serves HTTPS
-  itself on **:8443** (below); an outer reverse proxy in front of it is
+  itself on **:8443** (below); an outer reverse proxy on another machine is
   optional.
 </Callout>
 
@@ -36,7 +36,7 @@ The self-hosted control plane's built-in web server listens on **:8443**. Every 
 | **Uploaded** | `:8443` | 404 for that name | omitted when the certificate chains to a public root |
 | **Let's Encrypt** | `:8443` | 404 for that name | no |
 
-Port **80** opens only during Let's Encrypt issuance or renewal. Port **443** is hosting. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+Ports **80** and **443** belong to hosting, never to the control plane. While a control-plane hostname uses Let's Encrypt, the firewall keeps hosting's port **80** open, and hosting passes only the certificate challenge to the control plane. The control plane's certificate is never shared with hosting. On hosting's 443, a name no site uses gets a self-signed certificate, never the control plane's; on `:8443`, an unlisted name gets the Platform CA catch-all leaf. An apply that finds another process on port 80 fails with `port 80 is held by <process>`. See [Control plane](/docs/deployment/control-plane#control-plane-listeners) and [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 Every control-plane hostname on `:8443` (Platform CA, upload, and Let's Encrypt) sends a
 baseline response-header set on every response: `Strict-Transport-Security`
@@ -45,10 +45,11 @@ baseline response-header set on every response: `Strict-Transport-Security`
 are a separate web server configuration the daemon generates and do not
 inherit these headers.
 
-Self-hosted deployments ship a built-in web server on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead, proxying to that web server or the control plane socket:
+Self-hosted deployments ship a built-in web server on port **8443** with a platform CA by default. You can terminate TLS at an outer reverse proxy instead. Run it on a different machine: ports 80 and 443 on the control-plane host belong to hosting.
 
 ```nginx
-# Example outer reverse proxy — pass to the built-in web server on :8443
+# Example outer reverse proxy on another machine — pass to the control
+# plane's built-in web server on :8443
 server {
     listen 443 ssl;
     server_name turbopanel.example.com;
@@ -57,7 +58,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass https://127.0.0.1:8443;
+        proxy_pass https://panel-host.example.com:8443;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -131,7 +132,7 @@ The **Docker gate** narrows this route. It is a root-owned service, `turbopanel-
 **What it would block.** The gate reads each request the way Docker does and judges it against a strict profile. A request for a container, volume, network or build that would hand out the host is a *finding*:
 
 - a privileged container, extra Linux capabilities, devices, and the host's network, process, IPC or user namespaces;
-- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside a Hosting Account's `volumes/` folders (`/srv/users/<owner>/<environment or common>/volumes/…`) and TurboPanel's own storage. A service's `releases/` and `shared/` folders are never mounted into a container: containers get their data through volumes;
+- a bind mount of `/`, the Docker socket, `/etc`, `/run`, `/proc`, `/sys`, `/dev`, `/root`, `/boot` or `/opt/turbopanel`, or of anything outside `/srv/users` and TurboPanel's own storage (`/var/lib/turbopanel/storage`). Under `/srv/users` only these places may be bound: a Hosting Account's volume folders (`/srv/users/<owner>/<environment or common>/volumes/…`), its `tmp/` folder, and the [older layout](/docs/using/files-and-folders#older-folders-that-are-still-accepted) (`<owner>/data/`, `<owner>/volumes/<id>`, and `shared/`, `webroot/` and `releases/` under `<owner>/sites/<service>/`). Everything under `<scope>/services/`, including `public/`, `shared/` and the releases, is refused: containers get their data through volumes. The gate does **not** yet check that the container belongs to the same Hosting Account as the folder it binds, so one owner's container could name another owner's volume folder. This is being tightened, together with switching enforcement on;
 - volume drivers, log drivers and mount types that point somewhere the author picks, and any Docker setting the gate has not reviewed (a field a newer Docker adds is refused until someone reviews it);
 - a request whose framing is ambiguous, whose body is not strict JSON, or whose path Docker would rewrite;
 - a container request whose owner the gate cannot check (it fails closed when Docker does not answer within 5 seconds).
@@ -403,7 +404,7 @@ graph TD
 # Remote managed server — the one installer, pointed at your control plane.
 # The platform CA is fetched from GET /api/daemon/v1/instance/ca and pinned;
 # pass --instance-ca <path> to supply the PEM yourself instead.
-curl -fsSL turbopanel.sh \
+curl -fsSL https://turbopanel.sh \
   | TURBOPANEL_LICENSE=<license> \
     TURBOPANEL_HOST=https://turbopanel.example.com:8443 sh
 ```
@@ -415,7 +416,7 @@ curl -fsSL turbopanel.sh \
 # Remote managed server connecting to TurboPanel High Availability
 # Hosted enrollments use the installer manifest default.
 # Set TURBOPANEL_HOST only when you have a documented custom hosted URL.
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
   </Tab>

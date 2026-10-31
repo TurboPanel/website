@@ -41,15 +41,28 @@ Every datacenter carries two routing-policy fields, both stored under
 | `trusted` | boolean | `true` | Whether the L2 is under the operator's control. `false` marks a shared retail LAN, a provider-owned segment, or anything you would not put unencrypted replication on. |
 
 An **untrusted** datacenter is skipped entirely by the datacenter rung.
-Traffic between two servers whose only shared datacenter is untrusted falls
-through to TurboFabric (encrypted, over the same physical link if that is the
-only one) and, if neither is a relay, to a TLS-mandatory public listener. A
-**failover replica** across an untrusted-only pair is refused outright — see
-below — because failover replication has to stay on a LAN the operator owns.
+Traffic between two servers whose only shared datacenter is untrusted goes
+through a TurboFabric tunnel that runs over that LAN, encrypted; plaintext
+never crosses an untrusted LAN. When that tunnel is not healthy right now, the
+traffic falls back to a TLS-mandatory public listener. A **failover replica**
+across an untrusted-only pair is refused outright — see below — because
+failover replication and the failover coordinator stay on a trusted LAN and
+never use TurboFabric.
+
+Two servers that share a **trusted** datacenter have no TurboFabric tunnel at
+all: everything between them stays on the LAN, even with TurboFabric off or
+paused. A cross-server container network rides that LAN only when the trusted
+network has IPv4 addresses for both servers. While TurboFabric is off, a
+change that would break a running cross-server network (marking the network
+untrusted, or a server leaving it) is refused with `409`. The [TurboFabric path
+model](/docs/architecture/turbofabric-path-model#which-pairs-get-a-tunnel)
+has the full rule.
 
 Changing either field is not cosmetic: `PATCH /datacenters/:id` recomputes the
 stored replication transport of every managed member whose pair crosses that
-datacenter and re-converges ProxySQL backends and the mesh.
+datacenter and re-converges ProxySQL backends and the mesh. Changing a
+server's datacenter membership or its TurboFabric switch re-plans paths the
+same way, without a reboot.
 
 ## The ladder
 
@@ -61,11 +74,30 @@ flowchart TD
   A -->|no| B["Shared datacenters<br/>sorted by priority asc, id asc"]
   B --> C["Drop untrusted"]
   C -->|"trusted list non-empty"| D["datacenter — lowest priority wins"]
-  C -->|"empty and purpose = failover"| E["422 failover_requires_trusted_datacenter"]
-  C -->|"empty, other purposes"| F["Both are TurboFabric relays?"]
-  F -->|yes| G["fabric"]
-  F -->|no| H["public — TLS mandatory"]
+  C -->|"empty, a shared untrusted network"| F["Healthy TurboFabric tunnel right now?"]
+  F -->|yes| G["fabric — TurboFabric over LAN"]
+  F -->|"no, failover, keyed tunnel"| K["fabric address kept, tunnel marked down"]
+  F -->|"no, failover, no keyed tunnel"| E["422 untrusted_network_needs_fabric"]
+  F -->|"no, other purposes"| H["public — TLS mandatory"]
+  C -->|"empty, no shared network"| F2["Healthy TurboFabric tunnel right now?"]
+  F2 -->|yes| G2["fabric — across the internet"]
+  F2 -->|no| H
+  H -->|"public unusable"| I["a trusted datacenter that is down"]
 ```
+
+The `fabric` rung counts only when the tunnel is healthy right now: a live
+reading with a recent handshake. A down tunnel is skipped, so traffic falls
+back to the public address, and only after that to a datacenter network that
+is currently reported down.
+
+When the pair shares a datacenter marked untrusted, all server-to-server
+traffic between them goes through TurboFabric over the LAN, failover
+replication included. If TurboFabric is off or switched off for one of the
+servers, new failover replicas are refused with `untrusted_network_needs_fabric`.
+If the tunnel is only unhealthy, new failover and read replicas are refused the
+same way. Failover traffic that is already running keeps the tunnel address and
+never uses the public address; other running traffic may fall to the public
+address, where the engine's TLS stays on, so it is never sent in plain.
 
 The tiebreak is `priority asc`, then `datacenterId asc`. Two datacenters with
 the same priority therefore still produce a deterministic answer, and the

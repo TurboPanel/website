@@ -78,7 +78,7 @@ A `site` service is served by one **engine** on the server, chosen with `engine`
 
 There is no separate nginx-with-PHP engine: give a site a `php` block to run PHP. How that PHP is started (FastCGI, php-fpm or `lsphp`) is the site's [PHP mode](/docs/using/php), and Apache never uses `mod_php`.
 
-**Who runs what.** The engine process runs as its engine account and only reads the site's files. The files belong to the **Hosting Account** (the `principal` alias in the document), with the engine's group allowed to read. PHP runs as that same Linux user, so what a site writes, it writes as its own account. A Node app is a systemd unit that runs as its owner's Linux user. An image-built service has no Linux user of its own: it is an ordinary container. These users are created on first deploy; the host picks their UID and GID from **15001 to 60000** (an override must be 15001 or more), with homes under `/srv/users/<username>`. Each service's files sit under the owner's folder for the environment: see [Where your files live](/docs/using/files-and-folders). A site and a Node app each need exactly one owner; see [`site_principal_ambiguous`](#deploy-time-refusals-that-originate-in-the-document).
+**Who runs what.** The engine process runs as its engine account and only reads the site's files. The files belong to the **Hosting Account** (the `principal` alias in the document), with the engine's group allowed to read. PHP runs as that same Linux user, so what a site writes, it writes as its own account. A Node app is a systemd unit that runs as its owner's Linux user. An image-built service has no Linux user of its own: it is an ordinary container. These users are created on first deploy, with homes under `/srv/users/<username>`. Each one gets the same UID and GID on every server: the control plane numbers them per organization from **30001** and never reuses a number. An id set by hand must be between 15001 and 60000. Each service's files sit under the owner's folder for the environment: see [Where your files live](/docs/using/files-and-folders). A site and a Node app each need exactly one owner; see [`site_principal_ambiguous`](#deploy-time-refusals-that-originate-in-the-document).
 
 **Where the content comes from.** A site has one of two sources:
 
@@ -132,7 +132,7 @@ services:
 | `description` | all | Free text shown on the service card and the Overview. |
 | `principal` | `site`, `node` (refused on `container`) | Alias of a root `principals` entry — the account the service runs as. Required for sites and Node apps. |
 | `hosting[]` | all | Hostnames and ports the service answers on. Each entry: `hostname`, optional `pathPrefix`, `targetPort`, `forceHttps`, `tls: { mode: internal \| certificate \| automatic, certificateRef? }`, `bind: { scope: public \| datacenter \| local, ipRef? }`. `internal` (the default) is self-signed; `certificate` pins a library certificate by `certificateRef`; `automatic` gets a free Let's Encrypt certificate for the hostname (and the www name the route adds) once the site is deployed, and needs the organization's **Allow Let's Encrypt certificates** (refused at deploy with `acme_requires_org_opt_in` otherwise). See [Certificates](/docs/using/certificates#domains-declared-in-compose). Materialized into hosting rows you see on the **Hosting** tab; rows declared here are read-only there. |
-| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, buildKind?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `buildKind` is `native` (the default) or `railpack`; `railpack` builds a container image from the source and is valid only on a `container` service (see [Releases and rollback](#releases-and-rollback)). `deployOnPush: false` keeps a git push from deploying the service (an app deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
+| `source` | all (required on `node`) | `{ sourceId, branch?, subdirectory?, buildCommand?, startCommand?, outputDirectory?, buildKind?, deployOnPush? }`. The repository and branch to check out. `startCommand` is honoured only on `node`. `buildKind` is `native` (the default) or `image`; `image` builds a container image from the source and is valid only on a `container` service (see [Releases and rollback](#releases-and-rollback)). The previous value for `image` is still accepted but deprecated; use `image` in new documents. `deployOnPush: false` keeps a git push from deploying the service (an app deploy still does). An environment's own document can override `branch` and `deployOnPush`; see [Git](/docs/using/git#one-branch-per-environment). |
 | `engine` | `site` | `caddy` (default), `nginx`, `apache`, `openlitespeed`. |
 | `sourceKind` | `site` | `release` (the default: the site serves a built, read-only release of its repository) or `managed-directory` (a writable `public/` folder you fill over SFTP; see [Sites: engines, files and users](#sites-engines-files-and-users)). Refused together with a `source`. |
 | `root` | `site` | Document root, relative to the account's site directory. |
@@ -167,7 +167,7 @@ A key that names a privilege — uid, gid, home, shell, keys, password — is re
 | Which server the environment runs on | The environment's pin on the **Hosting** tab. `x-turbopanel.placement` is refused at save. |
 | Replicas and placement constraints | Plain Compose: `deploy.replicas`, `deploy.placement.*`. |
 | A resource ceiling | Plain Compose: `deploy.resources.limits`, `mem_limit`, `cpus`. |
-| A network that spans servers | Plain Compose: `networks.<name>.driver: overlay`. TurboFabric carries it. |
+| A network that spans servers | Plain Compose: `networks.<name>.driver: overlay`. A shared trusted LAN or TurboFabric carries it. |
 | Container names | The project's **Keep original container names** setting. |
 | Variable and secret values | The variable store, referenced from the document as `${KEY}` — never written into it. |
 
@@ -250,7 +250,7 @@ A service with a `source` produces a **release** on every deploy: the repository
 
 **Native releases** (sites and Node apps, `buildKind: native`) are built on the server in a scratch directory, never in the live tree, inside the [build sandbox](/docs/security/site-isolation#builds). The result is copied into `releases/<id>/`, sealed read-only (owned by root, mode `0550`), health-checked, and made live by re-pointing the `current` link in one step: a failure before that step leaves the old release serving. Each release has a writable `shared/` link for data that must survive releases. The newest five releases are kept, plus the live one.
 
-**Image-built releases** (`buildKind: railpack`, `container` services only) build a container image from the source, following the usual convention for that kind of project, instead of a directory. The release is the image tag, run by Compose like any other container; there is no Hosting Account and nothing is sealed.
+**Image-built releases** (`buildKind: image`, `container` services only; the previous value is still accepted but deprecated) build a container image from the source, following the usual convention for that kind of project, instead of a directory. The release is the image tag, run by Compose like any other container; there is no Hosting Account and nothing is sealed.
 
 **Rollback** re-publishes an earlier release without a rebuild: for a native release it re-points `current`, for an image-built release it puts that image tag back into the compose. It rides an ordinary deploy, so compose, hostnames and certificates are applied as usual. A release is offered for rollback only if every server the environment deploys to has it. Rollback trusts only a **release record** that the daemon wrote on that server when the release was published, never the files in the Hosting Account's home. Two consequences:
 
@@ -288,7 +288,7 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `site_cron_unowned`, `site_managed_directory_unowned` | 422 | A site's cron job or managed directory has no owning account. |
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
-| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network. |
+| `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network, or an overlay network reaches a server in another datacenter while TurboFabric is off (the message names the servers). An overlay network whose servers all share a trusted LAN needs no TurboFabric. |
 
 ## Errors at save
 

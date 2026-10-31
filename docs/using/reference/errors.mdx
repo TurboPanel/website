@@ -107,6 +107,7 @@ See [Hosting](/docs/using/hosting).
 | `key_mismatch`                                                                | 400    | Returned to servers, not users, on the same route: the private key does not belong to the first certificate in the chain.                                                     |
 | `organization_ca_exists`                                                      | 409    | An organization CA already exists.                                                                                                                                            |
 | `organization_ca_retire_required`                                             | 409    | The current CA must be retired before a new one is minted.                                                                                                                    |
+| `tls_organization_ca`                                                         | 409    | The Organization CA can't be deleted from the certificate library. Use Rotate on the Organization CA panel to replace it.                                                     |
 | `ca_rotation_in_progress`, `no_pending_rotation`, `ca_rotation_not_converged` | 409    | The CA rotation state machine refuses the step: one is already running, none is pending, or the servers have not yet picked up the new root.                                  |
 
 ## Storage, variables and bindings
@@ -250,7 +251,40 @@ The app renders one sentence per code from these; the sentences here are the sam
 | `fabric_cidr_unavailable`, `fabric_container_pool_in_use`, `fabric_address_pool_exhausted`, `fabric_prefix_pool_exhausted`         | 409    | The TurboFabric range is taken, its container pool is in use, or it has no addresses or prefixes left. |
 | `preferred_gateway_invalid`, `gateway_datacenter_required`, `gateway_datacenter_cidr_required`                                     | 422    | A gateway relay needs a datacenter with a CIDR, and the preferred gateway must be one.                 |
 | `private_family_mismatch`                                                                                                          | 422    | IPv4 and IPv6 mixed where one family is required.                                                      |
-| `failover_requires_trusted_datacenter`                                                                                             | 422    | A failover replica must sit in a trusted datacenter.                                                   |
+| `untrusted_network_needs_fabric`                                                                                                   | 422    | The servers share only an untrusted datacenter and TurboFabric is not carrying traffic between them right now. Check that TurboFabric is on and healthy for both, or mark the datacenter trusted. |
+
+## Cloudflare Tunnels
+
+See [Cloudflare Tunnels](/docs/deployment/tunnels).
+
+| Code                             | Status | Meaning                                                                                                                                                                                              |
+| -------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tunnel_invalid`                 | 400    | The tunnel name, placement, Cloudflare account or datacenter in the request is missing or has the wrong shape; the response names the field.                                                         |
+| `datacenter_required`            | 400    | An **All Servers** tunnel needs the datacenter it covers.                                                                                                                                            |
+| `datacenter_invalid`             | 400    | The datacenter is not one of this organization's.                                                                                                                                                    |
+| `server_invalid`                 | 400    | A server in the placement is not one of this organization's.                                                                                                                                         |
+| `server_not_in_datacenter`       | 400    | Every server in the placement must be in the tunnel's datacenter.                                                                                                                                    |
+| `badge_rejected`                 | 400    | Cloudflare did not accept the API token. Check that it is a scoped API token, not a Global API Key, and has not expired.                                                                             |
+| `tunnel_exists`                  | 409    | A tunnel with this name already exists in the organization.                                                                                                                                          |
+| `tunnel_limit`                   | 409    | The organization has reached its limit of 50 tunnels.                                                                                                                                                |
+| `server_never_carries`           | 409    | A chosen server has **May Run Tunnels** turned off. Choose another server or turn it on.                                                                                                             |
+| `badge_cannot_tunnel`            | 409    | No API token on this Cloudflare account can create, edit or remove tunnels. Add a token with the Cloudflare Tunnel permission.                                                                       |
+| `tunnel_in_use`                  | 409    | Delete refused: the tunnel still carries hostnames. Remove them first.                                                                                                                               |
+| `tunnel_removing`                | 409    | The tunnel is being removed, so it takes no new hostnames and no placement change.                                                                                                                   |
+| `badge_in_use`                   | 409    | No other API token on the account covers something that still needs this one. The response names those items.                                                                                        |
+| `secrets_unavailable`            | 503    | The control plane cannot read its stored secrets right now, so it cannot use the API token.                                                                                                          |
+| `provider_unavailable`           | 502    | Cloudflare could not be reached or refused the request; `message` has the reason with any token removed.                                                                                             |
+| `hostname_invalid`               | 400    | The hostname is not a valid lower-case host name.                                                                                                                                                    |
+| `hostname_in_use`                | 409    | This hostname is already on a tunnel in the organization.                                                                                                                                            |
+| `doorway_limit`                  | 409    | The tunnel carries 200 hostnames, or the organization carries 2000 tunnel hostnames in all.                                                                                                          |
+| `tunnel_not_ready`               | 409    | The tunnel does not exist at Cloudflare yet, so it cannot take a hostname.                                                                                                                           |
+| `carrier_missing`                | 409    | The Cloudflare account that owns this tunnel is no longer connected.                                                                                                                                 |
+| `badge_cannot_dns`               | 409    | No API token can edit DNS for this hostname's zone. Add a token with the DNS permission for it, or add the name yourself.                                                                            |
+| `zone_not_found`                 | 409    | Cloudflare has no zone for this hostname in the connected account.                                                                                                                                   |
+| `hosting_mismatch`               | 409    | The hostname belongs to a site of another organization.                                                                                                                                              |
+| `carry_invalid`                  | 400    | The **May Run Tunnels** setting must be on or off.                                                                                                                                                   |
+| `tunnel_daemon_too_old`          | 409    | A site with a tunnel-only name was deployed to a server whose daemon is too old to lock it. Update the daemon on that server and deploy again; the body has `hostingId`, `hostnames` and `serverId`. |
+| `tunnel_name_public_certificate` | 409    | A tunnel-only name cannot use a public certificate. Switch the lock off for the name or stop using the public certificate; the body has `hostingId` and `hostnames`.                                 |
 
 ## Managed databases
 

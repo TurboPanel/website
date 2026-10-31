@@ -25,7 +25,7 @@ The daemon is the constant on every TurboPanel-managed host and the only party t
 ```mermaid
 graph TD
     subgraph "Control plane host"
-        Caddy["Caddy TLS (default :8443)"] --> Instance
+        Caddy["Caddy TLS (:8443)"] --> Instance
         CD[Co-located daemon] --> Instance
         CD --> Ansible
     end
@@ -103,11 +103,11 @@ Self-hosted examples below use `https://<host>:8443`. A Let's Encrypt hostname, 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE=<base64url-encoded-license> \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
@@ -148,7 +148,7 @@ print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' /etc/turbopanel/daemon.env)
 CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' /etc/turbopanel/daemon.env)
 
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST="$HOST" \
   TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
