@@ -154,7 +154,7 @@ Every name the choice adds needs its own DNS record pointing at the server. Unti
 
 ## Certificate contact email
 
-Let's Encrypt keeps one contact address per account for important notices about certificates, such as a certificate it has to revoke or a change to its service. It no longer sends reminders before a certificate expires, so TurboPanel's own status and notifications are what tell you about renewals. You choose the address yourself. Open **Organization Settings › Domains & Certificates**, find **Certificate Contact Email** under **Let's Encrypt**, type one address (for example `ops@example.com`) and press **Save Contact Email**. Organization owners and managers can see and change it; clear the field and save to remove it.
+Let's Encrypt asks for one contact address for each account. Since June 2025 it no longer sends reminders before a certificate expires, so TurboPanel's own status and notifications are what tell you about renewals. You choose the address yourself. Open **Organization Settings › Domains & Certificates**, find **Certificate Contact Email** under **Let's Encrypt**, type one address (for example `ops@example.com`) and press **Save Contact Email**. Organization owners and managers can see and change it; clear the field and save to remove it.
 
 TurboPanel never fills it in from a member's account. An organization can have several owners, and a person's address is not given to Let's Encrypt without being asked. The setting is saved with the organization and recorded in the audit log, including the address it replaced. It is meant for certificates that TurboPanel orders once and shares across several servers, which is coming; certificates your servers order for themselves today do not use it.
 
