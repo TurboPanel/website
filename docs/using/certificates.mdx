@@ -152,6 +152,14 @@ The **www** choice on a domain decides what happens to the other spelling of the
 
 Every name the choice adds needs its own DNS record pointing at the server. Until it has one, the block shows **Waiting for DNS** for that name, and Let's Encrypt waits for it.
 
+## Certificate contact email
+
+Let's Encrypt asks for one contact address for each account. Since June 2025 it no longer sends reminders before a certificate expires, so TurboPanel's own status and notifications are what tell you about renewals. You choose the address yourself. Open **Organization Settings › Domains & Certificates**, find **Certificate Contact Email** under **Let's Encrypt**, type one address (for example `ops@example.com`) and press **Save Contact Email**. Organization owners and managers can see and change it; clear the field and save to remove it.
+
+TurboPanel never fills it in from a member's account. An organization can have several owners, and a person's address is not given to Let's Encrypt without being asked. The setting is saved with the organization and recorded in the audit log, including the address it replaced. It is meant for certificates that TurboPanel orders once and shares across several servers, which is coming; certificates your servers order for themselves today do not use it.
+
+The address must be a single mailbox with no name in front of it. Before the `@` use only letters, digits and `.`, `_`, `-`, `+` (no accented or non-Latin characters, and no `?`, `&`, `#`, `%` or `=`); after it, a public domain with a dot (so `me@localhost` and `me@10.0.0.1` are refused).
+
 ## Renewal and lifetimes
 
 A Let's Encrypt certificate is valid for **90 days** today. Let's Encrypt is shortening that to **64 days from 2027-02-10** and **45 days from 2028-02-16**. You do not need to do anything about it: the web server on the server renews each certificate automatically, well before it runs out.
