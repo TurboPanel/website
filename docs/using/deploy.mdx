@@ -84,7 +84,7 @@ An environment has a **deploy strategy**, which decides how the new version repl
 | Strategy | What a deploy does | Rolls back on its own? |
 | --- | --- | --- |
 | `sequential` | Stops the old version, runs any pre-deploy migration, starts the new version, then waits for every service to be healthy. This is the default for every **new** environment. | Yes, while it is still safe (see below). |
-| `inplace` | Brings the new containers up over the old ones and does not wait for health. The strategy an environment created before it existed keeps. | No. |
+| `inplace` | Brings the new containers up over the old ones, then waits for them to be healthy before it reports done. The strategy an environment created before it existed keeps. | No: a service that does not become healthy fails the deploy, and the new containers stay up so you can inspect them. |
 | `bluegreen` | Starts the new version beside the old one, then switches traffic. **Coming in 0.2.x.** | — |
 
 A sequential deploy goes in this order:
@@ -103,10 +103,10 @@ The progress bar shows **Check Service Health** while a deploy waits for the new
 | **Service Is Healthy** | Docker reported the service's own health check as healthy. The line reads `Healthy after 12 s`. |
 | **Service Is Running** | The service has no health check, so the only thing checked was that its container stayed running for the stable window (30 s, or the health timeout if shorter). The transcript says this once, when the wait starts. |
 | **Service Is Reachable** | A site owner's Node or Deno app (started directly, without a container) answered an HTTP request on its loopback port. Any status code counts as an answer, so this proves the app is listening, not that it is healthy. |
-| **Service Health Not Checked** | The environment deploys `inplace`, which brings the containers up without waiting. Use `sequential` to wait. |
+| **Service Health Not Checked** | Nothing in the deploy reports its own health: a stack made only of one-shot jobs that exited cleanly, or a deploy with no containers or apps. |
 | **Service Did Not Become Healthy** or **Service Did Not Answer** | The wait ended without a pass. The line gives the time waited and the last status, for example `Did not become healthy within 120 s; last status: web (a1b2c3d4e5f6) health check is starting`. |
 
-Known limits: **Service Health Not Checked** also appears when a deploy has nothing that reports health (a site served by a web server, or a stack made only of one-shot jobs). A deploy that mixes Node or Deno apps with `inplace` containers ends the step as **Service Is Reachable** for the apps and does not mention the containers. The rail shows the time the service first answered next to the line.
+Known limit: a deploy that mixes Node or Deno apps with containers ends the step with the result of whichever was checked last. The rail shows the time the service first answered next to the line.
 
 How a sequential deploy that does not finish ends is shown in **Deployment history** instead of a plain *Failed*:
 
