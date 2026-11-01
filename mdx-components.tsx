@@ -9,6 +9,7 @@ import { CodeGroup } from '@/components/mdx/CodeGroup'
 import { ControlPlaneOptions } from '@/components/mdx/ControlPlaneOptions'
 import { File } from '@/components/mdx/File'
 import { Mermaid } from '@/components/mdx/Mermaid'
+import { TrustDiagram } from '@/components/mdx/TrustDiagram'
 import type { ComponentProps, ReactElement, ReactNode } from 'react'
 import type { MDXComponents } from 'mdx/types'
 
@@ -84,6 +85,7 @@ function baseComponents(): MDXComponents {
     ControlPlaneOptions,
     File,
     Mermaid,
+    TrustDiagram,
   }
 }
 

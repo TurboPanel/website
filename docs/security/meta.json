@@ -5,6 +5,7 @@
     "reporting",
     "trust-boundaries",
     "daemon-trust-model",
+    "control-plane-identity",
     "site-isolation",
     "signing-key-rotation",
     "organization-ca"
