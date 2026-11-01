@@ -43,10 +43,10 @@ the same installer, the same wizard, the same daemon enrolment.
 - A **Debian 13 (trixie)** host (the bootstrap refuses other distributions), root access, and a
   public or LAN address you can reach on port `8443`. Four vCPUs and 6 GB of RAM are enough
   for a single-host canary that deploys a few small projects.
-- `curl` — a minimal Debian image does not ship it:
+- Run the install as root (log in as root, or use `su -`). A minimal Debian image has neither `curl` nor `sudo` yet, so install `curl` and `ca-certificates` first. The installer installs `sudo` and the rest itself:
 
   ```bash
-  apt-get update && apt-get install -y curl
+  apt-get update && apt-get install -y curl ca-certificates
   ```
 
 ### Install
