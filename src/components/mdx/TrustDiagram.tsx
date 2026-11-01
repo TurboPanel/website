@@ -65,7 +65,8 @@ const DRAWINGS = {
     ],
   },
   key: {
-    caption: 'The key never leaves the control plane. You never see it or type it.',
+    caption:
+      'Coming soon: the key never leaves the control plane, and every order will carry its stamp.',
     rows: [
       {
         id: 'stamp',
@@ -82,7 +83,7 @@ const DRAWINGS = {
   },
   fingerprint: {
     caption:
-      'The server learns the fingerprint once, when it joins, and keeps it for every later check.',
+      'Coming soon: the server will learn the fingerprint once, when it joins, and keep it for every later check.',
     rows: [
       {
         id: 'install',
@@ -90,15 +91,16 @@ const DRAWINGS = {
           id: 'install-command',
           tone: 'neutral',
           title: 'Install command',
-          detail: 'carries the fingerprint',
+          detail: 'will carry the fingerprint',
         },
         arrow: { text: 'you run it once' },
-        to: { ...SERVER, detail: 'remembers the fingerprint' },
+        to: { ...SERVER, detail: 'will remember the fingerprint' },
       },
     ],
   },
   check: {
-    caption: 'A real stamp matches the remembered fingerprint. Anything else is refused.',
+    caption:
+      'Coming soon: a real stamp matches the remembered fingerprint; anything else will be refused.',
     rows: [
       {
         id: 'accepted',
@@ -139,7 +141,7 @@ const BOX_TONE: Readonly<Record<BoxTone, string>> = {
   server:
     'border-[var(--tp-green)] bg-[color-mix(in_srgb,var(--tp-green)_14%,var(--tp-surface))] text-[var(--tp-text)]',
   owner:
-    'border-[var(--tp-accent)] bg-[color-mix(in_srgb,var(--tp-accent)_10%,var(--tp-surface))] text-[var(--tp-text)]',
+    'border-amber-500 bg-amber-500/10 text-[var(--tp-text)] dark:border-amber-400 dark:bg-amber-400/10',
   neutral: 'border-[var(--tp-border)] bg-[var(--tp-surface)] text-[var(--tp-text)]',
   impostor:
     'border-dashed border-[var(--tp-text-muted)] bg-[var(--tp-surface-muted)] text-[var(--tp-text-muted)]',

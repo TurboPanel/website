@@ -15,7 +15,7 @@ Your servers take orders from the control plane. This page explains, in plain wo
   nothing on this page changes those commands.
 </Callout>
 
-This key is a new, separate thing. It is not the [release signing key](/docs/security/signing-key-rotation) that protects updates, not the Platform CA that secures the connection, and not the [key each server holds](/docs/security/daemon-trust-model) to prove who it is.
+This is its own key, not the [release signing key](/docs/security/signing-key-rotation), the Platform CA or a [server's own key](/docs/security/daemon-trust-model).
 
 ## 1. The Problem
 
@@ -23,11 +23,11 @@ A server does what the control plane tells it: "deploy this", "here is a databas
 
 <TrustDiagram name="problem" />
 
-Today the connection is protected by the website padlock, the certificate the control plane presents, and by the signed session the server gets after it connects. Both come from whatever answers at the address the server was given. The padlock proves the server reached that address. It does not by itself prove who is behind that address: when the control plane sits behind a tunnel or a proxy (a Cloudflare tunnel in front of a self-hosted control plane, for example), the padlock belongs to the tunnel, and anyone who took over your web address could obtain one too. The padlock stays on as a second check in everything below. The stamp is what decides.
+Today the server checks the website padlock (the certificate) and the signed session it gets after connecting. Both prove it reached the address it was given and is still talking to the same party, not who is behind that address: behind a tunnel or a proxy (a Cloudflare tunnel in front of a self-hosted control plane, for example) the padlock belongs to the tunnel, and anyone who took over your web address could get one too. The padlock stays on as a second check in everything below; the stamp is what will decide.
 
 ## 2. The Key: A Stamp Only Your Control Plane Has
 
-The control plane has a **key**. Think of it as a personal stamp. The control plane stamps every order it sends. Nobody else has the stamp, so nobody else can make that mark.
+The control plane has a **key**. Think of it as a personal stamp. The control plane will stamp every order it sends (see step 4 for where that stands). Nobody else has the stamp, so nobody else can make that mark.
 
 <TrustDiagram name="key" />
 
@@ -50,11 +50,11 @@ Today a server can ask the control plane for its signed identity and read the fi
 
 ## 4. Every Order Is Checked
 
-Once a server knows the fingerprint, it can compare every stamp against it. A real stamp matches and the order is carried out. An order without a matching stamp is refused, whoever sent it.
+Once a server knows the fingerprint, it will compare every stamp against it. A real stamp matches and the order is carried out. An order without a matching stamp will be refused, whoever sent it.
 
 <TrustDiagram name="check" />
 
-It will not matter which web address or which padlock the order arrived through: tunnel, proxy, home network. The padlock still has to be valid, and on top of that the stamp has to match.
+It will not matter which web address or which padlock the order arrived through: tunnel, proxy, home network. The padlock still has to be valid, and on top of that the stamp will have to match.
 
 <Callout type="info" title="Coming soon: checking every order">
   Today servers check the padlock and the control plane's signed session, as described in [Daemon
@@ -85,7 +85,7 @@ Register two or three passkeys (a phone, a laptop, a hardware security key). Los
 
 ## In Short
 
-The control plane stamps its orders, servers check the stamp against a short public code they learned when they joined, and only you can approve a new stamp. Day to day, you do nothing.
+The control plane has a key; soon it will stamp every order, servers will check the stamp against a short public code they learn when they join, and only you will be able to approve a new stamp. Day to day, you do nothing.
 
 ## Related
 
