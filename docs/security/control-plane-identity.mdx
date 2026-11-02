@@ -15,7 +15,7 @@ Your servers take orders from the control plane. This page explains, in plain wo
   nothing on this page changes those commands.
 </Callout>
 
-This is its own key, not the [release signing key](/docs/security/signing-key-rotation), the Platform CA or a [server's own key](/docs/security/daemon-trust-model).
+This is its own key, not the [release signing key](/docs/security/signing-key-rotation), the Platform CA or a [server's own key](/docs/security/daemon-trust-model). It proves who sent an order; keeping the secret inside an order private is the job of [Sealed Secrets](/docs/security/sealed-secrets).
 
 ## 1. The Problem
 
@@ -89,6 +89,7 @@ The control plane has a key; soon it will stamp every order, servers will check 
 
 ## Related
 
+- [Sealed Secrets](/docs/security/sealed-secrets): the padlock, how the secret inside an order stays private on the way
 - [Daemon trust model](/docs/security/daemon-trust-model): how a server enrols and connects today
 - [Trust boundaries](/docs/security/trust-boundaries): what each part reaches if it is compromised
 - [Signing key rotation](/docs/security/signing-key-rotation): a different key, the one that protects updates

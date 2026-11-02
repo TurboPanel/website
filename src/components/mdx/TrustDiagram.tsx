@@ -2,16 +2,19 @@ import type { ReactNode } from 'react'
 
 /**
  * Boxes-and-arrows drawings for the control-plane identity page
- * (`docs/security/control-plane-identity.mdx`).
+ * (`docs/security/control-plane-identity.mdx`) and the sealed secrets page
+ * (`docs/security/sealed-secrets.mdx`).
  *
  * Plain flex layout, not SVG: each row stacks into a column on phones and lays
  * out left to right from `sm:` up, so the labels stay readable at any width.
+ * A row is `from -> to`, or `from -> via -> to` when something sits in the
+ * middle (a tunnel or proxy).
  * Colors come from the `--tp-*` tokens so both themes work. The `figure` carries
  * `data-tp-diagram`, the framed-diagram hook in `globals.css`; the caption is
  * the text alternative.
  */
 
-type BoxTone = 'controlPlane' | 'server' | 'owner' | 'neutral' | 'impostor'
+type BoxTone = 'controlPlane' | 'server' | 'owner' | 'middle' | 'neutral' | 'impostor'
 
 type Box = Readonly<{
   id: string
@@ -25,10 +28,16 @@ type Arrow = Readonly<{
   refused?: boolean
 }>
 
+type Via = Readonly<{
+  box: Box
+  arrow: Arrow
+}>
+
 type Row = Readonly<{
   id: string
   from: Box
   arrow: Arrow
+  via?: Via
   to: Box
 }>
 
@@ -44,6 +53,7 @@ const CONTROL_PLANE: Box = {
 }
 const SERVER: Box = { id: 'server', tone: 'server', title: 'Your server' }
 const IMPOSTOR: Box = { id: 'impostor', tone: 'impostor', title: 'An impostor' }
+const MIDDLE: Box = { id: 'middle', tone: 'middle', title: 'Tunnel or proxy' }
 
 const DRAWINGS = {
   problem: {
@@ -128,6 +138,73 @@ const DRAWINGS = {
       },
     ],
   },
+  sealedProblem: {
+    caption:
+      'Today the secret is protected only by the padlocked connection. Where that connection is opened in the middle, the secret can be read.',
+    rows: [
+      {
+        id: 'readable',
+        from: { ...CONTROL_PLANE, detail: 'sends a secret' },
+        arrow: { text: '"database password: s3cret"' },
+        via: {
+          box: { ...MIDDLE, detail: 'opens the padlocked connection here' },
+          arrow: { text: '"database password: s3cret"' },
+        },
+        to: { ...SERVER, detail: 'needs the secret' },
+      },
+    ],
+  },
+  sealedPadlock: {
+    caption:
+      'Coming soon: the server will keep the only padlock key and hand the control plane an open padlock, signed with its own identity key so nobody can swap it.',
+    rows: [
+      {
+        id: 'handover',
+        from: { ...SERVER, detail: 'keeps the padlock key (secret)' },
+        arrow: { text: 'open padlock, signed by the server' },
+        to: { ...CONTROL_PLANE, detail: 'holds the open padlock' },
+      },
+    ],
+  },
+  sealedBox: {
+    caption:
+      'Coming soon: every secret will travel in a box locked with that server’s padlock. The middle will see only a locked box; only that server will be able to open it.',
+    rows: [
+      {
+        id: 'locked',
+        from: { ...CONTROL_PLANE, detail: 'locks the box' },
+        arrow: { text: 'locked box' },
+        via: {
+          box: { ...MIDDLE, detail: 'sees only a locked box' },
+          arrow: { text: 'locked box' },
+        },
+        to: { ...SERVER, detail: 'opens it with its key' },
+      },
+      {
+        id: 'stays-locked',
+        from: { ...IMPOSTOR, detail: 'in the middle' },
+        arrow: { text: 'tries to open the box', refused: true },
+        to: {
+          id: 'locked-box',
+          tone: 'neutral',
+          title: 'Stays locked',
+          detail: 'no key, no secret',
+        },
+      },
+    ],
+  },
+  sealedUp: {
+    caption:
+      'Coming soon: a secret sent up, such as the private part of a certificate, will be locked with the control plane’s padlock and open only there.',
+    rows: [
+      {
+        id: 'upward',
+        from: { ...SERVER, detail: 'locks with the control plane’s padlock' },
+        arrow: { text: 'certificate key, locked' },
+        to: { ...CONTROL_PLANE, detail: 'opens it with its key' },
+      },
+    ],
+  },
 } as const satisfies Record<string, Drawing>
 
 export type TrustDiagramName = keyof typeof DRAWINGS
@@ -142,14 +219,21 @@ const BOX_TONE: Readonly<Record<BoxTone, string>> = {
     'border-[var(--tp-green)] bg-[color-mix(in_srgb,var(--tp-green)_14%,var(--tp-surface))] text-[var(--tp-text)]',
   owner:
     'border-amber-500 bg-amber-500/10 text-[var(--tp-text)] dark:border-amber-400 dark:bg-amber-400/10',
+  middle:
+    'border-amber-600 bg-amber-600/10 text-[var(--tp-text)] dark:border-amber-300 dark:bg-amber-300/10',
   neutral: 'border-[var(--tp-border)] bg-[var(--tp-surface)] text-[var(--tp-text)]',
   impostor:
     'border-dashed border-[var(--tp-text-muted)] bg-[var(--tp-surface-muted)] text-[var(--tp-text-muted)]',
 }
 
-function DiagramBox({ box }: Readonly<{ box: Box }>) {
+// In a three-box row the boxes share the width instead of taking a fixed
+// 11rem each, so the row still fits the docs column with the sidebar open.
+const BOX_SHARED = 'sm:w-auto sm:min-w-0 sm:flex-1 sm:basis-0'
+const ARROW_FIXED = 'sm:w-28 sm:flex-none'
+
+function DiagramBox({ box, shared }: Readonly<{ box: Box; shared: boolean }>) {
   return (
-    <div className={`${BOX_BASE} ${BOX_TONE[box.tone]}`}>
+    <div className={`${BOX_BASE} ${BOX_TONE[box.tone]} ${shared ? BOX_SHARED : ''}`}>
       <span className="text-sm font-semibold leading-tight">{box.title}</span>
       {box.detail ? (
         <span className="mt-0.5 text-xs leading-snug text-[var(--tp-text-muted)]">
@@ -160,12 +244,13 @@ function DiagramBox({ box }: Readonly<{ box: Box }>) {
   )
 }
 
-function DiagramArrow({ arrow }: Readonly<{ arrow: Arrow }>) {
+function DiagramArrow({ arrow, fixed }: Readonly<{ arrow: Arrow; fixed: boolean }>) {
   const stroke = arrow.refused ? 'text-[var(--tp-text-muted)]' : 'text-[var(--tp-text)]'
   const line = arrow.refused ? 'border-dashed' : 'border-solid'
+  const width = fixed ? ARROW_FIXED : 'sm:min-w-28'
   return (
     <div
-      className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 sm:min-w-28 sm:py-0 ${stroke}`}
+      className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 sm:py-0 ${width} ${stroke}`}
     >
       <span className="text-xs text-[var(--tp-text-muted)]">{arrow.text}</span>
       <div className="flex w-full items-center justify-center">
@@ -189,11 +274,18 @@ function DiagramArrow({ arrow }: Readonly<{ arrow: Arrow }>) {
 }
 
 function DiagramRow({ row }: Readonly<{ row: Row }>) {
+  const wide = row.via !== undefined
   return (
     <div className="flex flex-col items-center sm:flex-row sm:gap-3">
-      <DiagramBox box={row.from} />
-      <DiagramArrow arrow={row.arrow} />
-      <DiagramBox box={row.to} />
+      <DiagramBox box={row.from} shared={wide} />
+      <DiagramArrow arrow={row.arrow} fixed={wide} />
+      {row.via ? (
+        <>
+          <DiagramBox box={row.via.box} shared={wide} />
+          <DiagramArrow arrow={row.via.arrow} fixed={wide} />
+        </>
+      ) : null}
+      <DiagramBox box={row.to} shared={wide} />
     </div>
   )
 }
