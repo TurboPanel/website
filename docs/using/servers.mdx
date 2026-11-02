@@ -165,6 +165,31 @@ A change reaches a site the next time its environment is deployed; saving the se
 
 Some default error pages still say which program wrote them, with no version, for example nginx's plain *404 Not Found* page. A site that wants its own error pages sets them in its application or server rules.
 
+## Behind a Router
+
+A server can sit on a LAN address (for example `192.168.1.50`) while a router forwards ports of a public address to it. The server then hosts as if it owned that public address. Everything TurboPanel runs on the server listens on all of its addresses and the firewall rules match by port, so forwarded traffic is answered like direct traffic, and the visitor's own address is kept when the router does not rewrite it. The daemon only dials out to the control plane, so it needs nothing forwarded.
+
+What the control plane cannot see is the router's address: the daemon reports only the LAN address, and private addresses are never offered to clients. Tell the control plane the public address once, as below.
+
+<Steps>
+  <Step>
+    On the router, forward TCP **80** and **443** (sites and their certificates), **15432** and **13306** if databases on this server take connections from outside, and **8443** only if the control plane itself runs on this server. Forward each to the same port on the server's LAN address.
+  </Step>
+  <Step>
+    Install the server as usual (see [Add a server](#add-a-server)). The install command runs on the server and connects out.
+  </Step>
+  <Step>
+    On the server's **Network** tab, open **Addresses clients use**, edit **Public**, set **Address clients use** to **A different address** and enter the router's public IPv4 (and IPv6, if the router has one). Add **DNS name clients use** if you have one. Fill **Port, if your router forwards a different one** only when the router's outside port differs from the server's.
+  </Step>
+  <Step>
+    Point your sites' DNS names at the router's public address. Certificate requests check that a name points at one of the server's public addresses, and the saved address counts. Database connection strings show the DNS name or address and the router's ports.
+  </Step>
+</Steps>
+
+- Leave a site's address pin unset. The router's public address is not one of the server's own addresses, so it cannot be chosen as a site pin; do not add it as a managed address to pin it either, because the web server cannot listen on an address that is not on the server. A pin on the server's LAN address also works: its certificate check accepts the saved public address.
+- Computers on the same LAN that use the public names need the router to send traffic for its own public address back inside (often called NAT loopback or hairpin NAT), or a local DNS server that answers those names with the LAN address. A control plane that runs on such a server needs the same for its own certificate: it checks that its name answers before ordering one.
+- The firewall's outside reachability check dials only the server's managed addresses, so behind a router it may say it cannot check the server.
+
 ## Reference
 
 | Item | Value |
