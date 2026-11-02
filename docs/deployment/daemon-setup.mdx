@@ -106,20 +106,9 @@ curl -fsSL https://turbopanel.sh | TOKEN=<value from Add Server> sh
 
 A High Availability control plane that has no identity key yet gives the older form, which the installer still accepts:
 
-<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
-
 ```bash
 curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
-
-```bash
-curl -fsSL https://turbopanel.sh | \
-  TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=https://<instance-host>:8443 \
-  sh
-```
-
-</CodeGroup>
 
 The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
 

@@ -129,7 +129,7 @@ curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license
 
 If you run it as a sudo-capable user, the installer escalates with `sudo` itself and prompts for your password when needed; as root it just runs. Either way, do not prefix the pipeline with `sudo`.
 
-On self-hosted, the URL you pick in **Add Server** is the name or address the server reaches the control plane on, on port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances. For how an enrolled server knows later orders really came from your control plane, see [Control Plane Identity](/docs/security/control-plane-identity).
+On self-hosted, the URL you pick in **Add Server** is the name or address the server reaches the control plane on, on port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS control planes. For how an enrolled server knows later orders really came from your control plane, see [Control Plane Identity](/docs/security/control-plane-identity).
 
 ### Supported platforms (managed servers)
 
