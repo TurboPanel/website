@@ -145,10 +145,10 @@ const DRAWINGS = {
       {
         id: 'readable',
         from: { ...CONTROL_PLANE, detail: 'sends a secret' },
-        arrow: { text: '"database password: hunter2"' },
+        arrow: { text: '"database password: s3cret"' },
         via: {
           box: { ...MIDDLE, detail: 'opens the padlocked connection here' },
-          arrow: { text: '"database password: hunter2"' },
+          arrow: { text: '"database password: s3cret"' },
         },
         to: { ...SERVER, detail: 'needs the secret' },
       },
@@ -156,11 +156,11 @@ const DRAWINGS = {
   },
   sealedPadlock: {
     caption:
-      'Coming soon: the server keeps the only key and hands the control plane an open padlock, signed with its own key so nobody can swap it.',
+      'Coming soon: the server will keep the only padlock key and hand the control plane an open padlock, signed with its own identity key so nobody can swap it.',
     rows: [
       {
         id: 'handover',
-        from: { ...SERVER, detail: 'keeps the key (secret)' },
+        from: { ...SERVER, detail: 'keeps the padlock key (secret)' },
         arrow: { text: 'open padlock, signed by the server' },
         to: { ...CONTROL_PLANE, detail: 'holds the open padlock' },
       },
