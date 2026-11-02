@@ -179,14 +179,14 @@ What the control plane cannot see is the router's address: the daemon reports on
     Install the server as usual (see [Add a server](#add-a-server)). The install command runs on the server and connects out.
   </Step>
   <Step>
-    On the server's **Network** tab, open **Addresses clients use**, edit **Public**, choose a different **Address clients use** and enter the router's public IPv4 (and IPv6, if the router has one). Add **DNS name clients use** if you have one. Fill **Port, if your router forwards a different one** only when the router's outside port differs from the server's.
+    On the server's **Network** tab, open **Addresses clients use**, edit **Public**, set **Address clients use** to **A different address** and enter the router's public IPv4 (and IPv6, if the router has one). Add **DNS name clients use** if you have one. Fill **Port, if your router forwards a different one** only when the router's outside port differs from the server's.
   </Step>
   <Step>
     Point your sites' DNS names at the router's public address. Certificate requests check that a name points at one of the server's public addresses, and the saved address counts. Database connection strings show the DNS name or address and the router's ports.
   </Step>
 </Steps>
 
-- Leave a site's address pin unset. Pinning a site to the router's public address fails: the address is not on the server, so the web server cannot listen on it.
+- Leave a site's address pin unset. The router's public address is not one of the server's own addresses, so it cannot be chosen as a site pin; do not add it as a managed address to pin it either, because the web server cannot listen on an address that is not on the server. A pin on the server's LAN address also works: its certificate check accepts the saved public address.
 - Computers on the same LAN that use the public names need the router to send traffic for its own public address back inside (often called NAT loopback or hairpin NAT), or a local DNS server that answers those names with the LAN address. A control plane that runs on such a server needs the same for its own certificate: it checks that its name answers before ordering one.
 - The firewall's outside reachability check dials only the server's managed addresses, so behind a router it may say it cannot check the server.
 
