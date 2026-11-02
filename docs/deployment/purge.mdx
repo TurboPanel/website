@@ -207,7 +207,7 @@ The script refuses a development environment before it changes anything. It exit
 
 The message is `This host is a TurboPanel development environment (…). Nothing was changed.` followed by `Use ~/dev/console → Developer → Reset development environment / Purge completely.`
 
-From `~/dev/console`, open **Developer**:
+From `~/dev/console` (`~/turbopanel/dev/console` on a Direct VM), open **Developer**:
 
 **Reset development environment** (`src/lib/reset-dev-environment.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
 
@@ -216,12 +216,12 @@ From `~/dev/console`, open **Developer**:
 3. Hard-resets platform git checkouts to `origin/trunk`
 4. Re-runs dev converge
 
-Reset does not delete `~/dev` itself.
+Reset does not delete `~/dev` (`~/turbopanel/dev` on a Direct VM) itself.
 
 **Purge completely** (`purgeDaemon()` in `src/lib/daemon-actions.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
 
 1. Stops, disables, and deletes `turbopaneld.service`, then reloads systemd
-2. Deletes the daemon checkout at `~/turbopaneld` (`TURBOPANEL_DEV_ROOT/turbopaneld`, or `TURBOPANEL_DAEMON_REPO` when that override is set)
+2. Deletes the daemon checkout at `~/turbopaneld` (`~/turbopanel/turbopaneld` on a Direct VM; `TURBOPANEL_DEV_ROOT/turbopaneld`, or `TURBOPANEL_DAEMON_REPO` when that override is set)
 3. Deletes vendored runtimes under `/opt/turbopanel/vendor`
 4. Deletes `/opt/turbopanel/.cache`, `/opt/turbopanel/.ansible`, and `/opt/turbopanel/.local`
 

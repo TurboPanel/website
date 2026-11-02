@@ -9,7 +9,7 @@ This page describes how the TurboPanel **multi-repo** Vagrant environment is orc
 
 ## Repository model
 
-TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them.
+TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them. On a Direct VM (no Vagrant) the repos live in a folder named `turbopanel`, so the paths in the Guest mount column are `~/turbopanel/<repo>` instead (for example `~/turbopanel/dev` and `~/turbopanel/turbopanel`).
 
 | Host path (example) | Guest mount | GitHub repo | Role |
 | ------------------- | ----------- | ----------- | ---- |
@@ -20,7 +20,7 @@ TurboPanel is six sibling repositories under one parent directory on the host. T
 | `…/website/` | `~/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
 | `…/.github/` | `~/.github/` | turbopanel/.github | Community health files |
 
-Paths derive from `TURBOPANEL_DEV_ROOT` (defaults: `$HOME/{turbopaneld,turbopanel,ui,website}`); a per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
+Paths derive from `TURBOPANEL_DEV_ROOT`. Outside the Vagrant guest the default is `$HOME/turbopanel`, so the repos are at `$HOME/turbopanel/<repo>`; inside the guest it is `$HOME`, so they are at `$HOME/<repo>`. A per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
 
 Canonical flow:
 
@@ -37,8 +37,8 @@ The dev console drives a **dev layout** where source repos live under `$HOME` (g
 
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
-| Source repos | `$HOME/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts) | No source checkout (compiled release) |
-| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
+| Source repos | `$HOME/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts); `$HOME/turbopanel/<repo>` on a Direct VM | No source checkout (compiled release) |
+| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` (Direct VM: `~/turbopanel/turbopaneld`) | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
