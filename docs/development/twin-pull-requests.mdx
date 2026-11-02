@@ -34,9 +34,10 @@ State this in both pull request bodies so reviewers know it is deliberate.
 ## Opening the Pair
 
 ```bash
-# in turbopanel/turbopanel and in turbopanel/turbopaneld
-git fetch upstream
-git switch -c server-ip-report upstream/trunk
+# in ~/turbopanel/turbopanel and in ~/turbopanel/turbopaneld
+BASE=upstream   # use origin instead if you push to TurboPanel directly (a read-only clone has no upstream until you fork)
+git fetch "$BASE"
+git switch -c server-ip-report "$BASE"/trunk
 # ...make the change, format it, commit...
 git push -u origin server-ip-report
 gh pr create --repo TurboPanel/turbopanel --base trunk --title "feat(servers): report each server's address"
