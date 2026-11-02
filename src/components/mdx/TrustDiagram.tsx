@@ -168,7 +168,7 @@ const DRAWINGS = {
   },
   sealedBox: {
     caption:
-      'Coming soon: every secret travels in a box locked with that server’s padlock. The middle sees only a locked box; only that server can open it.',
+      'Coming soon: every secret will travel in a box locked with that server’s padlock. The middle will see only a locked box; only that server will be able to open it.',
     rows: [
       {
         id: 'locked',
@@ -195,7 +195,7 @@ const DRAWINGS = {
   },
   sealedUp: {
     caption:
-      'Coming soon: a secret sent up, such as the private part of a certificate, is locked with the control plane’s padlock and opens only there.',
+      'Coming soon: a secret sent up, such as the private part of a certificate, will be locked with the control plane’s padlock and open only there.',
     rows: [
       {
         id: 'upward',
