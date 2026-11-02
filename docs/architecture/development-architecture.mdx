@@ -20,7 +20,7 @@ TurboPanel is six sibling repositories under one parent directory on the host. T
 | `…/website/` | `~/turbopanel/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
 | `…/.github/` | `~/turbopanel/.github/` | turbopanel/.github | Community health files |
 
-Paths derive from `TURBOPANEL_DEV_ROOT`. The default is `$HOME/turbopanel` everywhere (including inside the guest), so the repos are at `$HOME/turbopanel/<repo>`. A per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
+Paths derive from `TURBOPANEL_DEV_ROOT`. The default is `$HOME/turbopanel` everywhere (including inside the guest), so the repos are at `$HOME/turbopanel/<repo>`. A per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/turbopanel/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
 
 Canonical flow:
 

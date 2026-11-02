@@ -47,7 +47,7 @@ The script is read-only until you confirm. It checks your tools, reads whether y
 | --- | --- |
 | `--dir PATH` | Use `PATH` as the folder that holds the repos (default: the `turbopanel` folder that holds `dev`) |
 | `--mode direct\|vagrant` | Skip the question and pick the environment |
-| `--fork` | Behave as an outside contributor even when you have push access |
+| `--as-contributor` | Work from your own forks even when you have push access, to try the contributor path (`--fork` is the old name) |
 | `--yes` | Accept the plan without asking |
 | `--dry-run` | Print the plan and change nothing |
 
@@ -121,7 +121,7 @@ To catch up with the project later, run `gh repo sync` in your fork or `git fetc
 
 ## What Maintainers Do Differently
 
-Maintainers with push access work from the project repositories on feature branches by default, which gives same-named branches across repositories for [twin pull requests](/docs/development/twin-pull-requests). Add `--fork` to the setup script to behave exactly like an outside contributor and reproduce what you see.
+Maintainers with push access work from the project repositories on feature branches by default, which gives same-named branches across repositories for [twin pull requests](/docs/development/twin-pull-requests). Add `--as-contributor` to the setup script to try the contributor path: it works from your own forks even though you have push access, so you can reproduce what an outside contributor sees.
 
 ## Related
 
