@@ -1,0 +1,51 @@
+---
+title: Twin Pull Requests
+description: How to ship one feature that changes both the control plane and the daemon, and in which order to merge
+---
+
+# Twin Pull Requests
+
+Some features change both the control plane (`turbopanel`) and the daemon (`turbopaneld`), because the two talk over a shared contract. Each repository then gets its own pull request: a **twin** pair.
+
+## The Rules
+
+1. **Use the same branch name in both repositories**, for example `server-ip-report`.
+2. **Link the two pull requests** in each body: write the other pull request's full address in the field the template provides, and say which one merges first.
+3. **Merge the control plane pull request first**, then the daemon one.
+
+Both repositories run a contract check against the other (`contract-twin` in the control plane, `contract-drift` in the daemon). Each looks for a branch with your branch name in the sibling project repository, and uses the sibling's `trunk` when there is none. If the daemon change merged first, the control plane would not match yet and the checks would block canary builds.
+
+<Callout type="info" title="Two Different 'First' Rules">
+  Merge order on `trunk` is control plane first. **Release** order is the opposite: when a change
+  spans both, the daemon ships first (see [How to Ship](/docs/development/how-to-ship)). The first
+  rule is about getting both pull requests onto `trunk`; the second is about which release goes out
+  to servers first. They do not conflict.
+</Callout>
+
+## If You Work From Forks
+
+The checks only look for same-named branches inside the TurboPanel repositories, never in your fork. So a pair of fork pull requests cannot see each other:
+
+- Expect the daemon pull request's `contract-drift` check to stay red until the control plane pull request has merged. That is expected, not a mistake in your change. Once it merges, push an empty commit or ask a maintainer to re-run the check.
+- To see both sides green together, ask a maintainer to push your two branches into the project repositories under the same name. They can then be tested as a pair.
+
+State this in both pull request bodies so reviewers know it is deliberate.
+
+## Opening the Pair
+
+```bash
+# in turbopanel/turbopanel and in turbopanel/turbopaneld
+git fetch upstream
+git switch -c server-ip-report upstream/trunk
+# ...make the change, format it, commit...
+git push -u origin server-ip-report
+gh pr create --repo TurboPanel/turbopanel --base trunk --title "feat(servers): report each server's address"
+gh pr create --repo TurboPanel/turbopaneld --base trunk --title "feat(servers): send the server address"
+```
+
+Then edit each body to link the other. After the control plane pull request merges, check that the daemon one is green and ask for a review there. The wire contract is expand-only: add fields, do not remove or rename them in the same change.
+
+## Related
+
+- [Contribute Without Access](/docs/development/contribute-without-access)
+- [How to Ship](/docs/development/how-to-ship)
