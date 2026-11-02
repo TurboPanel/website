@@ -117,24 +117,19 @@ On a minimal Debian image, run as root (log in as root, or use `su -`), because 
 apt-get update && apt-get install -y curl ca-certificates
 ```
 
-<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
+```bash
+curl -fsSL https://turbopanel.sh | TOKEN=<value from Add Server> sh
+```
+
+The `TOKEN` value is signed by your control plane and carries the license, the control plane URLs (the one you picked first), the control plane key fingerprint and, for a Platform CA name, the CA fingerprints. The installer checks the signature against the control plane's identity before it sends anything. Copy it from **Add Server**; it is the same on TurboPanel High Availability and self-hosted. A High Availability control plane that has no identity key yet gives the older form instead:
 
 ```bash
 curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
 ```
 
-```bash
-curl -fsSL https://turbopanel.sh | \
-  TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=https://<instance-host>:8443 \
-  sh
-```
-
-</CodeGroup>
-
 If you run it as a sudo-capable user, the installer escalates with `sudo` itself and prompts for your password when needed; as root it just runs. Either way, do not prefix the pipeline with `sudo`.
 
-Replace `<instance-host>` with the name or address the server reaches the control plane on. Keep port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances. For how an enrolled server knows later orders really came from your control plane, see [Control Plane Identity](/docs/security/control-plane-identity).
+On self-hosted, the URL you pick in **Add Server** is the name or address the server reaches the control plane on, on port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances. For how an enrolled server knows later orders really came from your control plane, see [Control Plane Identity](/docs/security/control-plane-identity).
 
 ### Supported platforms (managed servers)
 

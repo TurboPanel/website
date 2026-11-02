@@ -79,9 +79,9 @@ A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel b
 
 <Steps>
   <Step>
-    Obtain a license from your TurboPanel organization. Set `TURBOPANEL_LICENSE`
-    to the base64url-encoded `licenseId:licenseToken` (the UI copy-paste command
-    includes this).
+    Copy the install command from **Add Server** in your TurboPanel
+    organization. It sets one signed `TOKEN` value that carries the license,
+    the control plane URLs and the control plane key fingerprint.
   </Step>
   <Step>
     Run the channel installer from **turbopanel.sh** — production and
@@ -99,6 +99,12 @@ A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel b
 </Steps>
 
 Self-hosted examples below use `https://<host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls`.
+
+```bash
+curl -fsSL https://turbopanel.sh | TOKEN=<value from Add Server> sh
+```
+
+A High Availability control plane that has no identity key yet gives the older form, which the installer still accepts:
 
 <CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
 
@@ -170,6 +176,7 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mism
 
 | Variable / flag                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TOKEN`                                          | **What the Add Server command sets.** One signed value carrying the license, the control plane URLs, the control plane key fingerprint, the next key fingerprint and any CA fingerprints. The installer checks it against the control plane identity, then pins that key. Takes the place of `TURBOPANEL_LICENSE`, `TURBOPANEL_HOST` and the CA variables.                                                                                                                                               |
 | `TURBOPANEL_LICENSE` / `--license <b64>`         | **Required to enrol a server.** Base64url-encoded `licenseId:licenseToken`. Run with no license and no other server option, the installer sets up a control plane instead.                                                                                                                                                                                                                                                                                                                               |
 | `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `release`. Channel names (`canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release`, `rc` and `canary` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, the rolling `rc` pre-release, and the rolling `canary` pre-release carrying the newest green `trunk` build). `trunk` (the former per-merge build drop) is retired. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>`               | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted control planes (`https://…`).                                                                                                                                                                                                                                                                                                                                                        |
