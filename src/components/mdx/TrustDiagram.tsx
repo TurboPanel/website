@@ -274,7 +274,6 @@ function DiagramArrow({ arrow, fixed }: Readonly<{ arrow: Arrow; fixed: boolean 
 }
 
 function DiagramRow({ row }: Readonly<{ row: Row }>) {
-  return (
   const wide = row.via !== undefined
   return (
     <div className="flex flex-col items-center sm:flex-row sm:gap-3">
