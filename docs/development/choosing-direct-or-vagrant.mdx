@@ -40,7 +40,7 @@ In both modes the six repos live inside a folder named `turbopanel`, wherever yo
 | Where you run the stack | `vagrant ssh`, then `dev/console` | `dev/console` |
 | Where tests run | Inside the guest, or in CI | On the machine, or in CI |
 
-In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then the formatter in the repo) where the tools live. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
+In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then `export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"`, then the formatter in the repo) where the tools live. Direct mode needs the same `PATH` line, after `dev/console` has installed the runtimes. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
 
 Full suites are heavy. On a 16 GB computer the 8 GB guest is tight, and CI is the usual place to run everything.
 
