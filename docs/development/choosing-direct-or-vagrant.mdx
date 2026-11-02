@@ -5,7 +5,7 @@ description: Which development environment to use, what each one needs, and wher
 
 # Choosing Direct or Vagrant
 
-TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script, which is not merged yet (see [Contribute Without Access](/docs/development/contribute-without-access)), asks once and stores the answer in `.turbopanel-dev-mode` next to the repos.
+TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script, which is not merged yet (see [Contribute Without Access](/docs/development/contribute-without-access)), asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
 
 ## The Choice
 
@@ -25,7 +25,7 @@ In both modes the six repos live inside a folder named `turbopanel`, wherever yo
 
 <Callout type="info" title="Arriving With the Setup Script">
   Until the change that lets the development tools use a folder you choose is merged, Direct mode
-  still expects the repos in your home folder (`$HOME/dev`, `$HOME/turbopanel`, and so on). If you
+  still expects the repos in your home folder (`$HOME/dev`, `$HOME/turbopanel`, and so on); the script warns and asks you to pass `--dir "$HOME"`. If you
   set up Direct mode by hand today, clone them there. Vagrant already works with the `turbopanel`
   folder anywhere on your computer.
 </Callout>

@@ -35,16 +35,15 @@ Clone `dev` first and read the script before you run it:
 
 ```bash
 mkdir turbopanel && cd turbopanel
-gh repo clone TurboPanel/dev
-cd dev
-./scripts/setup.sh
+git clone https://github.com/TurboPanel/dev.git
+./dev/scripts/setup.sh
 ```
 
-The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project, asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` next to the repos. Useful flags:
+The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project (`.github` is cloned from the project, not forked), asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos (for example `turbopanel/.turbopanel-dev-mode`). The script never forks `.github`: a fork of it would become your account-wide community health repository. You only need to fork `.github` if you change it. Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `--dir PATH` | Put the `turbopanel` folder at `PATH` |
+| `--dir PATH` | Use `PATH` as the folder that holds the repos (default: the `turbopanel` folder that holds `dev`) |
 | `--mode direct\|vagrant` | Skip the question and pick the environment |
 | `--fork` | Behave as an outside contributor even when you have push access |
 | `--yes` | Accept the plan without asking |
@@ -53,25 +52,25 @@ The script is read-only until you confirm. It checks your tools, reads whether y
 Two commands help later:
 
 ```bash
-./scripts/setup.sh doctor   # read-only checks: tools, login, remotes, hooks, mode
-./scripts/setup.sh status   # one row per repo: branch, ahead/behind upstream, changes
+./dev/scripts/setup.sh doctor   # read-only checks: tools, login, remotes, hooks, mode
+./dev/scripts/setup.sh status   # one row per repo: branch, ahead/behind upstream, changes
 ```
 
-Running the script again is safe: it skips repos that exist, fast-forwards a clean `trunk`, and never resets or stashes your work.
+Running the script again is safe, and it turns on the local secret scan (`core.hooksPath`) where it is unset (by hand: `git config core.hooksPath .githooks`). It skips repos that exist, fast-forwards a clean `trunk`, and never resets or stashes your work.
 
 ### By Hand
 
 ```bash
 mkdir turbopanel && cd turbopanel
 gh auth login
-for repo in dev turbopanel turbopaneld ui website .github; do
+for repo in dev turbopanel turbopaneld ui website; do
   gh repo fork "TurboPanel/$repo" --clone
 done
 ```
 
-On a Debian machine used directly, run the loop from your home folder instead of inside `turbopanel/` until the setup script arrives, because direct mode still expects `$HOME/dev`, `$HOME/turbopanel` and so on.
+On a Debian machine used directly, run the loop from your home folder instead of inside `turbopanel/` until the dev-root change merges, because direct mode still expects `$HOME/dev`, `$HOME/turbopanel` and so on (the script warns about this and says to use `--dir "$HOME"`). Run `git config core.hooksPath .githooks` in each clone to enable the local secret scan.
 
-Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional. Then continue with `vagrant up` or `dev/console` as described in [Local Development](/docs/getting-started/development).
+Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional, and you do not need to fork it unless you change it (`gh repo clone TurboPanel/.github` is enough to read it). Then continue with `vagrant up` or `dev/console` as described in [Local Development](/docs/getting-started/development).
 
 ## Make a Change and Open a Pull Request
 
