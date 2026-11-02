@@ -473,7 +473,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 ## Lifecycle and organization settings
 
 - **Start / Stop / Restart** act on the containers; stop keeps everything. **Apply** re-converges the cluster after a settings change.
-- **Destroy** removes the cluster and its data; a project or environment holding a live cluster cannot be deleted until it is destroyed (`managed_runtime_present`).
+- **Destroy** removes the cluster and its data, after you type the project's name to confirm; a project or environment holding a live cluster cannot be deleted until it is destroyed (`managed_runtime_present`).
 - **Managed → Settings** (organization-wide): the default SSL mode, and the listener ports per engine family (`1024–65535`; `6032`, `6132` and `45000–45999` are reserved). Blank = platform default. A port conflict on a host is only detectable when the listener is applied.
 
 ## Reference

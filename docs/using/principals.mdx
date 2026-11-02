@@ -28,7 +28,7 @@ Everything on this page ships with the next release, and one part is still parti
 
 **One principal, several servers.** A principal can be placed on every server its project deploys to. Each server gets its own Linux user with the same name. TurboPanel does not copy files between servers: a site deployed to two servers has two home directories, and what one writes the other does not see. Shared storage for load-balanced sites is planned.
 
-**Removal is always its own action.** Deleting a project never deletes its principals. Removing a principal is a separate step, and it is refused while a service, a database binding or a storage entry still uses it. Removing a server asks, per principal placed there, whether to **keep the identity** (the default — the principal stays in the organization and is removed from that server only) or **delete it outright**, which is refused while anything else still uses it.
+**Removal is always its own action.** Deleting a project never deletes its principals. Removing a principal is a separate step that asks you to type its username, and it is refused while a service, a database binding or a storage entry still uses it. Removing a server asks, per principal placed there, whether to **keep the identity** (the default — the principal stays in the organization and is removed from that server only) or **delete it outright**, which is refused while anything else still uses it.
 
 ## Before you begin
 
