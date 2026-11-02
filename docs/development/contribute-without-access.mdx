@@ -8,11 +8,10 @@ description: Fork the TurboPanel repos, set up a development environment (one co
 You do not need to be a maintainer to change TurboPanel. This page takes you from nothing to an open pull request using only a GitHub account. Maintainers use the same loop; the only difference is where `origin` points (see [What maintainers do differently](#what-maintainers-do-differently)).
 
 <Callout type="info" title="Folder Layout">
-  The setup script (`./dev/scripts/setup.sh`, with `doctor` and `status`) has merged. In both modes the
+  The setup script (started with `scripts/start.sh`, then `./dev/scripts/setup.sh` with `doctor` and `status`) has merged. In both modes the
   repos sit in a folder named `turbopanel` on the machine you work in, for example `~/turbopanel/<repo>`
-  (in the Vagrant guest, `/home/vagrant/turbopanel/<repo>`). A full run from `~/turbopanel` is not
-  yet proven end to end. Every step also has a manual form,
-  shown as **By hand**.
+  (in the Vagrant guest, `/home/vagrant/turbopanel/<repo>`). Every step also has a manual form,
+  shown as **By Hand**.
 </Callout>
 
 ## Before You Start
@@ -33,37 +32,69 @@ Open an issue or start a thread in [Discord](https://turbopanel.io/discord) befo
 
 All six repositories live inside one folder named `turbopanel`: `dev`, `turbopanel` (the control plane), `turbopaneld` (the daemon), `ui`, `website` and `.github`.
 
-Clone `dev` first and read the script before you run it:
+From your home folder, run one command:
 
 ```bash
-mkdir turbopanel && cd turbopanel
-git clone https://github.com/TurboPanel/dev.git
-./dev/scripts/setup.sh
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
 ```
 
-The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project (`.github` is cloned from the project, not forked), asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos (for example `turbopanel/.turbopanel-dev-mode`). The script never forks `.github`: a fork of it would become your account-wide community health repository. You only need to fork `.github` if you change it. Useful flags:
+Options go after `sh -s --`, for example `... | sh -s -- --dry-run`. Reading a script before you run it is wise, so you can download it, read it and then run it instead:
+
+```bash
+curl -fsSL -o start.sh https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh
+less start.sh
+sh start.sh
+```
+
+The address tracks `trunk`; there is no pinned release yet. The start script installs nothing and uses no `sudo`. It creates `~/turbopanel`, clones `dev` into it over HTTPS (or reuses an existing checkout), and hands over to `setup.sh`, which prints its plan and asks before it changes anything. `setup.sh` asks whether to use Vagrant or this machine directly (Direct is Debian 13 only; macOS offers Vagrant only), clones the other repos, and writes the choice to `.turbopanel-dev-mode` inside the `turbopanel` folder (for example `turbopanel/.turbopanel-dev-mode`).
+
+Your role decides how repos are cloned. **Maintainers** (push access) clone straight from TurboPanel and push branches there. **Outside contributors** get read-only clones of TurboPanel's repos. When you are ready to push, fork just that repo:
+
+```bash
+~/turbopanel/dev/scripts/setup.sh fork website
+```
+
+That forks the repo, rewires `origin` to your fork, makes TurboPanel `upstream` and sets the GitHub CLI default repository. `.github` is never forked for you, because a fork of it would become your account-wide community health repository; fork it by hand only if you change it. Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `--dir PATH` | Use `PATH` as the folder that holds the repos (default: the `turbopanel` folder that holds `dev`) |
+| `--dir PATH` | Use `PATH` as the folder that holds the repos (an absolute path to a folder named `turbopanel`; default `~/turbopanel`) |
 | `--mode direct\|vagrant` | Skip the question and pick the environment |
-| `--as-contributor` | Work from your own forks even when you have push access, to try the contributor path (`--fork` is the old name) |
+| `--as-contributor` | A maintainer tries the contributor path: read-only clones, forks later (`--fork` is the old name and prints a warning) |
+| `--fork-all` | Fork every repo you cannot push to at setup, instead of on first push |
 | `--yes` | Accept the plan without asking |
 | `--dry-run` | Print the plan and change nothing |
+
+<Callout type="info" title="Not Yet Proven">
+  A full run on a fresh machine, the Vagrant mounts at `~/turbopanel/<repo>`, and the real fork and
+  default-repository steps against GitHub have not been proven end to end. Report anything that breaks.
+</Callout>
+
+Run the commands below from `~/turbopanel` (or use the full path `~/turbopanel/dev/scripts/setup.sh`). The manual alternative, cloning `dev` yourself, is under **By Hand**.
 
 Two commands help later:
 
 ```bash
-./dev/scripts/setup.sh doctor   # read-only checks: tools, login, remotes, hooks, mode
-./dev/scripts/setup.sh status   # one row per repo: branch, ahead/behind upstream, changes
+~/turbopanel/dev/scripts/setup.sh doctor   # read-only checks: tools, login, remotes, hooks, mode
+~/turbopanel/dev/scripts/setup.sh status   # one row per repo: branch, ahead/behind upstream, changes
 ```
 
 Running the script again is safe, and it turns on the local secret scan (`core.hooksPath`) where it is unset (by hand: `git config core.hooksPath .githooks`). It skips repos that exist, fast-forwards a clean `trunk`, and never resets or stashes your work.
 
 ### By Hand
 
+Clone `dev` yourself and run the setup script:
+
 ```bash
-mkdir turbopanel && cd turbopanel
+mkdir -p ~/turbopanel && cd ~/turbopanel
+git clone https://github.com/TurboPanel/dev.git
+./dev/scripts/setup.sh
+```
+
+Or do everything with the GitHub CLI, forking each repo yourself:
+
+```bash
+mkdir -p ~/turbopanel && cd ~/turbopanel
 gh auth login
 for repo in dev turbopanel turbopaneld ui website; do
   gh repo fork "TurboPanel/$repo" --clone
@@ -72,11 +103,11 @@ done
 
 Run the loop inside the `turbopanel` folder (any folder named `turbopanel` works), because the tools expect `~/turbopanel/<repo>`. Run `git config core.hooksPath .githooks` in each clone to enable the local secret scan.
 
-Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional, and you do not need to fork it unless you change it (`gh repo clone TurboPanel/.github` is enough to read it). Then continue with `vagrant up` or `turbopanel/dev/console` as described in [Local Development](/docs/getting-started/development).
+With the fork loop, each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional, and you do not need to fork it unless you change it (`gh repo clone TurboPanel/.github` is enough to read it). Then continue with `vagrant up` or `turbopanel/dev/console` as described in [Local Development](/docs/getting-started/development).
 
 ## Make a Change and Open a Pull Request
 
-Work on a topic branch cut from the project's current `trunk`. Never commit to your fork's `trunk`.
+Work on a topic branch cut from the project's current `trunk`. Never commit to your fork's `trunk`. The commands below assume the repo is already forked (`~/turbopanel/dev/scripts/setup.sh fork <repo>`, or the manual fork under **By Hand**), so `upstream` exists. With a read-only clone, `origin` is TurboPanel and there is no `upstream`: fork before the push step. Maintainers who push to TurboPanel directly use `origin` where these commands say `upstream`.
 
 ```bash
 cd turbopanel/ui                 # the repo you are changing
@@ -121,7 +152,7 @@ To catch up with the project later, run `gh repo sync` in your fork or `git fetc
 
 ## What Maintainers Do Differently
 
-Maintainers with push access work from the project repositories on feature branches by default, which gives same-named branches across repositories for [twin pull requests](/docs/development/twin-pull-requests). Add `--as-contributor` to the setup script to try the contributor path: it works from your own forks even though you have push access, so you can reproduce what an outside contributor sees.
+Maintainers with push access work from the project repositories on feature branches by default, which gives same-named branches across repositories for [twin pull requests](/docs/development/twin-pull-requests). Add `--as-contributor` to the setup script to try the contributor path: you get read-only clones, as an outside contributor does, and fork a repo with `setup.sh fork <repo>` when you are ready to push.
 
 ## Related
 
