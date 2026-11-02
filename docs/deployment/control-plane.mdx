@@ -153,7 +153,7 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     Complete the install wizard at `https://<host>:8443` (host PAM + superadmin). A Platform CA name is signed by the certificate at `/var/lib/turbopanel/tls/ca.crt`. A Let's Encrypt or uploaded name presents that name's own leaf on the same port.
   </Step>
   <Step>
-    This host's own daemon enrols itself once the wizard has issued the first license; do not run the server installer with a license on it. Enroll every other server with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
+    This host's own daemon enrols itself once the wizard has issued the first license; do not run the server installer with a license on it. Enroll every other server with the `TOKEN` install command from **Add Server** — [Daemon setup](/docs/deployment/daemon-setup).
   </Step>
 </Steps>
 
