@@ -137,6 +137,8 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
 <Steps>
   <Step>
     Provision a 64-bit Linux host (Debian 13 (trixie), `x86_64` or `aarch64`), as root or a sudo-capable user.
+    On a minimal image, log in as root (or use `su -`) and run
+    `apt-get update && apt-get install -y curl ca-certificates` first; the installer installs `sudo` and the rest itself.
   </Step>
   <Step>
     Install the control plane:
