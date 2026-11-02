@@ -23,7 +23,7 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 
 In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
 
-<Callout type="info" title="Arriving with the setup script">
+<Callout type="info" title="Arriving With the Setup Script">
   Until the change that lets the development tools use a folder you choose is merged, Direct mode
   still expects the repos in your home folder (`$HOME/dev`, `$HOME/turbopanel`, and so on). If you
   set up Direct mode by hand today, clone them there. Vagrant already works with the `turbopanel`
@@ -40,7 +40,7 @@ In both modes the six repos live inside a folder named `turbopanel`, wherever yo
 | Where you run the stack | `vagrant ssh`, then `dev/console` | `dev/console` |
 | Where tests run | Inside the guest, or in CI | On the machine, or in CI |
 
-In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed files yourself before you commit (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
+In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then the formatter in the repo) where the tools live. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
 
 Full suites are heavy. On a 16 GB computer the 8 GB guest is tight, and CI is the usual place to run everything.
 

@@ -7,7 +7,7 @@ description: Whether commits must be signed, and how the Contributor License Agr
 
 ## Commit Signing
 
-**Outside contributors do not need to sign commits.** No rule on any TurboPanel repository requires signed commits. When a maintainer squash-merges your pull request on GitHub, GitHub creates and signs the merge commit itself, so what lands on `trunk` is signed regardless of how you committed.
+**Outside contributors do not need to sign commits.** No rule on any TurboPanel repository requires signed commits. It is expected that when a maintainer squash-merges your pull request on GitHub, GitHub creates and signs the merge commit itself. That is normal GitHub behaviour, but it has **not yet been confirmed on an outside pull request**; the first one is the trial. If a merge is blocked for this reason, a maintainer pushes your branch to the project repository and merges from there.
 
 Maintainers sign their own commits (SSH signing, set up by the `dev` helper scripts). That is a habit, not a rule you have to follow. If you want to sign yours, GitHub's own guide on signing commits applies as normal.
 

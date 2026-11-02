@@ -15,7 +15,7 @@ Some features change both the control plane (`turbopanel`) and the daemon (`turb
 
 Both repositories run a contract check against the other (`contract-twin` in the control plane, `contract-drift` in the daemon). Each looks for a branch with your branch name in the sibling project repository, and uses the sibling's `trunk` when there is none. If the daemon change merged first, the control plane would not match yet and the checks would block canary builds.
 
-<Callout type="info" title="Two different 'first' rules">
+<Callout type="info" title="Two Different 'First' Rules">
   Merge order on `trunk` is control plane first. **Release** order is the opposite: when a change
   spans both, the daemon ships first (see [How to Ship](/docs/development/how-to-ship)). The first
   rule is about getting both pull requests onto `trunk`; the second is about which release goes out

@@ -1,13 +1,13 @@
 ---
 title: Contribute Without Access
-description: Fork the TurboPanel repos, set up a development environment with one command, and open a pull request, with no write access to the project
+description: Fork the TurboPanel repos, set up a development environment (one command, arriving with the setup script), and open a pull request, with no write access to the project
 ---
 
 # Contribute Without Access
 
 You do not need to be a maintainer to change TurboPanel. This page takes you from nothing to an open pull request using only a GitHub account. Maintainers use the same loop; the only difference is where `origin` points (see [What maintainers do differently](#what-maintainers-do-differently)).
 
-<Callout type="info" title="Arriving with the setup script">
+<Callout type="info" title="Arriving With the Setup Script">
   The one-command setup (`./scripts/setup.sh`, `doctor` and `status`) is the intended workflow and is
   arriving with the setup script; it is not merged yet. Every step below also has a manual form that
   works today, shown as **By hand**. Until the script lands, use the manual form.
@@ -21,7 +21,7 @@ You need:
 - `git`.
 - A development machine: macOS or Linux with [Vagrant](https://developer.hashicorp.com/vagrant), or a Debian 13 machine you can use directly. See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant) and [Prerequisites](/docs/development/prerequisites).
 
-You do not need an SSH key. Clones go over HTTPS through `gh` by default. If you already use SSH for GitHub, `gh` follows your `git_protocol` setting (`gh config set git_protocol ssh`), or your own `url.insteadOf` rewrite, and nothing else changes.
+You do not need an SSH key for the clones in this guide. Clones go over HTTPS through `gh` by default. In Direct mode, the current Direct VM bootstrap (`--clone`) still clones over SSH until the setup script lands; on a Direct machine without a GitHub SSH key, clone the repos by hand with `gh` as shown below and skip `--clone`. If you already use SSH for GitHub, `gh` follows your `git_protocol` setting (`gh config set git_protocol ssh`), or your own `url.insteadOf` rewrite, and nothing else changes.
 
 ## Ask First for Anything Bigger Than a Small Fix
 
@@ -78,22 +78,20 @@ Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `tu
 Work on a topic branch cut from the project's current `trunk`. Never commit to your fork's `trunk`.
 
 ```bash
-cd turbopanel/website            # the repo you are changing
+cd turbopanel/ui                 # the repo you are changing
 git fetch upstream
-git switch -c fix-typo-in-install-page upstream/trunk
-# edit files
-pnpm exec prettier --write path/to/changed-file
-pnpm exec prettier --check path/to/changed-file
-git add path/to/changed-file
-git commit -m "docs(install): fix a typo in the install page"
-git push -u origin fix-typo-in-install-page
-gh pr create --repo TurboPanel/website --base trunk --fill
+git switch -c fix-label-casing upstream/trunk
+# edit src/lib/labels.ts, then format it (see below for where)
+git add src/lib/labels.ts
+git commit -m "fix(labels): use title case for the server tab"
+git push -u origin fix-label-casing
+gh pr create --repo TurboPanel/ui --base trunk --fill
 ```
 
 Rules that apply to every pull request:
 
 - The title is `type(scope): summary`, for example `fix(auth): refuse expired invites`. The types are `feat`, `fix`, `chore`, `ci`, `docs`, `refactor`, `test`, `perf`, `build`, `revert` and `style`.
-- Format every file you changed before you commit. The control plane, `ui`, `website` and `dev` use `pnpm exec prettier --write`; the daemon uses `deno fmt` and `deno lint`. CI rejects an unformatted changed file.
+- Format every source file you changed before you commit. Run the formatter where the tools are: inside the guest (`vagrant ssh`, then in the repo, for example `cd ~/ui && pnpm exec prettier --write src/lib/labels.ts` and `--check`) under Vagrant, or in the repo on the Debian machine under Direct. The control plane, `ui`, `website` and `dev` use Prettier; the daemon uses `deno fmt` and `deno lint`. The host usually has no Node or Deno, so do not format there. CI rejects an unformatted changed source file, so a miss costs a re-push. Documentation pages (`.md` and `.mdx`) are not checked by the formatter.
 - Tick the agreement box in the pull request template (see [Signing and the CLA](/docs/development/signing-and-the-cla)) and leave **Allow edits from maintainers** on.
 - Do not change version numbers, and never commit secrets or `.env` files.
 - A change that needs both the control plane and the daemon is two pull requests: read [Twin Pull Requests](/docs/development/twin-pull-requests).
@@ -104,11 +102,11 @@ To catch up with the project later, run `gh repo sync` in your fork or `git fetc
 
 **A maintainer must approve your checks.** For pull requests from forks, GitHub holds every workflow run until a maintainer clicks **Approve workflows to run**. This applies to each new push, including from people who have had pull requests merged. Your checks show **Waiting for approval** until then. There is no promised time, and the wait is usually the longest part of a small change. If a day or two passes, leave a short comment on the pull request or ask in Discord. A run that waits more than 30 days is marked failed; push again or ask for a new run.
 
-**The hosted code scanner does not run on pull requests from forks.** It needs a secret token that GitHub withholds from fork runs. Its steps are skipped on purpose, and a skipped step is not a failure: the other checks, including the aggregate `ci-ok` check, can still go green. A visible note explaining this is being added to the run summary; until then, seeing those steps skipped is expected. When a scanner result is needed, a maintainer can push your branch into the project and run it there.
+**The hosted code scanner does not run on pull requests from forks.** It needs a secret token that GitHub withholds from fork runs. Its steps are skipped on purpose, and a skipped step is not a failure: the other checks, including the aggregate `ci-ok` check, can still go green. A visible note explaining this may be added to the run summary; either way, seeing those steps skipped is expected. When a scanner result is needed, a maintainer can push your branch into the project and run it there.
 
 **Review.** Opening a pull request proposes a change; it does not oblige anyone to merge it as written. A maintainer may ask for changes, suggest edits inline, ask for a restructure, or push commits to your branch when you allowed edits. Conversations must be resolved before merge. Merges are squash merges, so your branch history does not need to be tidy.
 
-**Checks that must pass:** `ci-ok` in every repository, and a hosted secret-scan check in the four product repositories (`turbopanel`, `turbopaneld`, `ui`, `website`). The `pr-title` check is advisory but easy to keep green.
+**Checks that must pass:** `ci-ok` in every code repository, and a hosted secret-scan check in the four product repositories (`turbopanel`, `turbopaneld`, `ui`, `website`). The `pr-title` check is advisory but easy to keep green.
 
 ## What Maintainers Do Differently
 
