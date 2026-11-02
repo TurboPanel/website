@@ -22,7 +22,7 @@ This applies to Debian 12 and Debian 13, on managed servers and on the self-host
 - Docker Engine. It comes from Docker's own repository and TurboPanel holds it at a tested version; it is updated only through TurboPanel.
 - TurboPanel itself. The control plane and the daemon have their own automatic updates, see [Daemon update](/docs/deployment/daemon-update).
 
-A security update to a service installed from Debian (for example PostgreSQL from Debian's packages) restarts that service, as Debian's packages always do. Running containers are not touched.
+A security update to a service installed from Debian's packages (for example OpenSSH) restarts that service, as Debian's packages do; open SSH sessions stay connected. Containers are not touched.
 
 ## Restart Needed
 
