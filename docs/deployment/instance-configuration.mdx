@@ -92,7 +92,7 @@ Every `SYSTEM_EMAIL` setting has an environment form `TURBOPANEL_SYSTEM_EMAIL__<
 
 ## Development only
 
-Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written solely by the managed `turbopanel-instance` unit for co-located Deno source-mode development; `TURBOPANEL_UI_MODE` only selects Expo vs. static serving), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO` / `TURBOPANEL_UI_REPO` (optional checkout overrides; defaults derive from `TURBOPANEL_DEV_ROOT`: `$HOME/turbopanel` outside the Vagrant guest, `$HOME` inside it), `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_PORT`. See [Local development](/docs/getting-started/development).
+Read only when the developer surface is on (`TURBOPANEL_DEV_SURFACE=1`, written solely by the managed `turbopanel-instance` unit for co-located Deno source-mode development; `TURBOPANEL_UI_MODE` only selects Expo vs. static serving), never on a managed install: `TURBOPANEL_DEV_USER`, `TURBOPANEL_DEV_HOST_AUTH`, `TURBOPANEL_TRUNK_BRANCH`, `TURBOPANEL_DAEMON_REPO` / `TURBOPANEL_UI_REPO` (optional checkout overrides; defaults derive from `TURBOPANEL_DEV_ROOT`: `$HOME/turbopanel`), `TURBOPANEL_UI_MODE=dev`, `TURBOPANEL_DRIZZLE_STUDIO_HOST` / `_PORT`, `TURBOPANEL_NODE`, `TURBOPANEL_DENO`, `TURBOPANEL_RUNTIMES_DIR`, `TURBOPANEL_USER`, `CADDY_PORT`. See [Local development](/docs/getting-started/development).
 
 ## Workers only
 

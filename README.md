@@ -63,7 +63,7 @@ Clone the six sibling repos (including this one), then from the `dev` checkout:
 vagrant up
 vagrant ssh
 # inside guest:
-dev/console
+turbopanel/dev/console
 ```
 
 That converges the website checkout alongside the control plane, daemon, and UI inside the Vagrant guest.

@@ -35,7 +35,7 @@ turbopanel/
 └── .github/      # community health — https://github.com/TurboPanel/.github
 ```
 
-Inside the guest these mount at `~/dev`, `~/turbopaneld`, `~/turbopanel`, `~/ui`, `~/website`, and `~/.github`.
+Inside the guest these mount at `~/turbopanel/dev`, `~/turbopanel/turbopaneld`, `~/turbopanel/turbopanel`, `~/turbopanel/ui`, `~/turbopanel/website`, and `~/turbopanel/.github` (the same layout as a Direct VM).
 
 ## Quick start
 
@@ -54,7 +54,7 @@ Plain `vagrant up` selects **libvirt** on Linux and **UTM** on macOS. First boot
 **3. Start the console** inside the guest:
 
 ```bash
-dev/console
+turbopanel/dev/console
 ```
 
 That ensures pinned Node, runs `pnpm install`, and launches the Ink developer console. On a fresh guest the console bootstraps the daemon and converges the stack (optional-services picker after bootstrap). On later launches it sits idle until Developer → **Converge / re-converge**.
@@ -123,7 +123,7 @@ Workers mode has no Redis. Converge generates the runtime env for both modes (in
 ## Guest filesystem (after converge)
 
 ```
-~/dev/ ~/turbopaneld/ ~/turbopanel/ ~/ui/ ~/website/ ~/.github/   # mounted checkouts
+~/turbopanel/{dev,turbopaneld,turbopanel,ui,website,.github}/   # mounted checkouts
 
 /opt/turbopanel/vendor/   # pinned Node, Deno, Caddy, uv, Ansible, …
 /etc/turbopanel/          # config (dev-user-owned)
@@ -161,7 +161,7 @@ sequenceDiagram
     participant Services as instance, Caddy, UI, Postgres
 
     Host->>Vagrant: vagrant up / vagrant ssh
-    Host->>Console: dev/console
+    Host->>Console: turbopanel/dev/console
     Console->>Console: auto-detect bootstrap vs idle
     Console->>Daemon: bootstrap + systemd install (fresh guest)
     Daemon->>Services: Ansible instance-dev-install (if-needed)

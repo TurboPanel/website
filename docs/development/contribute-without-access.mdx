@@ -7,10 +7,11 @@ description: Fork the TurboPanel repos, set up a development environment (one co
 
 You do not need to be a maintainer to change TurboPanel. This page takes you from nothing to an open pull request using only a GitHub account. Maintainers use the same loop; the only difference is where `origin` points (see [What maintainers do differently](#what-maintainers-do-differently)).
 
-<Callout type="info" title="Direct Mode Folder">
-  The setup script (`./dev/scripts/setup.sh`, with `doctor` and `status`) has merged. In Direct mode the
-  repos must sit in a folder named `turbopanel`, for example `~/turbopanel/<repo>`. A full run from
-  `~/turbopanel` in Direct mode is not yet proven end to end. Every step also has a manual form,
+<Callout type="info" title="Folder Layout">
+  The setup script (`./dev/scripts/setup.sh`, with `doctor` and `status`) has merged. In both modes the
+  repos sit in a folder named `turbopanel` on the machine you work in, for example `~/turbopanel/<repo>`
+  (in the Vagrant guest, `/home/vagrant/turbopanel/<repo>`). A full run from `~/turbopanel` is not
+  yet proven end to end. Every step also has a manual form,
   shown as **By hand**.
 </Callout>
 
@@ -69,9 +70,9 @@ for repo in dev turbopanel turbopaneld ui website; do
 done
 ```
 
-On a Debian machine used directly, run the loop inside `~/turbopanel/` (any folder named `turbopanel` works), because direct mode expects `~/turbopanel/<repo>`. Run `git config core.hooksPath .githooks` in each clone to enable the local secret scan.
+Run the loop inside the `turbopanel` folder (any folder named `turbopanel` works), because the tools expect `~/turbopanel/<repo>`. Run `git config core.hooksPath .githooks` in each clone to enable the local secret scan.
 
-Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional, and you do not need to fork it unless you change it (`gh repo clone TurboPanel/.github` is enough to read it). Then continue with `vagrant up` or `dev/console` as described in [Local Development](/docs/getting-started/development).
+Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional, and you do not need to fork it unless you change it (`gh repo clone TurboPanel/.github` is enough to read it). Then continue with `vagrant up` or `turbopanel/dev/console` as described in [Local Development](/docs/getting-started/development).
 
 ## Make a Change and Open a Pull Request
 
@@ -96,7 +97,7 @@ Rules that apply to every pull request:
 ```bash
 vagrant ssh
 export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"
-cd ~/ui
+cd ~/turbopanel/ui
 pnpm exec prettier --write src/lib/labels.ts
 pnpm exec prettier --check src/lib/labels.ts
 ```
