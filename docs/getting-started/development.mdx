@@ -7,7 +7,7 @@ description: Vagrant-based contributor setup — i7-4790K, 16–32 GB RAM, sibli
 
 This guide covers contributor local development. For host tooling, see [Prerequisites](/docs/development/prerequisites). For layout and service dependencies, see [Development architecture](/docs/architecture/development-architecture). For common failures, see [Dev console troubleshooting](/docs/getting-started/console-troubleshooting).
 
-TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under one parent directory, then run the stack inside a **Vagrant** guest. Edit on the host with VS Code / Cursor; Node, Deno, Docker, and systemd run in the VM.
+TurboPanel is **not a monorepo**. Clone (or fork) six sibling repositories under one parent directory, then run the stack inside a **Vagrant** guest (or directly on a Debian 13 machine; see [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant)). Edit on the host with VS Code / Cursor; Node, Deno, Docker, and systemd run in the VM.
 
 ## System requirements
 
@@ -23,7 +23,7 @@ Install Vagrant and the provider **before** `vagrant up`. Full host tooling, Git
 
 ## Repository layout
 
-Use your own forks and feature branches so you can open PRs against `trunk`:
+Use your own forks and feature branches so you can open PRs against `trunk` (commands: [Contribute Without Access](/docs/development/contribute-without-access)). The first five repos are required to boot the stack; `.github` is optional:
 
 ```
 turbopanel/

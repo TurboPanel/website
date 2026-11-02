@@ -1,0 +1,120 @@
+---
+title: Contribute Without Access
+description: Fork the TurboPanel repos, set up a development environment with one command, and open a pull request, with no write access to the project
+---
+
+# Contribute Without Access
+
+You do not need to be a maintainer to change TurboPanel. This page takes you from nothing to an open pull request using only a GitHub account. Maintainers use the same loop; the only difference is where `origin` points (see [What maintainers do differently](#what-maintainers-do-differently)).
+
+<Callout type="info" title="Arriving with the setup script">
+  The one-command setup (`./scripts/setup.sh`, `doctor` and `status`) is the intended workflow and is
+  arriving with the setup script; it is not merged yet. Every step below also has a manual form that
+  works today, shown as **By hand**. Until the script lands, use the manual form.
+</Callout>
+
+## Before You Start
+
+You need:
+
+- A GitHub account and the [GitHub CLI](https://cli.github.com/) (`gh`), signed in with `gh auth login`.
+- `git`.
+- A development machine: macOS or Linux with [Vagrant](https://developer.hashicorp.com/vagrant), or a Debian 13 machine you can use directly. See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant) and [Prerequisites](/docs/development/prerequisites).
+
+You do not need an SSH key. Clones go over HTTPS through `gh` by default. If you already use SSH for GitHub, `gh` follows your `git_protocol` setting (`gh config set git_protocol ssh`), or your own `url.insteadOf` rewrite, and nothing else changes.
+
+## Ask First for Anything Bigger Than a Small Fix
+
+Open an issue or start a thread in [Discord](https://turbopanel.io/discord) before you write code for anything beyond a small fix. A small fix is a typo or wording change, a documentation correction, or a bug fix of about 50 changed lines or fewer in one repository that adds no feature, no database migration and no change to the messages between the control plane and the daemon. Anything else is cheaper to shape before it is written than after. Link the issue in your pull request.
+
+## One-Command Setup
+
+All six repositories live inside one folder named `turbopanel`: `dev`, `turbopanel` (the control plane), `turbopaneld` (the daemon), `ui`, `website` and `.github`.
+
+Clone `dev` first and read the script before you run it:
+
+```bash
+mkdir turbopanel && cd turbopanel
+gh repo clone TurboPanel/dev
+cd dev
+./scripts/setup.sh
+```
+
+The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project, asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` in the folder that holds the repos. Useful flags:
+
+| Flag | Meaning |
+| --- | --- |
+| `--dir PATH` | Put the `turbopanel` folder at `PATH` |
+| `--mode direct\|vagrant` | Skip the question and pick the environment |
+| `--fork` | Behave as an outside contributor even when you have push access |
+| `--yes` | Accept the plan without asking |
+| `--dry-run` | Print the plan and change nothing |
+
+Two commands help later:
+
+```bash
+./scripts/setup.sh doctor   # read-only checks: tools, login, remotes, hooks, mode
+./scripts/setup.sh status   # one row per repo: branch, ahead/behind upstream, changes
+```
+
+Running the script again is safe: it skips repos that exist, fast-forwards a clean `trunk`, and never resets or stashes your work.
+
+### By Hand
+
+```bash
+mkdir turbopanel && cd turbopanel
+gh auth login
+for repo in dev turbopanel turbopaneld ui website .github; do
+  gh repo fork "TurboPanel/$repo" --clone
+done
+```
+
+Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional. Then continue with `vagrant up` or `dev/console` as described in [Local Development](/docs/getting-started/development).
+
+## Make a Change and Open a Pull Request
+
+Work on a topic branch cut from the project's current `trunk`. Never commit to your fork's `trunk`.
+
+```bash
+cd turbopanel/website            # the repo you are changing
+git fetch upstream
+git switch -c fix-typo-in-install-page upstream/trunk
+# edit files
+pnpm exec prettier --write path/to/changed-file
+pnpm exec prettier --check path/to/changed-file
+git add path/to/changed-file
+git commit -m "docs(install): fix a typo in the install page"
+git push -u origin fix-typo-in-install-page
+gh pr create --repo TurboPanel/website --base trunk --fill
+```
+
+Rules that apply to every pull request:
+
+- The title is `type(scope): summary`, for example `fix(auth): refuse expired invites`. The types are `feat`, `fix`, `chore`, `ci`, `docs`, `refactor`, `test`, `perf`, `build`, `revert` and `style`.
+- Format every file you changed before you commit. The control plane, `ui`, `website` and `dev` use `pnpm exec prettier --write`; the daemon uses `deno fmt` and `deno lint`. CI rejects an unformatted changed file.
+- Tick the agreement box in the pull request template (see [Signing and the CLA](/docs/development/signing-and-the-cla)) and leave **Allow edits from maintainers** on.
+- Do not change version numbers, and never commit secrets or `.env` files.
+- A change that needs both the control plane and the daemon is two pull requests: read [Twin Pull Requests](/docs/development/twin-pull-requests).
+
+To catch up with the project later, run `gh repo sync` in your fork or `git fetch upstream`, then rebase your topic branch on `upstream/trunk`.
+
+## What to Expect
+
+**A maintainer must approve your checks.** For pull requests from forks, GitHub holds every workflow run until a maintainer clicks **Approve workflows to run**. This applies to each new push, including from people who have had pull requests merged. Your checks show **Waiting for approval** until then. There is no promised time, and the wait is usually the longest part of a small change. If a day or two passes, leave a short comment on the pull request or ask in Discord. A run that waits more than 30 days is marked failed; push again or ask for a new run.
+
+**The hosted code scanner does not run on pull requests from forks.** It needs a secret token that GitHub withholds from fork runs. Its steps are skipped on purpose, and a skipped step is not a failure: the other checks, including the aggregate `ci-ok` check, can still go green. A visible note explaining this is being added to the run summary; until then, seeing those steps skipped is expected. When a scanner result is needed, a maintainer can push your branch into the project and run it there.
+
+**Review.** Opening a pull request proposes a change; it does not oblige anyone to merge it as written. A maintainer may ask for changes, suggest edits inline, ask for a restructure, or push commits to your branch when you allowed edits. Conversations must be resolved before merge. Merges are squash merges, so your branch history does not need to be tidy.
+
+**Checks that must pass:** `ci-ok` in every repository, and a hosted secret-scan check in the four product repositories (`turbopanel`, `turbopaneld`, `ui`, `website`). The `pr-title` check is advisory but easy to keep green.
+
+## What Maintainers Do Differently
+
+Maintainers with push access work from the project repositories on feature branches by default, which gives same-named branches across repositories for [twin pull requests](/docs/development/twin-pull-requests). Add `--fork` to the setup script to behave exactly like an outside contributor and reproduce what you see.
+
+## Related
+
+- [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant)
+- [Twin Pull Requests](/docs/development/twin-pull-requests)
+- [Signing and the CLA](/docs/development/signing-and-the-cla)
+- [How to Ship](/docs/development/how-to-ship)
