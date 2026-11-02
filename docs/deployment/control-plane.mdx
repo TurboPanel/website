@@ -104,7 +104,7 @@ For engineers working on TurboPanel source — **not** production self-hosted or
     ```bash
     vagrant up
     vagrant ssh
-    dev/console
+    turbopanel/dev/console
     ```
 
     See [Local development](/docs/getting-started/development).
@@ -123,7 +123,7 @@ Services on a contributor dev host:
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
-| `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopaneld` in the Vagrant guest, `~/turbopanel/turbopaneld` on a Direct VM) |
+| `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopanel/turbopaneld` in dev) |
 | `turbopanel-instance.service` | current dev user | Deno API on Unix socket |
 | `turbopanel-caddy.service` | current dev user | TLS + reverse proxy on `:8443` |
 | `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |

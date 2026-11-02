@@ -23,7 +23,7 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 
 In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
 
-In Direct mode the repos must sit in a folder named `turbopanel`, so the usual layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`; any folder named `turbopanel` works. In the Vagrant guest the mounts stay at `$HOME/<repo>` (for example `~/dev`). The setup script has merged and does this for you; a full run from `~/turbopanel` in Direct mode is not yet proven end to end, so report anything that breaks.
+On the Debian machine (Direct mode) the repos must sit in a folder named `turbopanel`, so the layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`. The Vagrant guest uses the same layout: the repos are mounted at `/home/vagrant/turbopanel/<repo>`. The setup script has merged and does this for you. A full run from `~/turbopanel` in Direct mode and the guest mounts are not yet proven end to end, so report anything that breaks.
 
 ## Where Things Happen
 
@@ -32,7 +32,7 @@ In Direct mode the repos must sit in a folder named `turbopanel`, so the usual l
 | Where you edit | On your computer; the repos are mounted into the guest | On the Debian machine itself, for example over a remote editor |
 | Where you commit | **On your computer (the host)** | On the Debian machine |
 | Hooks on commit | Secret scan only; CI checks the rest | The hooks in the toolchain on the machine |
-| Where you run the stack | `vagrant ssh`, then `dev/console` | `dev/console` |
+| Where you run the stack | `vagrant ssh`, then `turbopanel/dev/console` | `turbopanel/dev/console` |
 | Where tests run | Inside the guest, or in CI | On the machine, or in CI |
 
 In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then `export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"`, then the formatter in the repo) where the tools live. Direct mode needs the same `PATH` line, after `dev/console` has installed the runtimes. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).

@@ -59,17 +59,17 @@ ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 
 ### Sibling repositories
 
-Check out all six repos inside a folder named `turbopanel`, placed wherever you like. Direct mode on a Debian machine expects `~/turbopanel/<repo>` (any folder named `turbopanel` works; see [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant#folder-layout)):
+Check out all six repos inside a folder named `turbopanel`, placed wherever you like. The tools expect `~/turbopanel/<repo>` on a Debian machine used directly and in the Vagrant guest (see [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant#folder-layout)):
 
 ```
 turbopanel/{dev,turbopaneld,turbopanel,ui,website,.github}
 ```
 
-The `dev` checkout owns the `Vagrantfile`. Vagrant needs the five code repos (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`) next to each other; `.github` is optional. Keep `origin` pointing at your fork and `upstream` at TurboPanel in each repo so you can open PRs independently.
+The `dev` checkout owns the `Vagrantfile`. Vagrant needs the five code repos (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`) next to each other; `.github` is optional. Once you fork a repo (`setup.sh fork <repo>`), `origin` is your fork and `upstream` is TurboPanel, so you can open PRs independently. Before that, an outside contributor's clone is read-only (`origin` is TurboPanel), and a maintainer pushes branches straight to `origin`.
 
 ## Installed inside the guest (not on the host)
 
-After `vagrant ssh` and `dev/console` / converge, the guest provides:
+After `vagrant ssh` and `turbopanel/dev/console` / converge, the guest provides:
 
 | Tool | Notes |
 | ---- | ----- |
