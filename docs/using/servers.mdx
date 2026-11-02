@@ -80,9 +80,9 @@ Open a server for seven tabs: **Overview · Control · Services · Time · Netwo
 
 ### Seeing what runs on a server
 
-Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete Server** might refuse, without leaving the control panel.
+Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete Server** might refuse, without leaving the control plane.
 
-**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete Server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete Server** → **Host is gone** on **Control**, which forgets those records — including apps that lived only on this server — instead of asking you to stop or move them first. A database whose only copy is here still has to be deleted first. When the card says **Yes**, delete is available on **Control**.
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete Server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control plane itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete Server** → **Host is gone** on **Control**, which forgets those records — including apps that lived only on this server — instead of asking you to stop or move them first. A database whose only copy is here still has to be deleted first. When the card says **Yes**, delete is available on **Control**.
 
 Every delete refusal and that card name each blocking environment as **Project / Environment**, up to fifty and then **and N more** — including environments that only hold a managed database, which block delete but do not appear in **Apps** below. Blocking managed databases are listed the same way.
 
