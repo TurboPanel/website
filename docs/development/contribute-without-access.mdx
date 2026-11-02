@@ -40,7 +40,7 @@ cd dev
 ./scripts/setup.sh
 ```
 
-The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project, asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` in the folder that holds the repos. Useful flags:
+The script is read-only until you confirm. It checks your tools, reads whether you can push to each repository, forks the ones you cannot push to, clones everything as `origin` (your fork) with `upstream` pointing at the project, asks whether to use Vagrant or this machine directly, and writes the choice to `.turbopanel-dev-mode` next to the repos. Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
@@ -68,6 +68,8 @@ for repo in dev turbopanel turbopaneld ui website .github; do
   gh repo fork "TurboPanel/$repo" --clone
 done
 ```
+
+On a Debian machine used directly, run the loop from your home folder instead of inside `turbopanel/` until the setup script arrives, because direct mode still expects `$HOME/dev`, `$HOME/turbopanel` and so on.
 
 Each clone has `origin` (your fork) and `upstream` (TurboPanel). Only `dev`, `turbopanel`, `turbopaneld`, `ui` and `website` are required to boot the environment; `.github` is optional. Then continue with `vagrant up` or `dev/console` as described in [Local Development](/docs/getting-started/development).
 

@@ -5,7 +5,7 @@ description: Which development environment to use, what each one needs, and wher
 
 # Choosing Direct or Vagrant
 
-TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script, which is not merged yet (see [Contribute Without Access](/docs/development/contribute-without-access)), asks once and stores the answer in `.turbopanel-dev-mode` in the folder that holds the repos.
+TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script, which is not merged yet (see [Contribute Without Access](/docs/development/contribute-without-access)), asks once and stores the answer in `.turbopanel-dev-mode` next to the repos.
 
 ## The Choice
 
@@ -18,6 +18,17 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 | Windows | Not supported |
 
 **Direct** needs Debian 13 (Trixie) as a full virtual machine or bare metal, never an LXC container, with 4 or more CPUs, 8 GB or more of RAM and 40 GB of disk, and a non-root user with passwordless sudo. The setup follows the [Direct VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md). **Vagrant** needs Vagrant and a provider on your computer; see [Prerequisites](/docs/development/prerequisites).
+
+## Folder Layout
+
+In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
+
+<Callout type="info" title="Arriving with the setup script">
+  Until the change that lets the development tools use a folder you choose is merged, Direct mode
+  still expects the repos in your home folder (`$HOME/dev`, `$HOME/turbopanel`, and so on). If you
+  set up Direct mode by hand today, clone them there. Vagrant already works with the `turbopanel`
+  folder anywhere on your computer.
+</Callout>
 
 ## Where Things Happen
 
