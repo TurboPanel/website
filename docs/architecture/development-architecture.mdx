@@ -9,7 +9,7 @@ This page describes how the TurboPanel **multi-repo** Vagrant environment is orc
 
 ## Repository model
 
-TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them.
+TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them. On a Direct VM (no Vagrant) the repos live in a folder named `turbopanel`, so the paths in the Guest mount column are `~/turbopanel/<repo>` instead (for example `~/turbopanel/dev` and `~/turbopanel/turbopanel`).
 
 | Host path (example) | Guest mount | GitHub repo | Role |
 | ------------------- | ----------- | ----------- | ---- |
@@ -38,7 +38,7 @@ The dev console drives a **dev layout** where source repos live under `$HOME` (g
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
 | Source repos | `$HOME/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts) | No source checkout (compiled release) |
-| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
+| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` (Direct VM: `~/turbopanel/turbopaneld`) | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |

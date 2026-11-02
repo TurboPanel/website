@@ -5,7 +5,7 @@ description: Which development environment to use, what each one needs, and wher
 
 # Choosing Direct or Vagrant
 
-TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script, which is not merged yet (see [Contribute Without Access](/docs/development/contribute-without-access)), asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
+TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script (see [Contribute Without Access](/docs/development/contribute-without-access)) asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
 
 ## The Choice
 
@@ -23,12 +23,7 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 
 In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
 
-<Callout type="info" title="Arriving With the Setup Script">
-  Until the change that lets the development tools use a folder you choose is merged, Direct mode
-  still expects the repos in your home folder (`$HOME/dev`, `$HOME/turbopanel`, and so on); the script warns and asks you to pass `--dir "$HOME"`. If you
-  set up Direct mode by hand today, clone them there. Vagrant already works with the `turbopanel`
-  folder anywhere on your computer.
-</Callout>
+In Direct mode the repos must sit in a folder named `turbopanel`, so the usual layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`; any folder named `turbopanel` works. In the Vagrant guest the mounts stay at `$HOME/<repo>` (for example `~/dev`). The setup script has merged and does this for you; a full run from `~/turbopanel` in Direct mode is not yet proven end to end, so report anything that breaks.
 
 ## Where Things Happen
 
