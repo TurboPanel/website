@@ -6,6 +6,7 @@
     "trust-boundaries",
     "daemon-trust-model",
     "control-plane-identity",
+    "sealed-secrets",
     "site-isolation",
     "signing-key-rotation",
     "organization-ca"
