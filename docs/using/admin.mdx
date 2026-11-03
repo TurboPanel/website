@@ -73,7 +73,7 @@ On TurboPanel High Availability this screen is read-only. It shows the one addre
 | --- | --- |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. These settings are for this control plane. An organization's **Allow Let's Encrypt certificates** is a different switch and applies only to that organization's hosting certificates. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when the control plane's web server is still on this host. |
-| **Tunnel** | Puts this control plane online through a Cloudflare tunnel. Connect a Cloudflare account with one API token and TurboPanel creates the tunnel, its DNS records and the connector; then choose **Cloudflare Tunnel** as a hostname's connection mode. A run token for a tunnel you manage yourself can be pasted instead. Tokens are never shown again. Steps: [Control Plane Tunnel](/docs/deployment/control-plane-tunnel). |
+| **Tunnel** | Puts this control plane online through a Cloudflare tunnel. Connect a Cloudflare account with one API token, then set a hostname's connection mode to **Cloudflare Tunnel** and choose **Connect**: TurboPanel creates the tunnel, the DNS record and the connector. A run token for a tunnel you manage yourself can be pasted instead. Tokens are never shown again. Steps: [Control Plane Tunnel](/docs/deployment/control-plane-tunnel). |
 | **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile for connected daemons. Self-hosted only. This is the Platform CA. |
 
 ## Updates

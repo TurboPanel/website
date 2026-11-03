@@ -66,7 +66,7 @@ Two kinds of credentials are refused:
   <Step>
     Enter a **Label** you will recognise later, paste the token into **Token**, and choose **Connect Account**.
 
-    TurboPanel checks the token before it keeps it, and shows each check with its result: **Token Format**, **Token Valid**, **Token Permissions**, **Tunnel Scope**, **DNS Scope** and **Token Expiry**. A failed check says what to add or change in Cloudflare. A token that fails any check is not stored.
+    TurboPanel checks the token before it keeps it, and shows each check with its result: **Token Valid**, **Token Permissions**, **Tunnel Scope**, **DNS Scope** and **Token Expiry**. Pasted text that is not a token shows **Token Format** instead, and a failed call to Cloudflare shows **Cloudflare Reachable**. A failed check says what to add or change in Cloudflare. A token that fails any check is not stored.
 
     The token leaves the field as soon as it is sent. It is stored encrypted and is never shown again, not even to you.
 
@@ -83,7 +83,7 @@ Two kinds of credentials are refused:
   <Step>
     Choose **Connect**. It opens once the preflight passes.
 
-    If the name already has a DNS record, TurboPanel stops rather than overwrite it. Remove the record in Cloudflare, or choose **Replace Existing Record** and confirm.
+    If the name already has a DNS record, TurboPanel stops rather than overwrite it. Remove the record in Cloudflare, or choose **Replace Existing Record** and confirm. A record you replace is gone for good: **Disconnect** later deletes the new record and does not bring the old one back.
 
   </Step>
   <Step>
@@ -93,7 +93,7 @@ Two kinds of credentials are refused:
 
 ### What Connect Does
 
-1. Finds the tunnel to use. If the name already points at a tunnel on this account, perhaps one you made by hand in the Cloudflare dashboard, TurboPanel **adopts** it: it adds its own route and keeps every route you had. An adopted tunnel is never deleted. Otherwise it reuses its own tunnel, or creates one.
+1. Finds the tunnel to use, in this order: the tunnel another name on this account already uses; the tunnel this name's DNS record already points at, perhaps one you made by hand in the Cloudflare dashboard; a tunnel with TurboPanel's name; else a new one. A tunnel found through the DNS record is **adopted**: TurboPanel adds its own route and keeps every route you had, and never deletes it.
 2. Points the name at `https://127.0.0.1:8443` on the control plane host, with the name passed through so the right certificate is chosen.
 3. Writes a proxied DNS record for the name that points at the tunnel.
 4. Gets the tunnel's run token and hands it to the daemon on the control plane host, which starts the connector.
@@ -102,16 +102,15 @@ If a step fails, the message names it, such as *Creating the DNS record*, so you
 
 ## Status
 
-The Hostnames row shows the live state of each tunnel name. It refreshes every 15 seconds while a name is settling, and every minute after that.
+The Hostnames row shows the live state of each tunnel name. It refreshes every 15 seconds while a name is **Applying** or **Degraded**, and every minute otherwise.
 
 | Status | Meaning |
 | --- | --- |
-| **Not Applied** | The name is set to Cloudflare Tunnel but has not been connected yet. |
+| **Not Applied** | The name is set to Cloudflare Tunnel but is not connected: it was never connected, or it was disconnected. |
 | **Applying** | The connector was started and the tunnel is coming up. |
 | **Healthy** | Cloudflare reports four connections from the connector, and the control plane reached itself through Cloudflare and confirmed, by its signed identity, that the answer came from this control plane and nowhere else. |
-| **Degraded** | Some connections are up, or the tunnel is up but the control plane could not reach itself through Cloudflare. |
+| **Degraded** | Some connections are up, or the tunnel is up but the control plane could not reach itself through Cloudflare (`edge-unreachable`). |
 | **Failed** | The tunnel still has no connections two minutes after the connector was started, or Cloudflare refused a request. The row says why. |
-| **Removed** | The name was disconnected. |
 
 Admin → **Access** → **Tunnel** shows the connector itself: whether it runs, its version, **Edge Connections**, **Hostnames Routed**, the last health check and the last error. **Refresh** reads it again on the spot. **Tunnel Health** lists every tunnel name with its status.
 
@@ -134,7 +133,7 @@ Every name that gets a Let's Encrypt certificate appears in public certificate t
 
 Cloudflare ends the encrypted connection at its edge and opens a new one to your host. Your daemons therefore cannot rely on the control plane's certificate alone to know they are talking to the real control plane. Instead, each daemon checks the control plane's **signing key**, which it learns when it is installed or upgraded.
 
-So the **Cloudflare Tunnel** mode stays disabled until every server, other than the control plane host itself, has that key. The Hostnames page lists the servers still waiting and links to each one. On a waiting server, choose **Issue Re-Enroll Token** on its page and run the command it gives. The mode opens by itself once the last server is done. With no other servers, it is open from the start.
+So the **Cloudflare Tunnel** mode stays disabled until every server, other than the control plane host itself, has that key. The Hostnames page lists the servers still waiting and links to each one that belongs to an organization. On a waiting server, choose **Issue Re-Enroll Token** on its page and run the command it gives. The mode opens by itself once the last server is done. With no other servers, it is open from the start.
 
 `TURBOPANEL_EDGE_GATE=closed` in the control plane's environment keeps edge modes off on a host whatever the servers say.
 
@@ -142,9 +141,9 @@ So the **Cloudflare Tunnel** mode stays disabled until every server, other than 
 
 If you already run a tunnel that you manage in the Cloudflare dashboard, you can paste its **run token** instead of connecting an account. Open **Paste a run token instead** on the Tunnel screen. The connector starts on the control plane host, and the routes stay the ones you set in Cloudflare.
 
-On the Hostnames page, set the name's mode to **Cloudflare Tunnel** with no account. The row shows **Healthy** when the connector routes that name, and tells you to add the name in Cloudflare when it does not.
+On the Hostnames page, set the name's mode to **Cloudflare Tunnel**. This works while no Cloudflare account is connected. The row shows **Healthy** when the connector routes that name, and tells you to add the name in Cloudflare when it does not.
 
-This path does less for you: you add routes and DNS records by hand, and **DNS-01** certificates and the edge details on the Tunnel screen need a connected account. An API token is the recommended way. Saving an empty run token stops the connector.
+This path does less for you: you add routes and DNS records by hand, and **DNS-01** certificates and the edge details on the Tunnel screen need a connected account. An API token is the recommended way. **Tear Down** stops the connector.
 
 ## Manage the Account
 
@@ -168,17 +167,16 @@ When **Connect** is refused, the answer is `422` with one of these causes:
 | Cause | Meaning |
 | --- | --- |
 | `not-available` | This connection mode is not available yet. |
-| `invalid-hostname` | This hostname cannot be used with this connection mode. |
+| `invalid-hostname` | A preflight check failed. Connect runs the same checks as **Preflight** first, and the detail names the one that failed, such as a missing account, a name outside the token's zones or a daemon that is not connected. |
 | `gate-closed` | Edge modes are not open yet. The Hostnames page lists the servers still waiting. |
-| `account-missing` | No Cloudflare account is chosen for this hostname, or it was removed. |
+| `account-missing` | The chosen Cloudflare account cannot be used for this hostname. Choose it again, or connect it again. |
 | `token-invalid` | Cloudflare refused the saved token. Recheck it, or replace it. |
-| `scope-missing` | The token is missing a permission this hostname needs. The account card's last check says which. |
-| `zone-not-found` | No zone the token can edit covers this hostname. |
+| `scope-missing` | Cloudflare refused a step because the token lacks a permission. The detail names the step. Fix the token in Cloudflare, then **Recheck** the account. |
+| `zone-not-found` | No zone the token can edit covers this hostname. **Recheck** the account after changing the token. |
 | `dns-conflict` | A DNS record for this hostname already exists. Remove it, or choose **Replace Existing Record**. |
 | `provider-error` | Cloudflare answered with an error. Try again shortly. |
 | `provider-rate-limited` | Cloudflare is limiting requests. Try again in a few minutes. |
-| `daemon-offline` | The daemon on the control plane host is offline, so the connector could not start. |
-| `edge-unreachable` | The tunnel is up, but the control plane could not reach itself through Cloudflare. |
+| `daemon-offline` | The daemon on the control plane host could not take the run token, so the connector did not start. |
 
 Other answers from the Hostnames row:
 
@@ -195,4 +193,4 @@ Removing an account that a hostname still uses answers `409` with `in-use` and t
 - [Hostnames and TLS](/docs/deployment/hostnames-and-tls)
 - [Admin → Access](/docs/using/admin)
 - [Cloudflare Tunnels](/docs/deployment/tunnels) for hosted sites
-- [Control plane](/docs/deployment/control-plane)
+- [Control Plane](/docs/deployment/control-plane)
