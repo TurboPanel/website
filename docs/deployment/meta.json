@@ -14,6 +14,7 @@
     "metrics",
     "network-addressing",
     "hostnames-and-tls",
+    "control-plane-tunnel",
     "tunnels",
     "tiers",
     "tier-catalogue",
