@@ -55,7 +55,8 @@ graph TD
 | Feature | Self-hosted (Deno) | TurboPanel High Availability |
 | ------- | ------------------ | ---------------------------- |
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
-| **HTTPS Port** | Always **8443**. Ports 80 and 443 on the host belong to hosting. | **443**, the normal HTTPS port |
+| **HTTPS Port** | Always **8443**. Ports 80 and 443 on the host belong to hosting. | **443**, the normal HTTPS port, with no port in the URL |
+| **Hostnames** | Added only on Admin → **Access** → **Hostnames**. The daemon writes a copy to the environment; it is not configuration. | Set by the platform's environment. The Hostnames screen is read-only |
 | **TLS** | Caddy. `:8443` is always the Platform CA recovery address. Each published hostname picks `platform-ca`, an uploaded pair, or Let's Encrypt. | Cloudflare-managed TLS |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
@@ -81,7 +82,7 @@ The Caddyfile is rendered by the daemon's `instance-launch` role into `/etc/turb
 | **80** | Hosting only. Hosting passes the Let's Encrypt challenge for a control-plane hostname to the control plane. |
 | **443** | Hosting only. |
 
-This table is for the self-hosted control plane. TurboPanel High Availability has no listener on your servers.
+This table is for the self-hosted control plane. TurboPanel High Availability has no listener on your servers. It answers on port 443 at the address its environment sets, and only on `/api/*`, `/ws/*`, and `/webhook/*`; the web interface's static files serve every other path.
 
 Hosting Caddy listens on port 80 for the issuance or renewal window when nothing else needs it, and the firewall keeps port 80 open while a control-plane hostname uses Let's Encrypt. The control plane's certificate is never shared with hosting. When another process holds port 80, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
@@ -243,7 +244,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 | Page | What it sets |
 | --- | --- |
-| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. |
+| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. On TurboPanel High Availability the screen is read-only and shows the address the platform's environment sets. |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. A wildcard is an uploaded pair. These settings are unrelated to any organization's Let's Encrypt opt-in. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default. |
 | **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The API never returns the stored value. |
