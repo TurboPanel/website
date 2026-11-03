@@ -244,7 +244,7 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 | Page | What it sets |
 | --- | --- |
-| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. |
+| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. On TurboPanel High Availability the screen is read-only and shows the address the platform's environment sets. |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. A wildcard is an uploaded pair. These settings are unrelated to any organization's Let's Encrypt opt-in. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default. |
 | **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The API never returns the stored value. |

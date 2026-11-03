@@ -23,7 +23,7 @@ Roles are not assigned from the app in this release; self-hosted has exactly the
 
 ### Where a setting comes from
 
-Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
+Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins**, except for Hostnames on a self-hosted control plane, which come only from the app (see [Hostnames](#hostnames)). A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
 
 ## Before you begin
 
