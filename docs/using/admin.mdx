@@ -60,11 +60,12 @@ Most Admin settings can be set in two places: the app, or an environment variabl
   Applying reloads the proxy your browser is talking through, so the request usually ends in a
   gateway error while the apply in fact succeeded. The app waits for the control plane to answer
   again and reports **applied** / **reconnected**; reload if in doubt — the list was saved before the
-  apply was dispatched. On High Availability the button is absent (*cert apply is not applicable on
-  this runtime*).
+  apply was dispatched.
 </Callout>
 
-Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. The flat `TURBOPANEL_PUBLIC_URLS` list is the Platform CA names, kept in sync for certificate SANs, Git webhook callbacks, and the install command.
+Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. This screen is the only place to add a hostname on a self-hosted control plane. On each apply the daemon writes the Platform CA names to `TURBOPANEL_PUBLIC_URLS` as a copy for certificate SANs, Git webhook callbacks, and the install command, and overwrites that variable every time, so do not set it by hand.
+
+On TurboPanel High Availability this screen is read-only. It shows the one address the platform's environment sets, on port 443 with no port in the URL. There is nothing to add, save, or apply.
 
 ### Certificates, trusted proxies, tunnel, Platform CA
 
