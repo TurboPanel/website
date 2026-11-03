@@ -134,7 +134,7 @@ pnpm exec prettier --check src/lib/labels.ts
 ```
 
   The control plane, `ui`, `website` and `dev` use Prettier; the daemon uses `deno fmt` and `deno lint`. The host usually has no Node or Deno, so do not format there. CI rejects an unformatted changed source file, so a miss costs a re-push. Documentation pages (`.md` and `.mdx`) are not checked by the formatter.
-- Tick the agreement box in the pull request template (see [Signing and the CLA](/docs/development/signing-and-the-cla)) and leave **Allow edits from maintainers** on.
+- Read the agreement linked from the pull request template (see [Signing and the CLA](/docs/development/signing-and-the-cla)) and leave **Allow edits from maintainers** on.
 - Do not change version numbers, and never commit secrets or `.env` files.
 - A change that needs both the control plane and the daemon is two pull requests: read [Twin Pull Requests](/docs/development/twin-pull-requests).
 
