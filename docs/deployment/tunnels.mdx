@@ -7,6 +7,8 @@ description: Connect a Cloudflare account, choose which servers carry a tunnel, 
 
 A Cloudflare tunnel lets a site be reached without opening ports 80 and 443 to the internet. A small connector program on your server holds an outbound connection to Cloudflare, and visitors reach it there. TurboPanel creates the tunnel, runs the connector on the servers you pick, and keeps the route to your site up to date.
 
+This page is about tunnels for hosted sites. To put the self-hosted control plane itself behind a tunnel, see [Control Plane Tunnel](/docs/deployment/control-plane-tunnel).
+
 ## Connect a Cloudflare Account
 
 An organization can connect several Cloudflare accounts, and each account can hold several **API tokens**. Tokens are stored encrypted, like other secrets. After you save one, only its last four characters are shown.
