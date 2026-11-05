@@ -71,7 +71,7 @@ For any pair of servers the control plane picks exactly one transport:
 ```mermaid
 flowchart TD
   A["Same server?"] -->|yes| L["local"]
-  A -->|no| B["Shared datacenters<br/>sorted by priority asc, id asc"]
+  A -->|no| B["Shared datacenter networks<br/>sorted by priority asc, id asc"]
   B --> C["Drop untrusted"]
   C -->|"trusted list non-empty"| D["datacenter — lowest priority wins"]
   C -->|"empty, a shared untrusted network"| F["Healthy TurboFabric tunnel right now?"]
@@ -82,7 +82,7 @@ flowchart TD
   C -->|"empty, no shared network"| F2["Healthy TurboFabric tunnel right now?"]
   F2 -->|yes| G2["fabric — across the internet"]
   F2 -->|no| H
-  H -->|"public unusable"| I["a trusted datacenter that is down"]
+  H -->|"public unusable"| I["a trusted datacenter network that is down"]
 ```
 
 The `fabric` rung counts only when the tunnel is healthy right now: a live

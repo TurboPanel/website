@@ -11,16 +11,16 @@ TurboPanel does not configure your network; it keeps a **registry** of it, so th
 
 ```
 organization
-├─ datacenters        one or more mutually routable private subnets; servers pinned in by address
-├─ address pool       public and datacenter addresses hosting rows can bind
-├─ Docker networks    external networks compose may reference; host-wide Docker address pools
-├─ reserved ranges    CIDRs something outside TurboPanel routes — no allocator may use them
-└─ TurboFabric        the opt-in encrypted mesh between servers
+├─ datacenter networks  one or more mutually routable private subnets; servers pinned in by address
+├─ address pool         public and datacenter network addresses hosting rows can bind
+├─ Docker networks      external networks compose may reference; host-wide Docker address pools
+├─ reserved ranges      CIDRs something outside TurboPanel routes — no allocator may use them
+└─ TurboFabric          the opt-in encrypted mesh between servers
 ```
 
 | Thing | What it is |
 | --- | --- |
-| **Datacenter Network** | A network inside a datacenter, a routing domain of one or more **subnets** whose members can reach each other directly. Not a building — a server can belong to several (a LAN and a backhaul), and two subnets in one building that cannot route to each other are two datacenter networks. |
+| **Datacenter network** | A network inside a datacenter, a routing domain of one or more **subnets** whose members can reach each other directly. Not a building — a server can belong to several (a LAN and a backhaul), and two subnets in one building that cannot route to each other are two datacenter networks. |
 | **Member pin** | A server's membership in a datacenter network, pinned to one of the private addresses its daemon reports. The address must fall inside one of the datacenter network's subnets. |
 | **Priority** | `0`–`1000`, default `100`, **lower wins** when two servers share more than one datacenter network. |
 | **Trusted** | Whether the segment is under your control (default on). Untrusted datacenter networks are skipped for replication; traffic falls through to the mesh or a TLS-only public path. |
@@ -69,7 +69,7 @@ One rule: **TurboPanel observes host interfaces; it does not configure them.** A
 
 <Steps>
   <Step>
-    **Add address**: the **Address**, its **Scope** — **public** (an address the world reaches) or **Datacenter Network** (an address inside one of your subnets, with its **Datacenter Network**) — and its **Allocation**: **dedicated** (one consumer) or **shared**.
+    **Add address**: the **Address**, its **Scope** — **Public** (an address the world reaches) or **Datacenter Network** (an address inside one of your subnets, with its **Datacenter Network**) — and its **Allocation**: **dedicated** (one consumer) or **shared**.
   </Step>
   <Step>
     Optionally pin it to a **Server**; a datacenter-scoped pin becomes a member pin as well.

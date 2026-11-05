@@ -317,7 +317,7 @@ The old primary becomes a replica. If it needs to be re-seeded from the new prim
 
 ### Automatic failover [#automatic-failover]
 
-When a primary dies, the platform can promote a same-datacenter **failover** replica on its own. The endpoint your applications dial does not change.
+When a primary dies, the platform can promote a **failover** replica in the same datacenter network on its own. The endpoint your applications dial does not change.
 
 - **The database dies on a server that is still connected.** PostgreSQL is checked by the daemon on the primary's server. MySQL and MariaDB are watched by Orchestrator. The platform stops the old primary before it promotes. If it cannot prove the old primary is stopped, nothing is promoted and the recovery history shows a `blocked` row: _Automatic failover blocked: unable to verify previous primary is fenced_.
 - **The whole server goes silent.** About once a minute the control plane looks at servers that went offline. It waits a couple of minutes, then promotes only if the other members of the cluster agree the primary has stopped replicating. It refuses when many servers are offline at once, or when a replica is still streaming from the primary (the server is probably alive and only its link to the control plane is down).
