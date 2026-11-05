@@ -86,18 +86,18 @@ On each server that hosts a managed member or a **placed compose service bound t
 
 Firewall guidance:
 
-- Prefer **site/datacenter private CIDRs** (and TurboFabric) for server-to-server engine traffic.
+- Prefer **datacenter network private CIDRs** (and TurboFabric) for server-to-server engine traffic.
 - The root login is refused from outside the organization's servers, but still restrict the listener: when external access is on for the server, restrict 15432/13306 to operator IP ranges in your cloud or provider firewall. TurboPanel's own firewall only previews this listener today and enforces nothing.
 - Engine containers themselves never publish host ports for SQL.
 
 ### Public replication transport
 
-When a remote read replica shares no **trusted** datacenter subnet and no
+When a remote read replica shares no **trusted** datacenter network subnet and no
 TurboFabric mesh with its primary, the cluster falls back to the **public**
 transport — the last rung of the `local → datacenter → TurboFabric → public`
 ladder. The `datacenter` rung picks the lowest-`priority` shared **trusted**
-datacenter (`priority asc`, then id); an untrusted shared datacenter is skipped
-as if it were not shared. A failover pair whose only shared datacenters are
+datacenter network (`priority asc`, then id); an untrusted shared datacenter network is skipped
+as if it were not shared. A failover pair whose only shared datacenter networks are
 untrusted rides TurboFabric over the LAN, and is refused with **422**
 `untrusted_network_needs_fabric` when the tunnel cannot carry it, rather than
 silently falling through (see [Datacenter
@@ -181,7 +181,7 @@ A **binding** connects a managed database user to a compose service:
 
 | Concern                | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Placement**          | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter. Failover replicas never use the public address — an untrusted-only pair rides TurboFabric over the LAN, or is **422** `untrusted_network_needs_fabric`; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
+| **Placement**          | Multi-member clusters walk the `local → datacenter → TurboFabric → public` ladder between servers; the `datacenter` rung is the lowest-`priority` shared **trusted** datacenter network. Failover replicas never use the public address — an untrusted-only pair rides TurboFabric over the LAN, or is **422** `untrusted_network_needs_fabric`; only read replicas continue to TurboFabric and then to a TLS-mandatory, address-scoped public listener |
 | **Read split**         | When a replica is `read_eligible`, ProxySQL can route SELECTs to the reader hostgroup                                                                                                                                                                                                                                                                                                                                               |
 | **Apply**              | Primary `managed.apply` enqueues immediately; standby applies follow only after primary success (command consumer)                                                                                                                                                                                                                                                                                                                  |
 | **Promote**            | Stop the old primary when its server is online, then promote the replica; the promote command follows the stop. A promote an operator starts continues when the old primary cannot be reached (that member is marked `needs_resync`); automatic failover refuses instead                                                                                                                                                            |

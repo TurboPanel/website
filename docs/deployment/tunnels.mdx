@@ -46,7 +46,7 @@ Removing a token is refused only when no other token on the account covers somet
 
 ## What a Tunnel Points At
 
-A tunnel always points at `https://localhost` on the server that carries it. The web server on that server then sends the request to the right site. When the site runs on a different server in the same datacenter, the web server forwards it to that server's datacenter address. It never forwards across datacenters.
+A tunnel always points at `https://localhost` on the server that carries it. The web server on that server then sends the request to the right site. When the site runs on a different server in the same datacenter network, the web server forwards it to that server's datacenter network address. It never forwards across datacenter networks.
 
 TurboPanel sets the host name on the connection, so the web server sees the same name a visitor typed.
 
@@ -54,11 +54,11 @@ TurboPanel sets the host name on the connection, so the web server sees the same
 
 Pick one placement for each tunnel:
 
-| Placement          | What it does                                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| **One Server**     | The tunnel runs on the server you choose.                                                                      |
-| **Chosen Servers** | The tunnel runs on each server you tick.                                                                       |
-| **All Servers**    | The tunnel runs on every server in the datacenter, and a new server in that datacenter joins it automatically. |
+| Placement          | What it does                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **One Server**     | The tunnel runs on the server you choose.                                                                                      |
+| **Chosen Servers** | The tunnel runs on each server you tick.                                                                                       |
+| **All Servers**    | The tunnel runs on every server in the datacenter network, and a new server in that datacenter network joins it automatically. |
 
 With **All Servers** you can also exclude servers ("all except these"). Only **All Servers** adds new servers on its own. Any server can be turned off with the **May Run Tunnels** toggle in the Servers panel, and no placement will use it.
 
@@ -94,7 +94,7 @@ The deploy is refused in two cases. If the server that runs the site has a daemo
 
 The hop from Cloudflare to your server is encrypted. By default the connector sends the hostname to your server as the name it is connecting to, and it does not check the certificate your server presents. The server presents a certificate TurboPanel makes for that name, so nothing public has to be issued for a name that only a tunnel uses.
 
-The hop from one of your servers to another in the same datacenter uses a certificate issued by your Organization CA. It is trusted only between your own servers, and only the exact addresses of the servers that carry the tunnel may send forwarded requests.
+The hop from one of your servers to another in the same datacenter network uses a certificate issued by your Organization CA. It is trusted only between your own servers, and only the exact addresses of the servers that carry the tunnel may send forwarded requests.
 
 ### Cloudflare Origin Certificates
 
@@ -140,7 +140,7 @@ For most sites the shared connector on the server is fine. If you want a connect
 
 These are planned and are not available yet:
 
-- Tunnels that span several datacenters.
+- Tunnels that span several datacenter networks.
 - Managing DNS records on their own, beyond the name a tunnel hostname creates.
 - A client-certificate check on the connection from Cloudflare.
 - Adopting a tunnel that already exists in your Cloudflare account.
