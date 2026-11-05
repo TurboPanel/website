@@ -27,7 +27,7 @@ Three rules hold everywhere:
 | Scope | The hostname answers on | Use it for |
 | --- | --- | --- |
 | `public` | Every interface — or one specific public IP when a **public IP** is picked from the organization's registry | Anything reachable from the internet. The only scope that can obtain a Let's Encrypt certificate. |
-| `datacenter` | The server's datacenter address only | A service other servers in the same datacenter reach, never the internet. Needs the server to have a datacenter address (`datacenter_ip_required` at deploy otherwise). |
+| `datacenter` | The server's datacenter network address only | A service other servers in the same datacenter network reach, never the internet. Needs the server to have a datacenter network address (`datacenter_ip_required` at deploy otherwise). |
 | `local` | `127.0.0.1` | A service only that host itself talks to. |
 
 The bind is frozen into the server's web server configuration at deploy time, so changing it — or a member address moving — leaves the environment marked *needs redeploy* until you deploy again.
@@ -265,7 +265,7 @@ x-turbopanel:
 | `tls_pin_not_found`, `tls_pin_mismatch`, `tls_pin_not_ready` | 400 (deploy) | The pinned row is gone, does not cover the hostnames, or is not `ready`/`automatic`. | Re-pin. |
 | `hosting_route_conflict`, `hosting_hostname_conflict` | 409 (deploy) | Two rows in the environment claim the same hostname and path, or a compose-declared hostname collides with another hosting in the organization. | Change one of them. |
 | `host_port_conflict` | 422 (deploy) | Two services on one server publish the same port. | Change the published port. |
-| `datacenter_ip_required` | 422 (deploy) | A `datacenter` bind on a server with no datacenter address. | Add the server to a datacenter, or use `public`/`local`. |
+| `datacenter_ip_required` | 422 (deploy) | A `datacenter` bind on a server with no datacenter network address. | Add the server to a datacenter network, or use `public`/`local`. |
 
 ## Related
 

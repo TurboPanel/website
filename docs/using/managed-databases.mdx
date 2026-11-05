@@ -23,7 +23,7 @@ Two facts shape everything below:
 ## Before you begin
 
 - A connected server with Docker; the cluster's primary runs there. Every server whose apps use a managed database runs the database proxy, and on a Raspberry Pi 5 running Raspberry Pi OS (Debian 13, "trixie") the default 16 KiB kernel cannot run it; one command switches the Pi to the 4 KiB kernel — see [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
-- For a failover replica: a second server **in the same datacenter** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter path to the primary.
+- For a failover replica: a second server **in the same datacenter network** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter network path to the primary.
 - For a client on another server: that server enrolled in the organization (the listener is deployed to it when a service there binds the database).
 - **Manage** rights on the organization.
 
@@ -284,7 +284,7 @@ Existing logins and system users are never renamed by a default or a lock change
 
 | Replica class             | Where                          | What it is for                                                                                                            |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Failover replica**      | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
+| **Failover replica**      | Same datacenter network as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a failover member need MariaDB 11.8 until failover for 12.x is supported.
@@ -301,7 +301,7 @@ MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a 
   <Step>
     **Promote for disaster recovery** a remote replica only when the primary's
     site is gone: one writer results; any failover replica left in the old
-    datacenter is rewritten to a read replica.
+    datacenter network is rewritten to a read replica.
   </Step>
   <Step>
     **Remove** a replica that is no longer needed. The primary cannot be
@@ -322,7 +322,7 @@ When a primary dies, the platform can promote a same-datacenter **failover** rep
 - **The database dies on a server that is still connected.** PostgreSQL is checked by the daemon on the primary's server. MySQL and MariaDB are watched by Orchestrator. The platform stops the old primary before it promotes. If it cannot prove the old primary is stopped, nothing is promoted and the recovery history shows a `blocked` row: _Automatic failover blocked: unable to verify previous primary is fenced_.
 - **The whole server goes silent.** About once a minute the control plane looks at servers that went offline. It waits a couple of minutes, then promotes only if the other members of the cluster agree the primary has stopped replicating. It refuses when many servers are offline at once, or when a replica is still streaming from the primary (the server is probably alive and only its link to the control plane is down).
 
-Automatic failover needs a healthy, caught-up failover replica in the same datacenter. After one starts, another automatic failover for that cluster waits 15 minutes. It does not run while the control plane is down. A primary that dies while a create or change is still settling (about the first ten and a half minutes) is not failed over until that window ends, and one that dies in the first moments of it is not failed over at all. The control plane operator can turn automatic failover off for a deployment; see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services). Manual switchover and disaster recovery do not depend on it.
+Automatic failover needs a healthy, caught-up failover replica in the same datacenter network. After one starts, another automatic failover for that cluster waits 15 minutes. It does not run while the control plane is down. A primary that dies while a create or change is still settling (about the first ten and a half minutes) is not failed over until that window ends, and one that dies in the first moments of it is not failed over at all. The control plane operator can turn automatic failover off for a deployment; see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services). Manual switchover and disaster recovery do not depend on it.
 
 **A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
 
@@ -373,14 +373,14 @@ With **Allow external access** off, SQL listeners are on `127.0.0.1` only (`1543
 
 **MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false` in the release catalog): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` values. Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
 
-### Orchestrator login and datacenter placement
+### Orchestrator login and datacenter network placement
 
 MySQL and MariaDB automatic failover uses **Orchestrator** (one stack per organization on servers that host HA members). Two credentials are organization-wide, not Linux accounts:
 
 - A **topology database login** — one derived MySQL user every HA cluster in the organization accepts so Orchestrator can register all members.
 - **Orchestrator HTTP basic auth and a Raft token** — shared by every Raft peer in the org.
 
-Raft voters are chosen **inside one datacenter** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter** so they share one Raft group. Postgres HA does not use Orchestrator; engine-dead reports on a live server use the Postgres probe instead.
+Raft voters are chosen **inside one datacenter network** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter network** so they share one Raft group. Postgres HA does not use Orchestrator; engine-dead reports on a live server use the Postgres probe instead.
 
 ### ProxySQL and 4 KiB kernel pages
 
@@ -486,7 +486,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | Listener ports     | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999`                                                                                                                                                                       |
 | SSL modes          | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full`                                                                                                                                                                          |
 | Connection roles   | `read-write` (default) · `read-only`                                                                                                                                                                                                                        |
-| Replica classes    | `failover` (same datacenter) · `read` (anywhere)                                                                                                                                                                                                            |
+| Replica classes    | `failover` (same datacenter network) · `read` (anywhere)                                                                                                                                                                                                            |
 | Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; engine-dead on a live server (Postgres probe / Orchestrator); whole-host loss via `ha-host-loss` for PostgreSQL, MySQL, and MariaDB (`metadata.detector = host-loss` on host-loss blocked rows) |
 | Recovery kinds     | `automatic-failover` · `switchover` · `disaster-recovery`                                                                                                                                                                                                   |
 | Applied login      | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain`                                                                                                                          |
@@ -504,7 +504,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_busy`                                                                                                                                                                                             | 409       | The cluster is provisioning or applying; wait for it.                                                                                                                  |
 | `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing`                                                                                                                            | 409       | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary.                                  |
 | `managed_replica_not_promotable`                                                                                                                                                                           | 422       | Only a failover or read replica in a promotable state can be promoted.                                                                                                 |
-| `untrusted_network_needs_fabric`, `failover_replica_requires_datacenter_transport`                                                                                                                   | 422       | A failover replica needs a trusted datacenter path to the primary, or TurboFabric over an untrusted one.                                                                                    |
+| `untrusted_network_needs_fabric`, `failover_replica_requires_datacenter_transport`                                                                                                                   | 422       | A failover replica needs a trusted datacenter network path to the primary, or TurboFabric over an untrusted one.                                                                                    |
 | `fabric_address_required`                                                                                                                                                                                  | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                                                                |
 | `managed_private_port_exhausted`                                                                                                                                                                           | 409       | The server has no private replication port left (45000–45999).                                                                                                         |
 | `managed_listener_bind_conflict`                                                                                                                                                                           | 422       | The listener port is already bound on that server.                                                                                                                     |
