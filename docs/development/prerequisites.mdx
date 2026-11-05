@@ -34,6 +34,14 @@ Clone (or fork) the sibling repos over HTTPS with the [GitHub CLI](https://cli.g
 
 - **Verify:** `gh auth status` (or `ssh -T git@github.com` if you use SSH)
 
+The setup starts with one command that needs only `git` and `curl` (no clone first, no `sudo`, nothing installed):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
+```
+
+You can also download `start.sh`, read it, then run `sh start.sh`. It creates `~/turbopanel`, clones `dev` over HTTPS and runs `setup.sh`, which offers to install the GitHub CLI on Debian or Ubuntu and to log you in with a one-time code.
+
 Step-by-step fork and pull request commands: [Contribute Without Access](/docs/development/contribute-without-access). Not sure whether to use Vagrant or a Debian 13 machine directly? See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant).
 
 ### Vagrant + provider
