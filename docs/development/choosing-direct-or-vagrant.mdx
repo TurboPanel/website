@@ -19,6 +19,24 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 
 **Direct** needs Debian 13 (Trixie) as a full virtual machine or bare metal, never an LXC container, with 4 or more CPUs, 8 GB or more of RAM and 40 GB of disk, and a non-root user with passwordless sudo. The setup follows the [Direct VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md). **Vagrant** needs Vagrant and a provider on your computer; see [Prerequisites](/docs/development/prerequisites).
 
+## Start the Setup
+
+One command, run as your normal user (not root) from any folder, on the machine where you edit (your computer for Vagrant, the Debian machine for Direct):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
+```
+
+Or download it, read it, then run it, which is wise before running any script:
+
+```bash
+curl -fsSL -o start.sh https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh
+less start.sh
+sh start.sh
+```
+
+It creates `~/turbopanel`, clones `dev` there over HTTPS and hands over to `setup.sh`, which asks Direct or Vagrant. To answer in advance, put the option after `sh -s --`, for example `... | sh -s -- --mode direct`. Details and the other options: [Contribute Without Access](/docs/development/contribute-without-access).
+
 ## Folder Layout
 
 In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
