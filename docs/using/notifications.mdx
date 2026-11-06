@@ -1,114 +1,285 @@
 ---
 title: Notifications
-description: The bell, the events TurboPanel can tell you about, channels — email, webhook, Slack, Discord, Telegram — rules that decide what reaches each one, delivery and retries, digest and quiet hours, and every refusal code
+description: Choosing what you hear about and where, quick presets, levels and scopes, your Account Email and other personal channels, organization channels, every event TurboPanel can raise, digests and quiet hours, unsubscribe links, retention, and every refusal code
 ---
 
 # Notifications
 
-When something happens that a person should know about — a server goes offline, a daemon key is revoked, access is granted — TurboPanel writes it to the **bell** of everyone concerned, and delivers it to any **channel** a rule routes it to: an email address, a chat room, a webhook. This chapter is the bell, **Account → Notifications** (`/account/notifications`), and what an operator can expect from delivery.
+When something happens that a person may want to know about (a server goes offline, a daemon key is revoked, access is granted), TurboPanel can put it in your **bell** and send it to your **channels**: your email, a chat room, a webhook. You decide what reaches you. This chapter covers your notification settings, the channels you and your organization own, every event that exists today, and how delivery behaves.
 
-<Callout type="info" title="Private alpha — the catalogue is short on purpose">
-  Only events that the platform actually raises are listed. Each new emitter
-  joins the catalogue in the same commit as the code that raises it, so what the
-  rules matrix offers is always what can arrive.
+<Callout type="info" title="Private Alpha: The Catalogue Only Lists Real Events">
+  Only events that the platform actually raises are listed. Each new event joins
+  the catalogue together with the code that raises it, so what the settings offer
+  is always what can arrive.
 </Callout>
 
-## The model
+## The Model
+
+**Nothing is on by default.** A new member receives nothing, not even in the bell, until they choose. The fastest way to start is a **preset**. **Everything can be turned off**: there are no always-on notices.
 
 | Term | Meaning |
 | --- | --- |
-| **Event** | One thing that happened, with a stable code (`server.offline`), a **severity** (`info`, `warning`, `critical`) and a **scope**: it belongs to one organization, or to the control plane as a whole. |
-| **Inbox** | Your own rows behind the bell. A server event lands in the inbox of every member of that organization; the events that mirror the audit trail — deletes, key revokes, grant changes — reach only its owners and managers; a control plane event reaches every administratoristrator. No setup needed. |
-| **Channel** | Somewhere outside the app a notification can be delivered. **Yours** (they follow your account across organizations), the **organization's** (managers edit them), or the **control plane's** — an administrator's receivers that hear every event on the control plane, managed through the [admin API](/docs/using/admin#also-in-the-control-plane-api) for now. Kinds: `email`, `webhook`, `slack`, `discord`, `telegram`. |
-| **Rule** | What a channel receives: **every event** at or above a severity floor, or a chosen list of events. A channel with no rule receives nothing. |
-| **Delivery** | One attempt ledger per event × channel: written before the send, retried on failure with backoff, abandoned after five attempts. |
+| **Event** | One thing that happened, with a stable code (`server.offline`), a plain name (_A server went offline_), a **severity** (info, warning, critical) and a **category** (Servers, Security, Access, Certificates, Backups, Billing, Control Plane). It belongs to one organization, or to the control plane as a whole. |
+| **Level** | How much of something you want: **All**, **Warnings and Critical**, **Critical Only** or **Off**. A level is a floor: _Warnings and Critical_ lets warning and critical events through and drops info events. |
+| **Channel kind** | Where a copy goes: the **bell**, **email**, **chat channels** (your personal Slack, Discord and Telegram channels) or **webhooks** (your personal webhooks). Each kind has its own level, so the bell can show everything while email carries only critical events. |
+| **Scope** | Where a setting applies: **every organization** › one **organization** › one **project** › one **environment** › one **server**, **service** or **backup target**. |
+| **Personal channel** | A channel of yours that follows your settings. Every account has one built in, **Account Email**. |
+| **Organization channel** | A channel the organization's owners and managers set up, with its own rules. It is not part of anyone's personal settings. |
 
-Three facts:
+Where to find your settings:
 
-- **A channel's address is a credential.** A webhook URL's path *is* the secret, and so is a bot token. They are stored sealed under the control plane's data-encryption key and never shown again — the screen shows the origin, or the last few characters.
-- **Addresses must be `https` with no credentials in the URL.** That is the whole rule: a LAN receiver (an Alertmanager next to the control plane, a `10.x` address, a bare hostname) is allowed on every runtime. TurboPanel High Availability cannot reach a private address, so a delivery there simply fails and is recorded as such.
-- **Delivering never blocks the thing being reported.** A webhook that is down does not stop a deploy or a sweep; it leaves a failed delivery that the maintenance tick retries.
+- **Organization Settings → Notifications**: your own settings for that one organization. Every member can open it.
+- **Account → Notifications** (`/account/notifications`): your settings for every organization at once, and your personal channels.
 
-## The events
+### How Settings Combine
 
-| Code | Severity | Scope | Inbox | When |
-| --- | --- | --- | --- | --- |
-| `server.offline` | critical | organization | every member | The daemon stopped answering and the server was marked offline. |
-| `fleet.mass_disconnect` | critical | instance | administrators | A whole sweep lost all its servers at once — usually the control plane's own network or broker. |
-| `server.deleted` | info | organization | owners and managers | A server was deleted from the app. |
-| `server.daemon_key_revoked` | warning | organization | owners and managers | A server's daemon key was revoked. |
-| `access.grant_created` | info | organization | owners and managers | A permission grant was added. |
-| `access.grant_revoked` | warning | organization | owners and managers | A permission grant was removed. |
-| `certificate.renewal_failed` | warning | organization | every member | A site's Let's Encrypt certificate could not be issued or renewed: the server's check of the live site stopped seeing a valid certificate. The title says *Couldn't get a certificate* when no certificate was ever in place for the domain, and *Certificate renewal failed* when one was. The same event also says *Stopped waiting for DNS* when a request waited 7 days for the domain to point at the server and was dropped. A domain that keeps failing alerts once; it alerts again only if it recovers and then fails again. The sentence turns the server's error text into plain words (for example: the name does not point at the server, nothing answers on port 443, a timeout, or the site still shows a self-signed certificate) and keeps the raw text as a detail. See [Certificates](/docs/using/certificates). |
-| `folder.orphans_found` | warning | organization | owners and managers | Folders were found on a server that no longer belong to a service or volume. Their files stay on the server and their names stay reserved; remove them under **Folders that need attention** in the organization settings, or put the service back. |
+You can set a level at any scope, for every event, for one category or for one event, and for every channel kind, one kind or one personal channel. For each copy of each event, TurboPanel picks **the most specific setting**, compared in this order:
 
-## The bell
+1. **Scope.** A server, service or backup target beats an environment, which beats a project, which beats an organization, which beats your setting for every organization.
+2. **Subject**, within one scope. A single event beats a category, which beats every event.
+3. **Target**, within one scope and subject. One personal channel beats a channel kind, which beats every kind.
 
-The bell in the header (the avatar badge on the phone apps) shows your unread count, polled once a minute. Open it for the newest rows: a coloured dot for severity, the title and the sentence, when it happened. **Mark all read** clears the badge; **×** dismisses a row; a row that names a server opens that server. **Notification settings** at the bottom opens the preferences screen.
+**Scope beats subject.** If you turn email off for the Servers category in every organization, but set server `db-1` to **All**, `db-1`'s server events are still emailed. The same rule holds for a project: email off for Servers everywhere, and one project set to **All**, still emails that project's events.
 
-## Add a channel
+Today's events name either a server or only the organization, so project, environment, service and backup target settings take effect for events that name one of those as such events are added. Until then, the organization or server setting is the one that decides.
 
-**Account → Notifications.** Two panels: **Your channels** and **Organization channels** (the organization you last opened; only a **manager** may add or edit there).
+Each level on the settings screens carries an **Effective from** label that says where it comes from: a setting at this scope, or the one it inherits (for example _Effective from Every Organization_ or _Effective from Organization_). When nothing is set anywhere, it is **Off**. Removing a setting goes back to the inherited one.
+
+### Who Can Hear What
+
+Settings only choose among events you are allowed to see. Each event has an audience, checked again at the moment it is sent:
+
+| Audience | Who |
+| --- | --- |
+| **Members** | Every member of the organization. |
+| **Owners and managers** | People who own or manage the organization, directly, through a team or through the organization. These events mirror the owner-only audit trail (deletes, key changes, grant changes). |
+| **Administrators** | The control plane's administrators, for events about the control plane itself. |
+
+Administrators hear an organization's events only when they belong to it. An administrator who wants every organization's events turns on **Hear Every Organization** on **Account → Notifications**; their settings then apply to every organization on the control plane.
+
+## Before You Begin
+
+- You need an account on the control plane and, for organization events, membership of the organization.
+- To add or change **organization channels** you must be an owner or a manager of the organization.
+- An email address other than your sign-in address must be confirmed before it receives anything. Keep the inbox at hand: the confirmation link is valid for one day.
+
+## Turn Notifications On
 
 <Steps>
   <Step>
-    Pick the **kind** — Email, Webhook, Slack, Discord or Telegram — and give the channel a **Name**.
+    Open **Account → Notifications** to choose for every organization, or **Organization Settings → Notifications** to choose for one.
   </Step>
   <Step>
-    Enter the **address**: an email address — your own for a personal channel, a member's account email for an organization one (other addresses wait for a verification flow that does not exist yet); an `https` URL that accepts a JSON POST; a Slack or Discord incoming-webhook URL; or, for Telegram, your bot token, a slash, then the chat id (`123456:ABC…/987654321`). For a webhook you may add a **signing secret**.
+    Pick a preset:
+
+    | Preset | Bell | Email |
+    | --- | --- | --- |
+    | **Everything** | All | All |
+    | **Recommended** | All | Warnings and Critical |
+    | **Critical Only** | Critical Only | Critical Only |
+    | **Nothing** | Off | Off |
+
+    A preset sets the bell and email at that scope. Chat channels and webhooks stay as they are; set them next if you want them.
+
   </Step>
   <Step>
-    Choose the **rules**: **Every event** at a floor (*Everything*, *Warnings and up*, *Critical only*), or switch to **Chosen events** and tick them. **Add channel.**
+    Adjust from there: change the level of a channel kind, open a category to set it or one of its events, or go to a project, environment, server, service or backup target to set a level that applies only there. Check the **Effective from** label to see which setting decides.
   </Step>
 </Steps>
 
-Each channel is then a row with its rules (change them and **Save rules**), **Pause** / **Resume**, **Remove**, and the outcome of the last delivery in the past week.
+To stop everything, choose **Nothing**, or set each kind to **Off**.
 
-## What a receiver gets
+## Your Account Email
+
+Every account has a built-in personal email channel called **Account Email**. It follows your sign-in address: change the address you sign in with and notifications follow it. It cannot be deleted (turn it off with your settings instead). Your email level applies to it and to any other personal email channel, unless you set a level for one channel on its own.
+
+## Add a Personal Channel
+
+Your other personal channels follow your settings just like **Account Email**: a level for their kind (email, chat channels, webhooks), or a setting for that one channel.
+
+<Steps>
+  <Step>
+    On **Account → Notifications**, add a channel. Pick the **kind** (Email, Webhook, Slack, Discord or Telegram) and give it a **Name**.
+  </Step>
+  <Step>
+    Enter the **address**:
+
+    - **Email**: any address. Your own sign-in address works at once. Any other address is sent a confirmation link, valid for one day; the channel receives nothing until someone opens it. You can send the link again after a minute.
+    - **Webhook**: an `https` URL that accepts a JSON POST. You may add a **signing secret**.
+    - **Slack** or **Discord**: the incoming-webhook URL.
+    - **Telegram**: your bot token, a slash, then the chat id (`123456:ABC…/987654321`).
+
+  </Step>
+  <Step>
+    Save. Then set the level for that kind (or for this channel only) at the scopes you want. A new chat channel or webhook receives nothing until a setting turns its kind or the channel on.
+  </Step>
+</Steps>
+
+Each channel row shows **Pause** / **Resume**, **Remove**, its digest and quiet hours, and the outcome of the last delivery in the past week.
+
+## Organization Channels
+
+An organization channel belongs to the organization, not to a person: a shared mailbox, the team's chat room, an incident webhook. Owners and managers add them from **Organization Settings → Notifications**, the same way as a personal channel, and choose **rules** for each one: **Every event** at a floor (_Everything_, _Warnings and up_, _Critical only_), or **Chosen events** with a floor. The rules offer the organization's events only. An organization email channel may name a member's sign-in address at once; any other address gets the one-day confirmation link.
+
+Members who are not owners or managers see a message that they need that permission instead of the list.
+
+## The Events
+
+19 events, grouped by category as the settings show them. **Urgent** events never wait for quiet hours or a digest.
+
+### Servers
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| A server went offline | `server.offline` | critical | members | yes |
+| A server was deleted | `server.deleted` | info | owners and managers | no |
+| A folder was left behind on a server | `folder.orphans_found` | warning | owners and managers | no |
+| A new server joined | `server.enrolled` | info | owners and managers | no |
+| A server is running but not connecting to this control plane | `server.pin_silent` | warning | owners and managers | no |
+| A server has been running for hours without connecting to this control plane | `server.pin_missing` | critical | owners and managers | yes |
+
+_A server went offline_ also says which high availability databases had their primary on that server and what happens next. _A folder was left behind_ means folders on a server no longer belong to a service or volume: their files stay and their names stay reserved; remove them under **Folders that need attention** in the organization settings, or put the service back.
+
+### Security
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| A server's daemon key was revoked | `server.daemon_key_revoked` | warning | owners and managers | yes |
+| A software source's signing key changed | `server.repo_key_changed` | warning | owners and managers | yes |
+| A server's daemon key was replaced | `server.key_replaced` | warning | owners and managers | yes |
+| A server reported a different control plane key | `panel.pin_mismatch` | critical | owners and managers | yes |
+| The control plane's next key changed | `panel.identity_next_changed` | warning | administrators | yes |
+
+### Access
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| Access was granted | `access.grant_created` | info | owners and managers | yes |
+| Access was revoked | `access.grant_revoked` | warning | owners and managers | yes |
+| A member left or was removed | `member.removed` | warning | owners and managers | yes |
+
+### Certificates
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| A certificate could not be issued or renewed | `certificate.renewal_failed` | warning | members | yes |
+| A control plane certificate could not be renewed | `certificate.expiring` | warning | administrators | yes |
+
+_A certificate could not be issued or renewed_ is raised when the server's check of the live site stops seeing a valid Let's Encrypt certificate. The title says _Couldn't get a certificate_ when the domain never had one, _Certificate renewal failed_ when it did, and _Stopped waiting for DNS_ when a request waited 7 days for the domain to point at the server and was dropped. A domain that keeps failing is reported once, and again only after it recovers and fails again. The sentence puts the server's error in plain words and keeps the raw text as a detail. See [Certificates](/docs/using/certificates).
+
+### Backups
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| Where backups are copied to changed | `backup.target_changed` | warning | owners and managers | yes |
+
+Raised when a backup target's endpoint, bucket, region, folder, addressing or keys change, or when a different target is assigned. A rename alone is not reported, and key values are never shown.
+
+### Billing
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| A server's license tier changed | `server.license_tier_changed` | info | owners and managers | no |
+
+### Control Plane
+
+| Event | Code | Severity | Who can hear it | Urgent |
+| --- | --- | --- | --- | --- |
+| Many servers went offline at once | `fleet.mass_disconnect` | critical | administrators | yes |
+
+This usually points at the control plane's own network rather than at the servers.
+
+Every critical event is urgent, whatever its row says.
+
+## The Bell
+
+The bell in the header (the avatar badge on the phone apps) shows your unread count, checked once a minute; past 99 it shows **99+**. Open it for the newest items: a coloured dot for severity, the title and the sentence, and when it happened. **Mark all read** clears the badge; **×** dismisses an item; an item that names a server opens that server. If the server, project or backup target has since been deleted, the item stays and says so, without a link. Items from an organization you have left are hidden. **Notification settings** at the bottom opens your settings.
+
+Reading an item in the bell cancels its email if that email is still being held for quiet hours or a digest.
+
+## Digest and Quiet Hours
+
+Email, chat and webhook channels can wait instead of sending each event the moment it happens. Both settings are per channel, both are off until you turn them on, and both appear on the channel's row. Personal and organization channels alike can use them.
+
+- **Digest.** Choose **Hourly** or **Daily**. Instead of one message per event you get one summary per window: events grouped by kind with a count, the first few of each with a link back to the web interface, and "and N more" for the rest. A summary lists at most eight kinds and five events per kind. An hourly window closes at the top of the hour; a daily window closes at 08:00. A chat channel gets a short text summary; a webhook gets one JSON body with `type: "digest"`, signed like any event and sent with `X-TurboPanel-Event: digest`.
+- **Quiet hours.** Choose a **start** and **end** (24-hour, for example 22:00 to 07:00; the window may cross midnight). Events that arrive inside it are held and go out as one summary when it ends. With a digest as well, held events go out with the digest window that closes after quiet hours end.
+
+**Urgent events never wait.** Every event marked urgent in the tables above, and every critical event, is sent at once whatever the channel says. The bell is never held either.
+
+**Which clock.** A personal channel uses your profile time zone (set from the channel row; it is yours, not the channel's). An organization channel uses the organization's default time zone. A control plane channel, or any channel with no zone set, uses UTC. Clock changes are followed: a window of 22:00 to 07:00 still ends at 07:00 on the morning the clocks change.
+
+**Pause and resume.** A paused channel receives nothing and keeps what it was holding; **Resume** sends the held events in the next summary. Turning a digest or quiet hours off sends whatever was held at the next maintenance pass. A summary that cannot be sent is retried, not lost.
+
+## Notification Email
+
+Every notification email shows the event, the facts as a list, and an **Open in TurboPanel** button when the event names something you can open. The subject reads like `[TurboPanel Critical] Server db-1 went offline`.
+
+**Unsubscribe.** Every personal notification email ends with two links: **Unsubscribe from these emails** and **Manage all notification settings**. It also carries the one-click unsubscribe headers (RFC 8058), so a mail program's own unsubscribe button works. Unsubscribing turns off email for **that category** in **that project** (or in that organization, when the event names no project), and for that channel only when it came to a personal address other than your Account Email. Everything else stays as it was. The link works without signing in and is valid for 60 days. Email from an organization channel has no unsubscribe link, because the organization's owners and managers set its rules; it still links to the settings.
+
+**Filtering headers.** Each notification email carries headers a mail filter can match:
+
+| Header | Value |
+| --- | --- |
+| `List-Id` | `<organization id>.notifications.turbopanel` |
+| `X-TurboPanel-Organization` | The organization's id |
+| `X-TurboPanel-Project` | The project's id, when the event names one |
+| `X-TurboPanel-Event` | The event code, for example `server.offline` |
+| `X-TurboPanel-Reason` | Why you got it: `preference` (your own settings), `organization-channel` or `instance-channel` (a control plane channel) |
+
+**Refused addresses.** When the receiving mail server refuses an address for good, TurboPanel stops sending notification email to it. Delivery starts again once the address is confirmed again. Sign-in codes and other account email are never stopped this way.
+
+## What Webhooks and Chat Channels Receive
 
 | Kind | Body |
 | --- | --- |
-| **Webhook** | JSON: `event`, `severity`, `title`, `body`, `text` (the one-line form), `organizationId`, `target` (`{ type, id }` or null), `context` (small non-secret facts), `at`. Headers `X-TurboPanel-Event: <code>` and, when the channel has a signing secret, `X-TurboPanel-Signature: sha256=<hex>` — HMAC-SHA256 of the raw body with the secret. |
-| **Slack** | `{ "text": "…" }` — the title, the sentence, then `key=value` facts in parentheses. Mattermost and Rocket.Chat read the same field. |
+| **Webhook** | JSON: `event`, `severity`, `title`, `body`, `text` (the one-line form), `organizationId`, `target` (`{ type, id }` or null), `context` (small non-secret facts), `at`. Headers `X-TurboPanel-Event: <code>` and, when the channel has a signing secret, `X-TurboPanel-Signature: sha256=<hex>`: HMAC-SHA256 of the raw body with the secret. |
+| **Slack** | `{ "text": "…" }`: the title, the sentence, then `key=value` facts in parentheses. Other chat tools that read the same field work too. |
 | **Discord** | `{ "content": "…" }`, the same line. |
-| **Telegram** | `sendMessage` to the chat id with the same line. |
-| **Email** | Subject `[TurboPanel Critical] Server db-1 went offline`; the sentence, the facts as a list, and an **Open in TurboPanel** button when the event has a target. |
+| **Telegram** | A message to the chat id with the same line. |
 
 Verify a webhook signature by computing `sha256=` + hex(HMAC-SHA256(secret, raw body)) and comparing it to the header with a constant-time comparison.
 
-## Delivery and retries
+Three facts about channel addresses:
 
-One attempt is made at the moment of the event, with a five-second budget per channel; the retry sweep leaves a fresh row alone for two minutes so a slow attempt is never sent twice. A failure — a non-2xx answer, a timeout, a refused address — is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried by the maintenance tick after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email deliveries ride the control plane's mailer queue (self-hosted: RabbitMQ → the mailer service; High Availability: Mailgun) and are subject to its own retry. The channel row shows the last delivery's status and how many attempts it took.
+- **An address is a credential.** A webhook URL's path is the secret, and so is a bot token. They are stored sealed under the control plane's data-encryption key and never shown again; the screen shows the origin, or the last few characters.
+- **Addresses must be `https` with no credentials in the URL.** A self-hosted control plane may reach a receiver on its own network (a `10.x` address, a bare host name). TurboPanel High Availability cannot reach a private address, so a delivery there fails and is recorded as such.
+- **Delivering never blocks the thing being reported.** A webhook that is down does not stop a deploy; it leaves a failed delivery that is retried.
 
-## Digest and quiet hours
+## Delivery and Retries
 
-An **email** channel can wait instead of sending every event the moment it happens. Both settings are per channel, both are off until you turn them on, and both appear on the channel's row.
+One attempt is made at the moment of the event, with a five-second budget per channel; the retry pass leaves a fresh copy alone for two minutes so a slow attempt is never sent twice. A failure (an answer other than 2xx, a timeout, a refused address) is recorded with a short code (`http_503`, `timeout`, `network`, `address_scheme_not_https`) and retried after **1, 5, 25 and 125 minutes**; after the fifth failure the delivery is **abandoned**. Email goes through the control plane's outgoing mail queue, which has its own retries. The channel row shows the last delivery's status and how many attempts it took.
 
-- **Digest.** Choose **Hourly** or **Daily**. Instead of one email per event you get one summary per window: events grouped by kind with a count, the first few of each listed with a link back to the app, and "and N more" for the rest. A summary lists at most eight kinds and five events per kind. An hourly window closes at the top of the hour; a daily window closes at 08:00.
-- **Quiet hours.** Choose a **start** and **end** (24-hour, for example 22:00 to 07:00; the window may cross midnight). Events that arrive inside it are held and go out as one summary when it ends. If you also have a digest, the held events go out with the digest window that closes after quiet hours end.
+## Leaving an Organization and Deleting Things
 
-**Some events never wait.** An event that means something is down or something about security changed is sent at once, whatever the channel says: `server.offline`, `fleet.mass_disconnect`, `server.daemon_key_revoked`, `access.grant_created`, `access.grant_revoked` and `certificate.renewal_failed`. Today that leaves `server.deleted` and `folder.orphans_found` as the routine events a digest or quiet hours can hold. The bell is never held either: it always shows an event the moment it happens.
+- **Leaving an organization** (or being removed) deletes your notification settings for that organization only. You stop getting its notifications at once: anything still waiting to be sent to you is dropped, and organization email channels that name your address are removed. Your settings for other organizations are untouched.
+- **Deleting a project, environment, service, server or backup target** removes only the settings that name it. Anything still waiting to be sent about it is dropped. History about it keeps reading in words; it just no longer links anywhere.
 
-**Which clock.** Quiet hours and digest windows are read in a time zone: your own profile zone for a personal channel (set from the channel row; it is yours, not the channel's), the organization's default time zone for an organization channel, and UTC for a control plane channel or when none is set. Clock changes are followed: a window of 22:00 to 07:00 still ends at 07:00 on the morning the clocks change.
+## History
 
-**Pause and resume still work.** A paused channel receives nothing and keeps what it was holding; **Resume** sends the held events in the next summary. Turning a digest or quiet hours off sends whatever was held in the next maintenance tick. A summary that cannot be queued is retried on the following tick, not lost.
-
-Digest and quiet hours are for email channels in this release. Webhook, Slack, Discord and Telegram channels still receive every event as it happens, because a receiver on the other end of a webhook usually wants each one.
+| What | Kept for |
+| --- | --- |
+| Bell items | 90 days |
+| Delivery log (what was sent where, and how it went) | 30 days |
 
 ## Reference
 
 | Item | Value |
 | --- | --- |
-| Kinds | `email` · `webhook` · `slack` · `discord` · `telegram` (`push` is registered by the store apps, never typed) |
-| Severities | `info` < `warning` < `critical` |
-| Rule | `*` at a floor, or one row per event |
-| Inbox fan-out | server events: every organization member; audit-mirroring events: owners and managers; control plane events: every administrator |
-| Channel reach | organization channels, its members' own channels, and every control plane channel |
-| Address rule | `https`, no credentials in the URL; any host, LAN included |
+| Default | Off for everything, in every channel kind |
+| Levels | All · Warnings and Critical · Critical Only · Off |
+| Channel kinds in settings | bell · email · chat channels (Slack, Discord, Telegram) · webhooks |
+| Scopes | every organization › organization › project › environment › server, service or backup target |
+| Order | scope, then event › category › every event, then one channel › kind › every kind |
+| Presets | Everything · Recommended · Critical Only · Nothing (bell and email only) |
+| Organization channel rule | every event at a floor, or chosen events at a floor; organization events only |
+| Severities | info < warning < critical |
+| Address rule | `https`, no credentials in the URL; self-hosted may reach its own network |
+| Email confirmation link | valid one day; send again after a minute |
+| Unsubscribe link | one category, one project or organization; valid 60 days |
 | Retry | 1 → 5 → 25 → 125 minutes, five attempts, then abandoned |
-| Digest | email channels only; `hourly` (top of the hour) or `daily` (08:00), in the owner's time zone; at most 8 kinds and 5 events per kind per summary |
-| Quiet hours | email channels only; `HH:MM` start and end, may cross midnight, never equal; urgent events are never held |
-| Delivery status `held` | waiting for quiet hours to end or a digest window to close; retries do not touch it |
+| Digest | email, chat and webhook channels; hourly (top of the hour) or daily (08:00) in the channel's time zone; at most 8 kinds and 5 events per kind per summary |
+| Quiet hours | email, chat and webhook channels; `HH:MM` start and end, may cross midnight, never equal; urgent events are never held |
+| Retention | bell 90 days; delivery log 30 days |
 | Signature | `X-TurboPanel-Signature: sha256=<hex HMAC-SHA256 of the raw body>` |
 | Name | ≤ 80 characters; address ≤ 2048; signing secret ≤ 256 |
 
@@ -116,9 +287,19 @@ Digest and quiet hours are for email channels in this release. Webhook, Slack, D
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `address_rejected` | 422 | The URL failed the outbound gate; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `malformed`). |
-| `address_invalid`, `address_required` | 400 | Not an email address / not a token-slash-chat-id pair / empty. |
-| `address_not_a_member` | 422 | An email channel may only name your own address, or a member's account email for an organization channel. |
+| `address_rejected` | 422 | The URL failed the outbound check; `reason` says which rule (`scheme_not_https`, `credentials_in_url`, `malformed`). |
+| `address_invalid`, `address_required` | 400 | Not an email address, not a token-slash-chat-id pair, or empty. |
+| `address_not_a_member` | 422 | This path accepts only your own address, or a member's sign-in address for an organization channel. Add any other address as an email channel with a confirmation link. |
+| `too_many_unverified_channels` | 429 | You, or the organization, already have the most email channels waiting for confirmation. |
+| `verification_mail_budget`, `address_verification_limit` | 429 | Too many confirmation emails today, from you or to that address; `Retry-After` says when to try again. |
+| `too_soon` | 429 | A confirmation link was sent in the last minute; `retryAfterSeconds` and `Retry-After` say how long to wait. |
+| `not_an_email_channel` | 400 | Only an email channel can be confirmed. |
+| `already_verified` | 409 | The address is already confirmed. |
+| `address_unreadable` | 409 | The stored address could not be read, so no link was sent. |
+| `email_unavailable` | 503 | The control plane cannot send email. |
+| `email_send_failed` | 502 | The confirmation email could not be sent. |
+| `primary_channel` | 409 | **Account Email** cannot be deleted. Turn it off with your settings instead. |
+| `personal_channel_uses_preferences` | 422 | Rules are for organization channels; a personal channel follows your settings. |
 | `label_required`, `label_invalid` | 400 | The name is missing, too long, or has control characters. |
 | `signing_secret_not_applicable` | 400 | Only a webhook channel signs its deliveries. |
 | `signing_secret_invalid` | 400 | 1–256 characters. |
@@ -127,17 +308,22 @@ Digest and quiet hours are for email channels in this release. Webhook, Slack, D
 | `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or the pause flag is not true or false. |
 | `digest_cadence_invalid` | 400 | The digest is not `hourly`, `daily` or null. |
 | `quiet_hours_invalid` | 400 | Quiet hours need a start and an end as 24-hour `HH:MM`, and they cannot be the same time. |
-| `time_zone_invalid` | 400 | Not a time zone from the list the app offers. |
+| `time_zone_invalid` | 400 | Not a time zone from the list the web interface offers. |
 | `time_zone_user_channels_only` | 422 | A time zone is set on your own profile, from one of your personal channels. |
-| `timing_email_only` | 422 | Digest and quiet hours are for email channels. |
+| `timing_push_unsupported` | 422 | Digest and quiet hours are for email, chat and webhook channels; phone push is handled by the store apps. |
 | `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
-| `Forbidden` | 403 | Organization channels need `organization:manage`. |
-| `Not found` | 404 | The channel or the inbox row is not yours. |
+| A sentence naming the field | 400 | A notification setting or preset is malformed: an unknown category or event, both a category and an event, both a channel and a kind, a project without its organization, an environment without its project, more than one server, service or backup target, or an unknown preset. |
+| `scope_not_in_organization` | 422 | The project, environment, server, service or backup target is not in the organization the setting names. |
+| `invalid_or_expired` | 400 | The unsubscribe link is damaged or older than 60 days. Change the setting from **Manage all notification settings** instead. |
+| `unavailable` | 503 | The control plane cannot read unsubscribe links right now (no encryption key). |
+| `Forbidden` | 403 | Organization channels need owner or manager access; **Hear Every Organization** is for administrators. |
+| `Not found` | 404 | The channel, setting or bell item is not yours, or you cannot open that organization. |
 | `Encryption unavailable — no encryption key configured` | 503 | The control plane has no root secret, so a sealed address cannot be stored. |
 
 ## Related
 
-- [Servers](/docs/using/servers) — what `server.offline` and a revoked key mean.
-- [Organizations, teams and access](/docs/using/access) — the grants the access events describe.
-- [Administering the control plane](/docs/using/admin) — the operator's control-plane-wide alert webhook.
-- [Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark) — configuring that webhook from the shell.
+- [Servers](/docs/using/servers): what an offline server and a revoked key mean.
+- [Certificates](/docs/using/certificates): the certificate events in detail.
+- [Organizations, teams and access](/docs/using/access): the grants and members the access events describe.
+- [Administering the control plane](/docs/using/admin): the control plane's own channels and the operator alert webhook.
+- [Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark): configuring that webhook from the shell.
