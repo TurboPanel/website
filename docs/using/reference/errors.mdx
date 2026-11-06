@@ -382,8 +382,12 @@ See [Notifications](/docs/using/notifications).
 | `digest_cadence_invalid`                                       | 400    | The digest setting is not one of the offered cadences.                                                           |
 | `quiet_hours_invalid`                                          | 400    | Quiet hours need a start and an end as 24-hour `HH:MM`, and they must differ.                                    |
 | `time_zone_invalid`                                            | 400    | Not a time zone the app knows.                                                                                   |
-| `timing_email_only`                                            | 422    | Digests and quiet hours exist only on email channels.                                                            |
-| `time_zone_user_channels_only`                                 | 422    | A time zone can be set only on a personal channel; organization and instance channels read their windows in UTC. |
+| `timing_push_unsupported`                                      | 422    | Digests and quiet hours are for email, chat and webhook channels, not phone push.                                |
+| `primary_channel`                                              | 409    | The built-in Account Email channel cannot be deleted; turn it off in your notification settings.                 |
+| `personal_channel_uses_preferences`                            | 422    | Rules are for organization channels; a personal channel follows your notification settings.                      |
+| `scope_not_in_organization`                                    | 422    | A notification setting names a project, environment, server, service or backup target outside its organization.  |
+| `invalid_or_expired`                                           | 400    | The unsubscribe link is damaged or older than 60 days.                                                           |
+| `time_zone_user_channels_only`                                 | 422    | A time zone is set only from a personal channel; other channels use the organization's zone or UTC.              |
 
 ## Firewall
 
