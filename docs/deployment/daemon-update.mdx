@@ -49,7 +49,7 @@ print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' "$ENV_FILE")
 CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' "$ENV_FILE")
 
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST="$HOST" \
   TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
@@ -105,7 +105,7 @@ A control-plane install adds `preflight_backup` when `turbopanel-database` is no
 Add `TURBOPANEL_HOST` for a self-hosted control plane. Use `https://<instance-host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
@@ -125,7 +125,7 @@ per-merge build drop on the CDN) is retired and `edge` is reserved: neither has 
 built-in location. The example below sets `canary` explicitly (the default is `release`):
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_UPDATE_CHANNEL=canary \
   sh

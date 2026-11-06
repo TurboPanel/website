@@ -55,6 +55,8 @@ graph TD
 | Feature | Self-hosted (Deno) | TurboPanel High Availability |
 | ------- | ------------------ | ---------------------------- |
 | **Runtime** | Deno on Unix socket | Cloudflare Workers |
+| **HTTPS Port** | Always **8443**. Ports 80 and 443 on the host belong to hosting. | **443**, the normal HTTPS port, with no port in the URL |
+| **Hostnames** | Added only on Admin → **Access** → **Hostnames**. The daemon writes a copy to the environment; it is not configuration. | Set by the platform's environment. The Hostnames screen is read-only |
 | **TLS** | Caddy. `:8443` is always the Platform CA recovery address. Each published hostname picks `platform-ca`, an uploaded pair, or Let's Encrypt. | Cloudflare-managed TLS |
 | **Database** | Local Postgres (socket) | Postgres via Hyperdrive |
 | **UI** | Caddy → Expo dev or static export (`/opt/turbopanel/share/ui`; dev override `../ui/dist`) | Workers assets / separate hosting |
@@ -77,10 +79,12 @@ The Caddyfile is rendered by the daemon's `instance-launch` role into `/etc/turb
 | Port | When |
 | ---- | ---- |
 | **8443** | Always. Control plane HTTPS. |
-| **80** | Only during Let's Encrypt issuance or renewal. |
+| **80** | Hosting only. Hosting passes the Let's Encrypt challenge for a control-plane hostname to the control plane. |
 | **443** | Hosting only. |
 
-Port 80 is opened on hosting Caddy for that window, then closed. When another process holds it, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
+This table is for the self-hosted control plane. TurboPanel High Availability has no listener on your servers. It answers on port 443 at the address its environment sets, and only on `/api/*`, `/ws/*`, and `/webhook/*`; the web interface's static files serve every other path.
+
+Hosting Caddy listens on port 80 for the issuance or renewal window when nothing else needs it, and the firewall keeps port 80 open while a control-plane hostname uses Let's Encrypt. The control plane's certificate is never shared with hosting. When another process holds port 80, the apply fails with `port 80 is held by <process>`. The flow is in [Hostnames and TLS](/docs/deployment/hostnames-and-tls).
 
 `TURBOPANEL_TLS_PUBLIC=1` is set when any hostname is Let's Encrypt, or when the operator marks TLS public. A name that presents a Let's Encrypt or uploaded leaf gets a 404 from `GET /api/daemon/v1/instance/ca`. The daemon then uses the system trust store, or the uploaded issuer for a private pair, and the install command omits `--insecure-tls` for a publicly trusted leaf. An unlisted name on `:8443` still receives the Platform CA bundle.
 
@@ -101,7 +105,7 @@ For engineers working on TurboPanel source — **not** production self-hosted or
     ```bash
     vagrant up
     vagrant ssh
-    dev/console
+    turbopanel/dev/console
     ```
 
     See [Local development](/docs/getting-started/development).
@@ -120,7 +124,7 @@ Services on a contributor dev host:
 
 | Unit | User | Role |
 | ---- | ---- | ---- |
-| `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopaneld` in dev) |
+| `turbopaneld.service` | current dev user | Ansible orchestration (daemon from `~/turbopanel/turbopaneld` in dev) |
 | `turbopanel-instance.service` | current dev user | Deno API on Unix socket |
 | `turbopanel-caddy.service` | current dev user | TLS + reverse proxy on `:8443` |
 | `turbopanel-ui.service` | current dev user | Expo web dev (`:8081`, dev only) |
@@ -134,12 +138,14 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
 <Steps>
   <Step>
     Provision a 64-bit Linux host (Debian 13 (trixie), `x86_64` or `aarch64`), as root or a sudo-capable user.
+    On a minimal image, log in as root (or use `su -`) and run
+    `apt-get update && apt-get install -y curl ca-certificates` first; the installer installs `sudo` and the rest itself.
   </Step>
   <Step>
     Install the control plane:
 
     ```bash
-    curl -fsSL turbopanel.sh | sh
+    curl -fsSL https://turbopanel.sh | sh
     ```
 
     Run with nothing else, the installer sets up a control plane on this host. It prints a short welcome (and, on `canary` or `rc`, a non-stable-channel warning) then proceeds; on a terminal, Enter continues and `q` quits. `TURBOPANEL_INSTANCE=1` says the same thing explicitly for scripts. Add `TURBOPANEL_UPDATE_CHANNEL=rc` to install the current release candidate instead of the latest release. The installer takes no license (the wizard issues the first one) and enrols no daemon — to connect this host to an existing control plane, pass `TURBOPANEL_LICENSE` from that control plane's server install command.
@@ -148,7 +154,7 @@ The same `turbopanel.sh` installer that enrols a daemon installs a control plane
     Complete the install wizard at `https://<host>:8443` (host PAM + superadmin). A Platform CA name is signed by the certificate at `/var/lib/turbopanel/tls/ca.crt`. A Let's Encrypt or uploaded name presents that name's own leaf on the same port.
   </Step>
   <Step>
-    This host's own daemon enrols itself once the wizard has issued the first license; do not run the server installer with a license on it. Enroll every other server with `turbopanel.sh` and `TURBOPANEL_LICENSE` — [Daemon setup](/docs/deployment/daemon-setup).
+    This host's own daemon enrols itself once the wizard has issued the first license; do not run the server installer with a license on it. Enroll every other server with the `TOKEN` install command from **Add Server** — [Daemon setup](/docs/deployment/daemon-setup).
   </Step>
 </Steps>
 
@@ -238,10 +244,10 @@ Managed hosts inject vars via Ansible `instance-launch`. Workers dev uses `.dev.
 
 | Page | What it sets |
 | --- | --- |
-| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. |
+| **Hostnames** | Every address this control plane answers on, each with a source: Platform CA, an uploaded certificate, or Let's Encrypt. **Save & Apply** (self-hosted) regenerates the Platform CA leaf and reloads Caddy. The body of the apply is empty — the hostname save already persisted the rows. On TurboPanel High Availability the screen is read-only and shows the address the platform's environment sets. |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. A wildcard is an uploaded pair. These settings are unrelated to any organization's Let's Encrypt opt-in. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default. |
-| **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The API never returns the stored value. |
+| **Tunnel** | Cloudflare accounts (one API token each) that let the control plane create and run its own tunnel, or a pasted run token for a tunnel you manage yourself. The connector runs on this host only. The API never returns a stored token. See [Control Plane Tunnel](/docs/deployment/control-plane-tunnel). |
 | **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile that asks connected daemons to pick up the current bundle. Self-hosted only. This is the Platform CA. |
 
 Per-hostname sources need a co-located daemon that can render them (`instance-cert-sources-per-hostname`, daemon **0.1.1** or newer). Older daemons keep the rows visible and leave the sources disabled until that daemon is updated.

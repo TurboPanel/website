@@ -12,23 +12,26 @@ Every site, app and volume that needs files on a server gets a folder there. Thi
 Each **Hosting Account** has one folder tree on every server where its services run:
 
 ```text
-/srv/users/alice/                 root owns it; the SFTP jail root
-  home/                           alice's login home
-  tmp/                            alice's private temporary folder
-  production/                     one folder per environment (the scope)
-    services/
-      example.com/                one folder per service that needs files
-        public/                   uploaded files for a site you fill over SFTP
-        releases/<release id>/    sealed, read-only builds
-        current                   link to the release that is live
-        shared/                   files that must outlive a deploy
-        logs/                     the app's own log files
-    volumes/
-      uploads/                    one folder per storage volume
-  staging/
-  common/                         shared by every environment (below)
-    services/
-    volumes/
+/srv/users/                       root owns it; every account passes through, nobody lists it
+  .tp-staging/                    root's; new releases wait here while they are checked
+  alice/                          root owns it; the SFTP jail root
+    home/                         alice's login home
+    tmp/                          alice's private temporary folder
+    production/                   one folder per environment (the scope)
+      services/
+        example.com/              one folder per service that needs files
+          public/                 uploaded files for a site you fill over SFTP
+          releases/<release id>/  sealed, read-only builds
+          current                 link to the release that is live
+          shared/                 files that must outlive a deploy
+          logs/                   the app's own log files
+          .turbopanel-hosting/    the site's settings for the web server
+      volumes/
+        uploads/                  one folder per storage volume
+    staging/
+    common/                       shared by every environment (below)
+      services/
+      volumes/
 ```
 
 - **`home/` and `tmp/`** belong to the owner. Everything else is a folder TurboPanel makes for you.
@@ -36,9 +39,12 @@ Each **Hosting Account** has one folder tree on every server where its services 
 - **A service folder** is made only for services that run from files on the host: sites, uploaded-directory sites and native apps. A service that only runs a container from an image has no service folder; its data lives in volumes.
 - **A volume folder** is the bind-mount source for a storage entry of kind *Directory* on a host path. It belongs to the owner, so you can fill it and empty it over SFTP, but you cannot delete the folder itself.
 - **Which parts you can write.** You can write to `home/`, `tmp/`, `public/`, `shared/`, `logs/` and inside each volume. Every folder above those is root's, so a Hosting Account cannot rename, replace or delete a service, volume or environment folder, only empty the writable parts inside it.
+- **Who reads `public/`.** Its group is the web server's account, so the web server can read what you upload. A site served by nginx in front of Apache is read by both, so its `public/` carries the Hosting Account's own group instead, which both web servers join.
 - **Project names are not in paths.** The project's name and short name never appear on the server.
 
 Over SFTP with the jail on, the owner sees the same tree starting at `/`, and signs in to `/home`.
+
+The owner, group and mode of every folder in this tree are in one table on [Hosting Accounts and isolation](/docs/security/site-isolation#the-home-layout).
 
 ## Name rules
 
@@ -87,6 +93,19 @@ By default a service or volume belongs to one environment and lives under that e
 
 Common folders never block an environment rename, because they do not contain the environment's name.
 
+## Share One Folder Between Containers
+
+Two containers can use the same files when they mount the same volume.
+
+1. Create one storage entry of kind *Directory* (for example `media`) for the Hosting Account that runs both services. Make it common if environments other than its own will use it.
+2. Mount it in both services. Each one sees the same folder, `/srv/users/<owner>/<scope>/volumes/media` on the server.
+3. To use a common volume from another environment, add a share to that environment (`POST /api/client/v1/environments/{id}/shares` with the `storageId`), then mount it there too.
+4. If a service runs as a numeric user other than root, that user gets its own access entry on the folder (see [Volumes and the user a container runs as](#volumes-and-the-user-a-container-runs-as)), so both containers can write while the owner keeps access over SFTP.
+
+The volume's backups cover everything in it, whichever container wrote it.
+
+**Site files cannot be shared yet.** A site's `public/` and `shared/` folders cannot be mounted into a container, and a site cannot serve from a volume folder. So a PHP site's uploads (for example a WordPress media library) cannot be shared with a container or kept in step with another server today.
+
 ## When a name is locked
 
 Names that appear in a path stop changing once something exists on disk under them.
@@ -109,12 +128,16 @@ What counts: a folder in the state *planned*, *present*, *removing* or *orphan*.
 
 | Action | Files on the server |
 | --- | --- |
-| **Stop** an environment | Kept. Every folder stays, so a start brings the same files back. |
+| **Stop** an environment | The containers stop. Nothing on disk is removed, so a start brings the same files back. |
+| **Destroy** an environment | The containers and networks are removed, and so are anonymous volumes (an image's `VOLUME` line or a bare `- /path` mount) and a top-level volume authored with its own `name:` and no `external:`. Docker named volumes, volume folders and relative binds survive. Every folder under `/srv/users/<owner>` stays. The environment's compose folder, `/var/lib/turbopanel/deployments/<project id>/<environment id>/`, is kept, with anything a relative bind such as `./data` wrote there. Only what TurboPanel wrote into it is removed (the compose files, the overlay file, `.env`, `deployment.json`, `previous/` and `.staging/`), and the next deploy writes them again. |
 | **Redeploy** | A new sealed release is added; the previous releases stay for rollback (the newest five are kept) and `shared/` is never touched. |
 | **Delete** a service or volume | The folder is removed from every server that has it. If a server is offline, the folder shows as *removing* and is removed when the server returns; the name stays locked until then. |
-| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. |
+| **Delete** an environment | Refused while any folder exists under it (`environment_has_folders`). Delete its services and volumes first; that removes their folders, and then the environment can be deleted. The delete also removes the environment's compose folder, with anything a relative bind wrote there. Deleting a project does the same for each of its environments. |
 | Take a service **out of the compose document** | The folder is kept and marked **orphan**. Only an explicit delete removes files. |
-| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders stay, because stopping never removes data. |
+| A **server leaves** an environment (the environment no longer runs there) | The environment's **service** folders on that server are removed. Its **volume** folders and its compose folder stay, because stopping never removes data. |
+| **Remove** a Hosting Account | Refused on the server while any service or volume folder is left in any of its environment or `common` folders, while an older `sites/` folder in its home still has anything in it, or while a TurboPanel unit file still names the account, whether that unit is running or not. Delete those services and volumes first. Then the whole `/srv/users/<owner>` folder, its SSH keys, its resource group and its build caches are removed, along with the Linux user. Some files outside the home outlive it; see [below](#a-hosting-accounts-files-outside-the-home). |
+
+**Warning:** a Destroy deletes anonymous volumes (an image's `VOLUME` with nothing mounted on it) and a top-level volume authored with its own `name:` and no `external:`. Docker named volumes, volume folders under the Hosting Account's home and relative binds (`./data`) survive a Destroy. Relative binds stay until the environment is deleted.
 
 An empty environment folder is left in place when its last service goes. It costs nothing and does not lock any name.
 
@@ -127,6 +150,50 @@ The host also reports the folders it finds on its disk; any difference from what
 ## Volumes and the user a container runs as
 
 A volume folder belongs to the Hosting Account. A container may run as any user and TurboPanel never refuses a compose document for that. When a service declares a numeric user other than root, that user is given access to the volume folder with a permission entry; the folder's owner is never changed to root or to the image's user, so you keep access over SFTP. For an image that must own its data as a fixed user, use a Docker named volume instead of a directory.
+
+## A Hosting Account's Files Outside the Home
+
+Some of what a Hosting Account runs is kept outside `/srv/users/<owner>`, in places the account cannot write. `<id>` is a service, runtime or storage id.
+
+| Path | Owner and Mode | What | Removed |
+| --- | --- | --- | --- |
+| `/etc/ssh/turbopanel/authorized_keys/<owner>` | root | The account's SSH keys | With the account |
+| `/etc/systemd/system/turbopanel-<owner>.slice` | root, 0644 | The account's resource group; every unit below runs inside it. A `-` in the name becomes `.` in the slice name. | With the account |
+| `/etc/systemd/system/turbopanel-app-<id>.service` | root, 0644 | A native app (Node) | On every Destroy, and when the app is removed. The next deploy writes it again. |
+| `/etc/systemd/system/turbopanel-cron-<environment id>-<service>-<job>.service` and `.timer` | root, 0644 | A scheduled job | When the job is removed |
+| `/etc/systemd/system/turbopanel-php-<id>.service`, and `turbopanel-php-<id>.socket` in FastCGI mode | root, 0644 | A site's own PHP; see [PHP modes](/docs/using/php#what-each-site-gets) | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/etc/turbopanel/node-app-env/<id>.env` | root, 0600, in a root-only 0700 folder | A native app's variables, read by systemd as it starts the app | On every Destroy, and when the app is removed. The next deploy writes it again. |
+| `/etc/turbopanel/php/sites/<id>/` | root, group the owner, 0750; files 0640 | A site's PHP configuration | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/etc/turbopanel/nginx/`, `apache/`, `openlitespeed/`, `site-caddy/` | root, group the web server, 0750; files 0640 | Web server configuration for the account's sites, **including their decrypted variables and secrets** | On every Destroy, and when the site is removed. The next deploy writes it again. |
+| `/var/lib/turbopanel/deployments/<project id>/<environment id>/` | TurboPanel's account, 0750; `compose.yaml` and `.env` 0640 | The environment's compose files, with the last applied copy in `previous/`. A relative bind such as `./data` in a compose document points inside this folder. Compose secrets are written to `/run/turbopanel/deployments/…/secrets/`, 0600. | When the environment or its project is deleted, **together with anything a relative bind wrote there**. A Destroy removes only the compose files, the overlay file, `.env`, `deployment.json`, `previous/` and `.staging/`, and keeps the rest. |
+| `/var/lib/turbopanel/storage/<organization id>/<storage id>/<copy id>/data` | Given to the owner when the storage entry has one | A storage entry that has no folder in the home | **Not removed with the account** |
+| `/var/lib/docker/volumes/<name>` | Docker's | A Docker named volume | **Not removed with the account** |
+| `/var/lib/turbopanel-build/work/<build id>` | `work/` is root, group `tp`, 1770 | Scratch space for one sandboxed build | After the build |
+| `/var/lib/turbopanel-build/caches/<owner>/<project>` | root, 0700 | The account's build caches | With the account |
+| `/backup/volumes/<copy id>/` | TurboPanel's account, 0750; archives 0600 | Backups of a volume | **Not removed with the account** |
+
+**What outlives a removed account.** Storage under `/var/lib/turbopanel/storage`, Docker named volumes, `/backup` archives, and access entries the account was given on other accounts' volume folders stay on the server, still marked with the removed account's user id. The control plane takes ids from the counter of the organization that owns the server and never gives a used one out again, but an id set by hand could get the same number and so reach those files. This is being fixed. Until then, delete an account's storage and backups before removing it.
+
+## Logs
+
+Web server logs are kept for the whole server, not per site: `/var/log/turbopanel/nginx/`, `/var/log/turbopanel/apache/` and the other web servers' folders mix the requests and errors of every Hosting Account, so a Hosting Account cannot read them. Errors from a site's own PHP go to the system journal. Logs per site are planned. Until then, `logs/` in a service folder is only for the files your app writes itself; no web server writes there, and PHP's `open_basedir` does not include it, so a PHP app that keeps its own log files should write them to `shared/`.
+
+## Older Folders That Are Still Accepted
+
+Servers set up before the layout above can still have folders from the older one, and the host, the Docker gate and volume backups still accept them:
+
+| Older Path | What It Was |
+| --- | --- |
+| `/srv/users/<owner>/sites/<service>/` with `shared/`, `webroot/` and `releases/` | A site's folder |
+| `/srv/users/<owner>/volumes/<storage id>` | A volume folder |
+| `/srv/users/<owner>/data/` | The owner's own data folder. New homes do not get one, but where it exists a container may still bind it, like `tmp/`. |
+| `/var/lib/turbopanel/sites/<environment>/<service>/` | A site folder kept by TurboPanel itself |
+
+New folders are never made there. Accepting the older layout is due to be removed, so move anything still in it to the layout above.
+
+## Can the Home Root Move?
+
+No. Keep homes under `/srv/users`. Parts of the daemon and the host read a setting for another root (`TURBOPANEL_PRINCIPAL_HOME_ROOT`, and `principal_home_root` in the host's root-owned `tp-host.conf`), but the Docker gate, volume backups, the daemon's permission checks and the control plane are fixed to `/srv/users`, so a moved root does not work end to end.
 
 ## Backups and TurboPanel's own folders
 

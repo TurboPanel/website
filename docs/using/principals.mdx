@@ -28,7 +28,7 @@ Everything on this page ships with the next release, and one part is still parti
 
 **One principal, several servers.** A principal can be placed on every server its project deploys to. Each server gets its own Linux user with the same name. TurboPanel does not copy files between servers: a site deployed to two servers has two home directories, and what one writes the other does not see. Shared storage for load-balanced sites is planned.
 
-**Removal is always its own action.** Deleting a project never deletes its principals. Removing a principal is a separate step, and it is refused while a service, a database binding or a storage entry still uses it. Removing a server asks, per principal placed there, whether to **keep the identity** (the default — the principal stays in the organization and is removed from that server only) or **delete it outright**, which is refused while anything else still uses it.
+**Removal is always its own action.** Deleting a project never deletes its principals. Removing a principal is a separate step that asks you to type its username, and it is refused while a service, a database binding or a storage entry still uses it. Removing a server asks, per principal placed there, whether to **keep the identity** (the default — the principal stays in the organization and is removed from that server only) or **delete it outright**, which is refused while anything else still uses it.
 
 ## Before you begin
 
@@ -77,7 +77,7 @@ A database login is scoped to its cluster: it is created on every member of the 
 
 ## Remove a principal
 
-- **System user**: **Delete** on its row in the **System users** panel. Remove it from every service that runs as it and from every storage entry assigned to it first. From the next release the app refuses the delete while something still uses the principal and retires the Linux user on every server; today it removes the record only.
+- **System user**: **Delete** on its row in the **System users** panel. Remove it from every service that runs as it and from every storage entry assigned to it first. From the next release the app refuses the delete while something still uses the principal and retires the Linux user on every server: each server refuses while any service or volume folder is left under the account's home, while an older `sites/` folder there still has anything in it, or while a TurboPanel unit file still names the account (running or not), and once it goes ahead the whole home is removed. Storage kept outside the home, Docker named volumes and backups are not removed with it; this is being fixed. See [Where your files live](/docs/using/files-and-folders#a-hosting-accounts-files-outside-the-home). Today it removes the record only.
 - **Database login**: **Delete** on its row in **Users & databases**. It is refused while a binding still delivers the login to a service (`managed_user_has_bindings`); sever the binding first. The cluster's root and replication logins cannot be deleted.
 - **Project delete**, from the next release, leaves the project's principals in the organization: site directories and services go with the project, the identity does not. Today the principals go with the project.
 
@@ -115,7 +115,7 @@ A database login is scoped to its cluster: it is created on every member of the 
 | --- | --- |
 | Home | `/srv/users/<system name>/home` |
 | Files for services and volumes | `/srv/users/<system name>/<environment>/services/…` and `…/volumes/…`, plus `common/` for shared assets. See [Where your files live](/docs/using/files-and-folders). |
-| User id | Chosen from 15001–60000; today each server picks its own |
+| User id | The same number on every server the account is placed on. The control plane takes it from the counter of the organization that owns the server, which starts at 30001 and never reuses a number. An id set by hand (15001–60000) wins over the counter. A Linux user that already exists on a server keeps the id it has. |
 | Shared storage | Not yet; each server holds its own copy of the home directory |
 
 ## Errors

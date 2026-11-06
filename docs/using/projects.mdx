@@ -116,7 +116,7 @@ A project's first environment is its primary one. It is created with the organiz
     **Rename.** Open the environment's **Settings** tab and edit the name. Once the environment has folders on a server the name is locked (see [Environment names](#environment-names)).
   </Step>
   <Step>
-    **Delete.** **Settings → Danger → Delete environment**, or **Delete** in the **⋯** menu, two presses. It is disabled while the project has only one environment — delete the project instead. The confirmation names the environment and says its services, domains, containers and variables are removed. **Stop the environment first:** while it has a running container or a deploy in progress the delete is refused (`environment_running`), and the app says so.
+    **Delete.** **Settings → Danger → Delete Environment**, or **Delete Environment…** in the **⋯** menu, opens the **Delete Environment** dialog: type the environment's name (it has a **Copy** button) to confirm. It is disabled while the project has only one environment — delete the project instead. The dialog names the environment and says its services, domains, containers and variables are removed. **Stop the environment first:** while it has a running container or a deploy in progress the delete is refused (`environment_running`), and the app says so.
   </Step>
 </Steps>
 
@@ -195,7 +195,7 @@ The project's **Settings** tab:
 | **Keep original container names** | Off renames containers to service ids so a redeploy can roll; on keeps the names Compose would give, at the cost of rolling updates. | Off |
 | **Danger → Delete project** | Stops every environment, then deletes the project after a typed confirmation. Owner only. | — |
 
-Environment scope has its own **Add Variable** (an environment override) and **Danger → Delete environment**.
+Environment scope has its own **Add Variable** (an environment override) and **Danger → Delete Environment**.
 
 The organization-wide **Primary environment name** is under **Projects → Settings** (the settings entry on the Projects list, not inside a project).
 

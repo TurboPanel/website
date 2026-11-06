@@ -50,7 +50,7 @@ const PHASES: ReadonlyArray<Phase> = [
       'Server connect, reconnect, ping, hostname, reboot, and updates',
       'Updates one server at a time; an offline server does not block the rest of the fleet',
       'A quick add-server flow that gets a host online in minutes',
-      'Private networking mesh, datacenters, and IP address management',
+      'Private networking mesh, datacenter networks, and IP address management',
     ],
   },
   {

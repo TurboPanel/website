@@ -23,7 +23,7 @@ Roles are not assigned from the app in this release; self-hosted has exactly the
 
 ### Where a setting comes from
 
-Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
+Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins**, except for Hostnames on a self-hosted control plane, which come only from the app (see [Hostnames](#hostnames)). A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
 
 ## Before you begin
 
@@ -60,11 +60,12 @@ Most Admin settings can be set in two places: the app, or an environment variabl
   Applying reloads the proxy your browser is talking through, so the request usually ends in a
   gateway error while the apply in fact succeeded. The app waits for the control plane to answer
   again and reports **applied** / **reconnected**; reload if in doubt — the list was saved before the
-  apply was dispatched. On High Availability the button is absent (*cert apply is not applicable on
-  this runtime*).
+  apply was dispatched.
 </Callout>
 
-Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. The flat `TURBOPANEL_PUBLIC_URLS` list is the Platform CA names, kept in sync for certificate SANs, Git webhook callbacks, and the install command.
+Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. This screen is the only place to add a hostname on a self-hosted control plane. On each apply the daemon writes the Platform CA names to `TURBOPANEL_PUBLIC_URLS` as a copy for certificate SANs, Git webhook callbacks, and the install command, and overwrites that variable every time, so do not set it by hand.
+
+On TurboPanel High Availability this screen is read-only. It shows the one address the platform's environment sets, on port 443 with no port in the URL. There is nothing to add, save, or apply.
 
 ### Certificates, trusted proxies, tunnel, Platform CA
 
@@ -72,7 +73,7 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 | --- | --- |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. These settings are for this control plane. An organization's **Allow Let's Encrypt certificates** is a different switch and applies only to that organization's hosting certificates. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when the control plane's web server is still on this host. |
-| **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The stored token is never shown again. |
+| **Tunnel** | Puts this control plane online through a Cloudflare tunnel. Connect a Cloudflare account with one API token, then set a hostname's connection mode to **Cloudflare Tunnel** and choose **Connect**: TurboPanel creates the tunnel, the DNS record and the connector. A run token for a tunnel you manage yourself can be pasted instead. Tokens are never shown again. Steps: [Control Plane Tunnel](/docs/deployment/control-plane-tunnel). |
 | **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile for connected daemons. Self-hosted only. This is the Platform CA. |
 
 ## Updates

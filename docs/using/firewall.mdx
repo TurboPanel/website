@@ -28,7 +28,7 @@ organization
 | Thing                  | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Inbound only**       | The firewall decides what may reach a server. Outbound traffic is always open, and TurboPanel does not restrict it.                                                                                                                                                                                                                                                                                                                                                |
-| **Always allowed**     | Loopback, replies to connections the server started, ICMP and ICMPv6, the DHCP client, every port the server's SSH daemon listens on, and — on a server that also runs the control plane — the control plane's own ports. These are rendered before every rule, so a rule you add cannot close them. If the server cannot tell which SSH port it uses, port **22** stays open.                                                                                     |
+| **Always allowed**     | Loopback, replies to connections the server started, ICMP and ICMPv6, the DHCP client, every port the server's SSH daemon listens on, and — on a server that also runs the control plane — the control plane's port 8443. These are rendered before every rule, so a rule you add cannot close them. If the server cannot tell which SSH port it uses, port **22** stays open.                                                                                     |
 | **Worked out for you** | What you deployed: the control plane's port on its own host, hosting sites on **80** / **443**, ports published by compose services, managed-database listeners (only when external access is allowed for the server; this rule shows in the preview, and nothing enforces it yet), the [TurboFabric](/docs/using/network) port, and the replication ports of high-availability databases. A service bound only to `127.0.0.1` is not exposed, so it gets no rule. |
 | **Your rules**         | Allow, block, or block-and-tell-the-sender, for a protocol and ports, from a chosen set of sources.                                                                                                                                                                                                                                                                                                                                                                |
 | **Mode**               | Per server: **Off**, **Observe** or **Managed**. New servers start on **Observe**.                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -109,7 +109,7 @@ To change the mode, use **Mode** on the same tab. Each choice explains itself be
   </Step>
   <Step>
     **Who may connect**: **Anyone**, **My other TurboPanel servers**, **This
-    datacenter**, **TurboFabric only**, or **These addresses** — then one
+    datacenter network**, **TurboFabric only**, or **These addresses** — then one
     address or CIDR per line.
   </Step>
   <Step>**Server**: **Every server**, or one. **Save rule**.</Step>
@@ -173,7 +173,7 @@ It removes every TurboPanel firewall chain, rule, stored ruleset and pending sta
 
 ## Related
 
-- [Datacenters and networking](/docs/using/network) — datacenters and the TurboFabric mesh that rules can name as a source.
+- [Networking](/docs/using/network) — datacenter networks and the TurboFabric mesh that rules can name as a source.
 - [Servers](/docs/using/servers) — the server page the **Firewall** tab lives on.
 - [Security](/docs/deployment/security) — firewall guidance for the control-plane host and daemon hosts.
 - [Managed database ingress](/docs/architecture/managed-database-ingress) — the listeners the firewall opens for managed databases.

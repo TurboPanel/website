@@ -19,7 +19,7 @@ A **server** is a Linux host running the TurboPanel daemon, enrolled into one or
 
 Two rules:
 
-- **TurboPanel observes host interfaces; it does not configure them.** Addresses and routes are the host's. The app reads what the daemon reports and pins meaning onto it (datacenter membership, addresses for hosting). **The host firewall is TurboPanel's.** The installer removes `ufw`, `firewalld` and `iptables-persistent` from every host it installs on (they do not compose with Docker, and a host that shipped with `ufw` active kept the control plane's **8443** closed), so nothing on the host blocks the control plane or a published service port after install. The rules TurboPanel applies in their place — derived from what the control plane deploys, with organization defaults and per-server rules on top — are shown as a **preview** on each server's **Firewall** tab today and are not applied yet; until enforcement is switched on, restrict access from outside the host (cloud security groups, a provider firewall) if you need to. See [Firewall](/docs/using/firewall).
+- **TurboPanel observes host interfaces; it does not configure them.** Addresses and routes are the host's. The app reads what the daemon reports and pins meaning onto it (datacenter network membership, addresses for hosting). **The host firewall is TurboPanel's.** The installer removes `ufw`, `firewalld` and `iptables-persistent` from every host it installs on (they do not compose with Docker, and a host that shipped with `ufw` active kept the control plane's **8443** closed), so nothing on the host blocks the control plane or a published service port after install. The rules TurboPanel applies in their place — derived from what the control plane deploys, with organization defaults and per-server rules on top — are shown as a **preview** on each server's **Firewall** tab today and are not applied yet; until enforcement is switched on, restrict access from outside the host (cloud security groups, a provider firewall) if you need to. See [Firewall](/docs/using/firewall).
 - **A rebuilt host is a new server.** A key is consumed once; a host that is reinstalled from scratch enrolls with a fresh key and appears as a new server row.
 
 ## Before you begin
@@ -37,7 +37,7 @@ Two rules:
     **Server name (optional)** — how the row will be labelled; the daemon's hostname is used otherwise. **Continue** mints the key. Refused when capacity is exhausted (`server_capacity_exceeded`) or, on High Availability, when every license is held (`no_license_available` — **Open billing**).
   </Step>
   <Step>
-    **Install command**: `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`, with `TURBOPANEL_HOST` set to your control plane's public URL. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
+    **Install command**: `curl -fsSL https://turbopanel.sh | TOKEN=… sh`. The one signed `TOKEN` value carries the key, your control plane's URLs and its key fingerprint. A High Availability control plane that has no identity key yet gives the older form, `TURBOPANEL_LICENSE=…` with `TURBOPANEL_HOST`. **Copy install command** and run it as root on the host. It installs the daemon, enrolls with the key, and starts the service.
   </Step>
   <Step>
     **Connect** waits for the daemon's first heartbeat, then opens the server. The key disappears from **Keys** the moment it is consumed.
@@ -48,7 +48,7 @@ Two rules:
   The key inside the command enrolls one host; treat the command as a password until it has been used. A key you will not use is deleted under **Servers → Pending keys**.
 </Callout>
 
-**Servers → Pending keys** lists the unconsumed keys (owner-only). **Delete** is two-press. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
+**Servers → Pending keys** lists the unconsumed keys (owner-only). **Delete** asks you to type the key's name. A key bound to a live server cannot be deleted from here (`license_has_attached_server`) — delete the server instead.
 
 ## All servers
 
@@ -74,15 +74,15 @@ Open a server for seven tabs: **Overview · Control · Services · Time · Netwo
 - **Server proxy** — the per-server ingress container the platform manages for hosting rows; shows whether it is provisioned and running, with **Restart**. *Not provisioned* means no hosting has been deployed to this server yet.
 - **Commands** — **Change hostname** (pushed to the host by command) and **Reboot server**. Commands are queued and run when the daemon leases them — an offline server picks them up on reconnect; the app shows each command's outcome and log. A command that fails shows the one line that names the cause, not the whole block of daemon output.
 - **Daemon update** — when a newer build is published and the platform gate is open, **Update** runs the daemon's own updater over the connection; **Clear stuck update** resets an update the daemon never reported back. While the gate is shut the badge reads **Waiting for the control plane upgrade**. On TurboPanel High Availability the button is hidden. Co-located hosts are updated from **Admin → Updates**.
-- **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter default) or **This server** with a port; **Save SSH port**.
+- **SSH** — the SSH port the platform uses for this server: **Use inherited** (organization → datacenter network default) or **This server** with a port; **Save SSH port**.
 - **Revoke daemon key** — the compromised-host cutoff. Revoking closes the live session and refuses the key from then on; *the host cannot enroll again until this server is deleted and a rebuilt host is enrolled fresh.* Not offered for the co-located server.
-- **Delete server** — two-step confirm. Refused while dependent resources remain (`server_has_blockers`). While the host is online, tear down or move the environments placed here first. If the host is gone and the server shows **Offline**, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
+- **Delete Server** — type the server's name (its hostname when it has none) in the dialog to confirm. Refused while dependent resources remain (`server_has_blockers`). While the host is online, tear down or move the environments placed here first. If the host is gone and the server shows **Offline**, see [When the host is gone](#when-the-host-is-gone). The co-located server cannot be deleted.
 
 ### Seeing what runs on a server
 
-Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete server** might refuse, without leaving the control panel.
+Open a server and choose **Services**. The tab is read-only: it lists what is attached to this host so you can see why **Delete Server** might refuse, without leaving the control plane.
 
-**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control panel itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete server** → **Host is gone** on **Control**, which forgets those records — including apps that lived only on this server — instead of asking you to stop or move them first. A database whose only copy is here still has to be deleted first. When the card says **Yes**, delete is available on **Control**.
+**Can this server be removed?** sits at the top — **Yes** when nothing blocks delete, **No** when something still does — with the same reasons **Delete Server** on **Control** would give. When this is the co-located **Platform Server**, the card says this is the machine running the control plane itself and cannot be removed. When the host is **Offline** and delete is still blocked by leftover records, the card also points at **Delete Server** → **Host is gone** on **Control**, which forgets those records — including apps that lived only on this server — instead of asking you to stop or move them first. A database whose only copy is here still has to be deleted first. When the card says **Yes**, delete is available on **Control**.
 
 Every delete refusal and that card name each blocking environment as **Project / Environment**, up to fifty and then **and N more** — including environments that only hold a managed database, which block delete but do not appear in **Apps** below. Blocking managed databases are listed the same way.
 
@@ -100,12 +100,12 @@ The tab uses one request and refreshes while you keep it open.
 ### Time
 
 - **Time sync status** — facts from the last heartbeat: whether the NTP client is enabled and **Synced**, and the servers it uses.
-- **Timezone** — the effective timezone (server → datacenter → organization default); **Apply timezone** pushes a change to the host.
-- **NTP configuration** — **NTP client enabled**, **NTP servers**, **Fallback servers**; **Apply NTP** pushes it. Empty values inherit from the datacenter or the organization's host defaults.
+- **Timezone** — the effective timezone (server → datacenter network → organization default); **Apply timezone** pushes a change to the host.
+- **NTP configuration** — **NTP client enabled**, **NTP servers**, **Fallback servers**; **Apply NTP** pushes it. Empty values inherit from the datacenter network or the organization's host defaults.
 
 ### Network
 
-Read-only view of what the daemon reports and how the organization has pinned it: **Interfaces** (with the datacenter each address is pinned into; a pin whose address the daemon stopped reporting shows **Stale**), **Datacenters** (membership pins for this host), **Managed addresses** (organization address-pool rows assigned to this host), and **Mesh** (its TurboFabric state). Changing any of it is done from [Datacenters and networking](/docs/using/network).
+Read-only view of what the daemon reports and how the organization has pinned it: **Interfaces** (with the datacenter network each address is pinned into; a pin whose address the daemon stopped reporting shows **Stale**), **Datacenter Networks** (membership pins for this host), **Managed addresses** (organization address-pool rows assigned to this host), and **Mesh** (its TurboFabric state). Changing any of it is done from [Networking](/docs/using/network).
 
 ### Metrics
 
@@ -113,9 +113,9 @@ Live and historical charts for the host; see [Server metrics](/docs/metrics) for
 
 ## When the host is gone
 
-If you purged the host or lost the machine, the app still lists what ran there, so **Delete server** is refused (`server_has_blockers`) until those records are gone. **Host is gone** is only for an **Offline** server. While the host is **Online**, forget is refused (`server_online`); tear down or move apps first. The co-located server cannot be deleted.
+If you purged the host or lost the machine, the app still lists what ran there, so **Delete Server** is refused (`server_has_blockers`) until those records are gone. **Host is gone** is only for an **Offline** server. While the host is **Online**, forget is refused (`server_online`); tear down or move apps first. The co-located server cannot be deleted.
 
-When the server shows **Offline**, **Delete server** opens **Host is gone**. Apps that lived only on this server are listed first — they will be removed from TurboPanel (each app in its project; a long list ends with **and N more**). Confirm twice: the first press shows that warning and list; **Forget these and delete server** then removes the server.
+When the server shows **Offline**, **Delete Server** opens **Host is gone**. Apps that lived only on this server are listed first — they will be removed from TurboPanel (each app in its project; a long list ends with **and N more**). The button opens a dialog that asks you to type the server's name; confirming removes the server.
 
 **What is forgotten** (records in TurboPanel only — the machine is not touched):
 
@@ -132,10 +132,10 @@ Forgetting is recorded in the audit log as a server delete, with counts of what 
     Open the server. It must show **Offline**.
   </Step>
   <Step>
-    On **Control**, open **Delete server**. Read the apps that will be removed from TurboPanel (listed first), then the other records that will be forgotten. If a database is listed as blocking, delete that database first and come back.
+    On **Control**, open **Delete Server**. Read the apps that will be removed from TurboPanel (listed first), then the other records that will be forgotten. If a database is listed as blocking, delete that database first and come back.
   </Step>
   <Step>
-    Confirm, then **Forget these and delete server**.
+    Type the server's name to confirm.
   </Step>
 </Steps>
 
@@ -147,7 +147,7 @@ Forgetting is recorded in the audit log as a server delete, with counts of what 
 | --- | --- |
 | **Default server timezone** | The organization's timezone default, and **Enforce org default on every server**. |
 | **Temperature display** | °C or °F on every Metrics tab. |
-| **Host defaults** | The organization-level **SSH port**, **NTP client enabled**, **NTP servers**, **Fallback NTP servers** — the top of the *organization → datacenter → server* cascade (most specific wins). |
+| **Host defaults** | The organization-level **SSH port**, **NTP client enabled**, **NTP servers**, **Fallback NTP servers** — the top of the *organization → datacenter network → server* cascade (most specific wins). |
 | **Web server settings** | **Hide web server names and versions** for every server that does not set its own. On by default. |
 | **Server capacity** | **Max servers** or **Unlimited servers** (owner-only). Enrolled servers and pending keys count. |
 
@@ -165,16 +165,41 @@ A change reaches a site the next time its environment is deployed; saving the se
 
 Some default error pages still say which program wrote them, with no version, for example nginx's plain *404 Not Found* page. A site that wants its own error pages sets them in its application or server rules.
 
+## Behind a Router
+
+A server can sit on a LAN address (for example `192.168.1.50`) while a router forwards ports of a public address to it. The server then hosts as if it owned that public address. Everything TurboPanel runs on the server listens on all of its addresses and the firewall rules match by port, so forwarded traffic is answered like direct traffic, and the visitor's own address is kept when the router does not rewrite it. The daemon only dials out to the control plane, so it needs nothing forwarded.
+
+What the control plane cannot see is the router's address: the daemon reports only the LAN address, and private addresses are never offered to clients. Tell the control plane the public address once, as below.
+
+<Steps>
+  <Step>
+    On the router, forward TCP **80** and **443** (sites and their certificates), **15432** and **13306** if databases on this server take connections from outside, and **8443** only if the control plane itself runs on this server. Forward each to the same port on the server's LAN address.
+  </Step>
+  <Step>
+    Install the server as usual (see [Add a server](#add-a-server)). The install command runs on the server and connects out.
+  </Step>
+  <Step>
+    On the server's **Network** tab, open **Addresses clients use**, edit **Public**, set **Address clients use** to **A different address** and enter the router's public IPv4 (and IPv6, if the router has one). Add **DNS name clients use** if you have one. Fill **Port, if your router forwards a different one** only when the router's outside port differs from the server's.
+  </Step>
+  <Step>
+    Point your sites' DNS names at the router's public address. Certificate requests check that a name points at one of the server's public addresses, and the saved address counts. Database connection strings show the DNS name or address and the router's ports.
+  </Step>
+</Steps>
+
+- Leave a site's address pin unset. The router's public address is not one of the server's own addresses, so it cannot be chosen as a site pin; do not add it as a managed address to pin it either, because the web server cannot listen on an address that is not on the server. A pin on the server's LAN address also works: its certificate check accepts the saved public address.
+- Computers on the same LAN that use the public names need the router to send traffic for its own public address back inside (often called NAT loopback or hairpin NAT), or a local DNS server that answers those names with the LAN address. A control plane that runs on such a server needs the same for its own certificate: it checks that its name answers before ordering one.
+- The firewall's outside reachability check dials only the server's managed addresses, so behind a router it may say it cannot check the server.
+
 ## Reference
 
 | Item | Value |
 | --- | --- |
-| Install command | `curl -fsSL turbopanel.sh \| TURBOPANEL_LICENSE=… sh`, `TURBOPANEL_HOST=<public URL>`; `TURBOPANEL_INSECURE_TLS=1` only when the control plane serves the platform CA |
+| Install command | `curl -fsSL https://turbopanel.sh \| TOKEN=… sh` (one signed value: key, control plane URLs, key fingerprint and, for the platform CA, its fingerprint); without an identity key, the older `TURBOPANEL_LICENSE=…` and `TURBOPANEL_HOST=<public URL>` |
 | Key | one-shot; bound at enrollment; revocable; a rebuilt host needs a new one |
 | Reserved name | `this server` (the co-located server) |
 | Control-panel tabs | Overview · Control · Services · Time · Network · Firewall · Metrics |
 | Machine class | `auto` (default) · `physical` · `virtual` |
-| Cascades | timezone, SSH port, NTP: organization → datacenter → server; web server name hiding: server → organization → on |
+| Cascades | timezone, SSH port, NTP: organization → datacenter network → server; web server name hiding: server → organization → on |
 | Daemon session | 15-minute signed tokens; revocation takes effect at the next one at the latest |
 
 ## Errors
@@ -184,7 +209,7 @@ Some default error pages still say which program wrote them, with no version, fo
 | `server_capacity_exceeded` | 409 | Enrolled servers plus pending keys reach **Max servers**. |
 | `no_license_available` | 409 | High Availability: every purchased license is held or releasing. |
 | `license_has_attached_server` | 409 | The key is bound to a live server; delete the server, not the key. |
-| `server_has_blockers` | 409 | Leftover records still reference the server (counts in the response), or a database still has its only copy or its main copy here. While the host is online, tear those down first. When it shows **Offline**, **Delete server** can forget leftover records — except those databases, which you must delete first. |
+| `server_has_blockers` | 409 | Leftover records still reference the server (counts in the response), or a database still has its only copy or its main copy here. While the host is online, tear those down first. When it shows **Offline**, **Delete Server** can forget leftover records — except those databases, which you must delete first. |
 | `server_online` | 409 | Forget leftover records is refused while the server is still connected. |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own app. |
 | `The co-located development daemon cannot be updated from the control plane` | 403 | Update the control plane instead. |
@@ -201,7 +226,8 @@ Some default error pages still say which program wrote them, with no version, fo
 - [Purge and data export](/docs/deployment/purge) — removing TurboPanel from a host; then delete the server here.
 - [Daemon setup](/docs/deployment/daemon-setup) — the installer, the FHS layout, the service.
 - [Daemon update](/docs/deployment/daemon-update) — updating from the shell and changing channel.
-- [Datacenters and networking](/docs/using/network) — subnets, pins, addresses, Docker pools, the mesh.
+- [OS security updates](/docs/deployment/os-security-updates) — automatic Debian security updates and the Restart Needed notice.
+- [Networking](/docs/using/network) — subnets, pins, addresses, Docker pools, the mesh.
 - [Firewall](/docs/using/firewall) — modes, rules, the preview and the safety net.
 - [Billing and licenses](/docs/using/billing) — why a key can be refused on High Availability.
 - [Server metrics](/docs/metrics) — the Metrics tab.

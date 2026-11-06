@@ -150,6 +150,8 @@ Other `tp*` and `turbopanel*` accounts outside the 9900–9999 band show under *
 | Purged when installed | The Docker packages (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`, `docker-ce-rootless-extras`, `docker.io`, `docker-compose`, `containerd`, `runc`), the `download.docker.com` source and its keyring. And, only when TurboPanel's own PHP source (`sury-php.sources` / `sury-php.list`) or its `turbopanel-php-fpm` unit is on the host: the `phpN.N-*` packages and `debsuryorg-archive-keyring`, and then that source file. |
 | Never removed         | Everything else, including what the installer installs to do its work: `curl`, `git`, `acl`, `gnupg`, `iptables`, `openssl`, `ca-certificates`, `tar`, `unzip`, `wireguard-tools`, `pamtester`, `python3-debian`, `xz-utils`, `zstd`, `apt-transport-https`, `sudo`, `systemd-timesyncd`, `build-essential` and the Apache build libraries.                                                                                                                                       |
 
+The `unattended-upgrades` package that turns on [automatic security updates](/docs/deployment/os-security-updates) is kept too. The purge removes only TurboPanel's setting file, `/etc/apt/apt.conf.d/52turbopanel-security-updates`, so the host goes back to the package's own settings.
+
 Every package that is purged is first simulated with `apt-get -s purge`. A package whose removal would also remove anything else (for example `runc` on a host that also runs `podman`) is kept and listed under **Packages kept** with the reason.
 
 **No firewall afterwards.** The purge removes TurboPanel's own firewall rules, and `ufw` and `firewalld` were removed when TurboPanel was installed. The confirmation screen and the summary both say so: `No inbound firewall will remain: ufw and firewalld were removed when TurboPanel was installed, and this removes TurboPanel's own rules. Set up a firewall before this host takes traffic.`
@@ -179,19 +181,19 @@ Every package that is purged is first simulated with `apt-get -s purge`. A packa
 ## After purging a daemon
 
 1. Stop environments from the app before you purge. The script removes TurboPanel containers and, with Docker Engine, every volume.
-2. After the script finishes, the server shows **Offline**. Open it in the app and use **Delete server** — it lists leftover records, the apps that will be removed from TurboPanel, and any database you must delete first, then offers **Forget these and delete server**. See [When the host is gone](/docs/using/servers#when-the-host-is-gone). On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
+2. After the script finishes, the server shows **Offline**. Open it in the app and use **Delete Server** — it lists leftover records, the apps that will be removed from TurboPanel, and any database you must delete first, then offers **Forget these and delete server**. See [When the host is gone](/docs/using/servers#when-the-host-is-gone). On a compromised host, follow [Revocation](/docs/security/daemon-trust-model#revocation).
 3. Reinstall with the commands the script prints at the end:
 
 Install a daemon again ([Daemon setup](/docs/deployment/daemon-setup)):
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<license> sh
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<license> sh
 ```
 
 Install a self-hosted control plane again ([Control plane](/docs/deployment/control-plane)):
 
 ```bash
-curl -fsSL turbopanel.sh | sh
+curl -fsSL https://turbopanel.sh | sh
 ```
 
 ## Contributor dev environment
@@ -203,9 +205,9 @@ The script refuses a development environment before it changes anything. It exit
 - `/etc/turbopanel/dev-forward-hosts`
 - A `turbopaneld.service` whose `ExecStart` runs `main.ts`
 
-The message is `This host is a TurboPanel development environment (…). Nothing was changed.` followed by `Use ~/dev/console → Developer → Reset development environment / Purge completely.`
+The message is `This host is a TurboPanel development environment (…). Nothing was changed.` followed by `Use ~/turbopanel/dev/console → Developer → Reset development environment / Purge completely.`
 
-From `~/dev/console`, open **Developer**:
+From `~/turbopanel/dev/console`, open **Developer**:
 
 **Reset development environment** (`src/lib/reset-dev-environment.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
 
@@ -214,17 +216,17 @@ From `~/dev/console`, open **Developer**:
 3. Hard-resets platform git checkouts to `origin/trunk`
 4. Re-runs dev converge
 
-Reset does not delete `~/dev` itself.
+Reset does not delete `~/turbopanel/dev` itself.
 
 **Purge completely** (`purgeDaemon()` in `src/lib/daemon-actions.ts` in [TurboPanel/dev](https://github.com/TurboPanel/dev)):
 
 1. Stops, disables, and deletes `turbopaneld.service`, then reloads systemd
-2. Deletes the daemon checkout at `~/turbopaneld` (`TURBOPANEL_DEV_ROOT/turbopaneld`, or `TURBOPANEL_DAEMON_REPO` when that override is set)
+2. Deletes the daemon checkout at `~/turbopanel/turbopaneld` (`TURBOPANEL_DEV_ROOT/turbopaneld`, or `TURBOPANEL_DAEMON_REPO` when that override is set)
 3. Deletes vendored runtimes under `/opt/turbopanel/vendor`
 4. Deletes `/opt/turbopanel/.cache`, `/opt/turbopanel/.ansible`, and `/opt/turbopanel/.local`
 
 <Callout type="warn" title="Purge deletes the host-synced daemon checkout">
-  Vagrant mounts `~/turbopaneld` both ways from the contributor's host checkout.
+  Vagrant mounts `~/turbopanel/turbopaneld` both ways from the contributor's host checkout.
   **Purge completely** runs `rm -rf` on that path, so work in the host
   `turbopaneld` tree is deleted with the guest copy.
 </Callout>
