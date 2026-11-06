@@ -7,7 +7,7 @@ description: Choosing what you hear about and where, quick presets, levels and s
 
 When something happens that a person may want to know about (a server goes offline, a daemon key is revoked, access is granted), TurboPanel can put it in your **bell** and send it to your **channels**: your email, a chat room, a webhook. You decide what reaches you. This chapter covers your notification settings, the channels you and your organization own, every event that exists today, and how delivery behaves.
 
-<Callout type="info" title="Private alpha: the catalogue only lists real events">
+<Callout type="info" title="Private Alpha: The Catalogue Only Lists Real Events">
   Only events that the platform actually raises are listed. Each new event joins
   the catalogue together with the code that raises it, so what the settings offer
   is always what can arrive.
@@ -39,9 +39,9 @@ You can set a level at any scope, for every event, for one category or for one e
 2. **Subject**, within one scope. A single event beats a category, which beats every event.
 3. **Target**, within one scope and subject. One personal channel beats a channel kind, which beats every kind.
 
-**Scope beats subject.** If you turn email off for the Servers category in every organization, but set one project to **All**, that project's events are still emailed. The same works for a server: email off for Servers everywhere, and server `db-1` set to **All**, still emails `db-1`'s server events.
+**Scope beats subject.** If you turn email off for the Servers category in every organization, but set server `db-1` to **All**, `db-1`'s server events are still emailed. The same rule holds for a project: email off for Servers everywhere, and one project set to **All**, still emails that project's events.
 
-Today's events name either a server or only the organization. Settings for a project, environment, service or backup target take effect for events that name one; until such events exist, set those scopes knowing that the organization or server setting is the one that decides.
+Today's events name either a server or only the organization, so project, environment, service and backup target settings take effect for events that name one of those as such events are added. Until then, the organization or server setting is the one that decides.
 
 Each level on the settings screens carries an **Effective from** label that says where it comes from: a setting at this scope, or the one it inherits (for example _Effective from Every Organization_ or _Effective from Organization_). When nothing is set anywhere, it is **Off**. Removing a setting goes back to the inherited one.
 
@@ -226,7 +226,7 @@ Every notification email shows the event, the facts as a list, and an **Open in 
 | `X-TurboPanel-Event` | The event code, for example `server.offline` |
 | `X-TurboPanel-Reason` | Why you got it: `preference` (your own settings), `organization-channel` or `instance-channel` (a control plane channel) |
 
-**Refused addresses.** When the receiving mail server refuses an address for good, TurboPanel stops sending notification email to it. Delivery starts again once the address is confirmed again with a new confirmation link. Sign-in codes and other account email are never stopped this way.
+**Refused addresses.** When the receiving mail server refuses an address for good, TurboPanel stops sending notification email to it. Delivery starts again once the address is confirmed again. Sign-in codes and other account email are never stopped this way.
 
 ## What Webhooks and Chat Channels Receive
 
