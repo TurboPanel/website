@@ -212,6 +212,12 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
 | `updates_automatic` | 410 | A retired manual update route: `POST /servers/:id/update`, `POST /servers/updates`, or an old admin start, retry or cancel. Updates are automatic; see **Updates** above. |
+| `run_active` | 409 | **Update Now** while an update is already running (`activeRunId` names it). |
+| `paused` | 409 | **Update Now** while **Pause All Updates** is on. |
+| `update_blocked` | 409 | **Update Now** found something behind, but a pre-flight check or a server's retry wait stops the start; `blockers` lists why. |
+| `check_too_soon` | 429 | **Check Now** or **Update Now** pressed again within a minute; `retryAfterSeconds` and `Retry-After` say how long to wait. |
+| `release_unreachable` | 503 | **Update Now** could not reach the release server. The build it already knew is kept. |
+| `development` | 403 | **Update Now** on a development install, which updates with **Build and Push Daemon**. |
 | `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
 | `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
 | `preflight_trust` | step error | Automatic-update TLS is not public trust and not the Platform CA. |
