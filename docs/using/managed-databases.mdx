@@ -22,7 +22,7 @@ Two facts shape everything below:
 
 ## Before you begin
 
-- A connected server with Docker; the cluster's primary runs there. Every server whose apps use a managed database runs the database proxy, and on a Raspberry Pi 5 running Raspberry Pi OS (Debian 13, "trixie") the default 16 KiB kernel cannot run it; one command switches the Pi to the 4 KiB kernel — see [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
+- A connected server with Docker; the cluster's primary runs there. Every server whose apps use a managed database runs the database proxy, and on a Raspberry Pi 5 running Raspberry Pi OS (Debian 13, "trixie") the default 16 KiB kernel cannot run it; one command switches the Pi to the 4 KiB kernel — see [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases).
 - For a failover replica: a second server **in the same datacenter network** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter network path to the primary.
 - For a client on another server: that server enrolled in the organization (the listener is deployed to it when a service there binds the database).
 - **Manage** rights on the organization.
@@ -386,7 +386,7 @@ Raft voters are chosen **inside one datacenter network** (`selectHaRaftMembers`)
 
 Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common on Raspberry Pi 5 until switched). Consumer servers need the proxy too — apps reach databases through `127.0.0.1:15432` / `13306` even when no engine runs there.
 
-**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
+**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases).
 
 ## Backups
 
@@ -542,7 +542,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 
 ## Related
 
-- [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases) — switching a Pi to the 4 KiB kernel so apps can reach their databases.
+- [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases) — switching a Pi to the 4 KiB kernel so apps can reach their databases.
 - [Managed database ingress](/docs/architecture/managed-database-ingress) — the listener, routing and bindings from the platform's side.
 - [Organization CA](/docs/security/organization-ca) — the CA that signs the listener and the download for `verify-full`.
 - [Database proxy metrics](/docs/metrics/database-proxy) — what the listener reports on a server's Metrics tab.

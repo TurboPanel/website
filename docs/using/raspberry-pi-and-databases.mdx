@@ -1,15 +1,19 @@
 ---
-title: Raspberry Pi and databases
-description: Why a Raspberry Pi needs the 4 KiB kernel before apps can reach managed databases, how to switch it with one command or at install time, and how to undo it
+title: Raspberry Pi, databases and memory limits
+description: Why a Raspberry Pi needs the 4 KiB kernel before apps can reach managed databases and a boot setting before memory limits work, how to switch both with one command or at install time, and how to undo them
 ---
 
-# Raspberry Pi and databases
+# Raspberry Pi, databases and memory limits
+
+A Raspberry Pi needs two boot changes before TurboPanel works fully on it: the 4 KiB kernel, so apps can reach managed databases, and memory limits turned on, so the limits TurboPanel sets on services and containers are enforced. A first install makes both and restarts the server once.
+
+## The 4 KiB kernel
 
 Every server whose apps use a managed database runs a small database proxy. Apps connect to `localhost:13306` (MySQL and MariaDB) or `localhost:15432` (Postgres), and the proxy sends each connection to the right database server, using the login name. This is true even when no database runs on that server.
 
 The proxy needs a **4 KiB** memory page size. A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a **16 KiB** kernel by default, and the proxy cannot start on it. Until the Pi boots the 4 KiB kernel, apps on it cannot reach their databases.
 
-## Switch an existing server
+### Switch an existing server
 
 Run this on the server. It needs `sudo`. The installer only restarts on a first install; on a server that is already installed or already enrolled, you run this yourself:
 
@@ -43,15 +47,53 @@ The state is one of `not-applicable`, `switchable`, `restart-needed`, `ready`, o
 
 Leave out `--reboot` to save the change and restart on your own schedule. `status` then reads `restart-needed`.
 
+## Memory limits
+
+Raspberry Pi firmware starts the kernel with `cgroup_disable=memory`. That turns off the kernel's memory controller, so memory limits on services and containers are accepted but not enforced: a service can use more memory than its limit. You can see it on the server: `memory` is missing from `/sys/fs/cgroup/cgroup.controllers`.
+
+The `pi-memory-cgroup` feature turns the controller back on. The kernel reads its settings in order, so a `cgroup_enable=memory` after the firmware's own setting wins.
+
+```bash
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features status pi-memory-cgroup
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-memory-cgroup --reboot
+```
+
+<Steps>
+  <Step>
+    When `status` prints `switchable` for `pi-memory-cgroup`, the server can turn memory limits on.
+  </Step>
+  <Step>
+    `apply` copies `/boot/firmware/cmdline.txt` to `cmdline.txt.tp-backup-<date and time>` in the same directory, removes any `cgroup_disable=memory` from its single line and adds `cgroup_enable=memory` at the end. The file stays one line.
+  </Step>
+  <Step>
+    With `--reboot`, it restarts the server the same way as the kernel switch: after enrolment, with a countdown you can cancel with Ctrl-C.
+  </Step>
+  <Step>
+    When the server is back, `memory` is listed in `/sys/fs/cgroup/cgroup.controllers` and `status` prints `ready`. Running `apply` again then prints `state=ready changed=no`.
+  </Step>
+</Steps>
+
+It does nothing when the server is not a Raspberry Pi, when the memory controller is already on, or when the controller is off for another reason than the firmware's `cgroup_disable=memory`. `status` says `blocked` when `cmdline.txt` is missing or has more than one line, when `cmdline.txt` turns off control groups itself (for example `cgroup_disable=cpu,memory`), or when the kernel already started with `cgroup_enable=memory` and the controller is still missing (a restart would not help).
+
 ## At install time
 
-On a Raspberry Pi running Raspberry Pi OS on Debian 13, the installer does the same switch as its **last** step, after everything else is installed — but only on a **first** install. It records whether the server was already enrolled, waits for fresh enrolment files, then explains what is about to happen, saves the change, counts down, and restarts the server.
+On a Raspberry Pi, the installer makes both changes as its **last** step, after everything else is installed — but only on a **first** install. It records whether the server was already enrolled, then explains what is about to happen and saves every change that applies. Before it restarts the server, once, it waits:
 
-On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
+1. for fresh enrolment files, so the server can enrol after the restart,
+2. for TurboPanel to finish setting up the server (its first setup run, which can take several minutes on a Pi),
+3. until no software is being installed (no `apt`, `dpkg` or setup run is going),
 
-To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. You can run the command above later instead.
+then it stops the TurboPanel daemon so it starts nothing new, counts down and restarts. If a wait runs out, it does not restart and prints `sudo reboot` for you to run when the server is ready. Press Ctrl-C during the countdown to cancel; the daemon starts again.
 
-## When it does nothing
+On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply commands instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
+
+To skip both changes, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. To keep only memory limits off, set `TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1`. You can run the commands above later instead.
+
+```bash
+curl -fsSL https://turbopanel.sh | TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1 TURBOPANEL_LICENSE=<license> sh
+```
+
+## When the kernel switch does nothing
 
 - The server is not a Raspberry Pi.
 - The OS is not Raspberry Pi OS on Debian 13 ("trixie").
@@ -64,14 +106,17 @@ To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. Yo
 
 ```bash
 sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features undo pi-4k-pagesize
+sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features undo pi-memory-cgroup
 sudo reboot
 ```
 
-`undo` removes the `kernel=kernel8.img` line only when TurboPanel added it. If you wrote `kernel=kernel8.img` yourself, it prints `Nothing to undo` and you remove the line by hand. `undo` never restarts the server. The backup copy is left in place.
+`undo` only takes back what TurboPanel added; a marker in `/var/lib/turbopanel-kernel` records that. For `pi-4k-pagesize` it removes the `kernel=kernel8.img` line. For `pi-memory-cgroup` it puts the `cmdline.txt` line back exactly as it was; if the line was edited since, it only removes `cgroup_enable=memory`. If you made either change yourself, it prints `Nothing to undo` and you change the file by hand. `undo` never restarts the server. The backup copies are left in place.
+
+After a purge the `tp-orchestrate` command is gone, but both boot settings stay on purpose. The purge summary says so; undo them by hand: delete the `kernel=kernel8.img` line from `/boot/firmware/config.txt`, remove `cgroup_enable=memory` from the line in `/boot/firmware/cmdline.txt` (keep it one line), or copy a `/boot/firmware/*.tp-backup-…` file back over its original. Then restart. Delete the backup copies and `/var/lib/turbopanel-kernel` once you no longer need them.
 
 ## If a Pi does not come back
 
-Take the SD card out and mount its boot partition on another computer. Delete the `kernel=kernel8.img` line from `config.txt`, or copy the `config.txt.tp-backup-…` file over it, then put the card back.
+Take the SD card out and mount its boot partition on another computer. Delete the `kernel=kernel8.img` line from `config.txt` and `cgroup_enable=memory` from `cmdline.txt`, or copy the `config.txt.tp-backup-…` and `cmdline.txt.tp-backup-…` files over them, then put the card back.
 
 ## Related
 
