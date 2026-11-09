@@ -222,7 +222,7 @@ Pins accept release manifests only. Each package's pin must be a `manifest.json`
 
 The control plane checks migration history at every boot and refuses to serve a database migrated by a newer release than the binary (`database was migrated by files this build does not ship`). Roll the database back with the binary, or move the binary forward.
 
-The daemon refuses a control-plane target below `MIN_SUPPORTED_INSTANCE_VERSION` (today **0.1.0**). A target it cannot parse is allowed. Daemon self-update does not consult that floor.
+The daemon refuses a control-plane target below `MIN_SUPPORTED_INSTANCE_VERSION` (today **0.1.22**; only the target's base `X.Y.Z` is compared, so a `0.1.22-canary` build passes). A target it cannot parse is allowed. Daemon self-update does not consult that floor.
 
 ## History
 
