@@ -7,9 +7,9 @@ description: Choosing what you hear about and where, quick presets, levels and s
 
 When something happens that a person may want to know about (a server goes offline, a daemon key is revoked, access is granted), TurboPanel can put it in your **bell** and send it to your **channels**: your email, a chat room, a webhook. You decide what reaches you. This chapter covers your notification settings, the channels you and your organization own, every event that exists today, and how delivery behaves.
 
-<Callout type="info" title="Private Alpha: The Catalogue Only Lists Real Events">
+<Callout type="info" title="Private Alpha: The Catalog Only Lists Real Events">
   Only events that the platform actually raises are listed. Each new event joins
-  the catalogue together with the code that raises it, so what the settings offer
+  the catalog together with the code that raises it, so what the settings offer
   is always what can arrive.
 </Callout>
 
@@ -22,28 +22,30 @@ When something happens that a person may want to know about (a server goes offli
 | **Event** | One thing that happened, with a stable code (`server.offline`), a plain name (_A server went offline_), a **severity** (info, warning, critical) and a **category** (Servers, Security, Access, Certificates, Backups, Billing, Control Plane). It belongs to one organization, or to the control plane as a whole. |
 | **Level** | How much of something you want: **All**, **Warnings and Critical**, **Critical Only** or **Off**. A level is a floor: _Warnings and Critical_ lets warning and critical events through and drops info events. |
 | **Channel kind** | Where a copy goes: the **bell**, **email**, **chat channels** (your personal Slack, Discord and Telegram channels) or **webhooks** (your personal webhooks). Each kind has its own level, so the bell can show everything while email carries only critical events. |
-| **Scope** | Where a setting applies: **every organization** › one **organization** › one **project** › one **environment** › one **server**, **service** or **backup target**. |
+| **Scope** | Where a setting applies: **every organization** › one **organization** › one **project** › one **environment** › one **server**. The settings screens offer these five; a setting for one **service** or one **backup target** can be made through the API. |
 | **Personal channel** | A channel of yours that follows your settings. Every account has one built in, **Account Email**. |
 | **Organization channel** | A channel the organization's owners and managers set up, with its own rules. It is not part of anyone's personal settings. |
 
 Where to find your settings:
 
 - **Organization Settings → Notifications**: your own settings for that one organization. Every member can open it.
-- **Account → Notifications** (`/account/notifications`): your settings for every organization at once, and your personal channels.
+- **Account → Notifications** (`/account/notifications`): your settings for every organization at once (the **Every Organization** panel), every setting you have made anywhere (**Notification Overrides**, each with **Remove**), and your personal channels.
 
 ### How Settings Combine
 
-You can set a level at any scope, for every event, for one category or for one event, and for every channel kind, one kind or one personal channel. For each copy of each event, TurboPanel picks **the most specific setting**, compared in this order:
+On the settings screens you set a level **per channel kind** at every scope, and a level **per category** in an organization (for every channel kind at once). Through the API a setting can also name **one event**, **one personal channel**, a **service** or a **backup target**; an unsubscribe link makes one such setting for you (one category, email only). Every setting, however it was made, is listed on **Account → Notifications** under **Notification Overrides**. For each copy of each event, TurboPanel picks **the most specific setting**, compared in this order:
 
 1. **Scope.** A server, service or backup target beats an environment, which beats a project, which beats an organization, which beats your setting for every organization.
 2. **Subject**, within one scope. A single event beats a category, which beats every event.
 3. **Target**, within one scope and subject. One personal channel beats a channel kind, which beats every kind.
 
-**Scope beats subject.** If you turn email off for the Servers category in every organization, but set server `db-1` to **All**, `db-1`'s server events are still emailed. The same rule holds for a project: email off for Servers everywhere, and one project set to **All**, still emails that project's events.
+**Scope beats subject.** If you turn the Servers category off in an organization, but set server `db-1` to **All**, `db-1`'s server events still arrive. The same rule holds for a project: Servers off in the organization, and one project set to **All**, still delivers that project's events.
+
+**Target beats the category's own level.** A setting for one channel kind in a category (what an unsubscribe link makes) wins over the category's level for every channel. The organization's Notifications tab lists such a setting under its category with **Remove**, and an **In effect** line under the category says what applies whenever the category picker alone would be wrong, for example _In effect: Bell: All · Email: Off (Set here)_.
 
 Today's events name either a server or only the organization, so project, environment, service and backup target settings take effect for events that name one of those as such events are added. Until then, the organization or server setting is the one that decides.
 
-Each level on the settings screens carries an **Effective from** label that says where it comes from: a setting at this scope, or the one it inherits (for example _Effective from Every Organization_ or _Effective from Organization_). When nothing is set anywhere, it is **Off**. Removing a setting goes back to the inherited one.
+Each level on the settings screens carries a label that says where it comes from: **Set here** when a setting at this scope decides, **Effective from Every Organization**, **Effective from Organization**, **Effective from Project** and so on when it inherits one, and **Off until you turn it on** when nothing is set anywhere. A category left at **Same as Above** follows the channel kind levels above it. Removing a setting (**Reset** beside a level, **Remove** beside a listed setting, or **Reset All** on a project, environment or server) goes back to the inherited one.
 
 ### Who Can Hear What
 
@@ -67,7 +69,7 @@ Administrators hear an organization's events only when they belong to it. An adm
 
 <Steps>
   <Step>
-    Open **Account → Notifications** to choose for every organization, or **Organization Settings → Notifications** to choose for one.
+    Open **Account → Notifications** (the **Every Organization** panel) to choose for every organization, or **Organization Settings → Notifications** to choose for one.
   </Step>
   <Step>
     Pick a preset:
@@ -83,7 +85,7 @@ Administrators hear an organization's events only when they belong to it. An adm
 
   </Step>
   <Step>
-    Adjust from there: change the level of a channel kind, open a category to set it or one of its events, or go to a project, environment, server, service or backup target to set a level that applies only there. Check the **Effective from** label to see which setting decides.
+    Adjust from there: change the level of a channel kind, set a level for a category under **Categories** (organization settings only), or use **Add Override…** to give a project, environment or server its own levels. Check the label under each level to see which setting decides.
   </Step>
 </Steps>
 
@@ -91,11 +93,11 @@ To stop everything, choose **Nothing**, or set each kind to **Off**.
 
 ## Your Account Email
 
-Every account has a built-in personal email channel called **Account Email**. It follows your sign-in address: change the address you sign in with and notifications follow it. It cannot be deleted (turn it off with your settings instead). Your email level applies to it and to any other personal email channel, unless you set a level for one channel on its own.
+Every account has a built-in personal email channel called **Account Email**. It follows your sign-in address: change the address you sign in with and notifications follow it. It cannot be deleted (turn it off with your settings instead). Your email level applies to it and to any other personal email channel; only an unsubscribe link from an email sent to another address (or the API) sets one channel on its own.
 
 ## Add a Personal Channel
 
-Your other personal channels follow your settings just like **Account Email**: a level for their kind (email, chat channels, webhooks), or a setting for that one channel.
+Your other personal channels follow your settings just like **Account Email**: the level for their kind (email, chat channels, webhooks) at each scope.
 
 <Steps>
   <Step>
@@ -111,7 +113,7 @@ Your other personal channels follow your settings just like **Account Email**: a
 
   </Step>
   <Step>
-    Save. Then set the level for that kind (or for this channel only) at the scopes you want. A new chat channel or webhook receives nothing until a setting turns its kind or the channel on.
+    Save. Then set the level for that kind at the scopes you want. A new chat channel or webhook receives nothing until a level for its kind is on.
   </Step>
 </Steps>
 
@@ -119,7 +121,7 @@ Each channel row shows **Pause** / **Resume**, **Remove**, its digest and quiet 
 
 ## Organization Channels
 
-An organization channel belongs to the organization, not to a person: a shared mailbox, the team's chat room, an incident webhook. Owners and managers add them from **Organization Settings → Notifications**, the same way as a personal channel, and choose **rules** for each one: **Every event** at a floor (_Everything_, _Warnings and up_, _Critical only_), or **Chosen events** with a floor. The rules offer the organization's events only. An organization email channel may name a member's sign-in address at once; any other address gets the one-day confirmation link.
+An organization channel belongs to the organization, not to a person: a shared mailbox, the team's chat room, an incident webhook. Owners and managers add them from **Organization Settings → Notifications**, the same way as a personal channel, and choose **rules** for each one: **Every event** at a floor (_All_, _Warnings and Critical_, _Critical Only_), or **Chosen events** with a floor. The rules offer the organization's events only. An organization email channel may name a member's sign-in address at once; any other address gets the one-day confirmation link.
 
 Members who are not owners or managers see a message that they need that permission instead of the list.
 
@@ -193,7 +195,7 @@ Every critical event is urgent, whatever its row says.
 
 ## The Bell
 
-The bell in the header (the avatar badge on the phone apps) shows your unread count, checked once a minute; past 99 it shows **99+**. Open it for the newest items: a coloured dot for severity, the title and the sentence, and when it happened. **Mark all read** clears the badge; **×** dismisses an item; an item that names a server opens that server. If the server, project or backup target has since been deleted, the item stays and says so, without a link. Items from an organization you have left are hidden. **Notification settings** at the bottom opens your settings.
+The bell in the header shows your unread count, checked once a minute; past 99 it shows **99+**. Open it for the newest items: a coloured dot for severity, the title and the sentence, and when it happened. **Mark All Read** clears the badge; **×** dismisses an item; an item that names a server opens that server. If the server, project or backup target has since been deleted, the item stays and says so, without a link. Items from an organization you have left are hidden. **Notification Settings** at the bottom opens your settings. An empty bell says **No notifications yet**, or **Nothing is turned on** when you have chosen nothing for the organization you are looking at and nothing from it can reach you; its **Turn On Notifications** link opens that organization's Notifications tab.
 
 Reading an item in the bell cancels its email if that email is still being held for quiet hours or a digest.
 
@@ -214,7 +216,7 @@ Email, chat and webhook channels can wait instead of sending each event the mome
 
 Every notification email shows the event, the facts as a list, and an **Open in TurboPanel** button when the event names something you can open. The subject reads like `[TurboPanel Critical] Server db-1 went offline`.
 
-**Unsubscribe.** Every personal notification email ends with two links: **Unsubscribe from these emails** and **Manage all notification settings**. It also carries the one-click unsubscribe headers (RFC 8058), so a mail program's own unsubscribe button works. Unsubscribing turns off email for **that category** in **that project** (or in that organization, when the event names no project), and for that channel only when it came to a personal address other than your Account Email. Everything else stays as it was. The link works without signing in and is valid for 60 days. Email from an organization channel has no unsubscribe link, because the organization's owners and managers set its rules; it still links to the settings.
+**Unsubscribe.** Every personal notification email ends with two links: **Unsubscribe from these emails** and **Manage all notification settings**. It also carries the one-click unsubscribe headers (RFC 8058), so a mail program's own unsubscribe button works. The link opens a page that changes nothing until you press **Unsubscribe**: a mail program that opens links on its own unsubscribes no one. It works without signing in and is valid for 60 days. Unsubscribing turns off email for **that category** in **that project** (or in that organization, when the event names no project), and for that channel only when it came to a personal address other than your Account Email. Everything else stays as it was. After the press the page names the category and offers **Open Notification Settings**. To undo an unsubscribe, open that organization's **Notifications** tab (or **Account → Notifications** for an email about the control plane itself): the setting is listed under its category as _Email: Off_, or by the channel's name, with **Remove**; the **Notification Overrides** list on **Account → Notifications** has it too. Unsubscribing from a digest email, which covers every category, sets your Email level itself to **Off** at that scope; choose another level to hear email again. Email from an organization channel has no unsubscribe link, because the organization's owners and managers set its rules; it still links to the settings.
 
 **Filtering headers.** Each notification email carries headers a mail filter can match:
 
@@ -268,8 +270,8 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | Default | Off for everything, in every channel kind |
 | Levels | All · Warnings and Critical · Critical Only · Off |
 | Channel kinds in settings | bell · email · chat channels (Slack, Discord, Telegram) · webhooks |
-| Scopes | every organization › organization › project › environment › server, service or backup target |
-| Order | scope, then event › category › every event, then one channel › kind › every kind |
+| Scopes | every organization › organization › project › environment › server (service and backup target through the API) |
+| Order | scope, then event › category › every event, then one channel › kind › every kind (one event and one channel through the API or an unsubscribe link) |
 | Presets | Everything · Recommended · Critical Only · Nothing (bell and email only) |
 | Organization channel rule | every event at a floor, or chosen events at a floor; organization events only |
 | Severities | info < warning < critical |
@@ -303,18 +305,18 @@ One attempt is made at the moment of the event, with a five-second budget per ch
 | `label_required`, `label_invalid` | 400 | The name is missing, too long, or has control characters. |
 | `signing_secret_not_applicable` | 400 | Only a webhook channel signs its deliveries. |
 | `signing_secret_invalid` | 400 | 1–256 characters. |
-| `rule_event_unknown` | 400 | A rule names an event that is not in the catalogue (`reason` carries it). |
+| `rule_event_unknown` | 400 | A rule names an event that is not in the catalog (`reason` carries it). |
 | `rule_severity_invalid`, `rules_invalid` | 400 | The rule list is malformed. |
 | `body_invalid`, `disabled_invalid` | 400 | The request body is not an object, or the pause flag is not true or false. |
 | `digest_cadence_invalid` | 400 | The digest is not `hourly`, `daily` or null. |
 | `quiet_hours_invalid` | 400 | Quiet hours need a start and an end as 24-hour `HH:MM`, and they cannot be the same time. |
 | `time_zone_invalid` | 400 | Not a time zone from the list the web interface offers. |
 | `time_zone_user_channels_only` | 422 | A time zone is set on your own profile, from one of your personal channels. |
-| `timing_push_unsupported` | 422 | Digest and quiet hours are for email, chat and webhook channels; phone push is handled by the store apps. |
+| `timing_push_unsupported` | 422 | Digest and quiet hours are for email, chat and webhook channels only. |
 | `kind_invalid`, `scope_invalid` | 400 | Not one of the kinds above, or not `user` / `organization`. |
 | A sentence naming the field | 400 | A notification setting or preset is malformed: an unknown category or event, both a category and an event, both a channel and a kind, a project without its organization, an environment without its project, more than one server, service or backup target, or an unknown preset. |
 | `scope_not_in_organization` | 422 | The project, environment, server, service or backup target is not in the organization the setting names. |
-| `invalid_or_expired` | 400 | The unsubscribe link is damaged or older than 60 days. Change the setting from **Manage all notification settings** instead. |
+| `invalid_or_expired` | 400 | The unsubscribe link is damaged or older than 60 days. Sign in and change the setting from **Manage all notification settings** instead. |
 | `unavailable` | 503 | The control plane cannot read unsubscribe links right now (no encryption key). |
 | `Forbidden` | 403 | Organization channels need owner or manager access; **Hear Every Organization** is for administrators. |
 | `Not found` | 404 | The channel, setting or bell item is not yours, or you cannot open that organization. |
