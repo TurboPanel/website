@@ -49,7 +49,6 @@ HTTP request body (the v6 fallback shape, which a wire version 8 sample extends 
     "sampledAt": "2026-09-07T12:00:00.000Z",
     "intervalSeconds": 60,
     "sequence": 42,
-    "topologyGeneration": 1,
     "bootGeneration": 1
   },
   "host": {
@@ -193,12 +192,13 @@ The hosted rows are full (19 numbers each), so carrying the sizes without adding
 
 ## Hardware and device identity
 
-The wire sample still carries `metadata.topologyGeneration` and `metadata.bootGeneration`, but layout v12 stores neither and keeps no generation history. Instead:
+The wire sample carries `metadata.bootGeneration`. An older daemon also sends `metadata.topologyGeneration`; a current daemon leaves it out, along with the `generation` and `bootGeneration` of its hardware report and the `topology_generation_changed` event, once the control plane lists the `topology-generation-optional-v1` wire feature (every current control plane does). Layout v12 stores neither number and keeps no generation history. Instead:
 
 - **Every stored row names its own devices.** A paged family (`gpu`/`network`/`filesystem`/`block`/`hardware.physical`) stamps each page's device ids on the row, and the host network row names the two embedded NICs and the one folded extra filesystem (`nic1=<id>@<link speed>;nic2=<id>@<link speed>;fs=<id>`). A reader asks for "device X", never for "slot 3", so replacing a NIC or re-ordering slots can never give one device another's history.
 - **The server keeps only its latest hardware facts**, as one record in the server's `hardware` column, overwritten at most every 30 seconds (and at most 12 changes an hour and 24 a day). It answers "what hardware does this server have now" (device names, layout paths, machine class) and nothing historical.
 - `host.network`'s two embedded NIC slots still follow the slot mapping computed from those latest facts (`SlotMapping.normalNicSlots`), and a TurboFabric mesh interface (`SlotMapping.fabricDeviceIds`) never pages as a `network` row. Before the first hardware report arrives, packing falls back to positional order rather than dropping data.
 - **Sizes are not hardware facts.** A RAM or CPU resize or a memory balloon changes the sizes on the next sample (see [Sizes ride every sample](#sizes-ride-every-sample)).
+- **A sample is matched to the latest report by content.** It fits when every network device, filesystem, block device and GPU it names is in that report (a hardware signal the report does not list only moves to the end of its page); a sample naming a device the report does not know is packed without a mapping until the daemon reports the new hardware. A new report counts as a change only when its device ids or the few attributes the slot mapping reads differ, so a size or label change never spends the hourly and daily change limits. While an older daemon still sends generation numbers and the stored report carries one, the numbers decide, as before.
 - The report is bounded: an out-of-range number is refused, the snapshot is capped at 64 KiB, and a changed report inside the 30-second window is dropped.
 
 ## Limits on what a server may send
@@ -214,7 +214,7 @@ Two of these are in the control plane and daemon already; the rest are released 
 
 ## Events
 
-A closed catalog of ~37 discrete state-change/fault kinds (`MetricEventKind`) is distinct from the continuous numeric families above — OOM kills, hung tasks, filesystem state changes, SMART/NVMe/RAID faults, NIC link flaps, TurboFabric mesh state, fan/thermal/PSU/voltage/ECC faults, GPU Xid/ECC/retirement/thermal faults, clock-sync loss, and topology/boot-generation bumps. Each kind is classified once as a physical-hardware-health signal or not (`HARDWARE_HEALTH_EVENT_KIND`) — the split `hardwareHealthEventsEnabled` in the capability plan actually gates; OS/kernel conditions, filesystem state, TurboFabric state, clock-sync state, and generation bumps always survive a plan that disables hardware-health events. Every event writes its own `"event"`-kind AE row (see the envelope table below), and self-hosted Deno writes them to a dedicated `server_metric_events` table.
+A closed catalog of ~37 discrete state-change/fault kinds (`MetricEventKind`) is distinct from the continuous numeric families above — OOM kills, hung tasks, filesystem state changes, SMART/NVMe/RAID faults, NIC link flaps, TurboFabric mesh state, fan/thermal/PSU/voltage/ECC faults, GPU Xid/ECC/retirement/thermal faults, clock-sync loss, and boot-generation bumps (older daemons also send topology-generation bumps). Each kind is classified once as a physical-hardware-health signal or not (`HARDWARE_HEALTH_EVENT_KIND`) — the split `hardwareHealthEventsEnabled` in the capability plan actually gates; OS/kernel conditions, filesystem state, TurboFabric state, clock-sync state, and generation bumps always survive a plan that disables hardware-health events. Every event writes its own `"event"`-kind AE row (see the envelope table below), and self-hosted Deno writes them to a dedicated `server_metric_events` table.
 
 ## Analytics Engine mapping (Workers)
 

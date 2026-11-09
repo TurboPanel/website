@@ -70,11 +70,17 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     Provision a 64-bit Linux host running Debian 13 (trixie).
   </Step>
   <Step>
-    Install the control plane:
+    Install the control plane, as root or as a sudo-capable user. On a minimal Debian image, log in as root (or use `su -`), because `curl` and `sudo` are not installed yet, and install `curl` and `ca-certificates` first; the installer installs `sudo` and the rest itself:
+
+    ```bash
+    apt-get update && apt-get install -y curl ca-certificates
+    ```
 
     ```bash
     curl -fsSL https://turbopanel.sh | sh
     ```
+
+    As a sudo-capable user the installer escalates with `sudo` itself, so do not prefix the pipeline with `sudo`.
 
     Run with nothing else, the installer downloads the current release packages (control plane, web interface and the
     daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
