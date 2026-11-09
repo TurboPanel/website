@@ -204,7 +204,7 @@ Stop and Start only touch existing containers, so they stay available even when 
 
 A Destroy keeps the environment's data volumes: the Docker volumes listed on its Storage tab, including the ones TurboPanel registered from your compose file. A later deploy finds the data where it left it.
 
-To delete the data as well, tick **Also Delete the Data Volumes** when you arm Destroy. It is off every time. Ticked, the web interface lists the volumes that will be deleted and the ones that stay, and asks you to type the environment name before **Confirm destroy** works. Each server removes the listed volumes once the containers are down. Deleted data cannot be brought back.
+To delete the data as well, tick **Also Delete the Data Volumes** when you arm Destroy. It is off every time. Ticked, the web interface lists the volumes that will be deleted and the ones that stay, and asks you to type the environment name before **Confirm Destroy** works. Each server the environment runs on removes the listed volumes once the containers are down. If the list changed before you confirmed, nothing is destroyed and the web interface shows the new list. A copy of a volume on a server the environment no longer runs on stays there, and the list says which server. Deleted data cannot be brought back.
 
 Some volumes always stay, and the list says why:
 
@@ -296,7 +296,7 @@ Cancels a queued or running deploy. `:deploymentId` is the deploy's command id f
 
 ### `POST /environments/:id/stop`
 
-Destroy. Removes containers, tears down hostnames and releases, and keeps the registered data volumes. Send `{"deleteVolumes": true, "confirmName": "<environment name>"}` to delete them too; `GET /environments/:id/data-volumes` lists what that removes and keeps. A server with an older daemon refuses with `delete_volumes_needs_daemon_update`, and a missing or wrong name with `confirm_name_required`, before anything stops.
+Destroy. Removes containers, tears down hostnames and releases, and keeps the registered data volumes. Send `{"deleteVolumes": true, "confirmName": "<environment name>", "volumeIds": [...]}` to delete them too, with the storage ids `GET /environments/:id/data-volumes` listed. A missing or wrong name is refused with `confirm_name_required`, a list that changed with `data_volumes_changed`, and a server with an older daemon with `delete_volumes_needs_daemon_update`, all before anything stops.
 
 ### Command statuses
 
