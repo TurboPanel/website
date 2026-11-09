@@ -75,8 +75,7 @@ const DRAWINGS = {
     ],
   },
   key: {
-    caption:
-      'Coming soon: the key never leaves the control plane, and every order will carry its stamp.',
+    caption: 'The key never leaves the control plane, and every order carries its stamp.',
     rows: [
       {
         id: 'stamp',
@@ -93,7 +92,7 @@ const DRAWINGS = {
   },
   fingerprint: {
     caption:
-      'Coming soon: the server will learn the fingerprint once, when it joins, and keep it for every later check.',
+      'The server learns the fingerprint once, when it joins, and keeps it for every later check.',
     rows: [
       {
         id: 'install',
@@ -101,16 +100,15 @@ const DRAWINGS = {
           id: 'install-command',
           tone: 'neutral',
           title: 'Install command',
-          detail: 'will carry the fingerprint',
+          detail: 'carries the fingerprint',
         },
         arrow: { text: 'you run it once' },
-        to: { ...SERVER, detail: 'will remember the fingerprint' },
+        to: { ...SERVER, detail: 'remembers the fingerprint' },
       },
     ],
   },
   check: {
-    caption:
-      'Coming soon: a real stamp matches the remembered fingerprint; anything else will be refused.',
+    caption: 'A real stamp matches the remembered fingerprint; anything else is refused.',
     rows: [
       {
         id: 'accepted',
@@ -128,7 +126,7 @@ const DRAWINGS = {
   },
   rotate: {
     caption:
-      'Only a switch you approve with a passkey is accepted. A thief with the old key cannot approve one.',
+      'Planned, not built yet: only a switch you approve with a passkey would be accepted. A thief with the old key could not approve one.',
     rows: [
       {
         id: 'approve',
@@ -140,7 +138,7 @@ const DRAWINGS = {
   },
   sealedProblem: {
     caption:
-      'Today the secret is protected only by the padlocked connection. Where that connection is opened in the middle, the secret can be read.',
+      'Protected only by the padlocked connection, a secret can be read wherever that connection is opened in the middle.',
     rows: [
       {
         id: 'readable',
@@ -156,7 +154,7 @@ const DRAWINGS = {
   },
   sealedPadlock: {
     caption:
-      'Coming soon: the server will keep the only padlock key and hand the control plane an open padlock, signed with its own identity key so nobody can swap it.',
+      'The server keeps the only padlock key and hands the control plane an open padlock, signed with its own identity key so nobody can swap it.',
     rows: [
       {
         id: 'handover',
@@ -168,7 +166,7 @@ const DRAWINGS = {
   },
   sealedBox: {
     caption:
-      'Coming soon: every secret will travel in a box locked with that server’s padlock. The middle will see only a locked box; only that server will be able to open it.',
+      'Every secret travels in a box locked with that server’s padlock. The middle sees only a locked box; only that server can open it.',
     rows: [
       {
         id: 'locked',
@@ -195,7 +193,7 @@ const DRAWINGS = {
   },
   sealedUp: {
     caption:
-      'Coming soon: a secret sent up, such as the private part of a certificate, will be locked with the control plane’s padlock and open only there.',
+      'A secret sent up, such as the private part of a certificate, is locked with the control plane’s padlock and opens only there.',
     rows: [
       {
         id: 'upward',

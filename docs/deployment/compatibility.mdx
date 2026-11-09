@@ -55,12 +55,12 @@ Promotion is a pointer move — the bytes that soaked on `rc` are the bytes `rel
 
 | Side | Floor | What happens below it |
 | --- | --- | --- |
-| Control plane → daemon | `0.1.0` | The daemon reports its version on `hello`. A supported daemon runs commands; an unsupported one keeps its connection but every command fails with `daemon_unsupported` until it updates. A daemon that reports no version passes as unknown. |
-| Daemon → control plane | `0.1.0` | Every daemon REST response, including a non-OK response and the 401 before a session refresh, carries `x-turbopanel-version`. A socket-only session carries `{ type: "version", instanceVersion }` on attach. A response or frame that omits the version clears the last observation back to unknown, and unknown passes. An unsupported control plane is logged (`instance-version:`) and the daemon keeps reconnecting. The daemon also refuses to install a control-plane package below this floor. A missing or non-semver target is unknown and is allowed. The control plane accepts `instance-update` from any connected daemon. |
+| Control plane → daemon | `0.1.18` | The daemon reports its version on `hello`. A supported daemon runs commands; an unsupported one keeps its connection but every command fails with `daemon_unsupported` until it updates. A daemon that reports no version passes as unknown. |
+| Daemon → control plane | `0.1.22` | Every daemon REST response, including a non-OK response and the 401 before a session refresh, carries `x-turbopanel-version`. A socket-only session carries `{ type: "version", instanceVersion }` on attach. A response or frame that omits the version clears the last observation back to unknown, and unknown passes. An unsupported control plane is logged (`instance-version:`) and the daemon keeps reconnecting. The daemon also refuses to install a control-plane package below this floor. A missing or non-semver target is unknown and is allowed. The control plane accepts `instance-update` from any connected daemon. |
 | App → control plane | `0.1.0` | The control plane stamps `x-turbopanel-version` on every response and the app sends `x-turbopanel-client-version`. The native app refuses to connect to an older control plane and says which version it needs; a control plane that sends no header is accepted. The bundled web UI always matches its control plane. |
 
-Both floors are **0.1.0**, so any `0.1.x` peer is in window and a `0.0.x` peer is not. The window may trail the current release by
-several minor versions. Raise both floors in the same change, and record why.
+The daemon and the control plane have separate release lines, so the two floors name different numbers. The control plane needs daemon **0.1.18** or newer, the first daemon that registers a sealing key and opens [sealed secrets](/docs/security/sealed-secrets). The daemon needs control plane **0.1.22** or newer, the first control plane that seals them. Both were raised together before launch as a hard cutoff. The app floor stays **0.1.0**. The window may trail the current release by
+several minor versions. Raise the two floors in the same change, and record why.
 The floors are unchanged by managed upgrades. A platform upgrade follows the order
 above; a daemon and a control plane that are not on the same build stay connected
 either way.

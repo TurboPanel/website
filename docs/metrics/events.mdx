@@ -1,6 +1,6 @@
 ---
 title: Metric events
-description: Discrete host faults and state changes — OOM, disk and RAID, NIC flaps, GPU Xid, clock sync, and topology generation
+description: Discrete host faults and state changes — OOM, disk and RAID, NIC flaps, GPU Xid, clock sync, and boot generation
 ---
 
 # Metric events
@@ -16,7 +16,7 @@ Events are sampled and disposable like the rest of metrics. They are history, no
 | Class | Gated by | Examples |
 | ----- | -------- | -------- |
 | **Hardware health** | `hardwareHealthEventsEnabled` on the capability plan (on by default for physical hosts) | SMART/NVMe/RAID, NIC link, fans, thermal, PSU/voltage, memory ECC, GPU faults |
-| **Operational** | Always collected | OOM, hung task, conntrack, filesystem state, TurboFabric mesh, clock sync, topology/boot generation |
+| **Operational** | Always collected | OOM, hung task, conntrack, filesystem state, TurboFabric mesh, clock sync, boot generation |
 
 Disabling hardware-health events does **not** drop OOM, filesystem, fabric, or clock events.
 
@@ -180,7 +180,9 @@ Time sync is healthy again after [clock sync lost](#clock_sync_lost).
 
 ### Topology generation changed [#topology_generation_changed]
 
-The daemon's enumerated set of NICs, disks, GPUs, filesystems, or sensors changed shape. The event marks the moment; charts keep each device's readings under its own id, so two different devices never share a line.
+Sent only by older daemons. Current daemons no longer send it once the control plane says it does not need topology generation numbers (every current control plane does), so you see it only for a server whose daemon has not updated yet. It marked the moment the daemon's set of NICs, disks, GPUs, filesystems, or sensors changed shape.
+
+A hardware change still shows without it: the control plane matches each sample to the server's latest hardware report by the devices the sample names, and charts keep each device's readings under its own id, so two different devices never share a line.
 
 ### Boot generation changed [#boot_generation_changed]
 

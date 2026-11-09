@@ -68,7 +68,7 @@ The installer:
 
 A manifest pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) is cleared by a refresh that does not name one. To keep it, add `TURBOPANEL_MANIFEST_URL=<the same URL>` to the command.
 
-A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by **Update TurboPanel**.
+A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by an automatic update or by **Update Now**.
 
 ## Update guard
 

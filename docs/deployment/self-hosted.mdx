@@ -38,8 +38,8 @@ When self-hosted is publicly available, operators follow this sequence:
 
 <Steps>
   <Step>
-    **[Control plane deployment](/docs/deployment/control-plane)** — provision the control plane on Debian or Raspbian
-    (the bootstrap refuses other distributions). On a minimal image, log in as root (or use `su -`) and run
+    **[Control plane deployment](/docs/deployment/control-plane)** — provision the control plane on Debian 13 (trixie), `x86_64` or `aarch64`
+    (the bootstrap refuses other distributions and Debian releases before 13). On a minimal image, log in as root (or use `su -`) and run
     `apt-get update && apt-get install -y curl ca-certificates` first. Then run
     `curl -fsSL https://turbopanel.sh | sh` (a managed FHS install from the
     release packages, converged by the daemon's Ansible roles; private alpha preview).
