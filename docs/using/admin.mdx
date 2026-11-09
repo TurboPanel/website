@@ -80,14 +80,17 @@ On TurboPanel High Availability this screen is read-only. It shows the one addre
 
 **Admin → Updates** (`/admin/updates`). One platform upgrade for this control plane. The run installs a pinned build: the manifest and commit resolved when the run started, so a channel that moves mid-rollout does not change a later batch.
 
-Updates install on their own. The control plane checks its channel once an hour, at its own minute, and starts an update when something is behind, no update is running and updates are not paused. There is no on/off switch and no maintenance window, and no step is retried or cancelled by hand: a server that failed is tried again by a later update, after a wait that starts at 1 hour and doubles up to 24 hours. Details: [Upgrade and rollback](/docs/deployment/upgrade).
+Updates install on their own. The control plane checks its channel once an hour, at its own minute, and starts an update when something is behind, no update is running and updates are not paused. A superadmin can run that check at once with **Update Now**. There is no on/off switch and no maintenance window, and no step is retried or cancelled by hand: a server that failed is tried again by a later update, after a wait that starts at 1 hour and doubles up to 24 hours. Details: [Upgrade and rollback](/docs/deployment/upgrade).
 
 The **Status** card reads **TurboPanel is up to date**, **Update Waiting**, **Updating…**, **Needs Attention** or **Updates Paused**, with **Last Checked** and **Next Check**.
 
 | Control | What it does |
 | --- | --- |
+| **Update Now** | Superadmins, release installs. Starts the update right away, in the same order and with the same checks as the hourly check. Enabled only when an update is waiting, none is in progress and updates are not paused; otherwise the line under it says why. **Already up to date.** when nothing is newer. At most once a minute. |
 | **Check Now** | Looks for new builds and shows them. It never starts an update and does not move the next scheduled check. At most once a minute. |
-| **Pause All Updates** | A switch. Turning it on asks first (**Pause All Updates?**, **Pause Updates**). No new update starts while it is on. An update in progress is not stopped: servers it already started finish, and servers it has not reached yet are skipped. **Check Now** still works. Turning it off starts nothing right away; the next scheduled check updates whatever is still behind. |
+| **Pause All Updates** | A switch. Turning it on asks first (**Pause All Updates?**, **Pause Updates**). No new update starts while it is on, not at the scheduled check and not with **Update Now**. An update in progress is not stopped: servers it already started finish, and servers it has not reached yet are skipped. **Check Now** still works. Turning it off starts nothing right away; the next scheduled check, or **Update Now**, updates whatever is still behind. |
+
+A development install (control plane run from source) never updates on its own and has no **Update Now**. Its **Admin → Updates** shows **Build and Push Daemon** instead, which a superadmin uses to build the daemon from the local checkout and push it to the connected servers, and **Update and Restart** / **Restart Only** for the development host itself.
 
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-hosted">

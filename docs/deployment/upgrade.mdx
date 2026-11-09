@@ -58,7 +58,7 @@ daemon below its floor still holds its socket so the update can reach it. See
   shared state and config ownership stay as they are, and the daemon unit still
   starts after the control plane. The control plane, UI, and database are not replaced.
   When the new daemon attaches and advertises `managed-upgrade-v1`, the next automatic
-  check starts the upgrade.
+  check, or **Update Now**, starts the upgrade.
 
   ```bash
   curl -fsSL https://turbopanel.sh \
@@ -79,7 +79,8 @@ its own minute of the hour (picked once, so many installs never ask the release 
 moment). When the check finds something behind (a connected server's daemon, or on self-hosted the
 control plane or the web interface), no update is running and updates are not paused, it starts an
 update in the order above. There is no on/off switch and no maintenance window, and no step is
-retried or cancelled by hand.
+retried or cancelled by hand. A superadmin can run that same check at once with **Update Now**
+(below).
 
 - **One update at a time.** A run never grows: a server added, reconnected or still behind after an
   update was planned is picked up by the next check after that update ends.
@@ -89,6 +90,10 @@ retried or cancelled by hand.
   could not go ahead anyway.
 - **Nothing to do starts nothing.** A check whose every step would already be on target saves no
   update, so the history lists real updates only.
+- **A development install is the exception.** A control plane run from source never checks and
+  never updates on its own, and has no **Update Now**. A superadmin builds the daemon from the local
+  checkout and pushes it to the connected servers with **Build and Push Daemon** (**Push Daemon**
+  when the built daemon is already current) on **Admin → Updates**.
 
 ## From the app
 
@@ -98,15 +103,24 @@ The **Status** card reads **TurboPanel is up to date**, **Update Waiting**, **Up
 **Needs Attention** or **Updates Paused**, says what is waiting, and shows **Last Checked** and
 **Next Check**.
 
+- **Update Now** (superadmins, release installs on both editions) runs the hourly check at once: it
+  asks the release servers for the newest build and, when something is behind, starts the update
+  right away, with the same pre-flight, order, gates and retry waits as the scheduled check. It is
+  enabled only when an update is waiting, no update is in progress and updates are not paused;
+  otherwise the line under it says why. It does not move the next scheduled check, runs at most
+  once a minute, and answers **Already up to date.** when nothing is newer. When the release server
+  cannot be reached it says so and keeps the build it already knew. Each press is recorded in the
+  audit log, and the update history names who started it (**Started By**).
 - **Check Now** only looks for new builds and shows them. It never starts an update and does not
   move the next scheduled check. It runs at most once a minute; sooner, it says how many seconds to
   wait.
 - **Pause All Updates** is a switch. Turning it on asks first (**Pause All Updates?**, then
   **Pause Updates**). While it is on, no new update starts. An update already in progress is not
   stopped: servers it has already started finish, and are tried again if they fail; servers it has
-  not reached yet are skipped (`updates_paused`), and the update ends there. **Check Now** still
-  looks for new builds. Turning the switch off starts nothing right away; the next scheduled check
-  updates whatever is still behind, including the skipped servers. Each pause and resume is recorded
+  not reached yet are skipped (`updates_paused`), and the update ends there. **Update Now** is
+  disabled. **Check Now** still looks for new builds. Turning the switch off starts nothing right
+  away; the next scheduled check, or **Update Now**, updates whatever is still behind, including
+  the skipped servers. Each pause and resume is recorded
   in the activity log with who did it.
 
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
