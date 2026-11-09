@@ -200,6 +200,23 @@ Cancelling asks for no extra sign-in, because deploying again fully reverses it.
 
 Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the app asks twice.
 
+### What Destroy leaves on the server
+
+Destroy takes the environment off its servers; the environment and its settings stay in the app. On each server it also leaves:
+
+- Each service's folder under `/srv/users/` (see [Where your files live](/docs/using/files-and-folders)), with its uploads and logs. Only the published releases inside it are cleared.
+- What a service wrote through a relative bind mount such as `./data`, in the environment's deployment folder. Only the daemon's own compose files are removed from that folder, so the stack does not come back after a restart of the server.
+- Images pulled from a registry or carrying a tag of their own. Only images built for this environment are removed.
+- The project's Hosting Accounts.
+
+The next deploy finds the folders and the `./data` files where they were.
+
+### When a server leaves an environment
+
+A server leaves an environment when a deploy no longer places the environment there: the pin moved to another server, or `deploy.replicas` or `deploy.placement` no longer picks it. That deploy sends the server it left the same teardown as Destroy, with one difference: each service's folder on that server is removed too, uploads included. The `./data` files in the deployment folder, volume folders and Hosting Accounts stay on that server. Nothing is copied to the new server.
+
+Deleting the environment (see [Projects](/docs/using/projects)) goes further on every server it ran on: it also removes the deployment folder with its `./data` files, every service folder, and the folder of each volume whose retention is `delete`. A volume whose retention is `retain` keeps its folder. Hosting Accounts that nothing else uses on that server are removed afterwards.
+
 ## Container status and logs
 
 The environment's Overview lists each service's containers with a status badge from the daemon's last report. **Refresh** asks again.
