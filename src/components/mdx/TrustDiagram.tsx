@@ -75,8 +75,7 @@ const DRAWINGS = {
     ],
   },
   key: {
-    caption:
-      'Coming soon: the key never leaves the control plane, and every order will carry its stamp.',
+    caption: 'The key never leaves the control plane, and every order carries its stamp.',
     rows: [
       {
         id: 'stamp',
@@ -93,7 +92,7 @@ const DRAWINGS = {
   },
   fingerprint: {
     caption:
-      'Coming soon: the server will learn the fingerprint once, when it joins, and keep it for every later check.',
+      'The server learns the fingerprint once, when it joins, and keeps it for every later check.',
     rows: [
       {
         id: 'install',
@@ -101,16 +100,15 @@ const DRAWINGS = {
           id: 'install-command',
           tone: 'neutral',
           title: 'Install command',
-          detail: 'will carry the fingerprint',
+          detail: 'carries the fingerprint',
         },
         arrow: { text: 'you run it once' },
-        to: { ...SERVER, detail: 'will remember the fingerprint' },
+        to: { ...SERVER, detail: 'remembers the fingerprint' },
       },
     ],
   },
   check: {
-    caption:
-      'Coming soon: a real stamp matches the remembered fingerprint; anything else will be refused.',
+    caption: 'A real stamp matches the remembered fingerprint; anything else is refused.',
     rows: [
       {
         id: 'accepted',
@@ -128,7 +126,7 @@ const DRAWINGS = {
   },
   rotate: {
     caption:
-      'Only a switch you approve with a passkey is accepted. A thief with the old key cannot approve one.',
+      'Planned, not built yet: only a switch you approve with a passkey would be accepted. A thief with the old key could not approve one.',
     rows: [
       {
         id: 'approve',
