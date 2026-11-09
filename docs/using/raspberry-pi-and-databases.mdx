@@ -45,11 +45,11 @@ Leave out `--reboot` to save the change and restart on your own schedule. `statu
 
 ## At install time
 
-On a Raspberry Pi running Raspberry Pi OS on Debian 13, the installer does the same switch as its **last** step, after everything else is installed — but only on a **first** install. It records whether the server was already enrolled, waits for fresh enrolment files, then explains what is about to happen, saves the change, counts down, and restarts the server.
+On a Raspberry Pi running Raspberry Pi OS on Debian 13, the installer does the same switch as its **last** step, after everything else is installed — but only on a **first** install. It records whether the server was already enrolled, waits for fresh enrolment files, then explains what is about to happen, saves the change, counts down from 10, and restarts the server once. It comes back by itself, usually in about a minute, and no further restart is needed. Press Ctrl-C during the countdown to cancel the restart; the change is already saved and takes effect at the next restart.
 
 On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
 
-To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. You can run the command above later instead.
+To skip it, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. You can run the command above later instead. To undo it afterwards, see [Undo](#undo).
 
 ## When it does nothing
 
@@ -68,6 +68,8 @@ sudo reboot
 ```
 
 `undo` removes the `kernel=kernel8.img` line only when TurboPanel added it. If you wrote `kernel=kernel8.img` yourself, it prints `Nothing to undo` and you remove the line by hand. `undo` never restarts the server. The backup copy is left in place.
+
+Removing TurboPanel from the server with the purge script leaves the line in place, because taking it out changes the kernel the board boots. The purge output says so; delete the line from `config.txt` by hand and restart if you want the 16 KiB kernel back.
 
 ## If a Pi does not come back
 
