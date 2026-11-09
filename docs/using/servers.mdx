@@ -212,9 +212,7 @@ What the control plane cannot see is the router's address: the daemon reports on
 | `server_has_blockers` | 409 | Leftover records still reference the server (counts in the response), or a database still has its only copy or its main copy here. While the host is online, tear those down first. When it shows **Offline**, **Delete Server** can forget leftover records — except those databases, which you must delete first. |
 | `server_online` | 409 | Forget leftover records is refused while the server is still connected. |
 | `The co-located control plane server cannot be deleted` / `…daemon key cannot be revoked` | 403 | The control plane's own host is not removable from its own app. |
-| `The co-located development daemon cannot be updated from the control plane` | 403 | Update the control plane instead. |
 | `updates_automatic` | 410 | The retired per-server and batch update routes. Updates are automatic; see **Admin → Updates**. |
-| `Daemon not connected`, `Up to date`, `Target unavailable` | 404 (update) | The daemon must be online to update; there is no newer build; or the release manifest could not be read. Other commands queue and wait. |
 | `Server is not enrolled` | 409 | The row has no daemon key yet — the install command has not run. |
 | `Invalid hostname`, `Invalid sshPort`, `Invalid ntp`, `Invalid timezone`, `Invalid machineClass` | 400 | The value did not validate. |
 | `Not found` | 404 | No such server in this organization. |

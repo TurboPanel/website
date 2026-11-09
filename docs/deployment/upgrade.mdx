@@ -229,7 +229,7 @@ A daemon self-update arms an update guard for about 10 minutes. If the new build
 
 ### Recovery command
 
-Run as root on the control-plane host. **Backup and Rollback** on **Admin → Updates** shows the same command, with the upgrade id filled in (**Copy Rollback Command**):
+Run as root on the control-plane host, with the id of the update that failed: the last part of that update's page address in the update history (`/admin/updates/runs/<id>`), which is also its folder under `<backup dir>/panel/`. Before a control-plane update starts, **Backup and Rollback** on **Admin → Updates** shows the same command with the next update's id filled in (**Copy Rollback Command**):
 
 ```bash
 sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i localhost, -c local \

@@ -212,7 +212,6 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
 | `updates_automatic` | 410 | A retired manual update route: `POST /servers/:id/update`, `POST /servers/updates`, or an old admin start, retry or cancel. Updates are automatic; see **Updates** above. |
-| `upgrade_run_active` | 409 | An update is already `pending` or `running`. Wait for it to finish. |
 | `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
 | `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
 | `preflight_trust` | step error | Automatic-update TLS is not public trust and not the Platform CA. |
@@ -224,13 +223,11 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `rolled_back` | step error | The host restored its previous build. One automatic retry, then `needs_attention`. |
 | `verify_timeout` | step error | The control-plane step restarted, and the daemon did not confirm the new build within `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default). The step is not retried, so a second install cannot land on a build still being checked; the run ends. Check the daemon log; a later automatic update tries again once that step's wait is over. |
 | `dispatch_failed` | step error | The update command could not be delivered to the server, on every allowed attempt. The message carries the delivery error. |
-| `server_offline` | step skipped | The server was offline when the update started, or for 15 minutes during it. It updates at the next check after it reconnects; the next batch still starts. |
+| `server_offline` | step skipped or needs attention | Another server that was offline when the update started, or for 15 minutes during it, is skipped and updates at the next check after it reconnects; the next batch still starts. This host's daemon, the control plane, or a server that dropped in the middle of its own install is not skipped: its step becomes `needs_attention`. |
 | `retry_later` | step skipped | The server failed at this build recently and is waiting before it is tried again (1 hour, doubling, at most 24 hours). |
 | `updates_paused` | step skipped | Pause All Updates was turned on before this server's step was sent. It updates at the next check after the pause is turned off. |
 | `managed_upgrade_required` | step error | The control-plane step needs a daemon that advertises `managed-upgrade-v1`; the message holds the daemon-only update command to run first. |
 | `downgrade_refused` | step skipped | The server already runs a newer build than the target. Managed updates never downgrade a server. |
-| `no co-located daemon connected to update the control plane` | 503 | The legacy control plane or daemon upgrade route needs this host's daemon connected. |
-| `co-located daemon disconnected` | 503 | The daemon dropped while that legacy route was dispatching. |
 
 ## Related
 
