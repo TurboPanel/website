@@ -196,9 +196,24 @@ Cancelling asks for no extra sign-in, because deploying again fully reverses it.
 | **Stop** | Lifecycle bar | Stops the environment's containers. Files, images and volumes stay on the server. | Kept |
 | **Start** | Lifecycle bar (shown when deployed but stopped) | Starts the existing containers again. No preview, no rebuild. | Kept |
 | **Restart** | API (`action: restart`) | Stop then start. | Kept |
-| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the server's web server — and the data volumes. | **Removed** |
+| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk and the hostnames from the server's web server. Only volumes Compose made itself go (anonymous ones, and ones whose compose entry sets its own `name:`). | Kept, unless you tick **Also Delete the Data Volumes** |
 
-Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the app asks twice.
+Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user.
+
+### Destroy and the data volumes
+
+A Destroy keeps the environment's data volumes: the Docker volumes listed on its Storage tab, including the ones TurboPanel registered from your compose file. A later deploy finds the data where it left it.
+
+To delete the data as well, tick **Also Delete the Data Volumes** when you arm Destroy. It is off every time. Ticked, the web interface lists the volumes that will be deleted and the ones that stay, and asks you to type the environment name before **Confirm destroy** works. Each server removes the listed volumes once the containers are down. Deleted data cannot be brought back.
+
+Some volumes always stay, and the list says why:
+
+- a shared (common) volume, or one another environment uses;
+- an external volume your compose file names (`external: true`), which TurboPanel did not create;
+- a volume whose Docker name is not the one TurboPanel gave it;
+- a volume a container still uses when the server comes to remove it.
+
+Deleting data needs the right to delete the environment, and every server the environment runs on needs a daemon that can do it; with an older daemon the web interface says which server to update and nothing is destroyed. The audit log records `environment.data.delete` with the volume names.
 
 ## Container status and logs
 
@@ -263,7 +278,7 @@ Cancels a queued or running deploy. `:deploymentId` is the deploy's command id f
 
 ### `POST /environments/:id/stop`
 
-Destroy. Removes containers and volumes, tears down hostnames and releases.
+Destroy. Removes containers, tears down hostnames and releases, and keeps the registered data volumes. Send `{"deleteVolumes": true, "confirmName": "<environment name>"}` to delete them too; `GET /environments/:id/data-volumes` lists what that removes and keeps. A server with an older daemon refuses with `delete_volumes_needs_daemon_update`, and a missing or wrong name with `confirm_name_required`, before anything stops.
 
 ### Command statuses
 
