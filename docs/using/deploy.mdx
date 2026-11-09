@@ -223,6 +223,7 @@ Destroy takes the environment off its servers; the environment and its settings 
 - What a service wrote through a relative bind mount such as `./data`, in the environment's deployment folder. Only the daemon's own compose files are removed from that folder, so the stack does not come back after a restart of the server.
 - Images pulled from a registry or carrying a tag of their own. Only images built for this environment are removed.
 - The project's Hosting Accounts.
+- The data volumes, unless you ticked **Also Delete the Data Volumes** (see above).
 
 The next deploy finds the folders and the `./data` files where they were.
 
