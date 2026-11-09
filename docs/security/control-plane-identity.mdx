@@ -8,11 +8,10 @@ description: How a server knows an order really came from your control plane, in
 Your servers take orders from the control plane. This page explains, in plain words, how a server can be sure an order came from **your** control plane and not from someone pretending to be it. It is not a key, a setting or a procedure: there is nothing here to copy or type.
 
 <Callout type="info" title="Where this stands today">
-  The control plane already has its own key, and every server can fetch its signed identity and
-  fingerprint. The steps marked **Coming soon** are being built on top of that and are not in the
-  current release yet. Enrolling a server works as described in [Daemon
-  Setup](/docs/deployment/daemon-setup) and [Installation](/docs/getting-started/installation);
-  nothing on this page changes those commands.
+  Steps 1 to 4 work today on every server installed with a `TOKEN` install command from **Add
+  Server**. Step 5, switching to a new key with your passkeys, is not built yet. Enrolling a server
+  works as described in [Daemon Setup](/docs/deployment/daemon-setup) and
+  [Installation](/docs/getting-started/installation); there is nothing extra to type.
 </Callout>
 
 This is its own key, not the [release signing key](/docs/security/signing-key-rotation), the Platform CA or a [server's own key](/docs/security/daemon-trust-model). It proves who sent an order; keeping the secret inside an order private is the job of [Sealed Secrets](/docs/security/sealed-secrets).
@@ -23,11 +22,11 @@ A server does what the control plane tells it: "deploy this", "here is a databas
 
 <TrustDiagram name="problem" />
 
-Today the server checks the website padlock (the certificate) and the signed session it gets after connecting. Both prove it reached the address it was given and is still talking to the same party, not who is behind that address: behind a tunnel or a proxy (a Cloudflare tunnel in front of a self-hosted control plane, for example) the padlock belongs to the tunnel, and anyone who took over your web address could get one too. The padlock stays on as a second check in everything below; the stamp is what will decide.
+The website padlock (the certificate) and the signed session a server gets after connecting prove only that it reached the address it was given and is still talking to the same party, not who is behind that address. Behind a tunnel or a proxy (a hosted tunnel in front of a self-hosted control plane, for example) the padlock belongs to the tunnel, and anyone who took over your web address could get one too. The padlock stays on as a second check in everything below; the stamp is what decides.
 
 ## 2. The Key: A Stamp Only Your Control Plane Has
 
-The control plane has a **key**. Think of it as a personal stamp. The control plane will stamp every order it sends (see step 4 for where that stands). Nobody else has the stamp, so nobody else can make that mark.
+The control plane has a **key**. Think of it as a personal stamp. The control plane stamps every order it sends to a server that knows the stamp (step 4). Nobody else has the stamp, so nobody else can make that mark.
 
 <TrustDiagram name="key" />
 
@@ -39,32 +38,32 @@ A server needs to know what the real stamp looks like. The **fingerprint** is a 
 
 <TrustDiagram name="fingerprint" />
 
-Today a server can ask the control plane for its signed identity and read the fingerprint from it. That is enough to recognise the stamp later, as long as the first fetch reached the real control plane.
+The install command you copy from **Add Server** carries the fingerprint inside its `TOKEN` value. Before the installer sends anything to the control plane, it fetches the control plane's signed identity and stops unless the fingerprint matches the one you handed it and the signatures check out. The server then remembers that fingerprint (it is **pinned**) and uses it for every later check.
 
-<Callout type="info" title="Coming soon: the fingerprint in the install command">
-  The install command you copy from the web interface will carry the fingerprint. The server then
-  compares what it fetched against what you handed it, instead of trusting the first fetch, and
-  remembers that fingerprint from then on. The same fingerprint will be shown on the **Control Plane
-  Identity** screen so you can compare it by eye.
-</Callout>
+The same fingerprint is on the **Control Plane Identity** screen in the admin area (**Access → Control Plane Identity**), so you can compare it by eye. **Add Server** shows no fingerprint of its own: the install command already carries it.
+
+A server installed before the control plane had a key learns the fingerprint on its first automatic update. It fetches the signed identity over the padlocked connection it already trusts, so the padlock is what vouches for it that one time. A server installed with the older `TURBOPANEL_LICENSE` form of the command pins nothing (see step 4).
 
 ## 4. Every Order Is Checked
 
-Once a server knows the fingerprint, it will compare every stamp against it. A real stamp matches and the order is carried out. An order without a matching stamp will be refused, whoever sent it.
+Once a server has pinned the fingerprint, it compares every stamp against it. A real stamp matches and the order is carried out. An order without a matching stamp is refused, whoever sent it.
 
 <TrustDiagram name="check" />
 
-It will not matter which web address or which padlock the order arrived through: tunnel, proxy, home network. The padlock still has to be valid, and on top of that the stamp will have to match.
+It does not matter which web address or which padlock the order arrived through: tunnel, proxy, home network. The padlock still has to be valid, and on top of that the stamp has to match. In practice, on every connection:
 
-<Callout type="info" title="Coming soon: checking every order">
-  Today servers check the padlock and the control plane's signed session, as described in [Daemon
-  trust model](/docs/security/daemon-trust-model#connectivity). Checking each order against the
-  remembered fingerprint is the next step and is not in the current release.
-</Callout>
+- **A stamped hello.** The server opens with a fresh random number. The control plane must answer with a hello that is stamped and repeats that number, so an old hello cannot be played back. Until it does, the server sends nothing else.
+- **Stamped orders, in order.** Every message after the hello carries a stamp and the next number in sequence, so a message cannot be dropped, repeated or slipped in.
+- **Stamped answers.** When the server enrols, signs in, or asks for secrets and trust settings, the answer must be stamped too.
+- **The server signs as well.** The server signs its own requests and the results it reports with its own key (see [Daemon trust model](/docs/security/daemon-trust-model)). Once the control plane has checked one signed report from a server, it refuses unsigned reports from that server from then on.
+
+If any check fails, the server closes the connection, carries out nothing, and tries again later. It keeps its keys while it waits.
+
+A server that has pinned nothing (installed with the older `TURBOPANEL_LICENSE` form of the command) keeps the unsigned session: it checks the padlock and the signed session only, as described in [Daemon trust model](/docs/security/daemon-trust-model#connectivity). Reinstall it with a fresh command from **Add Server** to pin it.
 
 ## 5. If the Stamp Is Ever Stolen: Your Passkeys
 
-If someone broke into the control plane and copied the key, you make a new key and tell every server to switch. To stop a thief from doing the same trick, servers will only accept a switch that **you** approve with one of your **passkeys**, the phone or laptop sign-in you already use with TurboPanel.
+This step is planned, not built. If someone broke into the control plane and copied the key, you would make a new key and tell every server to switch. To stop a thief from doing the same trick, servers would only accept a switch that **you** approve with one of your **passkeys**, the phone or laptop sign-in you already use with TurboPanel.
 
 <TrustDiagram name="rotate" />
 
@@ -77,15 +76,15 @@ Register two or three passkeys (a phone, a laptop, a hardware security key). Los
 
 ## Who Holds What
 
-| Thing                                       | Kind   | Where it lives                                                                          | You do                       |
-| ------------------------------------------- | ------ | --------------------------------------------------------------------------------------- | ---------------------------- |
-| **Key** (the stamp)                         | secret | Inside the control plane only                                                           | Nothing                      |
-| **Fingerprint** (what the stamp looks like) | public | In the control plane's signed identity; soon in the install command and on every server | Nothing                      |
-| **Your passkeys**                           | yours  | Your phone, laptop or hardware security key                                             | Approve a key switch, rarely |
+| Thing                                       | Kind   | Where it lives                                                                      | You do                       |
+| ------------------------------------------- | ------ | ----------------------------------------------------------------------------------- | ---------------------------- |
+| **Key** (the stamp)                         | secret | Inside the control plane only                                                       | Nothing                      |
+| **Fingerprint** (what the stamp looks like) | public | In the control plane's signed identity, the install command and every pinned server | Nothing                      |
+| **Your passkeys**                           | yours  | Your phone, laptop or hardware security key                                         | Approve a key switch, rarely |
 
 ## In Short
 
-The control plane has a key; soon it will stamp every order, servers will check the stamp against a short public code they learn when they join, and only you will be able to approve a new stamp. Day to day, you do nothing.
+The control plane has a key and stamps every order. Servers check the stamp against a short public code they learn when they join and refuse anything that does not match. Approving a new stamp with your passkeys is still to come. Day to day, you do nothing.
 
 ## Related
 
@@ -93,4 +92,4 @@ The control plane has a key; soon it will stamp every order, servers will check 
 - [Daemon trust model](/docs/security/daemon-trust-model): how a server enrols and connects today
 - [Trust boundaries](/docs/security/trust-boundaries): what each part reaches if it is compromised
 - [Signing key rotation](/docs/security/signing-key-rotation): a different key, the one that protects updates
-- [Daemon Setup](/docs/deployment/daemon-setup) and [Installation](/docs/getting-started/installation): the install command as it is today
+- [Daemon Setup](/docs/deployment/daemon-setup) and [Installation](/docs/getting-started/installation): the install command

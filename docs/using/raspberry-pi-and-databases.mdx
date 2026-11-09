@@ -89,11 +89,11 @@ On a Raspberry Pi, the installer makes both changes as its **last** step, after 
 2. for TurboPanel to finish setting up the server (its first setup run, which can take several minutes on a Pi),
 3. until no software is being installed (no `apt`, `dpkg`, unattended upgrade or setup run is going),
 
-then it stops the TurboPanel daemon so it starts nothing new, counts down and restarts. If a wait runs out, it does not restart and prints `sudo reboot` for you to run when the server is ready. Press Ctrl-C during the countdown to cancel; the daemon starts again, as it does whenever the restart does not happen. If one change is saved and the next one fails, it says the saved change needs a restart.
+then it stops the TurboPanel daemon so it starts nothing new, counts down from 10 and restarts. It comes back by itself, usually in about a minute, and no further restart is needed. If a wait runs out, it does not restart and prints `sudo reboot` for you to run when the server is ready. Press Ctrl-C during the countdown to cancel; the changes are already saved and take effect at the next restart, and the daemon starts again, as it does whenever the restart does not happen. If one change is saved and the next one fails, it says the saved change needs a restart.
 
 On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply commands instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
 
-To skip both changes, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. To keep only memory limits off, set `TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1`. You can run the commands above later instead.
+To skip both changes, set `TURBOPANEL_SKIP_KERNEL_SWITCH=1` when you run the installer. To keep only memory limits off, set `TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1`. You can run the commands above later instead. To undo it afterwards, see [Undo](#undo).
 
 ```bash
 curl -fsSL https://turbopanel.sh | TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1 TURBOPANEL_LICENSE=<license> sh
