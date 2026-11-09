@@ -215,6 +215,26 @@ describe('versions from tags', () => {
     expect([...pins]).toHaveLength(1)
   })
 
+  it('runs one Promote OK evaluation per PR head and one queued recheck at a time', () => {
+    expect(read('promote-ok.yml')).toContain(
+      [
+        'concurrency:',
+        '  group: promote-ok-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}',
+        '  cancel-in-progress: true',
+        '',
+      ].join('\n')
+    )
+    expect(read('promote-ok-recheck.yml')).toContain(
+      [
+        'concurrency:',
+        '  group: promote-ok-recheck',
+        '  cancel-in-progress: false',
+        '  queue: max',
+        '',
+      ].join('\n')
+    )
+  })
+
   it('opens the "chore: start" PR for the next patch after the release is finalized', () => {
     const release = read('publish-release.yml')
     const job = release.split(START_JOB)[1] ?? ''
