@@ -63,7 +63,7 @@ sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features 
     When `status` prints `switchable` for `pi-memory-cgroup`, the server can turn memory limits on.
   </Step>
   <Step>
-    `apply` copies `/boot/firmware/cmdline.txt` to `cmdline.txt.tp-backup-<date and time>` in the same directory, removes any `cgroup_disable=memory` from its single line and adds `cgroup_enable=memory` at the end. The file stays one line.
+    `apply` copies `/boot/firmware/cmdline.txt` to `cmdline.txt.tp-backup-<date and time>` in the same directory, removes any `cgroup_disable=memory` from its single line and adds `cgroup_enable=memory` at the end. Everything else in the file, including its line ending, stays byte for byte.
   </Step>
   <Step>
     With `--reboot`, it restarts the server the same way as the kernel switch: after enrolment, with a countdown you can cancel with Ctrl-C.
@@ -73,7 +73,13 @@ sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features 
   </Step>
 </Steps>
 
-It does nothing when the server is not a Raspberry Pi, when the memory controller is already on, or when the controller is off for another reason than the firmware's `cgroup_disable=memory`. `status` says `blocked` when `cmdline.txt` is missing or has more than one line, when `cmdline.txt` turns off control groups itself (for example `cgroup_disable=cpu,memory`), or when the kernel already started with `cgroup_enable=memory` and the controller is still missing (a restart would not help).
+It does nothing when the server is not a Raspberry Pi, when the memory controller is already on, or when the controller is off for another reason than the firmware's `cgroup_disable=memory`. `status` says `blocked`, and nothing is changed, when:
+
+- `cmdline.txt` is missing, empty, has more than one line, or has no `root=` setting.
+- `cmdline.txt` holds a control character other than a tab and the line ending (for example a stray carriage return inside the line).
+- `config.txt` has a `cmdline=` or `os_prefix=` setting, so the firmware may read another command line file.
+- `cmdline.txt` turns off control groups itself (for example `cgroup_disable=cpu,memory`).
+- The kernel already started with `cgroup_enable=memory` and the controller is still missing (a restart would not help).
 
 ## At install time
 
@@ -81,9 +87,9 @@ On a Raspberry Pi, the installer makes both changes as its **last** step, after 
 
 1. for fresh enrolment files, so the server can enrol after the restart,
 2. for TurboPanel to finish setting up the server (its first setup run, which can take several minutes on a Pi),
-3. until no software is being installed (no `apt`, `dpkg` or setup run is going),
+3. until no software is being installed (no `apt`, `dpkg`, unattended upgrade or setup run is going),
 
-then it stops the TurboPanel daemon so it starts nothing new, counts down and restarts. If a wait runs out, it does not restart and prints `sudo reboot` for you to run when the server is ready. Press Ctrl-C during the countdown to cancel; the daemon starts again.
+then it stops the TurboPanel daemon so it starts nothing new, counts down and restarts. If a wait runs out, it does not restart and prints `sudo reboot` for you to run when the server is ready. Press Ctrl-C during the countdown to cancel; the daemon starts again, as it does whenever the restart does not happen. If one change is saved and the next one fails, it says the saved change needs a restart.
 
 On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply commands instead. Updates never do this, and it never restarts while an update is waiting to be confirmed.
 
