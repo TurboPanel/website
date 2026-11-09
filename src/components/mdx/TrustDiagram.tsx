@@ -140,7 +140,7 @@ const DRAWINGS = {
   },
   sealedProblem: {
     caption:
-      'Today the secret is protected only by the padlocked connection. Where that connection is opened in the middle, the secret can be read.',
+      'Protected only by the padlocked connection, a secret can be read wherever that connection is opened in the middle.',
     rows: [
       {
         id: 'readable',
@@ -156,7 +156,7 @@ const DRAWINGS = {
   },
   sealedPadlock: {
     caption:
-      'Coming soon: the server will keep the only padlock key and hand the control plane an open padlock, signed with its own identity key so nobody can swap it.',
+      'The server keeps the only padlock key and hands the control plane an open padlock, signed with its own identity key so nobody can swap it.',
     rows: [
       {
         id: 'handover',
@@ -168,7 +168,7 @@ const DRAWINGS = {
   },
   sealedBox: {
     caption:
-      'Coming soon: every secret will travel in a box locked with that server’s padlock. The middle will see only a locked box; only that server will be able to open it.',
+      'Every secret travels in a box locked with that server’s padlock. The middle sees only a locked box; only that server can open it.',
     rows: [
       {
         id: 'locked',
@@ -195,7 +195,7 @@ const DRAWINGS = {
   },
   sealedUp: {
     caption:
-      'Coming soon: a secret sent up, such as the private part of a certificate, will be locked with the control plane’s padlock and open only there.',
+      'A secret sent up, such as the private part of a certificate, is locked with the control plane’s padlock and opens only there.',
     rows: [
       {
         id: 'upward',
