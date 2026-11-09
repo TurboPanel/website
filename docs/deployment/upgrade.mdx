@@ -39,8 +39,8 @@ graph TD
 ```
 
 TurboPanel High Availability deploys the control plane itself. **Admin → Updates** shows
-that version as **Managed by TurboPanel** and rolls out daemons only. Per-server **Update**
-on the app stays off (`updates_managed`).
+that version as **Managed by TurboPanel** and rolls out daemons only. There is no per-server
+**Update** on either edition: the old per-server routes answer `410 updates_automatic`.
 
 Mixed versions stay connected the whole time. The version floors do not change, and a
 daemon below its floor still holds its socket so the update can reach it. See
@@ -57,8 +57,8 @@ daemon below its floor still holds its socket so the update can reach it. See
   (`daemon-install.yml`), so `daemon.env` keeps dialing the local instance socket,
   shared state and config ownership stay as they are, and the daemon unit still
   starts after the control plane. The control plane, UI, and database are not replaced.
-  When the new daemon attaches and advertises `managed-upgrade-v1`, start the
-  upgrade from **Admin → Updates**.
+  When the new daemon attaches and advertises `managed-upgrade-v1`, the next automatic
+  check starts the upgrade.
 
   ```bash
   curl -fsSL https://turbopanel.sh \
@@ -70,45 +70,82 @@ daemon below its floor still holds its socket so the update can reach it. See
   Replace `<tag>` with the daemon release you are upgrading to, as listed on the daemon's
   [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (for example
   `v0.1.1`). It must be a release that advertises `managed-upgrade-v1`; `v0.1.0` does not.
-  The pre-flight sheet fills in the right tag for you.
 </Callout>
+
+## Updates are automatic
+
+Updates install on their own, on both editions. Each install checks its channel once an hour, at
+its own minute of the hour (picked once, so many installs never ask the release servers at the same
+moment). When the check finds something behind (a connected server's daemon, or on self-hosted the
+control plane or the web interface), no update is running and updates are not paused, it starts an
+update in the order above. There is no on/off switch and no maintenance window, and no step is
+retried or cancelled by hand.
+
+- **One update at a time.** A run never grows: a server added, reconnected or still behind after an
+  update was planned is picked up by the next check after that update ends.
+- **Failed servers wait, then try again.** A server whose update failed at a build is skipped with
+  `retry_later` until its wait is over: 1 hour, doubling each time, at most 24 hours. If this host's
+  daemon or the control plane is still waiting, the check starts nothing, because the other servers
+  could not go ahead anyway.
+- **Nothing to do starts nothing.** A check whose every step would already be on target saves no
+  update, so the history lists real updates only.
 
 ## From the app
 
 **Admin → Updates** (`/admin/updates`). An `admin` or `superadmin` account.
 
+The **Status** card reads **TurboPanel is up to date**, **Update Waiting**, **Updating…**,
+**Needs Attention** or **Updates Paused**, says what is waiting, and shows **Last Checked** and
+**Next Check**.
+
+- **Check Now** only looks for new builds and shows them. It never starts an update and does not
+  move the next scheduled check. It runs at most once a minute; sooner, it says how many seconds to
+  wait.
+- **Pause All Updates** is a switch. Turning it on asks first (**Pause All Updates?**, then
+  **Pause Updates**). While it is on, no new update starts. An update already in progress is not
+  stopped: servers it has already started finish, and are tried again if they fail; servers it has
+  not reached yet are skipped (`updates_paused`), and the update ends there. **Check Now** still
+  looks for new builds. Turning the switch off starts nothing right away; the next scheduled check
+  updates whatever is still behind, including the skipped servers. Each pause and resume is recorded
+  in the activity log with who did it.
+
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-hosted">
-    The status card reads **TurboPanel is up to date**, **Update available**, **Updating…**, or **Needs attention**.
+    **Versions** lists **Control Plane**, **Web Interface** and **Co-located Daemon**: what is installed on disk, what is running now, and the newest build on the channel.
 
-    **Update TurboPanel** opens **Ready to update TurboPanel?**. The sheet lists the pre-flight checks, notes that the control-plane database is backed up before the install, and shows the **Recovery command** with **Copy command**. **Start update** begins the run. **Cancel** closes the sheet.
+    **Progress** follows the **Daemon Step**, then the **Control Plane Step** (the **Web Interface Step** is installed in the same step), then the other servers. Each step moves through *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and waits until the control plane answers again.
 
-    Progress follows **Co-located daemon**, then **Control plane**, then the servers table. Each step moves through *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*. The control plane restarts during its step, so the browser may show a gateway error; the page comes back as **TurboPanel is updating** and polls until the run settles. **Retry** on a server row dispatches that step again.
+    **Backup and Rollback** shows the backup path and the rollback command for the update that runs next (**Copy Backup Path**, **Copy Rollback Command**). Keep the command somewhere safe before the update starts.
 
-    **Automatic updates** is off until you turn on **Auto-update servers**. Automatic runs start only when the target differs from what is installed, no run is already active, and — if you enable **Maintenance window** — only inside that UTC window. The default batch is **100%** (Percent). Switch to **Count** to cap how many servers move together, then **Apply**.
-
-    A failed step is terminal for its batch: the next batch still starts. It does not hold the wave.
+    **Servers Updated at Once** is **Percent** (default 100) or **Count**, then **Apply**.
   </Tab>
   <Tab value="TurboPanel High Availability">
-    The control plane line is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update servers** toggle — daemon rollouts run on their own, inside the maintenance window when one is set.
+    The control plane is **Managed by TurboPanel**. Connected daemons update on their own.
 
-    **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** still applies (Percent or Count, **Apply**). **Retry** is on a row that needs it.
+    **Connected Daemons** filters **All**, **Updating**, **Needs Attention** and **Up to Date**. **Servers Updated at Once** is **Percent** or **Count**, then **Apply**.
   </Tab>
 </Tabs>
 
-Only one run is active. A second start is refused while a run is `pending` or `running`, with `409 upgrade_run_active` (*Another update is already in progress*). The control-plane step is not finished until the daemon has checked the new build, even if the new control plane already answers as the target version.
+Only one update runs at a time. The control-plane step is not finished until the daemon has checked the new build, even if the new control plane already answers as the target version, so a second update cannot start on top of one that could still be rolled back.
 
-## Batches and the maintenance window
+## Batches and offline servers
 
 | Setting | Range | Default |
 | --- | --- | --- |
 | Batch **Percent** | 1–100 | 100 |
 | Batch **Count** | 1–10000 | — |
-| Maintenance window | off, or a UTC start (minutes after midnight, 0–1439), a length (1–1440 minutes), and optional weekdays (Sunday = 0) | off; when on, empty weekdays means every day |
 
-Percent rounds up so a non-empty set of servers always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`). On TurboPanel High Availability a large batch drains across maintenance ticks so one tick does not enqueue the every server at once.
+Percent rounds up so a non-empty set of servers always moves at least one server. The next batch starts when every step in the current one is terminal (`done`, `skipped`, `failed`, `rolled_back`, or `needs_attention`); a failed step never holds the next batch. On TurboPanel High Availability a large batch drains over several maintenance ticks so one tick does not send it to every server at once.
 
-An offline server's step waits (`waiting`) and is dispatched when that daemon reconnects. A step with no progress for 15 minutes is retried, up to 3 dispatches, then `needs_attention`. A step that rolled back is retried once, then `needs_attention`.
+A server that is offline is handled in one of three ways:
+
+| When it went offline | What happens |
+| --- | --- |
+| Before the update started | Its step is skipped at once (`server_offline`). It updates at the next automatic check after it reconnects (within the hour), unless updates are paused. |
+| During the update, before its install was sent | Its step waits (`waiting`) and is sent when the daemon reconnects. After 15 minutes offline it is skipped (`server_offline`) and updates at the next check after it reconnects, unless updates are paused. |
+| In the middle of its own install | Its step is never skipped, because the install may still finish. After the long wait it becomes `needs_attention`. |
+
+This host's daemon and the control plane are never skipped: offline, their step becomes `needs_attention`, because the other servers depend on them. A step with no progress for 15 minutes is sent again, up to 3 times, then `needs_attention`. A step that rolled back is tried once more, then `needs_attention`.
 
 ## Network failures, older builds and your apps' releases
 
@@ -135,7 +172,7 @@ The control plane refuses to clear the key while a daemon that opens sealed secr
   Clearing the key is only for a server rolled back to a build from before sealed secrets. A server rolled back to a build that already has sealed secrets keeps its sealing key and registers it again when it connects, so its secrets keep working.
 </Callout>
 
-**A restarted control plane is never installed over twice.** If the control-plane step restarts and the daemon then reports nothing for `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default), the step ends as `needs_attention` with `verify_timeout` and the run finishes, so the next **Update TurboPanel** can start. The step says whether the control plane is running the target build. Check the daemon log on that host, then **Retry** or cancel.
+**A restarted control plane is never installed over twice.** If the control-plane step restarts and the daemon then reports nothing for `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default), the step ends as `needs_attention` with `verify_timeout` and the run finishes, so the next update can start. The step says whether the control plane is running the target build. Check the daemon log on that host; the next automatic check tries again once that step's wait is over.
 
 <Callout type="warn" title="Updating the daemon does not make old releases roll-back-able">
   Rolling an app back to an earlier **source release** uses a record the daemon wrote on that server when it published the release. A release published before the daemon wrote records (a daemon that predates release records) has none, and an update does not create it: that release cannot be rolled back until you redeploy it. Releases published afterwards are unaffected. See [Releases and rollback](/docs/using/compose#releases-and-rollback).
@@ -178,7 +215,7 @@ A daemon self-update arms an update guard for about 10 minutes. If the new build
 
 ### Recovery command
 
-Run as root on the control-plane host. The pre-flight sheet copies the same command, with the upgrade id filled in:
+Run as root on the control-plane host. **Backup and Rollback** on **Admin → Updates** shows the same command, with the upgrade id filled in (**Copy Rollback Command**):
 
 ```bash
 sudo -n /opt/turbopanel/share/orchestration/scripts/tp-orchestrate playbook -i localhost, -c local \
