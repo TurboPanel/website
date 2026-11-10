@@ -63,7 +63,7 @@ sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features 
     When `status` prints `switchable` for `pi-memory-cgroup`, the server can turn memory limits on.
   </Step>
   <Step>
-    `apply` copies `/boot/firmware/cmdline.txt` to `cmdline.txt.tp-backup-<date and time>` in the same directory, removes any `cgroup_disable=memory` from its single line and adds `cgroup_enable=memory` at the end. Everything else in the file, including its line ending, stays byte for byte.
+    `apply` copies `/boot/firmware/cmdline.txt` to `cmdline.txt.tp-backup-<date and time>` in the same directory, removes any `cgroup_disable=memory` from its single line and adds `cgroup_enable=memory` at the end. The line ending stays as it was. Spaces at the end of the line are dropped, and when it removes `cgroup_disable=memory`, runs of spaces between the other settings become one.
   </Step>
   <Step>
     With `--reboot`, it restarts the server the same way as the kernel switch: after enrolment, with a countdown you can cancel with Ctrl-C.
@@ -118,7 +118,7 @@ sudo reboot
 
 `undo` only takes back what TurboPanel added; a marker in `/var/lib/turbopanel-kernel` records that. For `pi-4k-pagesize` it removes the `kernel=kernel8.img` line. For `pi-memory-cgroup` it puts the `cmdline.txt` line back exactly as it was; if the line was edited since, it only removes `cgroup_enable=memory`. If you made either change yourself, it prints `Nothing to undo` and you change the file by hand. `undo` never restarts the server. The backup copies are left in place.
 
-After a purge the `tp-orchestrate` command is gone, but both boot settings stay on purpose. The purge summary says so; undo them by hand: delete the `kernel=kernel8.img` line from `/boot/firmware/config.txt`, remove `cgroup_enable=memory` from the line in `/boot/firmware/cmdline.txt` (keep it one line), or copy a `/boot/firmware/*.tp-backup-…` file back over its original. Then restart. Delete the backup copies and `/var/lib/turbopanel-kernel` once you no longer need them.
+After a purge the `tp-orchestrate` command is gone, but both boot settings stay on purpose: taking the `kernel=kernel8.img` line out changes the kernel the board boots, and taking `cgroup_enable=memory` out turns memory limits off. The purge summary says so. To undo them by hand, delete the `kernel=kernel8.img` line from `/boot/firmware/config.txt` if you want the 16 KiB kernel back, remove `cgroup_enable=memory` from the line in `/boot/firmware/cmdline.txt` (keep it one line), or copy the oldest `/boot/firmware/*.tp-backup-…` copy of a file back over it (later copies were made by later changes, including undo). Then restart. Delete the backup copies and `/var/lib/turbopanel-kernel` once you no longer need them.
 
 ## If a Pi does not come back
 
