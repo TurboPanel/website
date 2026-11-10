@@ -196,9 +196,24 @@ Cancelling asks for no extra sign-in, because deploying again fully reverses it.
 | **Stop** | Lifecycle bar | Stops the environment's containers. Files, images and volumes stay on the server. | Kept |
 | **Start** | Lifecycle bar (shown when deployed but stopped) | Starts the existing containers again. No preview, no rebuild. | Kept |
 | **Restart** | API (`action: restart`) | Stop then start. | Kept |
-| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk, the hostnames from the server's web server — and the data volumes. | **Removed** |
+| **Destroy** | Lifecycle bar, two presses | `compose down --volumes`: removes the containers, their networks, the site and Node releases, the secrets on disk and the hostnames from the server's web server. Only volumes Compose made itself go (anonymous ones, and ones whose compose entry sets its own `name:`). | Kept, unless you tick **Also Delete the Data Volumes** |
 
-Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user. Destroy is the one that loses data; the app asks twice.
+Stop and Start only touch existing containers, so they stay available even when Deploy is disabled for a missing system user.
+
+### Destroy and the data volumes
+
+A Destroy keeps the environment's data volumes: the Docker volumes listed on its Storage tab, including the ones TurboPanel registered from your compose file. A later deploy finds the data where it left it.
+
+To delete the data as well, tick **Also Delete the Data Volumes** when you arm Destroy. It is off every time. Ticked, the web interface lists the volumes that will be deleted and the ones that stay, and asks you to type the environment name before **Confirm Destroy** works. Each server the environment runs on removes the listed volumes once the containers are down. If the list changed before you confirmed, nothing is destroyed and the web interface shows the new list. A copy of a volume on a server the environment no longer runs on stays there, and the list says which server. Deleted data cannot be brought back.
+
+Some volumes always stay, and the list says why:
+
+- a shared (common) volume, or one another environment uses;
+- an external volume your compose file names (`external: true`), which TurboPanel did not create;
+- a volume whose Docker name is not the one TurboPanel gave it;
+- a volume a container still uses when the server comes to remove it.
+
+Deleting data needs the right to delete the environment, and every server the environment runs on needs a daemon that can do it; with an older daemon the web interface says which server to update and nothing is destroyed. The audit log records `environment.data.delete` with the volume names.
 
 ### What Destroy leaves on the server
 
@@ -208,6 +223,7 @@ Destroy takes the environment off its servers; the environment and its settings 
 - What a service wrote through a relative bind mount such as `./data`, in the environment's deployment folder. Only the daemon's own compose files are removed from that folder, so the stack does not come back after a restart of the server.
 - Images pulled from a registry or carrying a tag of their own. Only images built for this environment are removed.
 - The project's Hosting Accounts.
+- The data volumes, unless you ticked **Also Delete the Data Volumes** (see above).
 
 The next deploy finds the folders and the `./data` files where they were.
 
@@ -280,7 +296,7 @@ Cancels a queued or running deploy. `:deploymentId` is the deploy's command id f
 
 ### `POST /environments/:id/stop`
 
-Destroy. Removes containers and volumes, tears down hostnames and releases.
+Destroy. Removes containers, tears down hostnames and releases, and keeps the registered data volumes. Send `{"deleteVolumes": true, "confirmName": "<environment name>", "volumeIds": [...]}` to delete them too, with the storage ids `GET /environments/:id/data-volumes` listed. A missing or wrong name is refused with `confirm_name_required`, a list that changed with `data_volumes_changed`, and a server with an older daemon with `delete_volumes_needs_daemon_update`, all before anything stops.
 
 ### Command statuses
 

@@ -16,7 +16,7 @@ A **storage entry** is one persistent location an environment's service mounts: 
 | Policy | Values | Meaning |
 | --- | --- | --- |
 | **Access mode** | `single_writer` (default) · `multi_reader` · `multi_writer` | Whether more than one service, or more than one server, may hold it open. A `single_writer` entry whose primary copy sits on a server other than the one a deploy schedules is refused (`storage_location_unavailable`). |
-| **Retention** | `retain` (default) · `delete` | What happens to the data when its environment or service is deleted: kept on the server, or removed with it. |
+| **Retention** | `retain` (default) · `delete` | What happens to a volume's folder when its environment or service is deleted: kept on the server, or removed with it. Docker volumes are not removed by a delete; see below. |
 
 Behind an entry are its **copies** — where the bytes actually are. A copy has a provider (`docker` for a named volume, `path` for a host path), a role (`primary`, `replica`, `scratch`, `archive`) and a state (`pending` → `materializing` → `ready`, or `syncing`, `stale`, `failed`, `retiring`). One copy is the primary; a `scratch` copy is never mounted. Most entries have exactly one, on the environment's server.
 
@@ -40,7 +40,9 @@ Behind an entry are its **copies** — where the bytes actually are. A copy has 
   </Step>
 </Steps>
 
-Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is for data the platform should know about — the things that survive a destroy when marked *retain*, and the things a redeploy on another server has to find.
+Compose-declared `volumes:` still work exactly as in Compose; the Storage tab is for data the platform should know about — the things a redeploy on another server has to find.
+
+**Docker volumes and Destroy.** A Destroy keeps every Docker volume on the Storage tab. To delete them, tick **Also Delete the Data Volumes** when you destroy the environment and type its name; shared, external and in-use volumes still stay. See [Destroy and the data volumes](/docs/using/deploy#destroy-and-the-data-volumes).
 
 ### Reference
 
