@@ -1,6 +1,6 @@
 ---
 title: Twin Pull Requests
-description: How to ship one feature that changes both the control plane and the daemon, and in which order to merge
+description: How to ship one feature that changes both the control plane and the daemon, and why the daemon merges first
 ---
 
 # Twin Pull Requests
@@ -10,41 +10,39 @@ Some features change both the control plane (`turbopanel`) and the daemon (`turb
 ## The Rules
 
 1. **Use the same branch name in both repositories**, for example `server-ip-report`.
-2. **Link the two pull requests** in each body: write the other pull request's full address in the field the template provides, and say which one merges first.
-3. **Merge the control plane pull request first**, then the daemon one.
+2. **Link the two pull requests** in each body: write the other pull request's full address in the field the template provides, and say that the daemon one merges first.
+3. **Merge the daemon pull request first**, then the control plane one.
 
-Both repositories run a contract check against the other (`contract-twin` in the control plane, `contract-drift` in the daemon). Each looks for a branch with your branch name in the sibling project repository, and uses the sibling's `trunk` when there is none. If the daemon change merged first, the control plane would not match yet and the checks would block canary builds.
+Both repositories run a contract check against the other repository's `trunk`, never against another pull request's branch (`contract-twin` in the control plane, `contract-drift` in the daemon). The check is one way:
 
-<Callout type="info" title="Two Different 'First' Rules">
-  Merge order on `trunk` is control plane first. **Release** order is the opposite: when a change
-  spans both, the daemon ships first (see [How to Ship](/docs/development/how-to-ship)). The first
-  rule is about getting both pull requests onto `trunk`; the second is about which release goes out
-  to servers first. They do not conflict.
+- The daemon may be ahead. It can list wire features, feature floors and optional fields the control plane does not know yet, and an older control plane ignores what it does not know. So the daemon pull request is green on its own, and stays green after it merges.
+- The control plane may only rely on what daemon `trunk` already has. A control plane pull request that uses a feature or field daemon `trunk` lacks is red and says to merge the daemon change first. Once the daemon pull request has merged, re-run the control plane checks.
+- Values both sides must share exactly (signing prefixes, proof tags, hostname rules) must match on both sides. Change them only with a maintainer's help.
+- Removing something goes the other way: the daemon check is red if the daemon drops something the control plane still uses. Remove it from the control plane first.
+
+<Callout type="info" title="One Order for Everything">
+  The daemon goes first both onto `trunk` and in a release (see [How to
+  Ship](/docs/development/how-to-ship)).
 </Callout>
 
 ## If You Work From Forks
 
-The checks only look for same-named branches inside the TurboPanel repositories, never in your fork. So a pair of fork pull requests cannot see each other:
-
-- Expect the daemon pull request's `contract-drift` check to stay red until the control plane pull request has merged. That is expected, not a mistake in your change. Once it merges, push an empty commit or ask a maintainer to re-run the check.
-- To see both sides green together, ask a maintainer to push your two branches into the project repositories under the same name. They can then be tested as a pair.
-
-State this in both pull request bodies so reviewers know it is deliberate.
+The checks compare with the other repository's `trunk`, so a fork pair works the same way. Your daemon pull request is checked on its own. Your control plane pull request stays red until a maintainer has merged the daemon one. That is expected, not a mistake in your change. Say so in both pull request bodies so reviewers know it is deliberate.
 
 ## Opening the Pair
 
 ```bash
-# in ~/turbopanel/turbopanel and in ~/turbopanel/turbopaneld
+# in ~/turbopanel/turbopaneld and in ~/turbopanel/turbopanel
 BASE=upstream   # use origin instead if you push to TurboPanel directly (a read-only clone has no upstream until you fork)
 git fetch "$BASE"
 git switch -c server-ip-report "$BASE"/trunk
 # ...make the change, format it, commit...
 git push -u origin server-ip-report
-gh pr create --repo TurboPanel/turbopanel --base trunk --title "feat(servers): report each server's address"
 gh pr create --repo TurboPanel/turbopaneld --base trunk --title "feat(servers): send the server address"
+gh pr create --repo TurboPanel/turbopanel --base trunk --title "feat(servers): report each server's address"
 ```
 
-Then edit each body to link the other. After the control plane pull request merges, check that the daemon one is green and ask for a review there. The wire contract is expand-only: add fields, do not remove or rename them in the same change.
+Then edit each body to link the other. After the daemon pull request merges, re-run the control plane checks and ask for a review there. The wire contract is expand-only: add fields, do not remove or rename them in the same change.
 
 ## Related
 
