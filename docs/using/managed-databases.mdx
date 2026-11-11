@@ -286,7 +286,7 @@ Choose **Add Admin Tool**, then:
 3. Choose **Access**: **Database Admin** (the default) or **Read-Only**. Database Admin can change data and tables in every database of the Database Cluster, including ones added later. Read-Only can look at every database, including ones added later.
 4. Choose **Add and Deploy**.
 
-The Database Cluster needs at least one database first. The tool runs on the server of the Database Cluster's primary, and the daemon on that server must be up to date. TurboPanel gives the tool its own login, listed on every database of the Database Cluster. It is separate from the All Databases switches above, so those switches do not govern it.
+The Database Cluster needs at least one database first. The tool runs on the server of the Database Cluster's primary, and, for Adminer and pgAdmin, the daemon on that server must be up to date (phpMyAdmin has no such need). TurboPanel gives the tool its own login, listed on every database of the Database Cluster. It is separate from the All Databases switches above, so those switches do not govern it.
 
 The sign-in is shown once, so copy it before you continue:
 
@@ -309,6 +309,7 @@ Each tool has a card with a link to its address, its access, its login name and 
 pgAdmin keeps no storage of its own, so its saved queries and settings are lost when you update it or reset its password. The tool's login in the Users list is marked as used by the tool, and its password is reset only from the tool's card.
 
 While a tool exists, the Database Cluster's first database cannot be dropped. Remove the tool first.
+
 ## Name schemes
 
 Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the _applied_ name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
@@ -594,14 +595,14 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                        |
 | `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                     |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                               |
-| `managed_login_all_databases_not_allowed` | 400 | All Databases is switched off for the organization or the Database Cluster. The message names the switch. |
-| `managed_login_all_databases_conflict` | 400 | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change. |
-| `admin_tool_engine_mismatch` | 400 | The tool does not work with this database engine. |
-| `invalid_hostname` | 400 | The admin tool's hostname is not valid. |
-| `admin_tool_hostname_in_use`, `hostname_in_use` | 409 | The hostname is already used by the web interface or by another site. |
-| `admin_tool_needs_database` | 409 | Add a database to the Database Cluster before adding an admin tool. |
-| `admin_tool_needs_daemon_update` | 409 | The daemon on the Database Cluster's server must be updated before the tool can run there. |
-| `admin_tool_email_invalid` | 400 | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain. |
+| `managed_login_all_databases_not_allowed`                                                                                                                                                                  | 400       | All Databases is switched off for the organization or the Database Cluster. The message names the switch.                                                              |
+| `managed_login_all_databases_conflict`                                                                                                                                                                     | 400       | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change.   |
+| `admin_tool_engine_mismatch`                                                                                                                                                                               | 400       | The tool does not work with this database engine.                                                                                                                      |
+| `invalid_hostname`                                                                                                                                                                                         | 400       | The admin tool's hostname is not valid.                                                                                                                                |
+| `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                  |
+| `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                    |
+| `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                            |
+| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain.                                                                  |
 
 ## Related
 
