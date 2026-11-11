@@ -331,6 +331,8 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `variable_unresolved`, `variable_ref_invalid`, `variable_secret_interpolation` | 422 | A `${KEY}` reference has no value at any scope, is malformed, or interpolates a secret into a plain field. |
 | `docker_external_network_unregistered` | 422 | `external: true` names a network not registered under **Network → Docker networks**. |
 | `datacenter_ip_required` | 422 | A hosting row binds to the `datacenter` scope on a server with no datacenter network address. |
+| `cache_key_conflict` | 422 | A cache would set a variable name that a service or hostname variable already sets. Rename the variable or change the cache's variable prefix. |
+| `helper_reach_invalid` | 422 | A container's `reach` breaks a rule (more than one copy, not a site or Node app, services under different Hosting Accounts, or an account not set up yet). See [Project caches](/docs/using/project-caches#reaching-helper-containers-from-sites). |
 
 ### Fix the placement or the servers
 
@@ -344,6 +346,7 @@ Every refusal carries a stable `error` code and, where useful, a `message` and t
 | `fabric_reconcile_pending` | 409 | TurboFabric is still converging on a server the plan needs; retry shortly. |
 | `fabric_reconcile_failed` | 422 | TurboFabric could not converge; see the server's Network tab. |
 | `storage_location_unavailable` | 422 | A storage entry's primary copy lives on a server other than the one scheduled, and its access mode does not allow that; the message names both servers. |
+| `daemon_update_needed` | 409 | The environment has a project cache or a helper port and the target server's daemon does not support them yet. Update the daemon on that server. |
 
 ### Fix hostnames or TLS
 
