@@ -20,7 +20,11 @@ the installer all follow this page.
 | **Datacenter network** | A network inside a datacenter, not the building: a routing domain of private subnets that can all reach each other directly. A server can be on several. Servers on a trusted datacenter network talk directly; across untrusted ones TurboFabric carries the traffic. See [Datacenter networks](/docs/architecture/datacenter-networks). |
 | **Administrator** | The person who runs a self-hosted control plane.                                                                                                                                                                                                                                          |
 | **Hosting Account** | The Linux account that a hosted customer's files and sites run as, with its home under `/srv/users/<name>`. It is not a panel login, an organization member or a database login. |
-| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (a Hosting Account) on each server where its sites and services run, and as a **database login** on a managed database cluster. See [Principals](/docs/using/principals). |
+| **Database Cluster** | A managed database service: one engine (PostgreSQL, MySQL or MariaDB) on one or more servers, with its databases and logins. See [Managed databases](/docs/using/managed-databases). |
+| **Member** | One server of a Database Cluster: the primary or a replica. |
+| **Login** | A database user name and password on one Database Cluster, with the databases and rights it has. It is not a sign-in to the web interface. |
+| **Admin Tool** | A web tool (phpMyAdmin, Adminer or pgAdmin) TurboPanel runs for one Database Cluster, signed in with its own login. See [Admin tools](/docs/using/managed-databases#admin-tools). |
+| **Principal**     | A named account that belongs to your organization, not to one server. It appears as a **system user** (a Hosting Account) on each server where its sites and services run, and as a **login** on a Database Cluster. See [Principals](/docs/using/principals). |
 
 ## The two ways to run it
 
