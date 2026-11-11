@@ -168,6 +168,7 @@ What a principal is, and its two forms, are explained in [Principals](/docs/usin
 | `ssh_key_duplicate`                     | 409    | That SSH key is already on the account.                                                                                                                |
 | `invalid_access`, `invalid_service_ids` | 400    | `access` is not `none`/`sftp`/`shell`, or a service id does not belong to the project.                                                                 |
 | `principal_in_use`                      | 409    | A service, database binding, storage entry, secret, database login, folder or project cache still uses the Hosting Account; `usedBy` counts each kind. |
+
 ## Git sources and repositories
 
 | Code                                                                                                              | Status                                                        | Meaning                                                                                                                                                          |
@@ -342,6 +343,7 @@ See [Project caches](/docs/using/project-caches).
 | `invalid_request`                                                                         | 400                                  | The body is not an object, or a change names nothing to change.                                                                                                                              |
 | `cache_variable_overrides`                                                                | warning (deploy)                     | A cache's variable replaced one with the same name set at an inherited scope; the key is named.                                                                                              |
 | `cache_other_account`, `cache_other_server`                                               | warning (deploy)                     | A site or app gets no cache variables: it runs as a different Hosting Account than any cache of the environment, or the cache is on another server.                                          |
+
 ## Scheduled tasks
 
 | Code                                            | Status | Meaning                                                                            |
