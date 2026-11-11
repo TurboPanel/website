@@ -180,7 +180,7 @@ Rules:
 
 - **No secret variables, no build variables.** A secret variable is never read for references, so save a reference as a plain variable; a reference to a secret field stays secret. A variable used for builds cannot hold one either, because database settings reach the running app only.
 - **Only `db` references expand in a stored value.** `{$KEY}` and `{$scope.KEY}` in a variable's value stay literal text.
-- **A literal `{$db.`.** Write `{$$db.` and it is stored as the literal text `{$db.`. Text a reference inserts is used as it is and never scanned again.
+- **A literal `{$db.`.** Write `{$$db.` and the app gets the literal text `{$db.`. Text a reference inserts is used as it is and never scanned again.
 - **Fields a kind of app cannot have.** On a PHP site the CA comes as a file, so `ca_text` is refused, and `ca_file` must be the whole value (the daemon fills in the path on the server). A Node app gets the CA as text, so `ca_file` is refused for it.
 - **A missing connection.** If the service has no binding with that prefix (or the binding has no value for the field), the answer depends on where the variable is set. On the service itself or one of its hostnames, the deploy is refused (`variable_unresolved`). Set higher up (organization, workspace, project, environment or server), the variable is left out for that service and the deploy shows a warning (`variable_db_ref_unresolved`) naming the service, the variable and the reference, never a value.
 
@@ -188,7 +188,7 @@ A reference that is written wrongly (an unknown field, a secret field inside lon
 
 ### Variable Names (presets) [#variable-name-presets]
 
-Many apps read their database settings from fixed names. In the web interface, a binding has a **Variable Names** choice, and **Change Names** edits it on an existing binding. The binding always sets its own prefixed names; the preset adds a second set of names the app expects, listed under **Also Sets** before you save. Every value in a preset is a database reference, so it follows the same rules as above.
+Many apps read their database settings from fixed names. In the web interface, a binding has a **Variable Names** choice, and **Change Names** edits it on an existing binding. The binding always sets its own prefixed names; the preset adds a second set of names the app expects, listed under **Also Sets** before you save. A preset's values come from the binding's own values, the same ones a reference reads, so they follow a failover, a password rotation or a new CA at the next deploy.
 
 A service can have one binding with a preset; a second one fails with `binding_engine_defaults_in_use`. A preset must fit the engine (`binding_preset_engine_mismatch`), and a request cannot name a preset and the older `emitEngineDefaults` flag together (`binding_preset_conflict`).
 
@@ -201,9 +201,9 @@ A service can have one binding with a preset; a second one fails with `binding_e
 | Metabase         | All            | `MB_DB_TYPE` (`postgres`, or `mysql` for both MySQL engines), `MB_DB_HOST`, `MB_DB_PORT`, `MB_DB_DBNAME`, `MB_DB_USER`, `MB_DB_PASS`                                                                                                                                                      |
 | Uptime Kuma      | MySQL, MariaDB | `UPTIME_KUMA_DB_TYPE` (`mariadb`), `UPTIME_KUMA_DB_HOSTNAME`, `UPTIME_KUMA_DB_PORT`, `UPTIME_KUMA_DB_NAME`, `UPTIME_KUMA_DB_USERNAME`, `UPTIME_KUMA_DB_PASSWORD`, `UPTIME_KUMA_DB_SSL` (`true` unless the SSL mode is `disable`), `UPTIME_KUMA_DB_CA` (the CA as text; not on a PHP site) |
 
-An entry whose field the app's kind cannot have is left out rather than failing: `ca_file` on a Node app, or the CA as text on a PHP site. A binding made before presets existed keeps its names. If it had **Plain** names on, it reads as the Plain preset for its engine and sets exactly what it did, plus `PGSSLROOTCERT` on a PostgreSQL container or site in a verify mode.
+An entry whose field the app's kind cannot have is left out rather than failing: `ca_file` on a Node app, or the CA as text on a PHP site. A binding made before presets existed keeps its names. If it had the engine default names switched on, it reads as the Plain preset for its engine and sets exactly what it did, plus `PGSSLROOTCERT` on a PostgreSQL container or site in a verify mode.
 
-In a container, secret names arrive as files like every binding secret, so a Laravel container reads `DB_PASSWORD_FILE` rather than `DB_PASSWORD`. Check that the app reads the `_FILE` form before choosing a preset for a container; a PHP site or a Node app gets the plain names.
+In a container, secret names arrive as files like every binding secret, so a Laravel container gets `DB_PASSWORD_FILE` rather than `DB_PASSWORD`, and Laravel does not read `_FILE` names. Metabase does: it reads `MB_DB_USER_FILE` and `MB_DB_PASS_FILE` (see "Use Docker Secrets" on Metabase's Docker page). A PHP site or a Node app gets the plain names.
 
 ### SSL mode and the CA file [#database-ssl]
 
