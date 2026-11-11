@@ -1,0 +1,167 @@
+---
+title: PHP Apps from Git
+description: How a PHP app built from a Git repository is laid out on a server, the environment file for shells and scheduled jobs, dependency install, post-deploy commands, background workers, the scheduler and automatic PHP patch restarts
+---
+
+# PHP Apps from Git
+
+A **site** service that builds from a Git repository runs PHP from a sealed **release**. This chapter covers what that release looks like, the file that holds the site's variables, how dependencies are installed, and the settings in the **PHP App** section of the service: **Post-Deploy Commands**, **Run Commands** and **Background Workers**. It uses a Laravel app as the example; any PHP framework that works from a build folder follows the same steps. For how PHP itself is started, see [PHP modes](/docs/using/php).
+
+## Before you begin
+
+- The service is a **site** with a PHP version, built from a Git repository, and it has a system user (a Hosting Account) assigned. Commands and workers run as that account, never as root.
+- The **PHP App** section is in the service's settings in the web interface. It shows for site services only.
+- The control plane and the daemon on the server must both carry this feature. If a server's daemon does not, the deploy is refused (see the errors table).
+
+## The release layout
+
+Each deploy builds into its own folder under the service folder and then publishes it. See [Where your files live](/docs/using/files-and-folders) for the whole tree.
+
+```text
+<service folder>/
+  releases/<release id>/    the sealed build, read-only
+  current                   link to the release that is live
+  shared/                   files that must outlive a deploy
+  .turbopanel-hosting/      settings the daemon writes for this site
+```
+
+A release is read-only, so the app cannot write into its own code. Anything it must keep, or write while running, goes in a folder under `shared/`.
+
+For a **Laravel** app (found by its `artisan` file) and a **WordPress** site, TurboPanel makes the one link the framework needs and nothing else:
+
+| Framework | What is shared                                 | What stays in the release                                                |
+| --------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| Laravel   | `storage` links to `shared/storage`            | `bootstrap/cache` stays in the release and the site account can write it |
+| WordPress | `wp-content/uploads` links to `shared/uploads` | `wp-content/cache` stays in the release, read-only                       |
+
+The folders in `shared/` are created for you, owned by the site's Hosting Account. Any other link in your build that points into `shared/` is refused at publish, so a link you add yourself will fail the deploy. If your build commits a `bootstrap/cache` link, it is left alone and stays read-only.
+
+## The environment file
+
+Every variable the site gets in a web request is also written to one file for everything that is not a web request: scheduled jobs, post-deploy commands, background workers and your own shell. The values come from the variable cascade, with secrets decrypted, plus the paths of the database certificate files. See [Storage, variables and secrets](/docs/using/storage-and-variables).
+
+The file is made on every deploy before any command runs or any site is switched, so a first deploy has it too. It has these rules:
+
+- A copy in `.turbopanel-hosting/hosting.env` is readable by the site's Hosting Account and no one else.
+- The platform's own names are left out: `HOME`, `TMPDIR`, `PATH`, `TURBOPANEL_PHP`, `PHPRC`, `PHP_INI_SCAN_DIR`, `PHP_VALUE`, `PHP_ADMIN_VALUE` and every name starting with `LD_`. The deploy transcript names each one it skipped, never its value.
+- A name that is not letters, digits and underscores (not starting with a digit) cannot be carried by a file and is left out too.
+- Windows line endings (CR LF) are converted to plain line breaks. A bare carriage return or a null byte in a value fails the deploy and names the variable. The file is limited to 1 MiB.
+
+Load it into a shell as the Hosting Account:
+
+```bash
+cd <service folder>/current
+set -a; . <service folder>/.turbopanel-hosting/hosting.env; set +a
+printenv APP_ENV
+```
+
+`set -a` exports every variable the file sets, and `set +a` turns that off again. A change to a variable reaches the web request at the next deploy that changes the site. Scheduled jobs, commands and workers read the file each time they start.
+
+## Dependency install
+
+When the repository has a `composer.json`, the build installs the PHP dependencies first, with the production set only and an optimized class map. It does so unless your own build command already mentions `composer`, in which case yours runs as written. The install uses the PHP version the site is set to, and keeps a download cache for each Hosting Account and project, so the next build is faster.
+
+Package scripts are not skipped. Laravel's package discovery runs during the install and writes its caches into `bootstrap/cache` while the release is still being built. A missing `composer.lock` is noted in the transcript, since the install then picks versions at build time.
+
+Private package sources are not supported yet, and `COMPOSER_AUTH`, `COMPOSER_HOME`, `COMPOSER_CACHE_DIR` and `TURBOPANEL_PHP` cannot be set as build variables.
+
+## Post-deploy commands
+
+Set these in the **PHP App** section of the service, in the **Post-Deploy Commands** box, one command per line. The usual example is `php artisan migrate --force`.
+
+Each command runs as the site's Hosting Account, in the new release's own folder, with the site's variables and the site's PHP version as plain `php`. It runs inside the same sandbox as the site's PHP: a read-only system, the account's own folders, and the same limits on the network. In a Laravel release the one folder it can write inside the release is `bootstrap/cache`, which is where `php artisan optimize` puts the config and route caches. Write anything else to `shared/` or `storage`.
+
+A command runs directly, with no shell, in the new release's folder (a worker's command runs in the live release). The first word must be `php` or an absolute path, because nothing searches `PATH`: `./deploy.sh`, `bash deploy.sh` and `composer install` are refused. A path with `..` is refused, each word is at most 512 characters, and a command is at most 1000 characters. These characters are refused anywhere in a command: `|` `&` `;` `<` `>` `(` `)` `$` `` ` `` `\` `"` `'` `*` `?` `[` `]` `{` `}` `~` and line breaks. To chain steps or redirect output, put them in a script in your repository and run it as `/bin/sh scripts/deploy.sh`. Worker commands follow the same rules.
+
+| Setting           | Meaning                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| Timeout (Seconds) | The time limit for the commands. 30 to 1800, default 900.                             |
+| Commands          | At most 10 per site. They run one after another and the first failure stops the rest. |
+
+### Run Commands
+
+**Run Commands** picks when they run:
+
+- **Before the new release takes traffic** (the default). The commands run while the current release keeps serving. If one fails, the deploy fails, nothing is switched, and the current release stays live. A deploy with several sites switches none of them unless every site's commands passed. The first deploy of a site has no release serving yet, so it publishes at once, and its commands still run before any web server answers for it.
+- **Right after the switch**. The new release goes live first, then the commands run. If one fails, the deploy is marked failed but the new release keeps serving, and the site's workers are not restarted onto it.
+
+Things to know either way:
+
+- Commands never run on a rollback.
+- A deploy that is retried can run them again, so write every command to be safe to run twice. `php artisan migrate --force` is; a command that sends mail or charges a card is not.
+- Success is decided by the exit status of the run, not by anything the commands print. The output is shown in the deploy transcript.
+- A site needs a Hosting Account and PHP for commands to run. Without them the deploy is refused before the build.
+
+<Callout type="info" title="Roll Back after a failed command">
+  When a command fails right after the switch, the **Roll Back** button on that failed deploy is not
+  available yet. Roll back from the service's release list.
+</Callout>
+
+## Background workers
+
+A background worker is a long-running command such as a queue worker. Add one with **Add Worker** under **Background Workers**. Up to 10 workers per site.
+
+| Field                  | Meaning                                                                                                                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name                   | Lowercase letters, digits and dashes, starting with a letter or digit, up to 32 characters, unique in the site. Two workers whose unit names would come out the same, such as worker `a-b` in site `web` and worker `b` in site `web-a`, are refused. Example: `queue`. |
+| Command                | What to run, for example `php artisan queue:work`.                                                                                                                                                                                                                      |
+| Processes              | How many copies run, 1 to 8. Default 1.                                                                                                                                                                                                                                 |
+| Stop Timeout (Seconds) | How long a copy gets to finish before it is killed. 10 to 3600, default 90.                                                                                                                                                                                             |
+| Memory (MiB)           | An optional limit, 64 to 65536. Empty means no limit.                                                                                                                                                                                                                   |
+| Enabled                | A worker that is off is not run. The next deploy stops and removes it.                                                                                                                                                                                                  |
+
+A worker runs as the site's Hosting Account with the site's variables and the same sandbox as its PHP, in the live release folder. It starts at boot and is restarted five seconds after it stops by itself.
+
+Every deploy restarts the workers so they pick up the new code. A restart sends a polite stop first: a queue worker finishes its job and exits, and only when the **Stop Timeout (Seconds)** has run out is it killed. Set the timeout above your longest job. The deploy does not wait for a long job to finish. It checks for up to 30 seconds that each copy came back, notes the ones still starting, and warns about one that did not stay running. A worker that fails to come back warns but does not fail the deploy.
+
+Remove a worker from the list and the next deploy stops and removes it. Stopping the environment stops them too, and the lifecycle actions of the environment start, stop or restart them with the site.
+
+Examples:
+
+```text
+queue    php artisan queue:work --sleep=3 --tries=3 --max-time=3600     stop timeout 90
+horizon  php artisan horizon                                            1 process, stop timeout above your longest job
+```
+
+## The scheduler
+
+The framework scheduler is not a worker. It is a scheduled job that runs every minute. Add it as a job on the service, with the schedule `* * * * *`:
+
+```yaml
+services:
+  app:
+    x-turbopanel:
+      serviceKind: site
+      cron:
+        - name: scheduler
+          schedule: '* * * * *'
+          command: php artisan schedule:run
+```
+
+For a release-backed site the job runs in the live release folder, loads the environment file and uses the site's PHP version, so the command works as typed. A job that runs every minute fires on the minute. A job that runs every few minutes is spread over a short delay so many sites do not start at the same second, and hourly and daily jobs may start up to two minutes late.
+
+## PHP patch restarts
+
+The operating system's security updates include PHP. When an update replaces a PHP version's files, the PHP already running keeps the old build until it is restarted. The daemon on each server notices this and restarts it for you, so you do not need to redeploy.
+
+- It waits until the update has settled: two minutes after the change, and with no package install still going.
+- It restarts the site runtimes that are running the old build, then those sites' workers (with the same graceful stop as a deploy), and last the shared PHP master process on the server.
+- Each restart runs under the environment's deploy lock, so it never overlaps a deploy of that environment.
+- Each site is checked before and after its restart. If a site answered before and does not answer after, the pass stops at once, so the rest keep the old build rather than failing too. The server page shows the failed site. The next pass skips it for that change and carries on with the others; a new deploy of the site clears the mark.
+- A site that was not answering before is restarted and does not stop the pass.
+
+## Errors
+
+| Code                              | Status | Meaning                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `site_lifecycle_unowned`          | 422    | The site has post-deploy commands or background workers but no system user to run them as. Assign one to the service.                                                                                                                                                                          |
+| `site_lifecycle_unsupported`      | 409    | A server the deploy targets runs a daemon that cannot run commands or workers yet. The response names the server.                                                                                                                                                                              |
+| `post_deploy_failed_after_switch` | none   | A command set to run right after the switch failed. The deploy shows only the sentence `Post-deploy commands for site <name> failed after the new release went live. Roll back to the previous release from the deploy page if the site is not working.` No code or release ids are shown yet. |
+
+## Related
+
+- [PHP modes](/docs/using/php), how PHP is started and which version a site gets.
+- [Writing compose](/docs/using/compose), the `x-turbopanel` block.
+- [Storage, variables and secrets](/docs/using/storage-and-variables), where the site's variables come from.
+- [Where your files live](/docs/using/files-and-folders), the service folder tree.
+- [Hosting Accounts and isolation](/docs/security/site-isolation), the walls around every site.
