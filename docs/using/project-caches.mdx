@@ -78,7 +78,7 @@ Rules that follow from this:
 - **A site gets the variables in every place it gets its own.** A PHP site reads them in its requests, and its scheduled jobs, post-deploy commands and background workers load them from the site's environment file ([PHP Apps from Git](/docs/using/php-apps-from-git#the-environment-file)). On a site with PHP, the PHP `redis` extension is switched on for you.
 - **Only the cache's own account.** A site or app that runs as a different Hosting Account, or on a different server, gets nothing, and the deploy says so in a warning.
 - **Containers get nothing yet.** A service of kind `container` receives no cache variables.
-- **They win over inherited values.** A variable with the same name set at the organization, workspace, project or environment scope is replaced, and the deploy warns with `cache_variable_overrides`, naming the variable.
+- **They win over inherited values.** A variable with the same name set at the organization, workspace, project, environment or server scope is replaced, and the deploy warns with `cache_variable_overrides`, naming the variable.
 - **They cannot be set by hand where they would lose.** A variable with the same name set on the service or its hostname is refused (`cache_key_conflict`). Rename that variable or change the cache's prefix.
 - **Values stay hidden.** The password and the URL are secrets. The **From Caches** group on the environment's **Configuration** tab lists the names each cache sets and never shows a value.
 - **Node apps** get the plain names (`REDIS_HOST`, `REDIS_PORT`, `REDIS_SOCKET`, `REDIS_USERNAME`). The password and the URL are secrets, and a secret that is not set on the Node app itself reaches it only when its `environment:` references it with `{$REDIS_PASSWORD}` (see [Variables on a Node app](/docs/using/storage-and-variables#variables-on-a-node-app)). Open **Preview ▾ → Prepared compose** (see [Preview](/docs/using/deploy#preview)) to see what a given app will get.
@@ -98,7 +98,7 @@ These are the names Laravel's Redis connection reads, with the host a socket pat
 
 ## Change or delete a cache
 
-Choose a cache in **Caches** and use its menu. **Edit** changes the access, the memory limit and the variable prefix, and sends only what changed. The name and the Hosting Account are read-only.
+Choose a cache in **Caches** and use its menu. **Show Variables** lists the variable names the cache sets (never a value). **Edit** changes the access, the memory limit and the variable prefix, and sends only what changed. The name and the Hosting Account are read-only.
 
 **Delete** asks **Also Delete the Cached Data**, checked by default.
 
@@ -152,13 +152,13 @@ What the deploy does:
 
 So `search` above gives `TURBOPANEL_HELPER_SEARCH_HOST` and `TURBOPANEL_HELPER_SEARCH_PORT`.
 
-**Rules** (each is checked at deploy and refused with `helper_reach_invalid`, which names the service):
+A `reach` of the wrong shape (a port outside 1 to 65535, no `from`, more than eight names or a repeated name) is refused when you save the compose document. The rules below depend on the services and accounts, so they are checked at deploy and refused with `helper_reach_invalid`, which names the service:
 
 - **One account.** Every service in `from` must run as the same Hosting Account, because a helper port opens to one account. In the web interface, a site or app that names a different account than the first one you ticked cannot be added.
 - **Sites and Node apps only.** A container, or a name that is not in the document, cannot be in `from`.
 - **The account must exist.** Each service in `from` needs a Hosting Account that is already set up on the server.
 - **One copy.** A container with a helper port must run as a single copy, not scaled to several.
-- **At most 32** helper ports in one deploy.
+- **At most 32** helper ports per server in one deploy.
 
 **Reachable from Sites** shows on a service of the project's **Base** compose, not on an environment's own compose overlay. The host port is not shown in the web interface; the site reads it from the variable.
 
@@ -184,7 +184,7 @@ The same codes are in [Error codes](/docs/using/reference/errors#project-caches-
 
 | Code | Status | Meaning |
 | --- | --- | --- |
-| `invalid_name`, `invalid_principal`, `invalid_access`, `invalid_memory`, `invalid_prefix` | 400 | A field is outside its rule above; the message says which and what is allowed. |
+| `invalid_name`, `invalid_principal`, `invalid_access`, `invalid_memory`, `invalid_prefix` | 400 | A field is outside its rule above (`invalid_access` here is the cache access, `socket` or `port`); the message says which and what is allowed. |
 | `engine_unavailable`, `version_unavailable` | 400 | The request named an engine other than Valkey, or a version other than 8.1. |
 | `environment_not_placed` | 409 | The environment has no server yet. |
 | `daemon_update_needed` | 409 | The server's daemon does not support project caches. |
