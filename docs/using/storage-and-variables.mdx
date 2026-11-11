@@ -149,6 +149,71 @@ services:
 
 `{$KEY}` takes the effective value from the cascade; `{$scope.KEY}` (`organization`, `workspace`, `project`, `environment`, `service`, `hosting`, `server`; `org` is accepted for `organization`) pins a scope. A reference to a **secret** is compiled into a Compose `secrets:` entry backed by a file the daemon materializes under `/run/turbopanel/deployments/<project>/<environment>/secrets/`, plus a courtesy `<KEY>_FILE` variable holding that path. The file is readable by every user inside that one container (so an image that runs as a fixed non-root user can read it) and by no other account on the server. A tool that refuses to read a password or key file other users could read has to copy the file to a private place first (see [Generated Config Files](#generated-config-files)). Interpolating a secret directly into a plain field is refused (`variable_secret_interpolation`), because that would write it into YAML.
 
+### Reading a database binding from any variable [#database-references]
+
+A database **binding** writes its connection details as variables under its own prefix (`DATABASE_HOST`, `DATABASE_PASSWORD` and so on; `DATABASE` is the default prefix). Those names are locked, and an app often wants the same values under other names. Instead of copying them, write a **database reference** in the value of a variable on the app:
+
+```
+{$db.<prefix>.<field>}
+```
+
+`<prefix>` is the binding's key prefix exactly as it is stored (`DATABASE` in `{$db.DATABASE.host}`), and the binding must belong to the same service. Because a reference reads the binding's own values, it follows a failover, a password rotation or a new organization CA on the next deploy, with nothing to edit.
+
+| Field                          | Value                                                                                 | Secret |
+| ------------------------------ | ------------------------------------------------------------------------------------- | ------ |
+| `host`, `port`, `name`, `user` | The same values as `<PREFIX>_HOST`, `<PREFIX>_PORT`, `<PREFIX>_NAME`, `<PREFIX>_USER` | No     |
+| `password`                     | The password                                                                          | Yes    |
+| `url`                          | The full connection URL                                                               | Yes    |
+| `ssl_mode`                     | The SSL mode as the engine's driver spells it, the same as `<PREFIX>_SSL_MODE`        | No     |
+| `ca_file`                      | The path of a file that holds the organization CA                                     | No     |
+| `ca_text`                      | The organization CA as text                                                           | Yes    |
+| `driver`                       | `postgres`, `mysql` or `mariadb`                                                      | No     |
+| `read_split`                   | The same as `<PREFIX>_READ_SPLIT`                                                     | No     |
+
+Where a reference works:
+
+- **Service and hosting variables, at any scope.** Write it in the value of a plain variable. A non-secret field can sit anywhere in the text (`{$db.DATABASE.host}:{$db.DATABASE.port}`). A secret field (`password`, `url`, `ca_text`) must be the **whole value**, and the variable then becomes secret.
+- **A Compose `environment:` value.** Write `{$db.DATABASE.host}` as the whole value, the same as any other `{$…}` reference. A secret field reaches the container as a file, like every secret (see above).
+- **A generated config file.** In `configs.content`, a reference works anywhere in the text, secret fields included. See [Generated Config Files](#generated-config-files).
+
+Rules:
+
+- **No secret variables, no build variables.** A secret variable is never read for references, so save a reference as a plain variable; a reference to a secret field stays secret. A variable used for builds cannot hold one either, because database settings reach the running app only.
+- **Only `db` references expand in a stored value.** `{$KEY}` and `{$scope.KEY}` in a variable's value stay literal text.
+- **A literal `{$db.`.** Write `{$$db.` and the app gets the literal text `{$db.`. Text a reference inserts is used as it is and never scanned again.
+- **Fields a kind of app cannot have.** On a PHP site the CA comes as a file, so `ca_text` is refused, and `ca_file` must be the whole value (the daemon fills in the path on the server). A Node app gets the CA as text, so `ca_file` is refused for it.
+- **A missing connection.** If the service has no binding with that prefix (or the binding has no value for the field), the answer depends on where the variable is set. On the service itself or one of its hostnames, the deploy is refused (`variable_unresolved`). Set higher up (organization, workspace, project, environment or server), the variable is left out for that service and the deploy shows a warning (`variable_db_ref_unresolved`) naming the service, the variable and the reference, never a value.
+
+A reference that is written wrongly (an unknown field, a secret field inside longer text, a reference inside a secret variable, or one on a build variable) is refused when you save the variable. A secret field embedded in longer text that slips through is refused at deploy (`variable_ref_invalid`).
+
+### Variable Names (presets) [#variable-name-presets]
+
+Many apps read their database settings from fixed names. In the web interface, a binding has a **Variable Names** choice, and **Change Names** edits it on an existing binding. The binding always sets its own prefixed names; the preset adds a second set of names the app expects, listed under **Also Sets** before you save. A preset's values come from the binding's own values, the same ones a reference reads, so they follow a failover, a password rotation or a new CA at the next deploy.
+
+A service can have one binding with a preset; a second one fails with `binding_engine_defaults_in_use`. A preset must fit the engine (`binding_preset_engine_mismatch`), and a request cannot name a preset and the older `emitEngineDefaults` flag together (`binding_preset_conflict`).
+
+| Preset           | Engines        | Names it sets                                                                                                                                                                                                                                                                             |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plain PostgreSQL | PostgreSQL     | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE`, and `PGSSLROOTCERT` in the `verify-ca` and `verify-full` modes                                                                                                                                                     |
+| Plain MySQL      | MySQL, MariaDB | `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`                                                                                                                                                                                                              |
+| Laravel          | All            | `DB_CONNECTION` (`pgsql`, `mysql` or `mariadb`), `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_URL`; PostgreSQL adds `DB_SSLMODE`, MySQL and MariaDB add `MYSQL_ATTR_SSL_CA`                                                                                     |
+| WordPress        | MySQL, MariaDB | `DB_HOST` (as `host:port`), `DB_USER`, `DB_PASSWORD`, `DB_NAME`                                                                                                                                                                                                                           |
+| Metabase         | All            | `MB_DB_TYPE` (`postgres`, or `mysql` for both MySQL engines), `MB_DB_HOST`, `MB_DB_PORT`, `MB_DB_DBNAME`, `MB_DB_USER`, `MB_DB_PASS`                                                                                                                                                      |
+| Uptime Kuma      | MySQL, MariaDB | `UPTIME_KUMA_DB_TYPE` (`mariadb`), `UPTIME_KUMA_DB_HOSTNAME`, `UPTIME_KUMA_DB_PORT`, `UPTIME_KUMA_DB_NAME`, `UPTIME_KUMA_DB_USERNAME`, `UPTIME_KUMA_DB_PASSWORD`, `UPTIME_KUMA_DB_SSL` (`true` unless the SSL mode is `disable`), `UPTIME_KUMA_DB_CA` (the CA as text; not on a PHP site) |
+
+An entry whose field the app's kind cannot have is left out rather than failing: `ca_file` on a Node app, or the CA as text on a PHP site. A binding made before presets existed keeps its names. If it had the engine default names switched on, it reads as the Plain preset for its engine and sets exactly what it did, plus `PGSSLROOTCERT` on a PostgreSQL container or site in a verify mode.
+
+In a container, secret names arrive as files like every binding secret, so a Laravel container gets `DB_PASSWORD_FILE` rather than `DB_PASSWORD`, and Laravel does not read `_FILE` names. Metabase does: it reads `MB_DB_USER_FILE` and `MB_DB_PASS_FILE` (see "Use Docker Secrets" on Metabase's Docker page). A PHP site or a Node app gets the plain names.
+
+### SSL mode and the CA file [#database-ssl]
+
+A binding also sets two names that carry the connection's TLS settings (see [Managed databases](/docs/using/managed-databases#site-ca)):
+
+- `<PREFIX>_SSL_MODE`, the SSL mode as the driver spells it, for every kind of app.
+- `<PREFIX>_CA_FILE`, the path of a file that holds the organization CA. A container gets `/run/secrets/<PREFIX>_CA_CERT`, a mount of the same certificate that `<PREFIX>_CA_CERT` carries as text. A PHP site gets a file the daemon writes in the site's `.turbopanel-hosting` folder.
+
+In the `verify-ca` and `verify-full` modes, a PostgreSQL connection string carries `sslrootcert=<path to the CA file>`, so a client that reads only the URL still checks the right root. A container's URL has it from the control plane. A PHP site's URL has it added by the daemon on the server, which needs a daemon that is updated; on an older one the URL has no `sslrootcert`, as before. A MySQL or MariaDB URL is unchanged in every mode, and so is a Node app's.
+
 ### Generated Config Files
 
 A `configs:` entry with `content` becomes a file whose text may use the same references anywhere in it, secrets included. Use it for a file an image reads at start, such as a server list or a password file:
@@ -222,8 +287,10 @@ The same list is `nativeAppVariables` in the answer of `GET /environments/:id/de
 | `server_placement_required`, `server_offline` | 409 | The copy has no server, or its server is offline: a manual backup, delete or restore needs it online. |
 | `binding_key_conflict` | 409 | The key collides with one a database binding owns. |
 | `binding_owned_variable` | 409 | The variable is written by a binding; sever the binding to change it. |
-| `variable_unresolved` | 422 (deploy) | A `{$KEY}` reference has no value at any scope in reach. |
-| `variable_ref_invalid` | 422 (deploy) | A malformed reference or an unknown scope. |
+| `variable_unresolved` | 422 (deploy) | A `{$KEY}` reference has no value at any scope in reach, or a `{$db.…}` reference set on the service or its hostname has no matching binding or field. |
+| `variable_ref_invalid` | 422 (deploy) | A malformed reference, an unknown scope, or a secret database field inside longer text. |
+| `variable_db_ref_unresolved` | warning (deploy) | A variable set above the service refers to a database connection the service does not have; the variable is left out for it. |
+| `binding_preset_conflict`, `binding_preset_engine_mismatch`, `binding_engine_defaults_in_use` | 400, 400, 409 | A binding named a preset and the older flag together; the preset does not fit the database engine; the service already has a binding with a preset. |
 | `variable_secret_interpolation` | 422 (deploy) | A secret referenced in a plain field; use a `secrets:` entry. |
 | `config_interpolation` | 422 (deploy) | A config's text uses Compose `${X}` or `$X`; use `{$X}` for a variable and `$$` for a literal `$`. |
 | `config_file_invalid` | 422 (deploy) | A config name ends in `.tmp`, produces a file name another config uses, would replace an existing top-level config, or is over the size limits. |

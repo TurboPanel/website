@@ -171,6 +171,15 @@ A **binding** connects a managed database user to a compose service:
 3. Binding create/update/delete enqueues `managed.ingress.reconcile` for the
    consumer server and cluster member servers so frontend users and servers stay
    aligned with sealed system user passwords.
+   A binding also writes `<PREFIX>_SSL_MODE` and, for a container, `<PREFIX>_CA_FILE`
+   (`/run/secrets/<PREFIX>_CA_CERT`); a PHP site's CA file is written by the daemon.
+   In the `verify-ca` and `verify-full` modes a PostgreSQL URL carries `sslrootcert`
+   (a container's from the control plane, a PHP site's added by the daemon); a MySQL
+   URL is unchanged. Other variables can read these values with
+   `{$db.<prefix>.<field>}`, and a **Variable Names** preset adds the names an app
+   expects. Both read the binding's own values, which point at the server's own
+   database ingress, so they follow a failover. See
+   [Reading a database binding from any variable](/docs/using/storage-and-variables#database-references).
 4. Binding create, change and delete are recorded in the organization's audit
    trail as `binding.create`, `binding.update` and `binding.delete`. An entry
    names who did it and which binding, never a password or any variable value.
