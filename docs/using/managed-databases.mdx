@@ -256,6 +256,60 @@ Sometimes you want one login for a desktop tool such as DBeaver or Sequel Ace th
 
 A Database admin login is never read-only. TurboPanel owns its roles and memberships and re-applies them on every apply, so changes you make to the _admin's own rights_ in SQL are put back; what the admin grants to _other_ logins is yours and is left alone. Pair it with **Manage permissions myself** on the logins you hand permissions to. (On MySQL and MariaDB, moving a login to a lower level also takes back the rights of the higher one at the next apply, including the right to hand rights to others.)
 
+### All Databases [#all-databases]
+
+A login normally lists the databases it may use. Choose **All Databases** on the login form and the login covers every database of the Database Cluster instead, including ones you add later. It works for every kind of login. The login list shows "All databases" in place of the list, and **All Databases** on the edit form turns it off again; the login then goes back to the databases picked for it.
+
+Two switches decide whether a login may use it, and **both** must be on:
+
+- **Organization:** **Allow All Databases Logins** in the organization's database settings. It is on by default.
+- **Database Cluster:** **Allow All Databases Logins** on the Database Cluster. It is off by default, so each Database Cluster opts in.
+
+While either switch is off, the **All Databases** choice on the login form is unavailable and a line says which switch is off. Turning a switch off also takes the access away from logins that already use All Databases at the next apply: each falls back to the databases picked for it (only those the Database Cluster still has). The backup login is not affected; it always reads every database.
+
+## Admin tools
+
+An **Admin Tool** is a web tool that TurboPanel runs for one Database Cluster, signed in with its own login. Add one from the Database Cluster's **Data** tab, in the **Admin Tools** section under **Users & databases**.
+
+| Tool           | Engines                       |
+| -------------- | ----------------------------- |
+| **phpMyAdmin** | MySQL and MariaDB             |
+| **pgAdmin**    | PostgreSQL                    |
+| **Adminer**    | PostgreSQL, MySQL and MariaDB |
+
+### Add a tool
+
+Choose **Add Admin Tool**, then:
+
+1. Pick the **Tool**. Only the tools that fit the engine are offered, and the first one is the default.
+2. Enter a **Hostname**, such as `db-admin.example.com`. Point that name at the Database Cluster's server before you deploy, like any site. A name another site already answers on is refused.
+3. Choose **Access**: **Database Admin** (the default) or **Read-Only**. Database Admin can change data and tables in every database of the Database Cluster, including ones added later. Read-Only can look at every database, including ones added later.
+4. Choose **Add and Deploy**.
+
+The Database Cluster needs at least one database first. The tool runs on the server of the Database Cluster's primary, and, for Adminer and pgAdmin, the daemon on that server must be up to date (phpMyAdmin has no such need). TurboPanel gives the tool its own login, listed on every database of the Database Cluster. It is separate from the All Databases switches above, so those switches do not govern it.
+
+The sign-in is shown once, so copy it before you continue:
+
+- **phpMyAdmin and Adminer:** a **Username** and **Password**. They belong to the tool's login.
+- **pgAdmin:** a **Sign-In Email** and **Sign-In Password** for pgAdmin's own web account. The email is the address of the person who added the tool. pgAdmin connects to the database by itself, so you never type the database password. pgAdmin does not accept an address on a special-use domain; use an address on a public domain.
+
+If the tool's login could not get the full rights you asked for, for example because a database has no owner role or the server's daemon is older, the screen shows a short note saying what the login got instead.
+
+TurboPanel puts no extra sign-in in front of the tool. Anyone who reaches the address sees the tool's sign-in page, so use a strong password and keep the address private. The tool checks the database listener's certificate against the Organization CA in every SSL mode.
+
+### Manage a tool
+
+Each tool has a card with a link to its address, its access, its login name and a deploy state: **Deploying**, **Running** or **Failed**.
+
+- **Open** goes to the tool's address.
+- **Reset Password** makes a new password, shows it once and deploys the change. The old one stops working. For pgAdmin this resets the sign-in password.
+- **Update Tool** appears with an **Update Available** badge when TurboPanel has a newer version of the tool than the one running. It asks you to confirm, then deploys.
+- **Remove** asks you to type the tool's name. It removes the tool, its address and its login; your databases are not touched. If the login cannot be removed, the tool is still gone and the screen tells you to remove the login from the Users list.
+
+pgAdmin keeps no storage of its own, so its saved queries and settings are lost when you update it or reset its password. The tool's login in the Users list is marked as used by the tool, and its password is reset only from the tool's card.
+
+While a tool exists, the Database Cluster's first database cannot be dropped. Remove the tool first.
+
 ## Name schemes
 
 Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the _applied_ name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
@@ -541,6 +595,14 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                        |
 | `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                     |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                               |
+| `managed_login_all_databases_not_allowed`                                                                                                                                                                  | 400       | All Databases is switched off for the organization or the Database Cluster. The message names the switch.                                                              |
+| `managed_login_all_databases_conflict`                                                                                                                                                                     | 400       | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change.   |
+| `admin_tool_engine_mismatch`                                                                                                                                                                               | 400       | The tool does not work with this database engine.                                                                                                                      |
+| `invalid_hostname`                                                                                                                                                                                         | 400       | The admin tool's hostname is not valid.                                                                                                                                |
+| `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                  |
+| `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                    |
+| `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                            |
+| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain.                                                                  |
 
 ## Related
 
