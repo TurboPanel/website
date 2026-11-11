@@ -140,6 +140,7 @@ services:
 | `framework` | `node` | `auto` (default), `node`, `next`. |
 | `nodeVersion` | `node` | A pin such as `24` or `24.17.0`, never a range, or `latest` to follow the server's newest Node version (see [Node version](#node-version)). |
 | `cron[]` | all | Scheduled jobs: `name` (lowercase, `[a-z0-9-]`, unique within the service), `schedule` (five-field cron or `@daily`-style), `command` (argv — no shell, so `>>` and `|` are refused rather than passed through). Rendered as systemd timers under the service's account. |
+| `reach` | `container` | A helper port: `{ port, from }`, the container port (1 to 65535) and one to eight names of sites or Node apps that may connect. The port is published on `127.0.0.1` and opened to one Hosting Account only; the services in `from` get `TURBOPANEL_HELPER_<NAME>_HOST` and `_PORT`. See [Reaching helper containers from sites](/docs/using/project-caches#reaching-helper-containers-from-sites). |
 
 ### Node version
 
@@ -289,6 +290,7 @@ These are reported by **Deploy**, not by Save, because they depend on the merged
 | `source_ref_unresolved` | 422 | The branch does not exist in the repository, or the provider refused the lookup. |
 | `docker_external_network_unregistered` | 422 | `networks.<name>.external: true` names a network not registered under **Network → Docker networks**. |
 | `turbofabric_required` | 422 | Services scheduled to different servers share a non-overlay network, or an overlay network reaches a server in another datacenter network while TurboFabric is off (the message names the servers). An overlay network whose servers all share a trusted LAN needs no TurboFabric. |
+| `helper_reach_invalid` | 422 | A container's `reach` breaks a rule: it is scaled to more than one copy, names something that is not a site or Node app, names services that run as different Hosting Accounts, or the account is not set up yet. The message names the service. |
 
 ## Errors at save
 
