@@ -228,6 +228,8 @@ Every notification email shows the event, the facts as a list, and an **Open in 
 | `X-TurboPanel-Event` | The event code, for example `server.offline` |
 | `X-TurboPanel-Reason` | Why you got it: `preference` (your own settings), `organization-channel` or `instance-channel` (a control plane channel) |
 
+A control plane channel hears the control plane's own events. It hears an organization's events only when the administrator has switched on `allOrganizations` for that channel; see [Admin](/docs/using/admin).
+
 **Refused addresses.** When the receiving mail server refuses an address for good, TurboPanel stops sending notification email to it. Delivery starts again once the address is confirmed again. Sign-in codes and other account email are never stopped this way.
 
 ## What Webhooks and Chat Channels Receive

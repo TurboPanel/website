@@ -190,6 +190,8 @@ curl -X PUT https://<host>:8443/api/admin/v1/settings/alert-webhook \
 | `server.offline`        | One daemon stopped answering and was marked offline                                                                                                                                                                                                               |
 | `fleet.mass_disconnect` | A single sweep lost at least three hosts **and** either half the connected servers or ten hosts outright — a shared cause (a bad daemon release, a broken ingress, a cell outage) rather than N coincidences. It is sent before the per-server alerts it explains |
 
+The webhook hears every organization's events, because it is created with `allOrganizations` switched on, so a server going dark still pages you. A webhook set up before that setting existed is switched on automatically the next time the control plane touches it, and turning it off is refused.
+
 The body carries a `text` field, which Slack, Mattermost, Rocket.Chat and Discord all render, plus `kind` and `detail` for anything that parses JSON.
 
 Two things to know about the URL:
