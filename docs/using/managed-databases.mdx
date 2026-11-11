@@ -594,6 +594,14 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                        |
 | `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                     |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                               |
+| `managed_login_all_databases_not_allowed` | 400 | All Databases is switched off for the organization or the Database Cluster. The message names the switch. |
+| `managed_login_all_databases_conflict` | 400 | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change. |
+| `admin_tool_engine_mismatch` | 400 | The tool does not work with this database engine. |
+| `invalid_hostname` | 400 | The admin tool's hostname is not valid. |
+| `admin_tool_hostname_in_use`, `hostname_in_use` | 409 | The hostname is already used by the web interface or by another site. |
+| `admin_tool_needs_database` | 409 | Add a database to the Database Cluster before adding an admin tool. |
+| `admin_tool_needs_daemon_update` | 409 | The daemon on the Database Cluster's server must be updated before the tool can run there. |
+| `admin_tool_email_invalid` | 400 | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain. |
 
 ## Related
 
