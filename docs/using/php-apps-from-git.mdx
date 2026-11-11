@@ -45,7 +45,7 @@ The file is made on every deploy before any command runs or any site is switched
 - A copy in `.turbopanel-hosting/hosting.env` is readable by the site's Hosting Account and no one else.
 - The platform's own names are left out: `HOME`, `TMPDIR`, `PATH`, `TURBOPANEL_PHP`, `PHPRC`, `PHP_INI_SCAN_DIR`, `PHP_VALUE`, `PHP_ADMIN_VALUE` and every name starting with `LD_`. The deploy transcript names each one it skipped, never its value.
 - A name that is not letters, digits and underscores (not starting with a digit) cannot be carried by a file and is left out too.
-- A value with a line break is kept as it is. A bare carriage return or a null byte in a value fails the deploy and names the variable.
+- Windows line endings (CR LF) are converted to plain line breaks. A bare carriage return or a null byte in a value fails the deploy and names the variable. The file is limited to 1 MiB.
 
 Load it into a shell as the Hosting Account:
 
@@ -71,7 +71,7 @@ Set these in the **PHP App** section of the service, in the **Post-Deploy Comman
 
 Each command runs as the site's Hosting Account, in the new release's own folder, with the site's variables and the site's PHP version as plain `php`. It runs inside the same sandbox as the site's PHP: a read-only system, the account's own folders, and the same limits on the network. In a Laravel release the one folder it can write inside the release is `bootstrap/cache`, which is where `php artisan optimize` puts the config and route caches. Write anything else to `shared/` or `storage`.
 
-A command runs directly, with no shell. Quotes, pipes, `&&`, `;`, `$`, redirection, globs, braces and backslashes are refused, and a command is at most 1000 characters. To chain steps or redirect output, put them in a script in your repository and run the script. Worker commands follow the same rule.
+A command runs directly, with no shell, in the new release's folder (a worker's command runs in the live release). The first word must be `php` or an absolute path, because nothing searches `PATH`: `./deploy.sh`, `bash deploy.sh` and `composer install` are refused. A path with `..` is refused, each word is at most 512 characters, and a command is at most 1000 characters. These characters are refused anywhere in a command: `|` `&` `;` `<` `>` `(` `)` `$` `` ` `` `\` `"` `'` `*` `?` `[` `]` `{` `}` `~` and line breaks. To chain steps or redirect output, put them in a script in your repository and run it as `/bin/sh scripts/deploy.sh`. Worker commands follow the same rules.
 
 | Setting           | Meaning                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------- |
@@ -94,21 +94,21 @@ Things to know either way:
 
 <Callout type="info" title="Roll Back after a failed command">
   When a command fails right after the switch, the **Roll Back** button on that failed deploy is not
-  available yet. Roll back from the release list instead.
+  available yet. Roll back from the service's release list.
 </Callout>
 
 ## Background workers
 
 A background worker is a long-running command such as a queue worker. Add one with **Add Worker** under **Background Workers**. Up to 10 workers per site.
 
-| Field                  | Meaning                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| Name                   | Lowercase letters, digits and dashes, up to 32 characters, unique in the site. Example: `queue`. |
-| Command                | What to run, for example `php artisan queue:work`.                                               |
-| Processes              | How many copies run, 1 to 8. Default 1.                                                          |
-| Stop Timeout (Seconds) | How long a copy gets to finish before it is killed. 10 to 3600, default 90.                      |
-| Memory (MiB)           | An optional limit, 64 to 65536. Empty means no limit.                                            |
-| Enabled                | A worker that is off is not run. The next deploy stops and removes it.                           |
+| Field                  | Meaning                                                                                                                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name                   | Lowercase letters, digits and dashes, starting with a letter or digit, up to 32 characters, unique in the site. Two workers whose unit names would come out the same, such as worker `a-b` in site `web` and worker `b` in site `web-a`, are refused. Example: `queue`. |
+| Command                | What to run, for example `php artisan queue:work`.                                                                                                                                                                                                                      |
+| Processes              | How many copies run, 1 to 8. Default 1.                                                                                                                                                                                                                                 |
+| Stop Timeout (Seconds) | How long a copy gets to finish before it is killed. 10 to 3600, default 90.                                                                                                                                                                                             |
+| Memory (MiB)           | An optional limit, 64 to 65536. Empty means no limit.                                                                                                                                                                                                                   |
+| Enabled                | A worker that is off is not run. The next deploy stops and removes it.                                                                                                                                                                                                  |
 
 A worker runs as the site's Hosting Account with the site's variables and the same sandbox as its PHP, in the live release folder. It starts at boot and is restarted five seconds after it stops by itself.
 
@@ -152,11 +152,11 @@ The operating system's security updates include PHP. When an update replaces a P
 
 ## Errors
 
-| Code                              | Status | Meaning                                                                                                                                                              |
-| --------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `site_lifecycle_unowned`          | 422    | The site has post-deploy commands or background workers but no system user to run them as. Assign one to the service.                                                |
-| `site_lifecycle_unsupported`      | 409    | A server the deploy targets runs a daemon that cannot run commands or workers yet. The response lists the servers.                                                   |
-| `post_deploy_failed_after_switch` | none   | A command set to run right after the switch failed. It is reported in the deploy's failure message with both release ids, not as a response from the deploy request. |
+| Code                              | Status | Meaning                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `site_lifecycle_unowned`          | 422    | The site has post-deploy commands or background workers but no system user to run them as. Assign one to the service.                                                                                                                                                                          |
+| `site_lifecycle_unsupported`      | 409    | A server the deploy targets runs a daemon that cannot run commands or workers yet. The response names the server.                                                                                                                                                                              |
+| `post_deploy_failed_after_switch` | none   | A command set to run right after the switch failed. The deploy shows only the sentence "Post-deploy commands for site <name> failed after the new release went live. Roll back to the previous release from the deploy page if the site is not working." No code or release ids are shown yet. |
 
 ## Related
 
