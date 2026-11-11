@@ -225,7 +225,7 @@ One previous generation stays beside the new files, by rename:
 
 After the control plane restarts, the daemon polls `GET /api/health` on the control plane socket until `version` and `revision.commit` match the pinned manifest. It waits up to **10 minutes** by default, because a small host can take several minutes to start the new build and apply migrations, and a rollback is worse than waiting. `TURBOPANEL_UPDATE_HEALTH_TIMEOUT_SECONDS` (30 to 3600, in the daemon's environment, `/etc/turbopanel/daemon.env`) changes the wait; an unset or out-of-range value keeps 10 minutes. A timeout or a mismatch restores the `.prev` generation. The database is restored from the dump only when the migration fingerprint changed. A healthy restore reports `rolled_back` with `health_timeout`, `health_mismatch`, or `restart_failed`. A restore that does not come back reports `failed` / `recovery_required` and includes the backup path plus the commands below.
 
-A daemon self-update arms an update guard for about 10 minutes. If the new build crash-loops, the guard restores the daemon `.prev` files and restarts `turbopaneld`. Detail: [Refresh a stuck daemon](/docs/deployment/daemon-update).
+A daemon self-update arms an update guard for about 10 minutes. If the new build never connects (for example it keeps crashing), the guard's deadline timer restores the daemon `.prev` files and restarts `turbopaneld`. Detail: [Refresh a stuck daemon](/docs/deployment/daemon-update).
 
 ### Recovery command
 
