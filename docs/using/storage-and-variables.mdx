@@ -147,9 +147,9 @@ services:
       - source: api_token                    # a secret compiled to a file
 ```
 
-`{$KEY}` takes the effective value from the cascade; `{$scope.KEY}` (`organization`, `workspace`, `project`, `environment`, `service`, `hosting`, `server`; `org` is accepted for `organization`) pins a scope. A reference to a **secret** is compiled into a Compose `secrets:` entry backed by a file the daemon materializes under `/run/turbopanel/deployments/<project>/<environment>/secrets/`, plus a courtesy `<KEY>_FILE` variable holding that path. The file is readable by every user inside that one container (so an image that runs as a fixed non-root user can read it) and by no other account on the server. A tool that refuses to read a password or key file other users could read has to copy the file first, as pgAdmin does with `PGPASS_FILE`. Interpolating a secret directly into a plain field is refused (`variable_secret_interpolation`), because that would write it into YAML.
+`{$KEY}` takes the effective value from the cascade; `{$scope.KEY}` (`organization`, `workspace`, `project`, `environment`, `service`, `hosting`, `server`; `org` is accepted for `organization`) pins a scope. A reference to a **secret** is compiled into a Compose `secrets:` entry backed by a file the daemon materializes under `/run/turbopanel/deployments/<project>/<environment>/secrets/`, plus a courtesy `<KEY>_FILE` variable holding that path. The file is readable by every user inside that one container (so an image that runs as a fixed non-root user can read it) and by no other account on the server. A tool that refuses to read a password or key file other users could read has to copy the file to a private place first (see [Generated Config Files](#generated-config-files)). Interpolating a secret directly into a plain field is refused (`variable_secret_interpolation`), because that would write it into YAML.
 
-### Generated config files
+### Generated Config Files
 
 A `configs:` entry with `content` becomes a file whose text may use the same references anywhere in it, secrets included. Use it for a file an image reads at start, such as a server list or a password file:
 
@@ -174,13 +174,13 @@ services:
         target: /pgadmin4/pgpass
 ```
 
-- **Per service.** Each service that uses a config gets its own copy, mounted read-only at its `target` (without one, Compose uses `/<name>`). A config is never shared between services.
+- **Per service.** Each service that uses a config gets its own copy, mounted read-only at its `target` (without one, Compose uses `/<name>`). Each service gets its own copy, and a service cannot name another service's generated config.
 - **Secrets stay sealed.** The control plane never decrypts a secret for a file. The file is put together on the server by the daemon and lives only on memory-backed storage there, in a folder only TurboPanel's account can open. Every user inside that one container can read it. Secret values are masked in deploy logs, and the deploy preview shows a secret slot as `{$KEY}`, never a value.
-- **Dollar signs.** Write a literal `$` as `$$` (`$$cfg['Servers'][$$i]` for a PHP file) and a literal `{$name}` as `{$$name}`. A plain Compose `${X}` or `$X` in the text is refused (`config_interpolation`). A value inserted from a variable is used as it is and is never scanned again.
+- **Dollar signs.** Write a literal `$` as `$$` (`$$cfg['Servers'][$$i]` for a PHP file) and a literal `{$name}` as `{$$name}`. On a server whose daemon is updated, a plain Compose `${X}` or `$X` in the text is refused (`config_interpolation`); on an older daemon, text with no `{$` is passed to Compose unchanged, so Compose reads `${X}` as it always has. A value inserted from a variable is used as it is and is never scanned again.
 - **Owner and mode.** `uid`, `gid` and `mode` on a config entry are ignored with a warning: the file is read-only and readable by every user in the container.
 - **Limits.** 64 KiB of text per file, 16 files per service and 256 KiB per deploy. A name may not end in `.tmp`.
-- **Older daemons.** A config that uses `{$…}` values goes only to a server whose daemon is updated; otherwise the deploy is refused (`config_files_need_daemon_update`) and names the server. A config with no `{$…}` value is passed to Compose unchanged, as before.
-- **Tools that refuse readable key files.** libpq ignores a password file other users could read, so point it at a copy: pgAdmin copies the file named by `PGPASS_FILE` into its own storage, which is why the example works.
+- **Older daemons.** A config that uses `{$…}` values goes only to a server whose daemon is updated; otherwise the deploy is refused (`config_files_need_daemon_update`) and the answer names a server that needs the update. The deploy preview gives the same answer. A config with no `{$…}` value is passed to Compose unchanged, as before.
+- **Tools that refuse readable key files.** libpq ignores a password file other users could read, so point it at a copy: the pgAdmin container documents `PGPASS_FILE`, which it copies into the container on startup and uses as its password file, so the example mounts the generated file and points pgAdmin at it. A tool that does not copy the file cannot be pointed straight at a generated file.
 
 ### Variables on a Node app
 
@@ -226,9 +226,9 @@ The same list is `nativeAppVariables` in the answer of `GET /environments/:id/de
 | `variable_ref_invalid` | 422 (deploy) | A malformed reference or an unknown scope. |
 | `variable_secret_interpolation` | 422 (deploy) | A secret referenced in a plain field; use a `secrets:` entry. |
 | `config_interpolation` | 422 (deploy) | A config's text uses Compose `${X}` or `$X`; use `{$X}` for a variable and `$$` for a literal `$`. |
-| `config_file_invalid` | 422 (deploy) | A config name ends in `.tmp`, produces a file name another config uses, or is over the size limits. |
+| `config_file_invalid` | 422 (deploy) | A config name ends in `.tmp`, produces a file name another config uses, would replace an existing top-level config, or is over the size limits. |
 | `config_file_shared` | 422 (deploy) | A service names a generated config that belongs to another service. |
-| `config_files_need_daemon_update` | 409 (deploy) | A config uses `{$…}` values and a target server's daemon is not updated yet; the response names the servers. |
+| `config_files_need_daemon_update` | 409 (deploy) | A config uses `{$…}` values and a target server's daemon is not updated yet; the response names a server that needs the update. The deploy preview returns it too. |
 
 ## Related
 
