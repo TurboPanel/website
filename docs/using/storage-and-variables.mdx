@@ -213,9 +213,7 @@ A container connected to a managed PostgreSQL database gets the password only as
 PGPASSWORD="$(cat "$PGPASSWORD_FILE")" psql
 ```
 
-<Callout type="warn">
-  A command that prints the environment or the connection shows the database password in its output and in any log that captures it. `php artisan db:show` is one example. Do not run such a command where its output is kept or shared.
-</Callout>
+Once you copy the password out of the file into a variable or a command line, as in that example, anything that logs the command or its environment shows the password.
 
 ### SSL mode and the CA file [#database-ssl]
 

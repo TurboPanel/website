@@ -291,7 +291,7 @@ The Database Cluster needs at least one database first. The tool runs on the ser
 The sign-in is shown once, so copy it before you continue:
 
 - **phpMyAdmin and Adminer:** a **Username** and **Password**. They belong to the tool's login.
-- **pgAdmin:** a **Sign-In Email** and **Sign-In Password** for pgAdmin's own web account. The email is the address of the person who added the tool. pgAdmin connects to the database by itself, so you never type the database password. pgAdmin does not accept an address on a special-use domain, so use an address on a public domain. It also cannot use an address that starts with a digit or has a `/` or `\` before the @.
+- **pgAdmin:** a **Sign-In Email** and **Sign-In Password** for pgAdmin's own web account. The email is the address of the person who added the tool. pgAdmin connects to the database by itself, so you never type the database password. pgAdmin does not accept an address on a special-use domain, so use an address on a public domain. It also cannot use an address that starts with a digit or has a `/` or `\` before the @. The domain needs a dot.
 
 If the tool's login could not get the full rights you asked for, for example because a database has no owner role or the server's daemon is older, the screen shows a short note saying what the login got instead.
 
@@ -602,7 +602,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                  |
 | `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                    |
 | `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                            |
-| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain that does not start with a digit and has no `/` or `\` before the @.                                                                  |
+| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain that does not start with a digit and has no `/` or `\` before the @ and has a dot.                                                                  |
 
 ## Related
 

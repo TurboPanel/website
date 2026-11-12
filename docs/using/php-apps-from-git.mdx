@@ -55,6 +55,8 @@ set -a; . <service folder>/.turbopanel-hosting/hosting.env; set +a
 printenv APP_ENV
 ```
 
+A PHP site gets its database password as a plain variable (for example `DB_PASSWORD`), in its environment and in this file. A command that prints the environment or the connection, for example `php artisan db:show`, shows that password in its output and in any log that captures it.
+
 `set -a` exports every variable the file sets, and `set +a` turns that off again. A change to a variable reaches the web request at the next deploy that changes the site. Scheduled jobs, commands and workers read the file each time they start.
 
 ## Dependency install
