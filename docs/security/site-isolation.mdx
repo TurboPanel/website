@@ -11,19 +11,27 @@ Every site runs as a Linux user of its own, the **Hosting Account** (for example
 
 Each owner has one directory, `/srv/users/<owner>`, which **root owns**. An owner can rename or delete anything inside a directory they own, so the directories that hold files the platform owns are not the owner's. The owner writes only into the folders marked below. [Where your files live](/docs/using/files-and-folders) explains the names and what each action does to them.
 
-| Path                                          | Owned by | The owner may                                                          |
-| --------------------------------------------- | -------- | ---------------------------------------------------------------------- |
-| `/srv/users/alice`                            | root     | Read it through the group; not change it                               |
-| `home/`                                       | alice    | Write. This is alice's login home (`$HOME`).                           |
-| `tmp/`                                        | alice    | Write. The private temporary directory; PHP's `/tmp` is this folder.   |
-| `<scope>/` (an environment name, or `common`) | root     | Not change. One per environment, plus `common` for shared assets.      |
-| `<scope>/services/` and `<scope>/services/<service>/` | root | Not change                                                       |
-| `<service>/releases/` and each release        | root     | Not change                                                             |
-| `<service>/current`                           | root     | Not change. A link to the live release.                                |
-| `<service>/public/`, `shared/` and `logs/`    | alice    | Write                                                                  |
-| `<scope>/volumes/`                            | root     | Not change; each volume inside it is alice's                           |
+| Path                                                  | Owner | Group                            | Mode                                                         | The Owner May                                                                                                  |
+| ----------------------------------------------------- | ----- | -------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `/srv/users`                                          | root  | root                             | 0750, plus pass-through for everyone                         | Pass through to their own folder; not list the other accounts                                                  |
+| `/srv/users/.tp-staging/`                             | root  | TurboPanel's own account (`tp`)  | 0710; each release waiting inside it 0700                    | Not reach it. A new release waits here while it is checked, then moves into place.                             |
+| `/srv/users/alice`                                    | root  | alice                            | 0750                                                         | Read it through the group; not change it. This is the SFTP jail root.                                          |
+| `home/`                                               | alice | alice                            | 0700                                                         | Write. This is alice's login home (`$HOME`).                                                                   |
+| `tmp/`                                                | alice | alice                            | 0700                                                         | Write. The private temporary directory; PHP's `/tmp` is this folder.                                           |
+| `<scope>/` (an environment name, or `common`)         | root  | alice                            | 0750                                                         | Not change. One per environment, plus `common` for shared assets.                                              |
+| `<scope>/services/` and `<scope>/services/<service>/` | root  | alice                            | 0750                                                         | Not change                                                                                                     |
+| `<service>/releases/`                                 | root  | alice                            | 0750                                                         | Not change                                                                                                     |
+| `<service>/releases/<release id>/`                    | root  | alice                            | 0550; files inside readable by the group, writable by nobody | Not change. Sealed when it is published.                                                                       |
+| `<service>/current`                                   | root  | alice                            | A link                                                       | Not change. A link to the live release.                                                                        |
+| `<service>/public/` and the document root             | alice | The web server's account (below) | 0750                                                         | Write                                                                                                          |
+| `<service>/shared/` and `logs/`                       | alice | alice                            | 0750                                                         | Write                                                                                                          |
+| `<service>/.turbopanel-hosting/`                      | root  | root                             | 0711; each file inside is alice's, 0400                      | Read their own files; not list or change the folder. Holds a release-built site's settings for the web server. |
+| `<scope>/volumes/`                                    | root  | alice                            | 0750                                                         | Not change                                                                                                     |
+| `<scope>/volumes/<volume>/`                           | alice | alice                            | 0750, plus one access entry per extra container user         | Write inside it; not remove the folder                                                                         |
 
 Because the scope, service and release folders are root's, a release cannot be swapped or edited after it is published, a service or volume folder cannot be replaced by a link to somewhere else, and a Hosting Account cannot rearrange the directories the web server reads. There is no `.ssh` folder in the home.
+
+The group on `public/` is the account of the web server that serves the site (`tpcaddysite`, `tpnginx`, `tpapache` or `tpols`), so the owner writes and the web server reads. A site served by nginx in front of Apache is read by both, so its `public/` carries alice's own group instead, which both web servers join. `/srv/users` lets every account pass through to its own folder, but nobody except root can list it, so one owner cannot see the names of the others.
 
 ## SSH and SFTP keys
 
@@ -63,6 +71,18 @@ With the jail on, a files-only owner signs in to `home/` and sees only `home/`, 
 ## Web server accounts
 
 The web servers do not run as root. Apache runs as its own unprivileged account (`tpapache`) from start to finish, including its master process. The hosting Caddy runs as its own unprivileged account too, with only the permission to bind ports 80 and 443. PHP runs as the site's Hosting Account, never as a web server. See [PHP modes](/docs/using/php).
+
+**The web server's configuration holds site secrets.** A site's variables, including decrypted secrets, are written into its web server configuration so the site can read them (`SetEnv` lines for Apache, `fastcgi_param` lines for nginx). Those files live under `/etc/turbopanel/nginx/`, `/etc/turbopanel/apache/`, `/etc/turbopanel/openlitespeed/` and `/etc/turbopanel/site-caddy/`, in folders owned by root with the web server's group (0750) and files mode 0640. A Hosting Account cannot read them; the web server account can, because it must.
+
+### What the Web Servers Can Reach Today
+
+This is being tightened. Today:
+
+- Each web server account joins the group of every Hosting Account whose site it serves, and it is not taken out of that group again while the account exists.
+- Every web server account is also in the group of TurboPanel's own account (`tp`).
+- `shared/`, `logs/` and volume folders are `<owner>:<owner>` 0750, so a web server account in an owner's group can read them, not only `public/` and the releases.
+
+So a fault in one web server could read the files of every site it serves. PHP is not affected in the same way: it runs as the site's own Hosting Account. Containers are a separate path, checked by the [Docker gate](/docs/deployment/security#docker-socket-security), which also only observes today.
 
 ## Symlinks across sites
 

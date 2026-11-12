@@ -2,6 +2,10 @@
   "title": "Development",
   "pages": [
     "prerequisites",
+    "contribute-without-access",
+    "choosing-direct-or-vagrant",
+    "twin-pull-requests",
+    "signing-and-the-cla",
     "canary",
     "how-to-ship",
     "website-deploy",

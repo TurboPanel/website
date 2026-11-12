@@ -35,7 +35,7 @@ The left navigation is the organization's. Each row below names the area, its ad
 | **Projects** | `/<org>/projects` | Create projects; open one to edit its compose, deploy environments, manage hostnames, storage, bindings and settings. Sub-pages: **Git sources** (the GitHub Apps and GitLab connections the organization owns) and **Repositories** (every repository a project reads from). |
 | **Activity** | `/<org>/activity` | What is deploying, restarting or stopping right now across every project, and what failed in the last seven days. Owners and managers. |
 | **Workspaces** | `/<org>/workspaces` | Create and rename workspaces; see which projects sit in each. |
-| **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenters**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
+| **Servers** | `/<org>/servers` | Enrol a server (the **+ Server** wizard gives you the install command), open a server's control panel, update daemons, and manage **Datacenter Networks**, pending **Keys**, the **TLS** library and organization-wide server **Settings**. |
 | **Managed** | `/<org>/managed` | Every managed database cluster in the organization, and the organization's managed defaults (client TLS mode, listener ports). |
 | **Network** | `/<org>/network` | The IP address registry, Docker external networks and address pools, reserved ranges, and TurboFabric. |
 | **Access** | `/<org>/access` | Invite a teammate, revoke a pending invitation, and manage access grants. |
@@ -90,11 +90,12 @@ The app is the same on both. Three things differ, and each page in this part say
 | [Certificates](/docs/using/certificates) | Step by step from a new domain to a trusted certificate: Let's Encrypt, DNS, deploy, every state and its fix, renewal. |
 | [Storage, variables and secrets](/docs/using/storage-and-variables) | Persistent storage; the variable cascade; secrets and `{$KEY}` references. |
 | [Managed databases](/docs/using/managed-databases) | PostgreSQL, MySQL and MariaDB clusters: create, connect, users, replicas, backups and backup schedules. After failover: [what to expect](/docs/using/managed-databases#what-to-expect-when-a-database-fails-over). |
-| [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases) | Why a Raspberry Pi needs the 4 KiB kernel for apps to reach databases, the switch command, the installer step, undo and recovery. |
+| [Project caches](/docs/using/project-caches) | A private Valkey cache per environment that runs as one Hosting Account, the variables a site receives, and reaching a helper container from a site. |
+| [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases) | Why a Raspberry Pi needs the 4 KiB kernel for apps to reach databases and a boot setting for memory limits, the switch commands, the installer step, undo and recovery. |
 | [Git sources and repositories](/docs/using/git) | GitHub and GitLab applications, binding a repository, push-to-deploy. |
 | [Servers](/docs/using/servers) | Adding a server, the server list, the control panel, organization server settings. |
-| [Datacenters and networking](/docs/using/network) | Datacenters, addresses, Docker networks and pools, reserved ranges, the mesh. |
-| [Notifications](/docs/using/notifications) | The bell, the event catalogue, channels and rules, delivery and retries. |
+| [Networking](/docs/using/network) | Datacenter networks, addresses, Docker networks and pools, reserved ranges, the mesh. |
+| [Notifications](/docs/using/notifications) | What you hear about and where: presets, levels and scopes, channels, every event, unsubscribe links and retention. |
 | [Account security](/docs/using/account-security) | Sign-in, two-factor, backup codes, passkeys, linked providers, passwords. |
 | [Organizations, teams and access](/docs/using/access) | The permission model, invitations, grants. |
 | [Billing and licenses](/docs/using/billing) | High Availability: licenses per tier, checkout, changes, past due. |

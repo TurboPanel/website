@@ -22,8 +22,8 @@ Two facts shape everything below:
 
 ## Before you begin
 
-- A connected server with Docker; the cluster's primary runs there. Every server whose apps use a managed database runs the database proxy, and on a Raspberry Pi 5 running Raspberry Pi OS (Debian 13, "trixie") the default 16 KiB kernel cannot run it; one command switches the Pi to the 4 KiB kernel — see [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
-- For a failover replica: a second server **in the same datacenter** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter path to the primary.
+- A connected server with Docker; the cluster's primary runs there. Every server whose apps use a managed database runs the database proxy, and on a Raspberry Pi 5 running Raspberry Pi OS (Debian 13, "trixie") the default 16 KiB kernel cannot run it; one command switches the Pi to the 4 KiB kernel — see [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases).
+- For a failover replica: a second server **in the same datacenter network** as the primary. For a remote read replica: any server in the organization, with TurboFabric or a datacenter network path to the primary.
 - For a client on another server: that server enrolled in the organization (the listener is deployed to it when a service there binds the database).
 - **Manage** rights on the organization.
 
@@ -80,7 +80,7 @@ The **Connect** tab is the one place to read the endpoint from; never dial an en
   </Step>
 </Steps>
 
-For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings-credentials--compose).
+For a service in a compose project, do not paste any of this into variables: bind the database instead (**Bindings** on the compose project), and the connection details appear as locked variables under the binding's prefix, kept current by the platform. See [Bindings](/docs/architecture/managed-database-ingress#bindings-credentials--compose). In a container, the PostgreSQL password is handed over only as a file (`PGPASSWORD_FILE`), never as `PGPASSWORD`; see [PostgreSQL passwords in containers](/docs/using/storage-and-variables#postgres-password-files).
 
 ### Giving a site the CA certificate [#site-ca]
 
@@ -89,7 +89,7 @@ A binding hands the service the organization CA in one of two forms, so you neve
 | Variable | What it holds | Which service gets it |
 | --- | --- | --- |
 | `<PREFIX>_CA_CERT` | The certificate as text | A service that runs in a container |
-| `<PREFIX>_CA_FILE` | The path of a file that holds the certificate | A site that runs on the server itself, such as a PHP site |
+| `<PREFIX>_CA_FILE` | The path of a file that holds the certificate | A site that runs on the server itself, such as a PHP site; a container also gets it, pointing at `/run/secrets/<PREFIX>_CA_CERT` |
 
 A site on the server gets a path rather than text because a web server mangles a value that spans several lines. TurboPanel writes the file into the site's `.turbopanel-hosting` folder, readable only by the site owner's Linux user, and refreshes it on every deploy. `<PREFIX>` is the key prefix of the binding, `DATABASE` by default.
 
@@ -101,6 +101,8 @@ $pdo = new PDO($dsn, $user, $password, [
     PDO::MYSQL_ATTR_SSL_CA => $caFile,
 ]);
 ```
+
+In the `verify-ca` and `verify-full` modes a PostgreSQL connection string also names this file with `sslrootcert`; a MySQL URL is unchanged. To read the path or other binding values under other names, see [Reading a database binding from any variable](/docs/using/storage-and-variables#database-references).
 
 If the app's own settings page takes a plain path instead, open the binding in TurboPanel, read the value of `DATABASE_CA_FILE` and paste it there. The certificate is public, so the file holds no secret. See [Organization CA](/docs/security/organization-ca) for rotation.
 
@@ -254,6 +256,60 @@ Sometimes you want one login for a desktop tool such as DBeaver or Sequel Ace th
 
 A Database admin login is never read-only. TurboPanel owns its roles and memberships and re-applies them on every apply, so changes you make to the _admin's own rights_ in SQL are put back; what the admin grants to _other_ logins is yours and is left alone. Pair it with **Manage permissions myself** on the logins you hand permissions to. (On MySQL and MariaDB, moving a login to a lower level also takes back the rights of the higher one at the next apply, including the right to hand rights to others.)
 
+### All Databases [#all-databases]
+
+A login normally lists the databases it may use. Choose **All Databases** on the login form and the login covers every database of the Database Cluster instead, including ones you add later. It works for every kind of login. The login list shows "All databases" in place of the list, and **All Databases** on the edit form turns it off again; the login then goes back to the databases picked for it.
+
+Two switches decide whether a login may use it, and **both** must be on:
+
+- **Organization:** **Allow All Databases Logins** in the organization's database settings. It is on by default.
+- **Database Cluster:** **Allow All Databases Logins** on the Database Cluster. It is off by default, so each Database Cluster opts in.
+
+While either switch is off, the **All Databases** choice on the login form is unavailable and a line says which switch is off. Turning a switch off also takes the access away from logins that already use All Databases at the next apply: each falls back to the databases picked for it (only those the Database Cluster still has). The backup login is not affected; it always reads every database.
+
+## Admin tools
+
+An **Admin Tool** is a web tool that TurboPanel runs for one Database Cluster, signed in with its own login. Add one from the Database Cluster's **Data** tab, in the **Admin Tools** section under **Users & databases**.
+
+| Tool           | Engines                       |
+| -------------- | ----------------------------- |
+| **phpMyAdmin** | MySQL and MariaDB             |
+| **pgAdmin**    | PostgreSQL                    |
+| **Adminer**    | PostgreSQL, MySQL and MariaDB |
+
+### Add a tool
+
+Choose **Add Admin Tool**, then:
+
+1. Pick the **Tool**. Only the tools that fit the engine are offered, and the first one is the default.
+2. Enter a **Hostname**, such as `db-admin.example.com`. Point that name at the Database Cluster's server before you deploy, like any site. A name another site already answers on is refused.
+3. Choose **Access**: **Database Admin** (the default) or **Read-Only**. Database Admin can change data and tables in every database of the Database Cluster, including ones added later. Read-Only can look at every database, including ones added later.
+4. Choose **Add and Deploy**.
+
+The Database Cluster needs at least one database first. The tool runs on the server of the Database Cluster's primary, and, for Adminer and pgAdmin, the daemon on that server must be up to date (phpMyAdmin has no such need). TurboPanel gives the tool its own login, listed on every database of the Database Cluster. It is separate from the All Databases switches above, so those switches do not govern it.
+
+The sign-in is shown once, so copy it before you continue:
+
+- **phpMyAdmin and Adminer:** a **Username** and **Password**. They belong to the tool's login.
+- **pgAdmin:** a **Sign-In Email** and **Sign-In Password** for pgAdmin's own web account. The email is the address of the person who added the tool. pgAdmin connects to the database by itself, so you never type the database password. pgAdmin does not accept an address on a special-use domain, so use an address on a public domain. It also cannot use an address that starts with a digit or has a `/` or `\` before the @. The domain needs a dot.
+
+If the tool's login could not get the full rights you asked for, for example because a database has no owner role or the server's daemon is older, the screen shows a short note saying what the login got instead.
+
+TurboPanel puts no extra sign-in in front of the tool. Anyone who reaches the address sees the tool's sign-in page, so use a strong password and keep the address private. The tool checks the database listener's certificate against the Organization CA in every SSL mode.
+
+### Manage a tool
+
+Each tool has a card with a link to its address, its access, its login name and a deploy state: **Deploying**, **Running** or **Failed**.
+
+- **Open** goes to the tool's address.
+- **Reset Password** makes a new password, shows it once and deploys the change. The old one stops working. For pgAdmin this resets the sign-in password.
+- **Update Tool** appears with an **Update Available** badge when TurboPanel has a newer version of the tool than the one running. It asks you to confirm, then deploys.
+- **Remove** asks you to type the tool's name. It removes the tool, its address and its login; your databases are not touched. If the login cannot be removed, the tool is still gone and the screen tells you to remove the login from the Users list.
+
+pgAdmin keeps no storage of its own, so its saved queries and settings are lost when you update it or reset its password. The tool's login in the Users list is marked as used by the tool, and its password is reset only from the tool's card.
+
+While a tool exists, the Database Cluster's first database cannot be dropped. Remove the tool first.
+
 ## Name schemes
 
 Every login and system user has two names: the **display name** you typed, and the **system name** the server or database engine actually sees (the _applied_ name). A **name scheme** decides how the second is made from the first. The control plane derives the system name; clients never supply it.
@@ -284,7 +340,7 @@ Existing logins and system users are never renamed by a default or a lock change
 
 | Replica class             | Where                          | What it is for                                                                                                            |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Failover replica**      | Same datacenter as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
+| **Failover replica**      | Same datacenter network as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
 | **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a failover member need MariaDB 11.8 until failover for 12.x is supported.
@@ -301,7 +357,7 @@ MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a 
   <Step>
     **Promote for disaster recovery** a remote replica only when the primary's
     site is gone: one writer results; any failover replica left in the old
-    datacenter is rewritten to a read replica.
+    datacenter network is rewritten to a read replica.
   </Step>
   <Step>
     **Remove** a replica that is no longer needed. The primary cannot be
@@ -317,12 +373,12 @@ The old primary becomes a replica. If it needs to be re-seeded from the new prim
 
 ### Automatic failover [#automatic-failover]
 
-When a primary dies, the platform can promote a same-datacenter **failover** replica on its own. The endpoint your applications dial does not change.
+When a primary dies, the platform can promote a **failover** replica in the same datacenter network on its own. The endpoint your applications dial does not change.
 
 - **The database dies on a server that is still connected.** PostgreSQL is checked by the daemon on the primary's server. MySQL and MariaDB are watched by Orchestrator. The platform stops the old primary before it promotes. If it cannot prove the old primary is stopped, nothing is promoted and the recovery history shows a `blocked` row: _Automatic failover blocked: unable to verify previous primary is fenced_.
 - **The whole server goes silent.** About once a minute the control plane looks at servers that went offline. It waits a couple of minutes, then promotes only if the other members of the cluster agree the primary has stopped replicating. It refuses when many servers are offline at once, or when a replica is still streaming from the primary (the server is probably alive and only its link to the control plane is down).
 
-Automatic failover needs a healthy, caught-up failover replica in the same datacenter. After one starts, another automatic failover for that cluster waits 15 minutes. It does not run while the control plane is down. A primary that dies while a create or change is still settling (about the first ten and a half minutes) is not failed over until that window ends, and one that dies in the first moments of it is not failed over at all. The control plane operator can turn automatic failover off for a deployment; see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services). Manual switchover and disaster recovery do not depend on it.
+Automatic failover needs a healthy, caught-up failover replica in the same datacenter network. After one starts, another automatic failover for that cluster waits 15 minutes. It does not run while the control plane is down. A primary that dies while a create or change is still settling (about the first ten and a half minutes) is not failed over until that window ends, and one that dies in the first moments of it is not failed over at all. The control plane operator can turn automatic failover off for a deployment; see [Control plane configuration](/docs/deployment/instance-configuration#runtime-services). Manual switchover and disaster recovery do not depend on it.
 
 **A `blocked` recovery row.** A refused automatic failover is recorded in the cluster's recovery history as a `blocked` row. Nothing was fenced or promoted, and the cause is in the row:
 
@@ -373,20 +429,20 @@ With **Allow external access** off, SQL listeners are on `127.0.0.1` only (`1543
 
 **MariaDB 11.8** is the default series and supports failover replicas. **MariaDB 12.3** is creatable on **one server only** (`failoverCapable: false` in the release catalog): **Add replica** and **Convert to failover** are refused until failover tooling can read the series' `read_only` values. Existing 12.3 databases keep running; plan HA on 11.8 for new pairs.
 
-### Orchestrator login and datacenter placement
+### Orchestrator login and datacenter network placement
 
 MySQL and MariaDB automatic failover uses **Orchestrator** (one stack per organization on servers that host HA members). Two credentials are organization-wide, not Linux accounts:
 
 - A **topology database login** — one derived MySQL user every HA cluster in the organization accepts so Orchestrator can register all members.
 - **Orchestrator HTTP basic auth and a Raft token** — shared by every Raft peer in the org.
 
-Raft voters are chosen **inside one datacenter** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter** so they share one Raft group. Postgres HA does not use Orchestrator; engine-dead reports on a live server use the Postgres probe instead.
+Raft voters are chosen **inside one datacenter network** (`selectHaRaftMembers`): both servers in a failover pair must sit in the **same datacenter network** so they share one Raft group. Postgres HA does not use Orchestrator; engine-dead reports on a live server use the Postgres probe instead.
 
 ### ProxySQL and 4 KiB kernel pages
 
 Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common on Raspberry Pi 5 until switched). Consumer servers need the proxy too — apps reach databases through `127.0.0.1:15432` / `13306` even when no engine runs there.
 
-**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
+**What to do:** switch the Pi to the 4 KiB kernel before enrolling it — [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases).
 
 ## Backups
 
@@ -473,7 +529,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 ## Lifecycle and organization settings
 
 - **Start / Stop / Restart** act on the containers; stop keeps everything. **Apply** re-converges the cluster after a settings change.
-- **Destroy** removes the cluster and its data; a project or environment holding a live cluster cannot be deleted until it is destroyed (`managed_runtime_present`).
+- **Destroy** removes the cluster and its data, after you type the project's name to confirm; a project or environment holding a live cluster cannot be deleted until it is destroyed (`managed_runtime_present`).
 - **Managed → Settings** (organization-wide): the default SSL mode, and the listener ports per engine family (`1024–65535`; `6032`, `6132` and `45000–45999` are reserved). Blank = platform default. A port conflict on a host is only detectable when the listener is applied.
 
 ## Reference
@@ -486,7 +542,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | Listener ports     | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999`                                                                                                                                                                       |
 | SSL modes          | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full`                                                                                                                                                                          |
 | Connection roles   | `read-write` (default) · `read-only`                                                                                                                                                                                                                        |
-| Replica classes    | `failover` (same datacenter) · `read` (anywhere)                                                                                                                                                                                                            |
+| Replica classes    | `failover` (same datacenter network) · `read` (anywhere)                                                                                                                                                                                                            |
 | Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; engine-dead on a live server (Postgres probe / Orchestrator); whole-host loss via `ha-host-loss` for PostgreSQL, MySQL, and MariaDB (`metadata.detector = host-loss` on host-loss blocked rows) |
 | Recovery kinds     | `automatic-failover` · `switchover` · `disaster-recovery`                                                                                                                                                                                                   |
 | Applied login      | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain`                                                                                                                          |
@@ -504,7 +560,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_busy`                                                                                                                                                                                             | 409       | The cluster is provisioning or applying; wait for it.                                                                                                                  |
 | `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing`                                                                                                                            | 409       | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary.                                  |
 | `managed_replica_not_promotable`                                                                                                                                                                           | 422       | Only a failover or read replica in a promotable state can be promoted.                                                                                                 |
-| `failover_requires_trusted_datacenter`, `failover_replica_requires_datacenter_transport`                                                                                                                   | 422       | A failover replica needs a trusted datacenter and a datacenter path to the primary.                                                                                    |
+| `untrusted_network_needs_fabric`, `failover_replica_requires_datacenter_transport`                                                                                                                   | 422       | A failover replica needs a trusted datacenter network path to the primary, or TurboFabric over an untrusted one.                                                                                    |
 | `fabric_address_required`                                                                                                                                                                                  | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                                                                |
 | `managed_private_port_exhausted`                                                                                                                                                                           | 409       | The server has no private replication port left (45000–45999).                                                                                                         |
 | `managed_listener_bind_conflict`                                                                                                                                                                           | 422       | The listener port is already bound on that server.                                                                                                                     |
@@ -539,10 +595,18 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                        |
 | `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                     |
 | `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                               |
+| `managed_login_all_databases_not_allowed`                                                                                                                                                                  | 400       | All Databases is switched off for the organization or the Database Cluster. The message names the switch.                                                              |
+| `managed_login_all_databases_conflict`                                                                                                                                                                     | 400       | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change.   |
+| `admin_tool_engine_mismatch`                                                                                                                                                                               | 400       | The tool does not work with this database engine.                                                                                                                      |
+| `invalid_hostname`                                                                                                                                                                                         | 400       | The admin tool's hostname is not valid.                                                                                                                                |
+| `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                  |
+| `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                    |
+| `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                            |
+| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain that does not start with a digit and has no `/` or `\` before the @ and has a dot.                                                                  |
 
 ## Related
 
-- [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases) — switching a Pi to the 4 KiB kernel so apps can reach their databases.
+- [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases) — switching a Pi to the 4 KiB kernel so apps can reach their databases.
 - [Managed database ingress](/docs/architecture/managed-database-ingress) — the listener, routing and bindings from the platform's side.
 - [Organization CA](/docs/security/organization-ca) — the CA that signs the listener and the download for `verify-full`.
 - [Database proxy metrics](/docs/metrics/database-proxy) — what the listener reports on a server's Metrics tab.

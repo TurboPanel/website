@@ -44,7 +44,7 @@ For **contributors** building TurboPanel itself — not for production self-host
     ```bash
     vagrant up
     vagrant ssh
-    dev/console
+    turbopanel/dev/console
     ```
 
     The app installs pinned Node, converges the stack, and starts the Ink UI.
@@ -70,11 +70,17 @@ When self-hosted is publicly available, you provision a control plane on Debian 
     Provision a 64-bit Linux host running Debian 13 (trixie).
   </Step>
   <Step>
-    Install the control plane:
+    Install the control plane, as root or as a sudo-capable user. On a minimal Debian image, log in as root (or use `su -`), because `curl` and `sudo` are not installed yet, and install `curl` and `ca-certificates` first; the installer installs `sudo` and the rest itself:
 
     ```bash
-    curl -fsSL turbopanel.sh | sh
+    apt-get update && apt-get install -y curl ca-certificates
     ```
+
+    ```bash
+    curl -fsSL https://turbopanel.sh | sh
+    ```
+
+    As a sudo-capable user the installer escalates with `sudo` itself, so do not prefix the pipeline with `sudo`.
 
     Run with nothing else, the installer downloads the current release packages (control plane, web interface and the
     daemon's orchestration tree) from GitHub Releases, verifies every one against its manifest, converges
@@ -104,31 +110,32 @@ When self-hosted is publicly available, you provision a control plane on Debian 
   See [Control plane](/docs/deployment/control-plane) for how TurboPanel High Availability coordination works.
 </Callout>
 
-When access is available, you create an organization in the app, obtain server licenses, and enroll servers with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default).
+When access is available, you create an organization in the app, obtain server licenses, and enroll servers with `turbopanel.sh` (no `TURBOPANEL_HOST` required — the installer uses the channel manifest default). TurboPanel High Availability is reached on the normal HTTPS port, 443; a self-hosted control plane is always on port 8443.
 
 ## Additional managed server daemons
 
 Install the daemon on servers that should be managed remotely. The control-plane host already runs its
 co-located daemon — never enrol it with this command. Obtain a license from your organization first.
 
-<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
+On a minimal Debian image, run as root (log in as root, or use `su -`), because `curl` and `sudo` are not installed yet. Install `curl` and `ca-certificates` first; the installer installs `sudo` and the rest itself:
 
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+apt-get update && apt-get install -y curl ca-certificates
 ```
 
 ```bash
-curl -fsSL turbopanel.sh | \
-  TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=https://<instance-host>:8443 \
-  sh
+curl -fsSL https://turbopanel.sh | TOKEN=<value from Add Server> sh
 ```
 
-</CodeGroup>
+The `TOKEN` value is signed by your control plane and carries the license, the control plane URLs (the one you picked first), the control plane key fingerprint and, for a Platform CA name, the CA fingerprints. The installer checks the signature against the control plane's identity before it sends anything. Copy it from **Add Server**; it is the same on TurboPanel High Availability and self-hosted. A High Availability control plane that has no identity key yet gives the older form instead:
 
-The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
+```bash
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+```
 
-Replace host and port with where the control plane is reachable from the server. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS instances.
+If you run it as a sudo-capable user, the installer escalates with `sudo` itself and prompts for your password when needed; as root it just runs. Either way, do not prefix the pipeline with `sudo`.
+
+On self-hosted, the URL you pick in **Add Server** is the name or address the server reaches the control plane on, on port 8443: the self-hosted control plane always listens there, and ports 80 and 443 on its host belong to hosting. The installer fetches the platform CA from `/api/daemon/v1/instance/ca` automatically for HTTPS control planes. For how an enrolled server knows later orders really came from your control plane, see [Control Plane Identity](/docs/security/control-plane-identity).
 
 ### Supported platforms (managed servers)
 
@@ -145,7 +152,7 @@ Full options and examples: [Daemon setup](/docs/deployment/daemon-setup).
 
 - **64-bit** Linux server (Debian 13 (trixie); Raspberry Pi OS 64-bit, which is Debian 13 based, on arm64)
 - Docker (optional — installed on demand when a server runs container workloads)
-- SSH access to GitHub for platform repo clones on co-located dev hosts (`git@github.com:TurboPanel/...`)
+- Git access to GitHub for platform repo clones on co-located dev hosts (HTTPS through `gh`, or SSH if you already use it)
 - For contributor dev: see [Prerequisites](/docs/development/prerequisites)
 
 ## Next steps

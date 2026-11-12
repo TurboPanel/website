@@ -9,18 +9,18 @@ This page describes how the TurboPanel **multi-repo** Vagrant environment is orc
 
 ## Repository model
 
-TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them.
+TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them. The repos live in a folder named `turbopanel`, and the guest mounts follow the same layout, so the Guest mount column is `~/turbopanel/<repo>` (the same on a Direct VM with no Vagrant).
 
 | Host path (example) | Guest mount | GitHub repo | Role |
 | ------------------- | ----------- | ----------- | ---- |
-| `…/dev/` | `~/dev/` | turbopanel/dev | `Vagrantfile`, `./console`, Ink UI |
-| `…/turbopaneld/` | `~/turbopaneld/` | turbopanel/turbopaneld | Remote daemon + Ansible |
-| `…/turbopanel/` | `~/turbopanel/` | turbopanel/turbopanel | Hono API (Workers + Deno) |
-| `…/ui/` | `~/ui/` | turbopanel/ui | Expo web / native UI |
-| `…/website/` | `~/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
-| `…/.github/` | `~/.github/` | turbopanel/.github | Community health files |
+| `…/dev/` | `~/turbopanel/dev/` | turbopanel/dev | `Vagrantfile`, `./console`, Ink UI |
+| `…/turbopaneld/` | `~/turbopanel/turbopaneld/` | turbopanel/turbopaneld | Remote daemon + Ansible |
+| `…/turbopanel/` | `~/turbopanel/turbopanel/` | turbopanel/turbopanel | Hono API (Workers + Deno) |
+| `…/ui/` | `~/turbopanel/ui/` | turbopanel/ui | Expo web / native UI |
+| `…/website/` | `~/turbopanel/website/` | turbopanel/website | Marketing + Fumadocs (this site) |
+| `…/.github/` | `~/turbopanel/.github/` | turbopanel/.github | Community health files |
 
-Paths derive from `TURBOPANEL_DEV_ROOT` (defaults: `$HOME/{turbopaneld,turbopanel,ui,website}`); a per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
+Paths derive from `TURBOPANEL_DEV_ROOT`. The default is `$HOME/turbopanel` everywhere (including inside the guest), so the repos are at `$HOME/turbopanel/<repo>`. A per-repo `TURBOPANEL_<DIR>_REPO` variable is an optional override that is only persisted when you set it explicitly (`~/turbopanel/.github` is mounted separately via the `github-repo` Ansible role, not a `TURBOPANEL_*_REPO` variable).
 
 Canonical flow:
 
@@ -28,7 +28,7 @@ Canonical flow:
 cd path/to/turbopanel/dev
 vagrant up
 vagrant ssh
-dev/console
+turbopanel/dev/console
 ```
 
 ### Dev vs production path model
@@ -37,8 +37,8 @@ The dev console drives a **dev layout** where source repos live under `$HOME` (g
 
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
-| Source repos | `$HOME/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts) | No source checkout (compiled release) |
-| Daemon entrypoint | `deno run main.ts` from `~/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
+| Source repos | `$HOME/turbopanel/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts and Direct VM) | No source checkout (compiled release) |
+| Daemon entrypoint | `deno run main.ts` from `~/turbopanel/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
 | Config | `/etc/turbopanel/daemon.env` (dev-user-owned) | `/etc/turbopanel/daemon.env` |
@@ -99,7 +99,7 @@ The Ink console authenticates to `/api/developer/v1/*` over the control plane's 
 
 See [Database troubleshooting](/docs/getting-started/database-troubleshooting) for resets and connection issues.
 
-Every table and non-obvious column has a one-sentence description applied to the live database as `COMMENT ON` metadata; see [Database](/docs/database) for how to read them with `psql`.
+Every table and column is described in the [Database](/docs/database) reference, which is generated from the control plane source.
 
 ## Port allocation
 

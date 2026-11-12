@@ -1,0 +1,208 @@
+---
+title: Project Caches
+description: A private Valkey cache per environment that runs as one Hosting Account — adding one, socket or port access, the memory limit, the variables a site receives, deleting it, reaching a helper container from a site, and every refusal code
+---
+
+# Project Caches
+
+A **project cache** is a [Valkey](https://valkey.io) 8.1 server that TurboPanel runs for one environment, on the environment's server, as one **Hosting Account**. Sites and Node apps that run as that account get the connection details as variables; no other Hosting Account can open it. Valkey speaks the Redis protocol, so a Redis client or framework driver connects to it unchanged, which is why the variables use the `REDIS_` names by default.
+
+This chapter also covers [reaching a helper container from a site](#reaching-helper-containers-from-sites), the other way a site reaches something that runs next to it.
+
+## The model
+
+- **One process per cache.** Each cache is its own Valkey process, run by the server's service manager as the Hosting Account you choose. It is not a managed database and has no cluster, replicas or failover.
+- **One login.** The cache has a single named login, `app`. The built-in default login is switched off, so a client must authenticate with the generated password. The login cannot change the server's configuration, load modules or turn the cache into a replica of another host.
+- **Engine defaults.** TurboPanel sets only the memory limit, the socket or port, and the login. Eviction and persistence stay at the engine's defaults: no eviction policy is set, so once the cache holds its memory limit, writes fail with an out-of-memory error instead of dropping old keys. Data is saved by the engine's default snapshot schedule. Whether a lost cache matters is your application's choice: treat it as a cache, and keep anything you cannot rebuild in a database.
+- **Private by default.** A cache never listens on a public address. It uses a private socket file, or a port on `127.0.0.1` that the server opens to that one Hosting Account only.
+- **Computed variables.** The variables are worked out at deploy and never stored as variables you can edit. A site gets them on its next deploy after the cache is added, changed or removed.
+
+## Before you begin
+
+- An environment that is **placed on a server**. A cache runs on that server.
+- A **Hosting Account** that a site or Node app of the environment runs as ([System users](/docs/using/principals)). A cache runs as one of those accounts, and only that account's sites and apps receive its variables.
+- **Manage** rights on the organization.
+- A server whose daemon is up to date (see [Daemon update](#daemon-update)).
+
+## Add a cache
+
+The **Caches** card is on the environment's **Overview**.
+
+<Steps>
+  <Step>Open the environment and, in **Caches**, choose **Add Cache**.</Step>
+  <Step>Give it a **Name**: lower-case letters, digits and dashes, starting with a letter, up to 63 characters. The name is unique within the environment and cannot be changed later.</Step>
+  <Step>Pick the **Hosting Account** it runs as. The list shows the accounts that a service of this environment runs as. The account cannot be changed later.</Step>
+  <Step>Choose **Access**: **Private Socket (Recommended)** or **Loopback Port**. See [Socket or port](#socket-or-port).</Step>
+  <Step>Set the **Memory Limit (MiB)** and, if you need other variable names, the **Variable Prefix**. The sheet lists the variable names the choice produces.</Step>
+  <Step>Choose **Add Cache**. The cache shows a status until the server has applied it. **Deploy** the environment so its sites pick up the variables.</Step>
+</Steps>
+
+The engine, **Valkey 8.1**, is fixed and shows read-only. There are no presets.
+
+| Setting | Rule |
+| --- | --- |
+| Name | `^[a-z][a-z0-9-]{0,62}$`; unique in the environment. |
+| Access | `socket` (the default) or `port`. Can be changed later. |
+| Memory limit | A whole number of MiB from **16** to **4096**; **64** by default. Can be changed later. |
+| Variable prefix | A letter or underscore, then letters, digits and underscores, up to 64 characters; `REDIS` by default. A Hosting Account cannot have two caches in one environment with the same prefix. Can be changed later. |
+| Caches per environment | At most 16. |
+
+Changing the access or the memory limit restarts the cache, and the cache is applied again.
+
+### Socket or port
+
+| Access | What it is | Use it when |
+| --- | --- | --- |
+| **Private Socket** | A socket file under `/run/turbopanel-cache-<id>/` that only the Hosting Account can open. The cache has no network port at all. | The client can connect to a Unix socket. Most drivers can. |
+| **Loopback Port** | A port on `127.0.0.1` from the range 18080 to 18999. The server opens it to that one Hosting Account only. The port is chosen for you and shown on the cache once it is placed. | The client can only connect by host and port. |
+
+### The memory limit
+
+The limit is the engine's `maxmemory`. TurboPanel also puts a hard ceiling on the cache's unit of **twice the limit plus 32 MiB**, because the engine's default snapshot copies memory while it saves. That ceiling counts against the Hosting Account's own memory limit, if it has one: when it would not fit, the request is refused with `cache_memory_over_ceiling` and the message names the largest limit that does fit.
+
+## The variables a service receives
+
+Every site and Node app that runs as the cache's Hosting Account, on the cache's server, gets these names. Replace `REDIS` with the cache's variable prefix.
+
+| Variable | Socket cache | Port cache |
+| --- | --- | --- |
+| `REDIS_HOST` | The socket path | `127.0.0.1` |
+| `REDIS_PORT` | `0` | The port number |
+| `REDIS_SOCKET` | The socket path | Not set |
+| `REDIS_USERNAME` | `app` | `app` |
+| `REDIS_PASSWORD` | The generated password (secret) | The generated password (secret) |
+| `REDIS_URL` | Not set | A `redis://` URL with the `app` login, the password, `127.0.0.1` and the port (secret) |
+
+Rules that follow from this:
+
+- **A site gets the variables in every place it gets its own.** A PHP site reads them in its requests, and its scheduled jobs, post-deploy commands and background workers load them from the site's environment file ([PHP Apps from Git](/docs/using/php-apps-from-git#the-environment-file)). On a site with PHP, the PHP `redis` extension is switched on for you.
+- **Only the cache's own account.** A site or app that runs as a different Hosting Account, or on a different server, gets nothing, and the deploy says so in a warning.
+- **Containers get nothing yet.** A service of kind `container` receives no cache variables.
+- **They win over inherited values.** A variable with the same name set at the organization, workspace, project, environment or server scope is replaced, and the deploy warns with `cache_variable_overrides`, naming the variable.
+- **They cannot be set by hand where they would lose.** A variable with the same name set on the service or its hostname is refused (`cache_key_conflict`). Rename that variable or change the cache's prefix.
+- **Values stay hidden.** The password and the URL are secrets. The **From Caches** group on the environment's **Configuration** tab lists the names each cache sets and never shows a value.
+- **Node apps** get the plain names (`REDIS_HOST`, `REDIS_PORT`, `REDIS_SOCKET`, `REDIS_USERNAME`). The password and the URL are secrets, and a secret that is not set on the Node app itself reaches it only when its `environment:` references it with `{$REDIS_PASSWORD}` (see [Variables on a Node app](/docs/using/storage-and-variables#variables-on-a-node-app)). Open **Preview ▾ → Prepared compose** (see [Preview](/docs/using/deploy#preview)) to see what a given app will get.
+
+### Use it from a Laravel site
+
+A Laravel site that runs as the cache's Hosting Account gets the `REDIS_` variables on its next deploy. With a socket cache they are:
+
+| Variable | Value |
+| --- | --- |
+| `REDIS_HOST` | the socket path |
+| `REDIS_PORT` | `0` |
+| `REDIS_USERNAME` | `app` |
+| `REDIS_PASSWORD` | the generated password |
+
+These are the names Laravel's Redis connection reads, with the host a socket path and the port `0`, so it connects over the socket. Switch the cache, session or queue driver to `redis` as you would for any Redis server. The deploy turns on the site's PHP `redis` extension for you. For a port cache, `REDIS_HOST` is `127.0.0.1`, `REDIS_PORT` is the port, and `REDIS_URL` is set as well.
+
+## Change or delete a cache
+
+Choose a cache in **Caches** and use its menu. **Show Variables** lists the variable names the cache sets (never a value). **Edit** changes the access, the memory limit and the variable prefix, and sends only what changed. The name and the Hosting Account are read-only.
+
+**Delete** asks **Also Delete the Cached Data**, checked by default.
+
+| Choice | What happens |
+| --- | --- |
+| Checked (the default; `deleteData` left out or true in the API) | The process stops, its unit and configuration are removed, and its data folder is deleted. |
+| Unchecked (`deleteData=false`) | The process stops and its unit and configuration are removed. The data folder stays on the server. |
+| The server is offline | Nothing can be sent to the host, so only the **record** is removed (`removed: record_only`) and the web interface says so. |
+
+Delete is queued to the server first, and the record is removed only once that is queued; if the host cannot be asked the record stays and the request answers `cache_remove_not_queued`, so try again. Stopping an environment marks its caches **stopped**. A Hosting Account that still has a cache cannot be removed (`principal_in_use`, with `usedBy.caches` counting them): delete the cache first.
+
+## Reaching helper containers from sites
+
+A container such as a search engine or a queue broker runs in Docker, and a site or Node app runs on the server itself under its own account. A site cannot reach a container's private network, so a container can declare a **helper port**: one port that the server publishes on `127.0.0.1` and opens to one Hosting Account only.
+
+On the container service, in **Compose**, the section **Reachable from Sites** sets the container port and the sites and apps that may connect. In the document it is `x-turbopanel.reach`:
+
+```yaml
+x-turbopanel:
+  principals:
+    shop:
+      access: sftp
+services:
+  search:
+    image: example/search:1
+    x-turbopanel:
+      reach:
+        port: 9200
+        from: [shop]
+  shop:
+    x-turbopanel:
+      serviceKind: site
+      principal: shop
+```
+
+| Field | Rule |
+| --- | --- |
+| `port` | The port the container listens on, 1 to 65535. |
+| `from` | One to eight names of sites or Node apps of this document, no repeats. |
+
+What the deploy does:
+
+1. It publishes the container's port as `127.0.0.1:<host port>:<port>`, with the host port taken from the range 18080 to 18999. A redeploy keeps the same host port when it is still free.
+2. The server opens that host port to the Hosting Account of the services in `from`, and to no one else.
+3. Each service in `from` gets two variables, with `<NAME>` the container's service name in upper case, any character that is not a letter, digit or underscore turned into `_`, and a leading digit prefixed with `_`:
+
+| Variable | Value |
+| --- | --- |
+| `TURBOPANEL_HELPER_<NAME>_HOST` | `127.0.0.1` |
+| `TURBOPANEL_HELPER_<NAME>_PORT` | The host port |
+
+So `search` above gives `TURBOPANEL_HELPER_SEARCH_HOST` and `TURBOPANEL_HELPER_SEARCH_PORT`.
+
+A `reach` of the wrong shape (a port outside 1 to 65535, no `from`, more than eight names or a repeated name) is refused when you save the compose document. The rules below depend on the services and accounts, so they are checked at deploy and refused with `helper_reach_invalid`, which names the service:
+
+- **One account.** Every service in `from` must run as the same Hosting Account, because a helper port opens to one account. In the web interface, a site or app that names a different account than the first one you ticked cannot be added.
+- **Sites and Node apps only.** A container, or a name that is not in the document, cannot be in `from`.
+- **The account must exist.** Each service in `from` needs a Hosting Account that is already set up on the server.
+- **One copy.** A container with a helper port must run as a single copy, not scaled to several.
+- **At most 32** helper ports per server in one deploy.
+
+**Reachable from Sites** shows on a service of the project's **Base** compose, not on an environment's own compose overlay. The host port is not shown in the web interface; the site reads it from the variable.
+
+## Daemon update
+
+Caches and helper ports are carried to the server by the daemon, so the daemon on that server must be a version that lists the `project-cache-v1` feature. Until it does:
+
+- adding, changing or deleting a cache is refused with `daemon_update_needed` (409), "Update the daemon on this server to use project caches";
+- a deploy that includes a cache or a helper port is refused with the same code;
+- an environment with neither deploys as before, and nothing about caches is sent to the old daemon.
+
+Update the daemon on the server (see [Servers](/docs/using/servers)) and try again.
+
+## Not offered yet
+
+- **Backups.** Caches are not backed up by TurboPanel.
+- **Presets and engine choice.** The engine is Valkey 8.1.
+- **Cache variables in containers.** Only sites and Node apps receive them.
+
+## Errors
+
+The same codes are in [Error codes](/docs/using/reference/errors#project-caches-and-helper-ports).
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `invalid_name`, `invalid_principal`, `invalid_access`, `invalid_memory`, `invalid_prefix` | 400 | A field is outside its rule above (`invalid_access` here is the cache access, `socket` or `port`); the message says which and what is allowed. |
+| `engine_unavailable`, `version_unavailable` | 400 | The request named an engine other than Valkey, or a version other than 8.1. |
+| `environment_not_placed` | 409 | The environment has no server yet. |
+| `daemon_update_needed` | 409 | The server's daemon does not support project caches. |
+| `too_many_caches` | 409 | The environment already has 16 caches. |
+| `cache_name_taken`, `cache_prefix_taken`, `cache_port_taken` | 409 | The name is in use in the environment, the prefix is in use by another cache of that Hosting Account, or the port was just taken (try again). |
+| `cache_key_conflict` | 409 on a cache change, 422 at deploy | A service or hostname variable already sets a name the cache would set. |
+| `principal_not_in_environment` | 422 | The Hosting Account does not belong to a site or app of this environment. |
+| `cache_memory_over_ceiling` | 422 | The memory limit does not fit the Hosting Account's own limit; the message gives the largest value. |
+| `helper_reach_invalid` | 422 at deploy | A helper port breaks a rule above. |
+| `invalid_request` | 400 | The body is not an object, or a change names nothing to change. |
+| `cache_remove_not_queued` | 503 | The server could not be asked to remove the cache; the record is kept. |
+
+Three warnings can come back with a deploy (they do not stop it): `cache_variable_overrides` (a cache name replaced an inherited variable; the key is named), `cache_other_account` (a site or app runs as a different Hosting Account than any cache of the environment, so it gets no cache variables) and `cache_other_server` (the cache is on another server).
+
+## Related
+
+- [Storage, variables and secrets](/docs/using/storage-and-variables) — the variable cascade a cache's names are added to.
+- [PHP Apps from Git](/docs/using/php-apps-from-git) — the environment file, scheduled jobs and workers that load these variables.
+- [Writing compose](/docs/using/compose) — the `x-turbopanel` extension, including `reach`.
+- [System users](/docs/using/principals) — the Hosting Accounts a cache runs as.
+- [Managed databases](/docs/using/managed-databases) — clusters with replicas and backups.

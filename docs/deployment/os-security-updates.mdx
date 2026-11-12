@@ -1,0 +1,47 @@
+---
+title: OS security updates
+description: Every managed server installs Debian security updates on its own and never restarts by itself
+---
+
+# OS security updates
+
+Every server TurboPanel manages installs Debian security updates on its own, and never restarts by itself. When an update needs a restart to take effect, the server page in the web interface shows **Restart Needed**, and you pick the moment.
+
+## What runs
+
+- The daemon installs Debian's `unattended-upgrades` package (without its recommended extras) when it sets up the server, and checks it again whenever the daemon starts or updates.
+- It adds one setting file, `/etc/apt/apt.conf.d/52turbopanel-security-updates`, which limits automatic updates to the Debian security repository (`<release>-security`, for example `trixie-security`) and turns automatic restarts off.
+- The package's own files (`50unattended-upgrades`, `20auto-upgrades`) are left as Debian ships them; TurboPanel's file is read after them and replaces their list of update sources.
+- Debian's daily apt timers (`apt-daily.timer`, `apt-daily-upgrade.timer`) refresh the package lists and install the updates each day, at a randomized time.
+
+This applies to Debian 12 and Debian 13, on managed servers and on the self-hosted control-plane server. Ubuntu servers keep Ubuntu's own automatic update settings.
+
+## What is not updated
+
+- Stable point releases and every other package outside the security repository. Those wait for you.
+- Docker Engine. It comes from Docker's own repository and TurboPanel holds it at a tested version; it is updated only through TurboPanel.
+- TurboPanel itself. The control plane and the daemon have their own automatic updates, see [Upgrade and rollback](/docs/deployment/upgrade).
+
+A security update to a service installed from Debian's packages (for example OpenSSH) restarts that service, as Debian's packages do; open SSH sessions stay connected. Containers are not touched.
+
+## Restart Needed
+
+A new kernel, and some library updates, only take effect after a restart. The package leaves `/var/run/reboot-required` when that happens. The daemon reports it with the server's metrics, and the server page shows:
+
+> **Restart Needed** — Restart needed to finish security updates. This server never restarts on its own; …
+
+Restart the server from **Control → Reboot server** when it suits you, or from its shell. The self-hosted control-plane server (the Platform Server) has no Reboot server button: restart that host from its shell. Members who cannot manage the organization are asked to tell an organization manager. The notice appears and clears within about ten minutes, as the server reports again. Servers with metrics turned off do not show the notice.
+
+## Check it on a server
+
+```sh
+apt-config dump | grep -E 'Origins-Pattern|Automatic-Reboot'
+sudo unattended-upgrade --dry-run -d | grep 'Allowed origins'
+ls /var/run/reboot-required   # present when a restart is needed
+```
+
+`/var/log/unattended-upgrades/unattended-upgrades.log` lists what was installed and when.
+
+## Removing TurboPanel
+
+The [purge script](/docs/deployment/purge) removes TurboPanel's setting file and keeps the `unattended-upgrades` package, which may have been on the host before. The host then follows the package's own defaults.

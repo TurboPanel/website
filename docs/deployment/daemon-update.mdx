@@ -49,7 +49,7 @@ print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' "$ENV_FILE")
 CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' "$ENV_FILE")
 
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST="$HOST" \
   TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
@@ -68,17 +68,17 @@ The installer:
 
 A manifest pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) is cleared by a refresh that does not name one. To keep it, add `TURBOPANEL_MANIFEST_URL=<the same URL>` to the command.
 
-A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by **Update TurboPanel**.
+A panel-driven update does not follow a channel that moves mid-rollout. The control plane sends the manifest URL and `targetCommit` it resolved when the run started. A host pin already in `daemon.env` (`TURBOPANEL_MANIFEST_URL`) still wins over that URL, so a hold you set by hand is not dropped by an automatic update or by **Update Now**.
 
 ## Update guard
 
-A daemon self-update arms `/run/turbopanel/update-guard.json` with the target commit and a deadline, and starts `turbopaneld-update-guard.timer` (about 10 minutes, one shot per attempt). `turbopaneld.service` also starts that unit from `OnFailure=` if the new build crash-loops. The guard runs as root. It restores:
+A daemon self-update arms `/run/turbopanel/update-guard.json` with the target commit and a deadline, and starts `turbopaneld-update-guard.timer` (about 10 minutes, one shot per attempt). `turbopaneld.service` has no start limit: it keeps restarting with a delay that grows from 5 seconds up to 2 minutes, so a build that keeps crashing never reaches systemd's failed state. The guard's own deadline timer is what rolls it back when the new build never connected. The guard runs as root. It restores:
 
 - `/opt/turbopanel/bin/turbopaneld.prev`
 - `/opt/turbopanel/bin/turbopaneld.js.prev` on hosts that run the JS runtime
 - `/opt/turbopanel/share/orchestration.prev`
 
-It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. The restored build reports `rolled-back`. A new build that attaches successfully disarms the guard. A control-plane update is a different path: it keeps `bin/turbopanel.prev`, `lib/libduckdb.so.prev`, and `share/ui.prev`, and rolls those back when `GET /api/health` does not match the pinned manifest. See [Upgrade and rollback](/docs/deployment/upgrade).
+It writes `/var/lib/turbopanel/update-rollback.json` and restarts the daemon. The restored build reports `rolled-back`. A new build that attaches successfully disarms the guard. The same no-limit restart means a full disk does not leave the daemon stopped: it keeps retrying and comes back once space returns. A control-plane update is a different path: it keeps `bin/turbopanel.prev`, `lib/libduckdb.so.prev`, and `share/ui.prev`, and rolls those back when `GET /api/health` does not match the pinned manifest. See [Upgrade and rollback](/docs/deployment/upgrade).
 
 ## Pre-flight errors
 
@@ -105,7 +105,7 @@ A control-plane install adds `preflight_backup` when `turbopanel-database` is no
 Add `TURBOPANEL_HOST` for a self-hosted control plane. Use `https://<instance-host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls` / `TURBOPANEL_INSECURE_TLS`.
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST=https://<instance-host>:8443 \
   sh
@@ -125,7 +125,7 @@ per-merge build drop on the CDN) is retired and `edge` is reserved: neither has 
 built-in location. The example below sets `canary` explicitly (the default is `release`):
 
 ```bash
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_UPDATE_CHANNEL=canary \
   sh

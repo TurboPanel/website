@@ -30,9 +30,19 @@ The guest is allocated 8 GB; remaining RAM is for the host OS, IDE, and tooling.
 
 ### Git + SSH
 
-Clone (or fork) the six sibling repos over SSH. Load a GitHub SSH key on the host; Vagrant forwards the agent into the guest.
+Clone (or fork) the sibling repos over HTTPS with the [GitHub CLI](https://cli.github.com/) (`gh auth login`); no SSH key is needed. If you already use SSH for GitHub, `gh config set git_protocol ssh` keeps your key in use, and Vagrant forwards your SSH agent into the guest.
 
-- **Verify:** `ssh -T git@github.com`
+- **Verify:** `gh auth status` (or `ssh -T git@github.com` if you use SSH)
+
+The setup starts with one command that needs only `git` and `curl` (no clone first, no `sudo`, nothing installed):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
+```
+
+You can also download `start.sh`, read it, then run `sh start.sh`. It creates `~/turbopanel`, clones `dev` over HTTPS and runs `setup.sh`, which offers to install the GitHub CLI on Debian or Ubuntu and to log you in with a one-time code.
+
+Step-by-step fork and pull request commands: [Contribute Without Access](/docs/development/contribute-without-access). Not sure whether to use Vagrant or a Debian 13 machine directly? See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant).
 
 ### Vagrant + provider
 
@@ -51,22 +61,23 @@ The table above is the **currently documented** pair — not a closed list. macO
 brew install --cask utm
 brew install hashicorp/tap/hashicorp-vagrant
 vagrant plugin install vagrant_utm
+# only if you use SSH for GitHub:
 ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 ```
 
 ### Sibling repositories
 
-Check out all six repos under one parent directory (any path works):
+Check out all six repos inside a folder named `turbopanel`, placed wherever you like. The tools expect `~/turbopanel/<repo>` on a Debian machine used directly and in the Vagrant guest (see [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant#folder-layout)):
 
 ```
 turbopanel/{dev,turbopaneld,turbopanel,ui,website,.github}
 ```
 
-The `dev` checkout owns the `Vagrantfile`. Keep forks/remotes per repo so you can open PRs independently.
+The `dev` checkout owns the `Vagrantfile`. Vagrant needs the five code repos (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`) next to each other; `.github` is optional. Once you fork a repo (`setup.sh fork <repo>`), `origin` is your fork and `upstream` is TurboPanel, so you can open PRs independently. Before that, an outside contributor's clone is read-only (`origin` is TurboPanel), and a maintainer pushes branches straight to `origin`.
 
 ## Installed inside the guest (not on the host)
 
-After `vagrant ssh` and `dev/console` / converge, the guest provides:
+After `vagrant ssh` and `turbopanel/dev/console` / converge, the guest provides:
 
 | Tool | Notes |
 | ---- | ----- |
