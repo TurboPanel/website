@@ -194,7 +194,7 @@ A service can have one binding with a preset; a second one fails with `binding_e
 
 | Preset           | Engines        | Names it sets                                                                                                                                                                                                                                                                             |
 | ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plain PostgreSQL | PostgreSQL     | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE`, and `PGSSLROOTCERT` in the `verify-ca` and `verify-full` modes                                                                                                                                                     |
+| Plain PostgreSQL | PostgreSQL     | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` (`PGPASSWORD_FILE` in a container), `PGSSLMODE`, and `PGSSLROOTCERT` in the `verify-ca` and `verify-full` modes                                                                                                                                                     |
 | Plain MySQL      | MySQL, MariaDB | `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`                                                                                                                                                                                                              |
 | Laravel          | All            | `DB_CONNECTION` (`pgsql`, `mysql` or `mariadb`), `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_URL`; PostgreSQL adds `DB_SSLMODE`, MySQL and MariaDB add `MYSQL_ATTR_SSL_CA`                                                                                     |
 | WordPress        | MySQL, MariaDB | `DB_HOST` (as `host:port`), `DB_USER`, `DB_PASSWORD`, `DB_NAME`                                                                                                                                                                                                                           |
@@ -204,6 +204,16 @@ A service can have one binding with a preset; a second one fails with `binding_e
 An entry whose field the app's kind cannot have is left out rather than failing: `ca_file` on a Node app, or the CA as text on a PHP site. A binding made before presets existed keeps its names. If it had the engine default names switched on, it reads as the Plain preset for its engine and sets exactly what it did, plus `PGSSLROOTCERT` on a PostgreSQL container or site in a verify mode.
 
 In a container, secret names arrive as files like every binding secret, so a Laravel container gets `DB_PASSWORD_FILE` rather than `DB_PASSWORD`, and Laravel does not read `_FILE` names. Metabase does: it reads `MB_DB_USER_FILE` and `MB_DB_PASS_FILE` (see "Use Docker Secrets" on Metabase's Docker page). A PHP site or a Node app gets the plain names.
+
+### PostgreSQL Passwords in Containers [#postgres-password-files]
+
+A container connected to a managed PostgreSQL database gets the password only as a file, in `PGPASSWORD_FILE` (the path of the file), and never as a plain `PGPASSWORD`. This is on purpose, so the password is not in the container's environment. Plain `psql` and any image that does not read `_FILE` forms need it read from the file, for example:
+
+```bash
+PGPASSWORD="$(cat "$PGPASSWORD_FILE")" psql
+```
+
+Once you copy the password out of the file into a variable or a command line, as in that example, anything that logs the command or its environment shows the password.
 
 ### SSL mode and the CA file [#database-ssl]
 
