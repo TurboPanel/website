@@ -82,11 +82,12 @@ const plural = (count, one) => `${count} ${one}${count === 1 ? '' : 's'}`
 
 export function renderGroupPage(group) {
   const title = titleCase(group.title)
-  const columns = countColumns(group.tables)
+  const counts = `${plural(group.tables.length, 'table')} and ${plural(countColumns(group.tables), 'column')}`
+  const description = `${counts} in the ${title} group of the control plane database`
   const lines = [
     '---',
     `title: ${JSON.stringify(title)}`,
-    `description: ${JSON.stringify(`${plural(group.tables.length, 'table')} and ${plural(columns, 'column')} in the ${title} group of the control plane database`)}`,
+    `description: ${JSON.stringify(description)}`,
     '---',
     '',
     FRONT_NOTE,
