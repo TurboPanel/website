@@ -19,6 +19,7 @@
     "check:docs-ssr": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-docs-ssr.mjs",
     "check:vocabulary": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-vocabulary.mjs",
     "notices:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs",
+    "schema:sync": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-schema-docs.mjs",
     "fmt:check:changed": "sh scripts/check-format-changed.sh",
     "notices:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-notices.mjs --check"
   },
