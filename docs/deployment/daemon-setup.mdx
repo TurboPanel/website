@@ -25,7 +25,7 @@ The daemon is the constant on every TurboPanel-managed host and the only party t
 ```mermaid
 graph TD
     subgraph "Control plane host"
-        Caddy["Caddy TLS (default :8443)"] --> Instance
+        Caddy["Caddy TLS (:8443)"] --> Instance
         CD[Co-located daemon] --> Instance
         CD --> Ansible
     end
@@ -73,15 +73,15 @@ Debian 12 (bookworm) and older are not supported.
 
 **Not supported:** 32-bit ARM (`armv7l`, `armhf`), 32-bit Raspberry Pi OS, or any CPU architecture other than `aarch64` and `x86_64`. Unsupported hosts fail during Ansible provisioning with an explicit architecture error.
 
-A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel by default; apps that use managed databases need a 4 KiB kernel. On such a Pi the installer switches it as its last step on a first install (opt out with `TURBOPANEL_SKIP_KERNEL_SWITCH=1`): it records whether the server was already enrolled, waits for fresh enrolment files, then restarts. On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this. On a server that is already installed, run `sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-4k-pagesize --reboot`. See [Raspberry Pi and databases](/docs/using/raspberry-pi-and-databases).
+A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel by default; apps that use managed databases need a 4 KiB kernel. Raspberry Pi firmware also starts the kernel with memory limits turned off (`cgroup_disable=memory`). On a Pi the installer makes both changes as its last step on a first install and restarts once (opt out of both with `TURBOPANEL_SKIP_KERNEL_SWITCH=1`, or keep only memory limits off with `TURBOPANEL_SKIP_MEMORY_LIMITS_SWITCH=1`): it records whether the server was already enrolled, waits for fresh enrolment files and for the server's first setup run to finish, then restarts the server once (it comes back by itself, usually in about a minute). Undo with `sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features undo pi-4k-pagesize` (or `undo pi-memory-cgroup`), then restart. On a re-run of the installer on an already installed server, or on a server that is already enrolled, it never restarts: it prints the apply command instead. Updates never do this. On a server that is already installed, run `sudo /opt/turbopanel/share/orchestration/scripts/tp-orchestrate kernel-features apply pi-4k-pagesize --reboot` (and `apply pi-memory-cgroup --reboot` for memory limits). See [Raspberry Pi, databases and memory limits](/docs/using/raspberry-pi-and-databases).
 
 ### Remote managed server (production installer)
 
 <Steps>
   <Step>
-    Obtain a license from your TurboPanel organization. Set `TURBOPANEL_LICENSE`
-    to the base64url-encoded `licenseId:licenseToken` (the UI copy-paste command
-    includes this).
+    Copy the install command from **Add Server** in your TurboPanel
+    organization. It sets one signed `TOKEN` value that carries the license,
+    the control plane URLs and the control plane key fingerprint.
   </Step>
   <Step>
     Run the channel installer from **turbopanel.sh** — production and
@@ -100,20 +100,15 @@ A Raspberry Pi 5 on Raspberry Pi OS (Debian 13, "trixie") uses a 16 KiB kernel b
 
 Self-hosted examples below use `https://<host>:8443`. A Let's Encrypt hostname, and an uploaded certificate that chains to a public root, omit `--insecure-tls`.
 
-<CodeGroup titles={['TurboPanel High Availability', 'Self-hosted']}>
-
 ```bash
-curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+curl -fsSL https://turbopanel.sh | TOKEN=<value from Add Server> sh
 ```
 
-```bash
-curl -fsSL turbopanel.sh | \
-  TURBOPANEL_LICENSE=<base64url-encoded-license> \
-  TURBOPANEL_HOST=https://<instance-host>:8443 \
-  sh
-```
+A High Availability control plane that has no identity key yet gives the older form, which the installer still accepts:
 
-</CodeGroup>
+```bash
+curl -fsSL https://turbopanel.sh | TURBOPANEL_LICENSE=<base64url-encoded-license> sh
+```
 
 The installer self-escalates with `sudo` and prompts for your password when needed — do not prefix the pipeline with `sudo`.
 
@@ -148,7 +143,7 @@ print(base64.urlsafe_b64encode(f'{id}:{tok}'.encode()).decode().rstrip('='))
 HOST=$(sed -n 's/^TURBOPANEL_INSTANCE_URL=//p' /etc/turbopanel/daemon.env)
 CHANNEL=$(sed -n 's/^TURBOPANEL_UPDATE_CHANNEL=//p' /etc/turbopanel/daemon.env)
 
-curl -fsSL turbopanel.sh | \
+curl -fsSL https://turbopanel.sh | \
   TURBOPANEL_LICENSE="$LICENSE_B64" \
   TURBOPANEL_HOST="$HOST" \
   TURBOPANEL_UPDATE_CHANNEL="$CHANNEL" \
@@ -170,6 +165,7 @@ See [Refresh a stuck daemon](/docs/deployment/daemon-update) for offline UI mism
 
 | Variable / flag                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TOKEN`                                          | **What the Add Server command sets.** One signed value carrying the license, the control plane URLs, the control plane key fingerprint, the next key fingerprint and any CA fingerprints. The installer checks it against the control plane identity, then pins that key. Takes the place of `TURBOPANEL_LICENSE`, `TURBOPANEL_HOST` and the CA variables.                                                                                                                                               |
 | `TURBOPANEL_LICENSE` / `--license <b64>`         | **Required to enrol a server.** Base64url-encoded `licenseId:licenseToken`. Run with no license and no other server option, the installer sets up a control plane instead.                                                                                                                                                                                                                                                                                                                               |
 | `TURBOPANEL_UPDATE_CHANNEL` / `--channel <name>` | Release channel. Default: `release`. Channel names (`canary`, `rc`, `release`, …) are technical identifiers — not product branding. `release`, `rc` and `canary` resolve from the daemon's [GitHub Releases](https://github.com/TurboPanel/turbopaneld/releases) (latest non-pre-release, the rolling `rc` pre-release, and the rolling `canary` pre-release carrying the newest green `trunk` build). `trunk` (the former per-merge build drop) is retired. Written to `.env` as `TURBOPANEL_UPDATE_CHANNEL`. |
 | `TURBOPANEL_HOST` / `--host <URL>`               | Optional for TurboPanel High Availability (defaults to manifest `defaultControlPlaneUrl`). Required for self-hosted control planes (`https://…`).                                                                                                                                                                                                                                                                                                                                                        |
@@ -203,7 +199,7 @@ The installer bootstraps uv/Python/Ansible and runs `daemon-install.yml`, which 
 <Callout type="info" title="Contributor dev is different">
   A control-plane host provisioned via the
   [dev](https://github.com/TurboPanel/dev) console runs the daemon **from a
-  source checkout** under `$HOME` (e.g. `~/turbopaneld`, via `deno run
+  source checkout** under `$HOME` (e.g. `~/turbopanel/turbopaneld`, via `deno run
   main.ts`). Config lives in `/etc/turbopanel/daemon.env`; mutable state, logs,
   and sockets under dev-user-owned FHS paths; vendored runtimes under
   `/opt/turbopanel/vendor`. No dedicated `tp` / `tpctrl` / `tpcache` service
@@ -233,6 +229,8 @@ a managed install connects without it.
 - **WebSocket:** `wss://<instance>/ws/daemon/v1`
 - **Hello:** daemon sends `hostname`, optional `serverId`, `machineId`; the control plane returns canonical `serverId`
 - **Commands:** the control plane routes over the daemon cell; dev-sync and tunnel-token messages for operator pushes
+
+How a server tells your control plane from an impostor, in plain words: [Control Plane Identity](/docs/security/control-plane-identity).
 
 ## Common issues
 

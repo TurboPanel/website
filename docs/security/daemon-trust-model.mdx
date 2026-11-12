@@ -10,7 +10,7 @@ The TurboPanel daemon (`turbopaneld`) is a **high-privilege** service on every m
 ## Enrollment
 
 1. Operator creates a **one-shot license** in the app.
-2. Installer runs `curl -fsSL turbopanel.sh | TURBOPANEL_LICENSE=… sh`.
+2. Installer runs `curl -fsSL https://turbopanel.sh | TOKEN=… sh`. The signed value carries the license, the control plane URLs and the control plane key fingerprint; the installer checks it against the control plane's identity first. (A High Availability control plane with no identity key yet gives the older `TURBOPANEL_LICENSE=…` form.)
 3. Daemon proves possession of a generated Ed25519 key via challenge/response (`turbopanel-daemon-enroll-v1`).
 4. Control plane attaches daemon identity to a `server` row; license is consumed.
 
@@ -22,7 +22,7 @@ Re-enrollment requires the persisted `serverId` or a fresh license.
 | --- | --- |
 | Transport | TLS + WebSocket `/ws/daemon/v1` |
 | Session | 15-minute daemon JWT (EdDSA), refreshed via auth challenge |
-| Trust | Platform CA **bundle** on self-hosted (`GET /api/daemon/v1/instance/ca` → `/etc/turbopanel/instance-ca.pem`) or system roots (public TLS) — **no skip-verify mode**. Control-plane identity is the JWKS/Ed25519 JWT; the CA is a transport anchor only. |
+| Trust | Platform CA **bundle** on self-hosted (`GET /api/daemon/v1/instance/ca` → `/etc/turbopanel/instance-ca.pem`) or system roots (public TLS) — **no skip-verify mode**. The session is the JWKS/Ed25519 JWT and proves continuity with the party that answered, not who answers at the address; the CA is a transport anchor only. Proving which control plane is behind the address is the job of the control plane's own identity key: see [Control Plane Identity](/docs/security/control-plane-identity). |
 | Presence | Heartbeats project `timeSync`, addresses, and online state to Postgres |
 
 Co-located dev may dial a Unix socket when configured; servers always use WSS to the public URL.
@@ -99,6 +99,7 @@ Organization CA rotation (managed-database / ProxySQL / replication leaves — n
 ## Related
 
 - [Signing key rotation](/docs/security/signing-key-rotation)
+- [Control Plane Identity](/docs/security/control-plane-identity) — how a server tells your control plane from an impostor, in plain words
 - [Trust boundaries](/docs/security/trust-boundaries) — what each part reaches if it is compromised
 
 - [Daemon setup](/docs/deployment/daemon-setup)

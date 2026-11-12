@@ -18,7 +18,7 @@
 
 ## Tier ladder (the one place with dollar figures)
 
-The ladder is **planned pricing, not a purchase flow**. `AGENTS.md` → *Pricing (copy source of truth)* carves this table out of the "no dollar figures on marketing pages" rule and nothing else.
+The ladder is **planned pricing, not a purchase flow**. `src/app/AGENTS.md` → *Pricing (copy source of truth, continued)* carves this table out of the "no dollar figures on marketing pages" rule and nothing else.
 
 | Element | Rule |
 |---------|------|

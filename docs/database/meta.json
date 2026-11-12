@@ -1,4 +1,18 @@
 {
   "title": "Database",
-  "pages": ["index"]
+  "pages": [
+    "index",
+    "identity",
+    "organizations",
+    "billing",
+    "platform",
+    "networking",
+    "resources",
+    "managed",
+    "storage",
+    "runtime",
+    "upgrades",
+    "git",
+    "notifications"
+  ]
 }

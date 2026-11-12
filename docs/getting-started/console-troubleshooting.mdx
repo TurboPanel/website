@@ -11,14 +11,14 @@ Use this page when `./console` fails to start the stack, systemd units are unhea
 
 - Verify Deno runtime: `/opt/turbopanel/vendor/deno/current/deno --version`
 - First run may require **sudo** to create `/opt/turbopanel/vendor` — re-run `./console` after granting privileges.
-- Pull latest in each sibling checkout on the host (they are mounted into the guest). From `~/dev` inside the guest, re-run `./console` after updating.
+- Pull latest in each sibling checkout on the host (they are mounted into the guest). From `~/turbopanel/dev` inside the guest, re-run `./console` after updating.
 
 ## Dev stack will not start
 
 - Open the **Services** area in `./console` and check unit states.
 - Follow logs with **L** on a service row (external pager), or tail `/var/log/turbopanel/`.
 - Verify Docker is running: `docker version` (Postgres runs in Docker).
-- Confirm the daemon checkout exists: `~/turbopaneld/`.
+- Confirm the daemon checkout exists: `~/turbopanel/turbopaneld/`.
 - On a fresh guest the console auto-bootstraps the daemon on launch; otherwise run Developer → **Converge / re-converge**.
 
 ## Instance runtime not switching

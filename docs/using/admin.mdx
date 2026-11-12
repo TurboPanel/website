@@ -23,7 +23,7 @@ Roles are not assigned from the app in this release; self-hosted has exactly the
 
 ### Where a setting comes from
 
-Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins.** A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
+Most Admin settings can be set in two places: the app, or an environment variable on the control plane. **Environment wins**, except for Hostnames on a self-hosted control plane, which come only from the app (see [Hostnames](#hostnames)). A key set by environment shows as **Set by environment** and is read-only in the app, so a host-managed value can never be changed from a browser. Secrets — SMTP password, provider client secrets, private keys — are **write-only**: the app reports that one is present and never shows it; leaving the field untouched keeps the stored value.
 
 ## Before you begin
 
@@ -60,11 +60,12 @@ Most Admin settings can be set in two places: the app, or an environment variabl
   Applying reloads the proxy your browser is talking through, so the request usually ends in a
   gateway error while the apply in fact succeeded. The app waits for the control plane to answer
   again and reports **applied** / **reconnected**; reload if in doubt — the list was saved before the
-  apply was dispatched. On High Availability the button is absent (*cert apply is not applicable on
-  this runtime*).
+  apply was dispatched.
 </Callout>
 
-Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. The flat `TURBOPANEL_PUBLIC_URLS` list is the Platform CA names, kept in sync for certificate SANs, Git webhook callbacks, and the install command.
+Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemons keep the names visible and leave the sources disabled until that daemon is updated. This screen is the only place to add a hostname on a self-hosted control plane. On each apply the daemon writes the Platform CA names to `TURBOPANEL_PUBLIC_URLS` as a copy for certificate SANs, Git webhook callbacks, and the install command, and overwrites that variable every time, so do not set it by hand.
+
+On TurboPanel High Availability this screen is read-only. It shows the one address the platform's environment sets, on port 443 with no port in the URL. There is nothing to add, save, or apply.
 
 ### Certificates, trusted proxies, tunnel, Platform CA
 
@@ -72,48 +73,47 @@ Per-hostname sources need a co-located daemon at **0.1.1** or newer. Older daemo
 | --- | --- |
 | **Certificates** | Uploaded pairs (the private key is sent once and never shown again) and this control plane's Let's Encrypt settings: contact email, terms, directory URL, staging. These settings are for this control plane. An organization's **Allow Let's Encrypt certificates** is a different switch and applies only to that organization's hosting certificates. |
 | **Trusted proxies** | The effective `TURBOPANEL_TRUSTED_PROXY_CIDRS` list, read-only. A custom list replaces the loopback default, so include loopback when the control plane's web server is still on this host. |
-| **Tunnel** | Write-only token for the co-located tunnel. An empty token tears the tunnel down. The stored token is never shown again. |
+| **Tunnel** | Puts this control plane online through a Cloudflare tunnel. Connect a Cloudflare account with one API token, then set a hostname's connection mode to **Cloudflare Tunnel** and choose **Connect**: TurboPanel creates the tunnel, the DNS record and the connector. A run token for a tunnel you manage yourself can be pasted instead. Tokens are never shown again. Steps: [Control Plane Tunnel](/docs/deployment/control-plane-tunnel). |
 | **Platform CA** | Fingerprint, subject, validity, PEM download, and a trust reconcile for connected daemons. Self-hosted only. This is the Platform CA. |
 
 ## Updates
 
 **Admin → Updates** (`/admin/updates`). One platform upgrade for this control plane. The run installs a pinned build: the manifest and commit resolved when the run started, so a channel that moves mid-rollout does not change a later batch.
 
+Updates install on their own. The control plane checks its channel once an hour, at its own minute, and starts an update when something is behind, no update is running and updates are not paused. A superadmin can run that check at once with **Update Now**. There is no on/off switch and no maintenance window, and no step is retried or cancelled by hand: a server that failed is tried again by a later update, after a wait that starts at 1 hour and doubles up to 24 hours. Details: [Upgrade and rollback](/docs/deployment/upgrade).
+
+The **Status** card reads **TurboPanel is up to date**, **Update Waiting**, **Updating…**, **Needs Attention** or **Updates Paused**, with **Last Checked** and **Next Check**.
+
+| Control | What it does |
+| --- | --- |
+| **Update Now** | Superadmins, release installs. Starts the update right away, in the same order and with the same checks as the hourly check. Enabled only when an update is waiting, none is in progress and updates are not paused; otherwise the line under it says why. **Already up to date.** when nothing is newer. At most once a minute. |
+| **Check Now** | Looks for new builds and shows them. It never starts an update and does not move the next scheduled check. At most once a minute. |
+| **Pause All Updates** | A switch. Turning it on asks first (**Pause All Updates?**, **Pause Updates**). No new update starts while it is on, not at the scheduled check and not with **Update Now**. An update in progress is not stopped: servers it already started finish, and servers it has not reached yet are skipped. **Check Now** still works. Turning it off starts nothing right away; the next scheduled check, or **Update Now**, updates whatever is still behind. |
+
+A development install (control plane run from source) never updates on its own and has no **Update Now**. Its **Admin → Updates** shows **Build and Push Daemon** instead, which a superadmin uses to build the daemon from the local checkout and push it to the connected servers, and **Update and Restart** / **Restart Only** for the development host itself.
+
 <Tabs items={['Self-hosted', 'TurboPanel High Availability']}>
   <Tab value="Self-hosted">
-    Order is fixed. **Co-located daemon** (this host), then **Control plane** (and the web interface it serves, on that host), then every other server. The servers table stays waiting until both earlier steps are on the target build. A `trunk` channel has no control-plane package, so that step is skipped and only this host's daemon has to be on target first.
+    Order is fixed. **Co-located daemon** (this host), then **Control plane** (and the web interface it serves, on that host), then every other server. The other servers wait until both earlier steps are on the target build. A `trunk` channel has no control-plane package, so that step is skipped and only this host's daemon has to be on target first.
 
-    The status line is **TurboPanel is up to date**, **Update available**, **Updating…**, or **Needs attention**.
+    **Versions** lists **Control Plane**, **Web Interface** and **Co-located Daemon**. Each shows what is installed on disk and what is running now separately, because until the restart the old version is still the one answering, and the newest build on the channel. An update that only changes the web interface (the pages you are using) still counts as waiting.
 
-    <Steps>
-      <Step>
-        **Update TurboPanel** opens **Ready to update TurboPanel?**. Read the checks. The sheet says the control-plane database is backed up before the install. Copy the **Recovery command** (**Copy command**) before you continue.
-      </Step>
-      <Step>
-        **Start update**. **Cancel** leaves the run unstarted. A second start while one is `pending` or `running` is refused.
-      </Step>
-      <Step>
-        Watch **Progress**: *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*, first for the **Daemon step**, then the **Control plane step**. The **Web interface step** is the same step as the control plane's (the web interface is installed in the same step). The panel restarts on the control-plane step; the screen shows **TurboPanel is updating** until it answers again.
-      </Step>
-      <Step>
-        The servers list shows each other server. **Retry** on a row that failed or needs attention. A failed row does not hold the next batch.
-      </Step>
-    </Steps>
+    **Progress** shows *Preparing* → *Downloading* → *Writing new files (still running the old version)* → *Restarting onto the new version* → *Checking the new version is running* → *Done*, first for the **Daemon Step**, then the **Control Plane Step**. The **Web Interface Step** is installed in the same step as the control plane. The control plane restarts during its step; the screen shows **TurboPanel is updating** until it answers again. Then each other server's daemon updates.
 
-    **Versions** lists **Control plane**, **Web interface** and **Co-located daemon**. Each shows *Installed on disk* and *Running now* separately, because until the restart the old version is still the one answering, and the newest build on the channel. An update that only changes the web interface (the pages you are using) still lights **Update available** and the **Update** button. Under **Progress**, *Server updates* lists each other server (**Server**, **Component**, **Status**, **Installed**, **Target**, **Step**, **Error**); each server's daemon updates after the control plane is on target.
+    **Backup and Rollback** shows the backup path and the rollback command for the next update. Copy the command (**Copy Rollback Command**) and keep it somewhere safe. The control-plane database is backed up before the install.
 
-    One **update** is one press of **Update TurboPanel**; the **steps** (daemon, control plane, then each server) are the parts of it. Only one update runs at a time: pressing it again while one is in progress is refused with *Another update is already in progress* (`upgrade_run_active`). The control-plane step is finished only when the daemon has checked the new version, not when the new version first answers, so a second update cannot start on top of one that could still be rolled back.
+    **Servers Updated at Once** is **Percent** (default 100) or **Count**, then **Apply**. A failed server does not hold the next batch.
 
-    **Automatic updates.** **Auto-update servers** is off until you turn it on. Automatic runs start only when a newer build is published, no run is active, and — when **Maintenance window** is on — only inside that UTC window. **Batch size** is **Percent** (default 100) or **Count**, then **Apply**.
+    One **update** is one run; the **steps** (daemon, control plane, then each server) are the parts of it. Only one update runs at a time. The control-plane step is finished only when the daemon has checked the new version, not when the new version first answers, so a second update cannot start on top of one that could still be rolled back.
 
-    The first upgrade onto this release needs a co-located daemon that can take the backup. If pre-flight says it cannot, re-run the installer once, then come back here. See [Upgrade and rollback](/docs/deployment/upgrade).
+    The first upgrade onto this release needs a co-located daemon that can take the backup. If the update stops because it cannot, re-run the installer once. See [Upgrade and rollback](/docs/deployment/upgrade).
   </Tab>
   <Tab value="TurboPanel High Availability">
-    The control plane is **Managed by TurboPanel**. There is no **Update TurboPanel** button and no **Auto-update servers** toggle. Connected daemons roll out in batches on their own.
+    The control plane is **Managed by TurboPanel**. Connected daemons update on their own, in batches.
 
-    **Connected daemons** filters **All**, **Updating**, **Needs attention**, and **Up to date**. **Batch size** is still **Percent** or **Count**, then **Apply**. **Maintenance window** limits when an automatic wave may start. **Retry** is on a row that needs it.
+    **Connected Daemons** filters **All**, **Updating**, **Needs Attention** and **Up to Date**. **Servers Updated at Once** is **Percent** or **Count**, then **Apply**.
 
-    Per-server **Update** on a server's control panel stays hidden. The organization route answers `updates_managed`.
+    There is no per-server **Update** on a server's control panel.
   </Tab>
 </Tabs>
 
@@ -172,7 +172,7 @@ Without a working provider, sign-up skips email verification and invitations are
 
 Two settings have no screen yet and are set through `/api/admin/v1`:
 
-- **Control plane notification channels** — `GET`/`POST`/`PATCH`/`DELETE /notification-channels[/:id]`: the operator's own receivers, which hear every event on the control plane (same shapes as a person's channels; an email address must be an administrator's). The older `PUT /settings/alert-webhook` `{ url }` (or `null`) still works ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)): it edits the control plane channel called **Operator alert webhook**, which a control plane configured before the notifications system existed is folded into automatically. It may point at a LAN address. See [Notifications](/docs/using/notifications).
+- **Control plane notification channels** — `GET`/`POST`/`PATCH`/`DELETE /notification-channels[/:id]`: the operator's own receivers (same shapes as a person's channels; an email address must be an administrator's). A control plane channel hears the control plane's own events: certificate expiry, the control plane's own key and approvers, and fleet-wide disconnects. It hears an organization's events, such as one server going offline, only when `allOrganizations` is `true` on the channel (`PATCH /notification-channels/:id` with `{ "allOrganizations": true }`). Channels that existed before this setting keep hearing organization events, and a new channel starts with it off. The **Operator alert webhook** always has it on, so it still pages when a server goes dark, and a `PATCH` that turns it off is refused. The older `PUT /settings/alert-webhook` `{ url }` (or `null`) still works ([Troubleshooting](/docs/deployment/troubleshooting#getting-paged-when-a-server-goes-dark)): it edits the control plane channel called **Operator alert webhook**, which a control plane configured before the notifications system existed is folded into automatically. It may point at a LAN address. See [Notifications](/docs/using/notifications).
 - **Daemon diagnostics** — `GET /daemon/connections`, `/daemon/commands`, `/daemon/addresses`: what every connected daemon reports, for support.
 
 The interactive reference is at `/api/admin/v1/reference`.
@@ -211,9 +211,13 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `Encryption unavailable — no encryption key configured` | 503 | The control plane has no root secret, so nothing can be sealed. |
 | `tier_invalid` | 400 | The tier row or its product patch failed validation; `message` names the field. |
 | Provider product verification failures | 400 | The product does not meet the checks listed under Tiers; the response lists them. |
-| `control_plane_upgrade_required` | 409 | Self-hosted `POST /servers/:id/update` and `POST /servers/updates` while the server-update gate is shut. The server badge reads **Waiting for the control plane upgrade**. Finish **Admin → Updates** first. |
-| `upgrade_run_active` | 409 | An update is already `pending` or `running`. Wait for it to finish or **Cancel update**. |
-| `updates_managed` | 409 | The same routes on TurboPanel High Availability. Per-server **Update** stays hidden; the rollout is **Admin → Updates**. |
+| `updates_automatic` | 410 | A retired manual update route: `POST /servers/:id/update`, `POST /servers/updates`, or an old admin start, retry or cancel. Updates are automatic; see **Updates** above. |
+| `run_active` | 409 | **Update Now** while an update is already running (`activeRunId` names it). |
+| `paused` | 409 | **Update Now** while **Pause All Updates** is on. |
+| `update_blocked` | 409 | **Update Now** found something behind, but a pre-flight check or a server's retry wait stops the start; `blockers` lists why. |
+| `check_too_soon` | 429 | **Check Now** or **Update Now** pressed again within a minute; `retryAfterSeconds` and `Retry-After` say how long to wait. |
+| `release_unreachable` | 503 | **Update Now** could not reach the release server. The build it already knew is kept. |
+| `development` | 403 | **Update Now** on a development install, which updates with **Build and Push Daemon**. |
 | `preflight_disk` | step error | Not enough free space, or the free-space check failed. Daemon: 512 MiB on the install root, 128 MiB on state, 256 MiB on temp. Control plane: 1 GiB on the install root and 1 GiB on the backup directory. |
 | `preflight_manifest` | step error | The pinned manifest could not be fetched or verified, or it does not match the target commit. |
 | `preflight_trust` | step error | Automatic-update TLS is not public trust and not the Platform CA. |
@@ -223,15 +227,13 @@ The interactive reference is at `/api/admin/v1/reference`.
 | `recovery_required` | step error | Automatic rollback did not restore the control plane. Use the **Recovery command**. |
 | `step_timeout` | step error | No progress for 15 minutes. After 3 dispatches the step is `needs_attention`. |
 | `rolled_back` | step error | The host restored its previous build. One automatic retry, then `needs_attention`. |
-| `verify_timeout` | step error | The control-plane step restarted, and the daemon did not confirm the new build within `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default). The step is not retried, so a second install cannot land on a build still being checked; the run ends. Check the daemon log, then **Retry** or **Cancel update**. |
+| `verify_timeout` | step error | The control-plane step restarted, and the daemon did not confirm the new build within `TURBOPANEL_UPGRADE_VERIFY_TIMEOUT_MINUTES` (20 by default). The step is not retried, so a second install cannot land on a build still being checked; the run ends. Check the daemon log; a later automatic update tries again once that step's wait is over. |
 | `dispatch_failed` | step error | The update command could not be delivered to the server, on every allowed attempt. The message carries the delivery error. |
-| `server_offline` | step error | The server stayed offline too long for its step to wait; the next batch still starts. |
+| `server_offline` | step skipped or needs attention | Another server that was offline when the update started, or for 15 minutes during it, is skipped and updates at the next check after it reconnects; the next batch still starts. This host's daemon, the control plane, or a server that dropped in the middle of its own install is not skipped: its step becomes `needs_attention`. |
+| `retry_later` | step skipped | The server failed at this build recently and is waiting before it is tried again (1 hour, doubling, at most 24 hours). |
+| `updates_paused` | step skipped | Pause All Updates was turned on before this server's step was sent. It updates at the next check after the pause is turned off. |
 | `managed_upgrade_required` | step error | The control-plane step needs a daemon that advertises `managed-upgrade-v1`; the message holds the daemon-only update command to run first. |
 | `downgrade_refused` | step skipped | The server already runs a newer build than the target. Managed updates never downgrade a server. |
-| `control-plane update is not applicable on this runtime` | 422 | The legacy `POST /instance/updates/instance` on TurboPanel High Availability. The control plane is deploy-managed. |
-| `This control plane follows <channel>, which has no control-plane package…` | 422 | `trunk` (and `edge`) have no control-plane package. Use `canary`, `rc`, or `release`. |
-| `no co-located daemon connected to update the control plane` | 503 | The legacy control plane or daemon upgrade route needs this host's daemon connected. |
-| `co-located daemon disconnected` | 503 | The daemon dropped while that legacy route was dispatching. |
 
 ## Related
 

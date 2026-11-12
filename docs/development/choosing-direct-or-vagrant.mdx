@@ -1,0 +1,63 @@
+---
+title: Choosing Direct or Vagrant
+description: Which development environment to use, what each one needs, and where you edit, commit and run tests in each
+---
+
+# Choosing Direct or Vagrant
+
+TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script (see [Contribute Without Access](/docs/development/contribute-without-access)) asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
+
+## The Choice
+
+| Your machine | Use |
+| --- | --- |
+| macOS | **Vagrant** only (UTM provider, Debian 12 guest today) |
+| Linux, Debian 13, already a virtual machine | **Direct** (recommended; nested virtual machines are slow) |
+| Linux, Debian 13, bare metal | Either |
+| Other Linux | **Vagrant** (libvirt provider) |
+| Windows | Not supported |
+
+**Direct** needs Debian 13 (Trixie) as a full virtual machine or bare metal, never an LXC container, with 4 or more CPUs, 8 GB or more of RAM and 40 GB of disk, and a non-root user with passwordless sudo. The setup follows the [Direct VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md). **Vagrant** needs Vagrant and a provider on your computer; see [Prerequisites](/docs/development/prerequisites).
+
+## Start the Setup
+
+One command, run as your normal user (not root) from any folder, on the machine where you edit (your computer for Vagrant, the Debian machine for Direct):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
+```
+
+Or download it, read it, then run it, which is wise before running any script:
+
+```bash
+curl -fsSL -o start.sh https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh
+less start.sh
+sh start.sh
+```
+
+It creates `~/turbopanel`, clones `dev` there over HTTPS and hands over to `setup.sh`, which asks Direct or Vagrant. To answer in advance, put the option after `sh -s --`, for example `... | sh -s -- --mode direct`. Details and the other options: [Contribute Without Access](/docs/development/contribute-without-access).
+
+## Folder Layout
+
+In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
+
+On the Debian machine (Direct mode) the repos must sit in a folder named `turbopanel`, so the layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`. The Vagrant guest uses the same layout: the repos are mounted at `/home/vagrant/turbopanel/<repo>`. The setup script has merged and does this for you. A full run from `~/turbopanel` in Direct mode and the guest mounts are not yet proven end to end, so report anything that breaks.
+
+## Where Things Happen
+
+| | Vagrant | Direct |
+| --- | --- | --- |
+| Where you edit | On your computer; the repos are mounted into the guest | On the Debian machine itself, for example over a remote editor |
+| Where you commit | **On your computer (the host)** | On the Debian machine |
+| Hooks on commit | Secret scan only; CI checks the rest | The hooks in the toolchain on the machine |
+| Where you run the stack | `vagrant ssh`, then `turbopanel/dev/console` | `turbopanel/dev/console` |
+| Where tests run | Inside the guest, or in CI | On the machine, or in CI |
+
+In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then `export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"`, then the formatter in the repo) where the tools live. Direct mode needs the same `PATH` line, after `dev/console` has installed the runtimes. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
+
+Full suites are heavy. On a 16 GB computer the 8 GB guest is tight, and CI is the usual place to run everything.
+
+## Related
+
+- [Prerequisites](/docs/development/prerequisites)
+- [Local Development](/docs/getting-started/development)
