@@ -79,13 +79,6 @@ function createNextConfig(phase, { defaultConfig }) {
           destination: '/docs/getting-started/console-troubleshooting',
           permanent: true,
         },
-        {
-          // The generated per-area database pages were removed; the stub at
-          // /docs/database says where the descriptions live now.
-          source: '/docs/database/:page+',
-          destination: '/docs/database',
-          permanent: false,
-        },
       ]
     },
     // Next.js 16: Turbopack is the default bundler.
