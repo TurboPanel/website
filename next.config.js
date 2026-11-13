@@ -11,11 +11,8 @@ function createNextConfig(phase, { defaultConfig }) {
   const experimentalConfig = { ...experimental }
   Reflect.deleteProperty(experimentalConfig, 'browserDebugInfoInTerminal')
 
-  // `next build` starts one page-generation worker per CPU core minus one, each
-  // 40-180 MB on top of a ~2 GB main process, which ran a 3.8 GB server out of
-  // memory. Cap the workers (override with TURBOPANEL_BUILD_WORKERS).
-  const buildWorkers = Number.parseInt(process.env.TURBOPANEL_BUILD_WORKERS ?? '', 10)
-  experimentalConfig.cpus = Number.isInteger(buildWorkers) && buildWorkers > 0 ? buildWorkers : 2
+  // Fewer page-generation workers keeps the build's memory down on small servers.
+  experimentalConfig.cpus = 2
 
   const config = {
     ...restDefaultConfig,
