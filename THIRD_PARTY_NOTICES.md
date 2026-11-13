@@ -16,7 +16,7 @@ The site serves these typefaces from `src/fonts/` (latin subset, WOFF2) rather t
 - Geist Mono — Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) — `LICENSES/OFL-1.1-Geist-Mono.txt`
 
 <!-- lockfiles
-pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf025a080
+pnpm-lock.yaml sha256:893106e3f0e7bfdd32da538c2d41a0262024b199aa232b7393296fff0a354e23
 -->
 
 ## Production dependencies
@@ -124,12 +124,6 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-helpers
 
-### @babel/parser@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-parser
-
 ### @babel/parser@7.29.9
 
 - License: MIT
@@ -147,12 +141,6 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - License: MIT
 - Copyright: The Babel Team
 - Homepage: https://babel.dev/docs/en/next/babel-traverse
-
-### @babel/types@7.29.7
-
-- License: MIT
-- Copyright: The Babel Team
-- Homepage: https://babel.dev/docs/en/next/babel-types
 
 ### @babel/types@7.29.8
 
@@ -454,13 +442,13 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - License: MIT
 - Homepage: https://github.com/Brooooooklyn/lzma#readme
 
-### @next/env@16.4.1
+### @next/env@16.4.6
 
 - License: MIT
 - Copyright: Next.js Team
 - Homepage: https://github.com/vercel/next.js#readme
 
-### @next/swc-linux-x64-gnu@16.4.1
+### @next/swc-linux-x64-gnu@16.4.6
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -887,12 +875,17 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - Copyright: 강동윤
 - Homepage: https://swc.rs
 
-### @tailwindcss/oxide@4.3.0
+### @tailwindcss/oxide@4.3.5
 
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
 
-### @tailwindcss/oxide-linux-x64-gnu@4.3.0
+### @tailwindcss/oxide-linux-x64-gnu@4.3.5
+
+- License: MIT
+- Homepage: https://github.com/tailwindlabs/tailwindcss#readme
+
+### @tailwindcss/oxide-wasm32-wasi@4.3.5
 
 - License: MIT
 - Homepage: https://github.com/tailwindlabs/tailwindcss#readme
@@ -2260,12 +2253,12 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - License: MIT
 - Homepage: https://github.com/iVis-at-Bilkent/layout-base#readme
 
-### lightningcss@1.32.0
+### lightningcss@1.33.0
 
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme
 
-### lightningcss-linux-x64-gnu@1.32.0
+### lightningcss-linux-x64-gnu@1.33.0
 
 - License: MPL-2.0
 - Homepage: https://github.com/parcel-bundler/lightningcss#readme
@@ -2682,7 +2675,7 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - License: MIT
 - Homepage: https://github.com/bgrcs/neverpanic#readme
 
-### next@16.4.1
+### next@16.4.6
 
 - License: MIT
 - Homepage: https://nextjs.org
@@ -3165,7 +3158,7 @@ pnpm-lock.yaml sha256:5907dcef2e1b8ad342cd32aa083353951866cb472890e72146da2a2bf0
 - Copyright: Dany Castillo
 - Homepage: https://github.com/dcastil/tailwind-merge
 
-### tailwindcss@4.3.0
+### tailwindcss@4.3.5
 
 - License: MIT
 - Homepage: https://tailwindcss.com
@@ -3426,6 +3419,18 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Sindre Sorhus
 - Homepage: https://github.com/sindresorhus/quick-lru#readme
 
+### @babel/parser@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-parser
+
+### @babel/types@7.29.7
+
+- License: MIT
+- Copyright: The Babel Team
+- Homepage: https://babel.dev/docs/en/next/babel-types
+
 ### @bcoe/v8-coverage@1.0.2
 
 - License: MIT
@@ -3514,7 +3519,13 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Nicholas C. Zaks
 - Homepage: https://github.com/humanwhocodes/retry#readme
 
-### @next/eslint-plugin-next@16.2.9
+### @jridgewell/sourcemap-codec@1.6.0
+
+- License: MIT
+- Copyright: Justin Ridgewell
+- Homepage: https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
+
+### @next/eslint-plugin-next@16.4.6
 
 - License: MIT
 - Homepage: https://github.com/vercel/next.js#readme
@@ -3544,12 +3555,12 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Homepage: https://github.com/rtsao/scc#readme
 
-### @tailwindcss/node@4.3.0
+### @tailwindcss/node@4.3.5
 
 - License: MIT
 - Homepage: https://tailwindcss.com
 
-### @tailwindcss/postcss@4.3.0
+### @tailwindcss/postcss@4.3.5
 
 - License: MIT
 - Homepage: https://tailwindcss.com
@@ -3943,11 +3954,11 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Mathias Bynens
 - Homepage: https://mths.be/emoji-regex
 
-### enhanced-resolve@5.23.0
+### enhanced-resolve@5.27.0
 
 - License: MIT
 - Copyright: Tobias Koppers @sokra
-- Homepage: http://github.com/webpack/enhanced-resolve
+- Homepage: https://github.com/webpack/enhanced-resolve#readme
 
 ### es-abstract@1.24.2
 
@@ -4015,7 +4026,7 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Nicholas C. Zakas
 - Homepage: https://eslint.org
 
-### eslint-config-next@16.2.9
+### eslint-config-next@16.4.6
 
 - License: MIT
 - Homepage: https://nextjs.org/docs/app/api-reference/config/eslint
@@ -4610,6 +4621,12 @@ These packages are used for development, test, or build tooling and are not bund
 - Copyright: Andres Suarez
 - Homepage: https://github.com/zertosh/loose-envify
 
+### magic-string@1.4.5
+
+- License: MIT
+- Copyright: Rich Harris
+- Homepage: https://github.com/Rich-Harris/magic-string#readme
+
 ### magicast@0.5.5
 
 - License: MIT
@@ -4881,12 +4898,6 @@ These packages are used for development, test, or build tooling and are not bund
 - License: MIT
 - Copyright: Jordan Harband
 - Homepage: https://github.com/ljharb/safe-regex-test#readme
-
-### semver@7.8.3
-
-- License: ISC
-- Copyright: GitHub Inc.
-- Homepage: https://github.com/npm/node-semver#readme
 
 ### set-function-length@1.2.2
 
