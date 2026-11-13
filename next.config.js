@@ -11,6 +11,9 @@ function createNextConfig(phase, { defaultConfig }) {
   const experimentalConfig = { ...experimental }
   Reflect.deleteProperty(experimentalConfig, 'browserDebugInfoInTerminal')
 
+  // Fewer page-generation workers keeps the build's memory down on small servers.
+  experimentalConfig.cpus = 2
+
   const config = {
     ...restDefaultConfig,
     experimental: experimentalConfig,
