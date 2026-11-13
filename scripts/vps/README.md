@@ -78,4 +78,4 @@ The hook (`hook.mjs`, logic in `hook-lib.mjs`) verifies `X-Hub-Signature-256` in
 
 `NEXT_PUBLIC_SITE_URL` is set at **build** time inside `deploy.sh`. Do not put it on the systemd unit.
 
-The box is **1 GiB RAM**. `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` (the CI gate already required a green `verify`, which typechecks) and `NODE_OPTIONS=--max-old-space-size=1024`. Do not run two env builds at once.
+The box is **1 GiB RAM**. `deploy.sh` sets `TURBOPANEL_SKIP_TS_CHECK=1` (the CI gate already required a green `verify`, which typechecks) and `NODE_OPTIONS=--max-old-space-size=1024`. The page-generation worker count (`experimental.cpus` in `next.config.js`) defaults to 2; `TURBOPANEL_BUILD_WORKERS` overrides it. Do not run two env builds at once.
