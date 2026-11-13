@@ -56,7 +56,7 @@ control plane on this host. The installer names the canary build and prints a pr
 warning before it continues:
 
 ```bash
-curl -fsSL https://turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+curl -fsSL https://testing.turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 ```
 
 The installer resolves the `canary` manifest of all three repositories, downloads each package,
@@ -104,7 +104,7 @@ single-host canary is a complete TurboPanel.
 To enrol a host by hand on the canary channel:
 
 ```bash
-curl -fsSL https://turbopanel.sh | \
+curl -fsSL https://testing.turbopanel.sh | \
   TURBOPANEL_LICENSE=<license from the wizard or the console> \
   TURBOPANEL_UPDATE_CHANNEL=canary \
   sh
@@ -126,12 +126,12 @@ other servers — and pins the manifest it resolved when the run started. The
 installer still moves this host in one shot:
 
 ```bash
-curl -fsSL https://turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
+curl -fsSL https://testing.turbopanel.sh | TURBOPANEL_UPDATE_CHANNEL=canary sh
 ```
 
 It fetches the current canary packages, re-converges the host, applies any new
 migrations with the instance binary's own `migrate` verb, and restarts the
-units. The same command with `rc` or `release` follows the later rows. Detail:
+units. The same command with `rc` follows the second row, from `https://staging.turbopanel.sh`, and a plain `curl -fsSL https://turbopanel.sh | sh` follows `release`. Each channel has its own installer host: `canary` is served from `testing.turbopanel.sh`, `rc` from `staging.turbopanel.sh` and `release` from `turbopanel.sh`; the channel variable is still needed because the installer defaults to `release`. Detail:
 [Upgrade and rollback](/docs/deployment/upgrade).
 
 <Callout type="warn" title="Migrations only go forward">
