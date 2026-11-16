@@ -1,6 +1,6 @@
 ---
 title: Prerequisites
-description: Intel Core i7-4790K, 16–32 GB RAM, Vagrant, providers, and tooling needed to develop on TurboPanel
+description: Intel Core i7-4790K, 16–32 GB RAM, Vagrant or Incus, providers, and tooling needed to develop on TurboPanel
 ---
 
 # Prerequisites
@@ -9,20 +9,20 @@ This page lists what you need on your **host** before you follow [Local developm
 
 ## System requirements
 
-Contributor development runs a **Vagrant** guest plus host editor tooling. We recommend **at least an Intel Core i7-4790K (or equivalent) with 16 GB of RAM**. Some workloads need more memory, so **24 GB+ is recommended**, and **32 GB is ideal**.
+Contributor development runs a **Vagrant** or **Incus** guest (or a Debian 13 machine used directly) plus host editor tooling. We recommend **at least an Intel Core i7-4790K (or equivalent) with 16 GB of RAM**. Some workloads need more memory, so **24 GB+ is recommended**, and **32 GB is ideal**.
 
 | Requirement | Recommendation |
 | --- | --- |
 | **CPU** | Intel Core i7-4790K or equivalent |
 | **RAM** | **16 GB** minimum · **24 GB+** recommended · **32 GB** ideal |
-| **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — see [Vagrant + provider](#vagrant--provider) |
+| **Software** | [Vagrant](https://developer.hashicorp.com/vagrant) plus a provider (libvirt on Linux, UTM on macOS) — see [Vagrant + provider](#vagrant--provider); or on Linux, Incus and `incant` — see [Incus + incant](#incus--incant) |
 | **OS** | macOS or Linux (see [Supported environments](#supported-environments)) |
 
 The guest is allocated 8 GB; remaining RAM is for the host OS, IDE, and tooling. A host with less than 16 GB of RAM will struggle to run the VM and local tooling at the same time.
 
 ## Supported environments
 
-**macOS** and **Linux** are the environments TurboPanel development is written for and routinely tested on. The stack runs inside a **Vagrant** guest — you do not need Node, Deno, or Docker on the host.
+**macOS** and **Linux** are the environments TurboPanel development is written for and routinely tested on. The stack runs inside a **Vagrant** or **Incus** guest — you do not need Node, Deno, or Docker on the host. Incus runs on Linux only.
 
 **Windows** (including **WSL**) is **not officially supported**. Some contributors use WSL successfully, but your mileage may vary; if something fails on Windows, fixups are welcome but the team may not be able to reproduce native Windows issues.
 
@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.
 
 You can also download `start.sh`, read it, then run `sh start.sh`. It creates `~/turbopanel`, clones `dev` over HTTPS and runs `setup.sh`, which offers to install the GitHub CLI on Debian or Ubuntu and to log you in with a one-time code.
 
-Step-by-step fork and pull request commands: [Contribute Without Access](/docs/development/contribute-without-access). Not sure whether to use Vagrant or a Debian 13 machine directly? See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant).
+Step-by-step fork and pull request commands: [Contribute Without Access](/docs/development/contribute-without-access). Not sure whether to use Vagrant, Incus or a Debian 13 machine directly? See [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant).
 
 ### Vagrant + provider
 
@@ -65,19 +65,30 @@ vagrant plugin install vagrant_utm
 ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 ```
 
+### Incus + incant
+
+Linux only. Incus does not run on macOS, which keeps Vagrant. Incus runs a Debian 13 KVM virtual machine (`images:debian/13`), 8 CPUs, 8 GiB of memory and 64 GiB of disk by default.
+
+| Tool | Notes |
+| --- | --- |
+| [Incus](https://linuxcontainers.org/incus/) | From your distribution's packages. Run `incus admin init` and add your user to the `incus-admin` group. |
+| `incant` | A small Vagrant-like front end for Incus: `pipx install incus-incant`. The package named `incant` on PyPI is an unrelated library. |
+
+The setup script (`--mode incus`) prints these hints and installs nothing. Ports 80, 443, 8443, 8081, 8088, 19820, 4983, 8025, 5540 and 4213 must be free on the host, and they listen on every host address, including the database browser, mail catcher and Redis Insight. Steps, ports and the password step: [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant#the-incus-option).
+
 ### Sibling repositories
 
-Check out all six repos inside a folder named `turbopanel`, placed wherever you like. The tools expect `~/turbopanel/<repo>` on a Debian machine used directly and in the Vagrant guest (see [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant#folder-layout)):
+Check out all six repos inside a folder named `turbopanel`, placed wherever you like. The tools expect `~/turbopanel/<repo>` on a Debian machine used directly and in the Vagrant and Incus guests (see [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant#folder-layout)):
 
 ```
 turbopanel/{dev,turbopaneld,turbopanel,ui,website,.github}
 ```
 
-The `dev` checkout owns the `Vagrantfile`. Vagrant needs the five code repos (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`) next to each other; `.github` is optional. Once you fork a repo (`setup.sh fork <repo>`), `origin` is your fork and `upstream` is TurboPanel, so you can open PRs independently. Before that, an outside contributor's clone is read-only (`origin` is TurboPanel), and a maintainer pushes branches straight to `origin`.
+The `dev` checkout owns the `Vagrantfile` and `incant.yaml.mako`. Vagrant and Incus need the five code repos (`dev`, `turbopaneld`, `turbopanel`, `ui`, `website`) next to each other; `.github` is optional. Once you fork a repo (`setup.sh fork <repo>`), `origin` is your fork and `upstream` is TurboPanel, so you can open PRs independently. Before that, an outside contributor's clone is read-only (`origin` is TurboPanel), and a maintainer pushes branches straight to `origin`.
 
 ## Installed inside the guest (not on the host)
 
-After `vagrant ssh` and `turbopanel/dev/console` / converge, the guest provides:
+After `vagrant ssh` (or `incus exec`) and `turbopanel/dev/console` / converge, the guest provides:
 
 | Tool | Notes |
 | ---- | ----- |
@@ -87,7 +98,7 @@ After `vagrant ssh` and `turbopanel/dev/console` / converge, the guest provides:
 | Docker | Postgres, RabbitMQ, Mailpit, etc. |
 | openssl | TLS certificate generation |
 
-You do **not** install these on the host for the co-located Vagrant workflow.
+You do **not** install these on the host for the co-located Vagrant or Incus workflow.
 
 ## Optional (Workers instance runtime)
 
@@ -95,4 +106,4 @@ Local guest defaults to the **Deno** path (`turbopanel-instance.service` on a Un
 
 ## Next steps
 
-When the above is in place, continue with [Local development](/docs/getting-started/development) for Vagrant boot, ports, and day-to-day tasks.
+When the above is in place, continue with [Local development](/docs/getting-started/development) for Vagrant or Incus boot, ports, and day-to-day tasks.
