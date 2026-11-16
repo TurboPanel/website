@@ -9,7 +9,7 @@ This page describes how the TurboPanel **multi-repo** Vagrant environment is orc
 
 ## Repository model
 
-TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them. The repos live in a folder named `turbopanel`, and the guest mounts follow the same layout, so the Guest mount column is `~/turbopanel/<repo>` (the same on a Direct VM with no Vagrant).
+TurboPanel is six sibling repositories under one parent directory on the host. The [dev](https://github.com/TurboPanel/dev) repo is the entry point — it does **not** contain platform source; Vagrant mounts the siblings into the guest and `./console` drives them. The repos live in a folder named `turbopanel`, and the guest mounts follow the same layout, so the Guest mount column is `~/turbopanel/<repo>` (the same on a Direct VM with no Vagrant, and in an Incus VM).
 
 | Host path (example) | Guest mount | GitHub repo | Role |
 | ------------------- | ----------- | ----------- | ---- |
@@ -37,7 +37,7 @@ The dev console drives a **dev layout** where source repos live under `$HOME` (g
 
 | Concern | Development | Production (managed / FHS) |
 | ------- | ----------- | -------------------------- |
-| Source repos | `$HOME/turbopanel/{turbopaneld,turbopanel,ui,website}` (Vagrant mounts and Direct VM) | No source checkout (compiled release) |
+| Source repos | `$HOME/turbopanel/{turbopaneld,turbopanel,ui,website}` (Vagrant and Incus mounts, and Direct VM) | No source checkout (compiled release) |
 | Daemon entrypoint | `deno run main.ts` from `~/turbopanel/turbopaneld` | Native `/opt/turbopanel/bin/turbopaneld`, or `turbopaneld.js` via vendored Deno when the native binary cannot load |
 | Orchestration assets | `<checkout>/orchestration` + `dev/orchestration/` overlay | `/opt/turbopanel/share/orchestration` |
 | Vendored runtimes | `/opt/turbopanel/vendor` | `/opt/turbopanel/vendor` |
@@ -130,6 +130,7 @@ Browser traffic from the host uses **Caddy on `:8443`** (HTTPS). Every hostname 
 - **Ansible (daemon)** — Installs and updates runtimes, the control plane, the app, and Caddy on managed hosts.
 - **Ink** — Terminal dev console in [TurboPanel/dev](https://github.com/TurboPanel/dev).
 - **Vagrant** — Contributor guest (libvirt on Linux, UTM on macOS).
+- **Incus** — Contributor guest on Linux, driven by `incant` (see [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant)).
 - **Command Pipeline** — Typed command/job records in Postgres (`command` table); Cloudflare Queues (Workers) or RabbitMQ (Deno) for durable async transport; **Daemon Cell** (Durable Object per server on Workers, Redis on self-hosted) for live WS delivery and request correlation. Status reads stay Postgres-only — never fan UI polling into the cell. Production daemon commands are typed handlers only — never arbitrary shell strings. See `turbopanel/AGENTS.md` (Daemon Cell + Command Pipeline) and `turbopanel/src/features/commands/` / `turbopaneld/src/commands/`.
 
 These support both Cloudflare Workers (cloud-hosted) and Deno + Caddy (self-hosted) deployment models described in [Introduction](/docs/getting-started/introduction).
