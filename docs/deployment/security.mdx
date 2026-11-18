@@ -344,7 +344,7 @@ Each Hosting Account has a home at `/srv/users/<username>`, laid out as describe
 
 `tp-orchestrate update`, the root helper behind a panel-driven daemon update, does not accept `--insecure-tls`, and the only CAs it trusts beyond the system store are `/etc/turbopanel/instance-ca.pem` and a pinned private uploaded issuer, if one is installed.
 
-**Secrets travel in the environment, not on the command line.** The installer's license and tunnel token reach its `sudo` re-run through the environment (`--preserve-env`), and the daemon starts `cloudflared` with the tunnel token in `TUNNEL_TOKEN`, so neither shows in `ps` or `/proc/<pid>/cmdline`. The daemon itself can read only `TURBOPANEL_*`, `HOME`, `PATH`, `USER` and `LOGNAME` from its environment, and the control plane only `TURBOPANEL_*`, `HOME`, `PATH`, `LANG`, `CADDY_TLS_CERT` and `SMTP_PORT`.
+**Secrets travel in the environment, not on the command line.** The installer's license reaches its `sudo` re-run through the environment (`--preserve-env`), and the daemon starts `cloudflared` with the tunnel token in `TUNNEL_TOKEN`, so neither shows in `ps` or `/proc/<pid>/cmdline`. The daemon itself can read only `TURBOPANEL_*`, `HOME`, `PATH`, `USER` and `LOGNAME` from its environment, and the control plane only `TURBOPANEL_*`, `HOME`, `PATH`, `LANG`, `CADDY_TLS_CERT` and `SMTP_PORT`.
 
 ### Network Security
 
