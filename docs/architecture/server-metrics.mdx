@@ -358,13 +358,13 @@ The v5 `server_cpu_hotspot_samples`, `server_cpu_core_samples`, and `server_memo
 
 Resource caps and configuration:
 
-| Env                                             | Purpose                                                                                                                                                                                       |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TURBOPANEL_METRICS_DIR`                        | Metrics state root override                                                                                                                                                                   |
-| `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`      | Retention days (default **90**) — prunes expired Parquet partitions plus any hot/status rows past the cutoff                                                                                  |
-| `TURBOPANEL_SERVER_METRICS_MAX_BYTES`           | Size cap for the metrics store (default **5 GiB**) — removes the oldest whole days first once the store is over it. Ships in a separate change that had not merged when this page was written |
-| `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS`      | DuckDB `SET threads` cap (default **2**)                                                                                                                                                      |
-| `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | DuckDB `SET memory_limit` in MiB (default **128**)                                                                                                                                            |
+| Env                                             | Purpose                                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `TURBOPANEL_METRICS_DIR`                        | Metrics state root override                                                                                         |
+| `TURBOPANEL_SERVER_METRICS_RETENTION_DAYS`      | Retention days (default **90**) — prunes expired Parquet partitions plus any hot/status rows past the cutoff        |
+| `TURBOPANEL_SERVER_METRICS_MAX_BYTES`           | Size cap for the metrics store (default **5 GiB**) — removes the oldest whole days first once the store is over it. |
+| `TURBOPANEL_SERVER_METRICS_DUCKDB_THREADS`      | DuckDB `SET threads` cap (default **2**)                                                                            |
+| `TURBOPANEL_SERVER_METRICS_DUCKDB_MEMORY_LIMIT` | DuckDB `SET memory_limit` in MiB (default **128**)                                                                  |
 
 ## Query API & caching
 
