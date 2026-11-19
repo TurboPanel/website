@@ -38,7 +38,19 @@ Every datacenter network carries two routing-policy fields, both stored under
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `priority` | integer `0`–`1000` | `100` | Ladder rank — **lower wins** when two servers share more than one datacenter network. Out-of-range values are dropped by the control plane, not clamped; the app validates before it sends. |
-| `trusted` | boolean | `true` | Whether the L2 is under the operator's control. `false` marks a shared retail LAN, a provider-owned segment, or anything you would not put unencrypted replication on. |
+| `trusted` | boolean | `false` for a new network | Whether an administrator has marked the L2 as under the operator's control. A new datacenter network starts untrusted; nothing is ever marked trusted automatically. Networks that existed before this default changed keep the value they had. |
+
+### Trusted networks
+
+A new datacenter network starts **untrusted**, so server-to-server traffic
+between its members goes through the encrypted TurboFabric tunnel, not plain LAN.
+An administrator can mark a network **trusted**, one network at a time, and
+only then does traffic between its members stay on the LAN without a tunnel.
+
+Turn trust on only for a segment you control end to end, such as a private
+switch inside one room. Leave it off for a shared retail LAN, a provider-owned
+segment, a hotel network, or anything you would not send unencrypted
+replication across. TurboPanel never infers trust from an address range.
 
 An **untrusted** datacenter network is skipped entirely by the datacenter network rung.
 Traffic between two servers whose only shared datacenter network is untrusted goes

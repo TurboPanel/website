@@ -42,8 +42,8 @@ Create **two** datacenter networks, because there are two routing domains:
 
 | Datacenter network | Subnet | Members | Priority | Trusted |
 | --- | --- | --- | --- | --- |
-| **Primary LAN** | `192.168.10.0/24` | all five | `100` (default) | yes |
-| **Backhaul** | `10.40.0.0/24` | `db-1`, `db-2`, `backup-1` | `10` | yes |
+| **Primary LAN** | `192.168.10.0/24` | all five | `100` (default) | yes, set by you |
+| **Backhaul** | `10.40.0.0/24` | `db-1`, `db-2`, `backup-1` | `10` | yes, set by you |
 
 `db-1`, `db-2`, and `backup-1` are each one server in two datacenter networks. Create
 each datacenter network from a server's reported private address on that NIC (the
@@ -60,8 +60,9 @@ Routing panel names the effect before you save: *"Backhaul (priority 10)
 currently wins over Primary LAN (100) for db-1 ↔ db-2."* A managed replica on
 `db-2` shows `Datacenter network · Backhaul (priority 10)` in its cluster row.
 
-Both datacenter networks are **trusted** here — you own both switches. Leave `trusted`
-on. The case for switching it off is a segment you do not control: a shared
+New datacenter networks start untrusted, so nothing here is trusted until you say so.
+Both are **trusted** in this layout because you own both switches: switch `trusted`
+on for each one, one network at a time. Leave it off for a segment you do not control: a shared
 retail LAN, a provider-owned VLAN, a hotel network. Across an untrusted
 datacenter network TurboPanel runs server-to-server traffic through a TurboFabric
 tunnel over that network (TurboFabric over LAN), encrypted, failover
