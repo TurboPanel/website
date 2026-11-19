@@ -23,7 +23,7 @@ organization
 | **Datacenter network** | A network inside a datacenter, a routing domain of one or more **subnets** whose members can reach each other directly. Not a building — a server can belong to several (a LAN and a backhaul), and two subnets in one building that cannot route to each other are two datacenter networks. |
 | **Member pin** | A server's membership in a datacenter network, pinned to one of the private addresses its daemon reports. The address must fall inside one of the datacenter network's subnets. |
 | **Priority** | `0`–`1000`, default `100`, **lower wins** when two servers share more than one datacenter network. |
-| **Trusted** | Whether the segment is under your control (default on). Untrusted datacenter networks are skipped for replication; traffic falls through to the mesh or a TLS-only public path. |
+| **Trusted** | Whether you have marked the segment as under your control. New datacenter networks start untrusted (default off); an administrator turns it on for one network at a time, and existing networks keep the value they had. Untrusted datacenter networks are skipped for replication; traffic falls through to the mesh or a TLS-only public path. |
 | **Collision authority** | One rule every CIDR write passes: a new range may not overlap a subnet, a reserved range, a registered Docker network or pool, the mesh range or container pool, or a range a gateway advertises. The same 409 codes come back on every form. |
 
 One rule: **TurboPanel observes host interfaces; it does not configure them.** A pin names an address the daemon already reports; when the daemon stops reporting it the pin shows **Stale** and nothing is changed on the host.
@@ -36,6 +36,12 @@ One rule: **TurboPanel observes host interfaces; it does not configure them.** A
 ## Datacenter networks
 
 **Servers → Datacenter Networks.** The table shows each datacenter network's subnets, members, and its **Routing** column (`P<priority>` and a Trusted / Untrusted chip).
+
+### Trusted networks
+
+A new datacenter network starts **untrusted**. Server-to-server traffic between its members goes through the encrypted TurboFabric tunnel, not plain LAN. Nothing is ever trusted automatically; an administrator switches **Trusted** on in the **Routing** panel, one network at a time.
+
+Turn it on only for a segment you control end to end, such as a private switch inside one room. Trusted members then talk directly over the LAN, with no tunnel. Leave it off for a shared or provider-owned network. Datacenter networks that existed before this default changed keep their value.
 
 ### Create one
 
@@ -141,7 +147,7 @@ Turning TurboFabric off for the organization pauses it. The app asks first, then
 | Item | Value |
 | --- | --- |
 | Datacenter network priority | `0`–`1000`, default `100`, lower wins; tie → datacenter network id |
-| Trusted | default on; untrusted is skipped for datacenter network transport, tunnels over that network instead, and refuses failover replicas |
+| Trusted | default off for a new datacenter network; untrusted is skipped for datacenter network transport, tunnels over that network instead, and refuses failover replicas |
 | Address preference | IPv6 / IPv4 per datacenter network |
 | Address scopes · allocations | `public` · `datacenter` — `dedicated` · `shared` |
 | Docker pools | ≤ 16, base + size, non-overlapping; size between the base prefix and `/30` (IPv4) or `/126` (IPv6) |
