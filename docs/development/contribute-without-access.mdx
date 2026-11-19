@@ -20,7 +20,7 @@ You need:
 
 - A GitHub account and the [GitHub CLI](https://cli.github.com/) (`gh`), signed in with `gh auth login`.
 - `git`.
-- A development machine: macOS or Linux with [Vagrant](https://developer.hashicorp.com/vagrant), or a Debian 13 machine you can use directly. See [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant) and [Prerequisites](/docs/development/prerequisites).
+- A development machine: macOS or Linux with [Vagrant](https://developer.hashicorp.com/vagrant), Linux with Incus, or a Debian 13 machine you can use directly. See [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant) and [Prerequisites](/docs/development/prerequisites).
 
 You do not need an SSH key for the clones in this guide. Clones go over HTTPS through `gh` by default. The Direct VM bootstrap's `--clone` option clones over SSH, so on a Direct machine without a GitHub SSH key use the setup script or clone by hand with `gh` as shown below, and skip `--clone`. If you already use SSH for GitHub, `gh` follows your `git_protocol` setting (`gh config set git_protocol ssh`), or your own `url.insteadOf` rewrite, and nothing else changes.
 
@@ -59,7 +59,7 @@ That forks the repo, rewires `origin` to your fork, makes TurboPanel `upstream` 
 | Flag | Meaning |
 | --- | --- |
 | `--dir PATH` | Use `PATH` as the folder that holds the repos (an absolute path to a folder named `turbopanel`; default `~/turbopanel`) |
-| `--mode direct\|vagrant` | Skip the question and pick the environment |
+| `--mode direct\|vagrant\|incus` | Skip the question and pick the environment |
 | `--as-contributor` | A maintainer tries the contributor path: read-only clones, forks later (`--fork` is the old name and prints a warning) |
 | `--fork-all` | Fork every repo you cannot push to at setup, instead of on first push |
 | `--yes` | Accept the plan without asking |
@@ -123,7 +123,7 @@ gh pr create --repo TurboPanel/ui --base trunk --fill
 Rules that apply to every pull request:
 
 - The title is `type(scope): summary`, for example `fix(auth): refuse expired invites`. The types are `feat`, `fix`, `chore`, `ci`, `docs`, `refactor`, `test`, `perf`, `build`, `revert` and `style`.
-- Format every source file you change before you commit, where the tools are: inside the guest under Vagrant, or in the repo on the Debian machine under Direct (after `dev/console` has installed the runtimes). A fresh `vagrant ssh` shell does not have the vendored Node and Deno on its `PATH`, so add them first (example for a file in `ui`):
+- Format every source file you change before you commit, where the tools are: inside the guest under Vagrant or Incus, or in the repo on the Debian machine under Direct (after `dev/console` has installed the runtimes). A fresh `vagrant ssh` or `incus exec` shell does not have the vendored Node and Deno on its `PATH`, so add them first (example for a file in `ui`):
 
 ```bash
 vagrant ssh
@@ -156,7 +156,7 @@ Maintainers with push access work from the project repositories on feature branc
 
 ## Related
 
-- [Choosing Direct or Vagrant](/docs/development/choosing-direct-or-vagrant)
+- [Choosing Direct, Vagrant or Incus](/docs/development/choosing-direct-or-vagrant)
 - [Twin Pull Requests](/docs/development/twin-pull-requests)
 - [Signing and the CLA](/docs/development/signing-and-the-cla)
 - [How to Ship](/docs/development/how-to-ship)
