@@ -104,7 +104,7 @@ Logical routing domain (not a building) of mutually routable private subnets, op
 | `description` | `text` | no | Optional operator free-text note about the datacenter. |
 | `priority` | `integer` | yes | Routing-ladder rank among a server's datacenters, 0 to 1000, lower wins, default 100 (API field `priority`). |
 | `address_preference` | `text` | yes | Address family tried first among a server's pins here, `ipv6` (default) or `ipv4` (API field `options.addressPreference`). |
-| `is_trusted` | `boolean` | yes | True when the operator controls the datacenter's L2 (default); false keeps server-to-server traffic off it (API field `trusted`). |
+| `is_trusted` | `boolean` | yes | True when the operator marked the network trusted, so traffic may cross it unencrypted; false (default) uses TurboFabric, encrypted (API field `trusted`). |
 
 ## `doorway` [#doorway]
 
