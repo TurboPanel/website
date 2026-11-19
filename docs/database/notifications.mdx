@@ -20,10 +20,10 @@ Delivery-attempt ledger: one row per event per routed channel, inserted before t
 | `id` | `uuid` | yes | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | yes | Row creation time. |
 | `updated_at` | `timestamp(3) with time zone` | yes | Last write time; the ORM sets it to `now()` on every update. |
-| `organization_id` | `uuid` | no | Organization the event belongs to; NULL for an instance-scoped event. |
+| `organization_id` | `uuid` | no | Organization the event belongs to; NULL for a control-plane-scoped event. |
 | `channel_id` | `uuid` | yes | Parent `channel` row (on delete cascade). |
 | `event_id` | `uuid` | yes | The `event` row this copy carries; deleting the event at the end of its 30-day retention deletes its copies. |
-| `user_id` | `uuid` | no | The person a personal copy is for, checked again for access before it is sent; NULL for an organization or instance channel. |
+| `user_id` | `uuid` | no | The person a personal copy is for, checked again for access before it is sent; NULL for an organization or control plane channel. |
 | `device_id` | `uuid` | no | The device a push copy goes to; NULL for every other kind (push is not sent yet). |
 | `topic_code` | `text` | yes | The catalogue topic of the event. |
 | `status` | `text` | yes | `pending` (default), `sent`, `failed` (retry due), `abandoned` (after 5 attempts) or `held` (waits for quiet hours or a digest); retries skip `held`. |
@@ -50,7 +50,7 @@ A group of notification topics for the settings screens, written from the code c
 
 ## `channel` [#channel]
 
-An address notifications can be delivered to, owned by the instance, one organization or one user per `scope`; addresses of secret kinds are sealed.
+An address notifications can be delivered to, owned by the control plane, one organization or one user per `scope`; addresses of secret kinds are sealed.
 
 | Column | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -59,9 +59,9 @@ An address notifications can be delivered to, owned by the instance, one organiz
 | `updated_at` | `timestamp(3) with time zone` | yes | Last write time; the ORM sets it to `now()` on every update. |
 | `organization_id` | `uuid` | no | Owning organization, set only when `scope` is `organization` and NULL otherwise. |
 | `user_id` | `uuid` | no | Owning user, set only when `scope` is `user`; a personal channel follows the user across organizations. |
-| `created_by_user_id` | `uuid` | no | User whose session created the channel (provenance, set NULL on user delete); differs from `user_id` for org and instance channels. |
+| `created_by_user_id` | `uuid` | no | User whose session created the channel (provenance, set NULL on user delete); differs from `user_id` for org and control plane channels. |
 | `kind` | `text` | yes | Transport: `email`, `webhook`, `slack`, `discord`, `telegram` or `push` (push is registered by the store apps, never typed). |
-| `scope` | `text` | yes | Owner kind: `instance`, `organization` or `user`; the owner columns must agree with it (CHECK). |
+| `scope` | `text` | yes | Owner kind: `instance` (the control plane), `organization` or `user`; the owner columns must agree with it (CHECK). |
 | `label` | `text` | yes | Owner-chosen display name such as 'Ops Slack'. |
 | `address` | `text` | yes | Delivery address: plain for `email`, else a sealed `tpsecret` envelope (webhook, Slack or Discord URL, Telegram `token/chatId`, push token). |
 | `signing_secret` | `text` | no | Sealed `tpsecret` HMAC key for the generic `webhook` kind (`X-TurboPanel-Signature: sha256=...`); NULL for other kinds. |
@@ -73,7 +73,7 @@ An address notifications can be delivered to, owned by the instance, one organiz
 | `failures` | `integer` | yes | Consecutive failed sends, reset by a success; reserved for pausing a failing shared channel. |
 | `paused_reason` | `text` | no | Why sending stopped: `manual`, `failing` or `bounced`; NULL while the channel sends. |
 | `is_primary` | `boolean` | yes | True for a person's built-in account email channel, which follows their sign-in address and cannot be deleted; one per person. |
-| `is_all_organizations_notified` | `boolean` | yes | Instance channels only: also hear every organization event, including organizations created later; otherwise only install events. |
+| `is_all_organizations_notified` | `boolean` | yes | Control plane channels only: also hear every organization event, including organizations created later; otherwise only install events. |
 
 ## `device` [#device]
 
@@ -105,7 +105,7 @@ One row per thing that happened, the outbox every inbox row and delivery hangs f
 | `id` | `uuid` | yes | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | yes | Row creation time. |
 | `updated_at` | `timestamp(3) with time zone` | yes | Last write time; the ORM sets it to `now()` on every update. |
-| `organization_id` | `uuid` | no | Organization the event was raised in; NULL for an instance or platform event. |
+| `organization_id` | `uuid` | no | Organization the event was raised in; NULL for a control plane or platform event. |
 | `topic_code` | `text` | yes | The catalogue topic. |
 | `status` | `text` | yes | `open`, `resolved` (its recovery event arrived) or `closed`. |
 | `project_id` | `uuid` | no | Project the event is about, a plain id with no foreign key; a pending copy is dropped once the project is gone. |
@@ -130,7 +130,7 @@ One bell inbox row per event per recipient user, written by `emitNotification` f
 | --- | --- | --- | --- |
 | `id` | `uuid` | yes | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | yes | Row creation time. |
-| `organization_id` | `uuid` | no | Organization the event belongs to; NULL for an instance-scoped event such as `fleet.mass_disconnect`. |
+| `organization_id` | `uuid` | no | Organization the event belongs to; NULL for a control-plane-scoped event such as `fleet.mass_disconnect`. |
 | `user_id` | `uuid` | yes | Recipient of the inbox row; one row per person the event reached, chosen by the event's audience (members or managers). |
 | `topic_code` | `text` | yes | The catalogue topic of the event this row is about. |
 | `severity` | `text` | yes | `info`, `warning` or `critical`, copied from the event's catalogue definition. |
@@ -238,7 +238,7 @@ One row per notification event type, upserted from `events.ts` by the catalog sy
 | `category_code` | `text` | yes | The `category` the topic is listed under. |
 | `resolves_code` | `text` | no | The topic this one resolves, such as a recovery naming the failure it ends; NULL for most topics. |
 | `name` | `text` | yes | What a person picks the topic by on the settings screens. |
-| `kind` | `text` | yes | `organization` (raised in an organization), `platform` (vendor notices), `instance` (for administrators) or `account` (one sign-in). |
+| `kind` | `text` | yes | `organization` (raised in an organization), `platform` (vendor notices), `instance` (control plane notices for administrators) or `account` (one sign-in). |
 | `severity` | `text` | yes | `info`, `warning` or `critical`; a preference level is a floor compared against it. |
 | `scope` | `text` | no | For an organization topic, the most specific resource it names: `organization`, `project`, `environment`, `service`, `server` or `destination`. |
 | `audience` | `text` | yes | Who may hear it, checked again at send time: `members` of the organization, its `managers` (own or manage grants), or `admins` of the install. |

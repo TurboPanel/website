@@ -65,7 +65,7 @@ One WebAuthn credential registered by a user (several per user allowed), unique 
 | `name` | `text` | no | User-chosen label given at registration (the device or authenticator it lives on); shown in the Security screen, never used for matching. |
 | `aaguid` | `text` | no | Authenticator model AAGUID decoded from the attestation as a dashed lowercase UUID string; identifies the make, not the individual key. |
 | `public_key` | `text` | yes | Credential public key as a JSON-serialised JWK (ES256, EdDSA or RS256) converted from the attestation's COSE key; verifies sign-in assertions. |
-| `credential_id` | `text` | yes | Base64url credential id from the attestation; unique across the instance and the lookup key for passkey sign-in. |
+| `credential_id` | `text` | yes | Base64url credential id from the attestation; unique across the control plane and the lookup key for passkey sign-in. |
 | `counter` | `bigint` | yes | Authenticator signature counter from the last accepted assertion; a lower value rejects the sign-in (clone detection) and updates are compare-and-swap. |
 | `device_type` | `varchar(32)` | yes | `multiDevice` when the attestation flags the credential backup-eligible, else `singleDevice`; derived once at registration. |
 | `transports` | `text` | no | JSON array string of WebAuthn transports reported at registration (for example `internal`, `usb`, `hybrid`), or null when none were reported. |
@@ -122,7 +122,7 @@ TOTP enrolment for a user, at most one row per user (`uniq_totp_user_id`); inser
 
 ## `user` [#user]
 
-One row per person who can sign in to the instance, keyed by unique `email`; created by password sign-up, OTP sign-in, OAuth sign-up or the install wizard.
+One row per person who can sign in to the control plane, keyed by unique `email`; created by password sign-up, OTP sign-in, OAuth sign-up or the install wizard.
 
 | Column | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -131,7 +131,7 @@ One row per person who can sign in to the instance, keyed by unique `email`; cre
 | `updated_at` | `timestamp(3) with time zone` | yes | Last write time; the ORM sets it to `now()` on every update. |
 | `name` | `varchar(255)` | no | Optional display name copied at creation from the OAuth profile or the OTP sign-in form (1-255 chars); absent on password sign-up and never edited later. |
 | `email` | `varchar(255)` | yes | Unique sign-in address, trimmed at write; the identity that accounts, sessions, OTP flows and invitation accepts are matched against. |
-| `role` | `text` | yes | Instance role `user`, `admin` or `superadmin`; sign-ups get `user`, the install wizard mints the one `superadmin`, and admins bypass org grants. |
+| `role` | `text` | yes | Control plane role `user`, `admin` or `superadmin`; sign-ups get `user`, the install wizard mints the one `superadmin`, and admins bypass org grants. |
 | `time_zone` | `varchar(64)` | no | IANA zone (from the supported list) in which quiet hours on the personal channels of this user are read; NULL means UTC. |
 | `is_email_verified` | `boolean` | yes | True once the address is proven: set at creation by OTP or OAuth sign-up and the install wizard, or later by the verify-email link and OTP routes. |
 | `is_2fa_enabled` | `boolean` | yes | Derived flag kept in step with the `totp` row: set true when TOTP enrolment is verified and false when two-factor is disabled. |

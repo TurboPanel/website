@@ -7,7 +7,7 @@ description: "Every table and column of the control plane database, grouped by w
 
 # Database
 
-The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or newer). This reference documents 110 tables and 1314 columns, in 12 groups. Each group has its own page, with one section per table and a column table under it.
+The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or newer). This reference documents 110 tables and 1315 columns, in 12 groups. Each group has its own page, with one section per table and a column table under it.
 
 ## How to Read the Pages
 
@@ -22,13 +22,13 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 | [Identity](/docs/database/identity) | 9 | 77 | Who a person is to the control plane: the Better Auth-compatible user, credential, session and verification tables. |
 | [Organizations](/docs/database/organizations) | 7 | 79 | The tenant boundary. Organizations own every other resource; teams and teammates carry membership; the TLS tables hold the Organization CA and its rotations. |
 | [Billing](/docs/database/billing) | 7 | 65 | Tiers are platform-global priced offerings; licenses, payers, subscriptions and seats record what an organization bought and how each server is entitled. |
-| [Access, Audit and Configuration](/docs/database/platform) | 7 | 65 | Authorization grants, the audit ledger, instance-wide settings and the global lease table the schedulers coordinate through. |
+| [Access, Audit and Configuration](/docs/database/platform) | 7 | 66 | Authorization grants, the audit ledger, control-plane-wide settings and the global lease table the schedulers coordinate through. |
 | [Networking](/docs/database/networking) | 15 | 192 | Datacenters as logical routing domains, the org network registry, managed addresses, and the TurboFabric mesh (fabric, relays, subnets). |
 | [Resource Tree and Tagging](/docs/database/resources) | 18 | 201 | Workspace → project → environment → service → hosting / container, plus the principals, tenancies, bindings and variables that hang off them, and the free-form tag and marker tables. |
-| [Managed Databases](/docs/database/managed) | 11 | 132 | Managed database instances, their replicas, backups and recovery runs. |
+| [Managed Databases](/docs/database/managed) | 11 | 132 | Managed database clusters, their replicas, backups and recovery runs. |
 | [Storage and Secrets](/docs/database/storage) | 5 | 60 | Storage volumes, their copies and mounts, and the sealed secret envelopes. |
 | [Servers, Runtime and Metrics](/docs/database/runtime) | 11 | 163 | Enrolled servers and their daemon keys, the command / dispatch pipeline, deployments, slots, tasks, labels, and the metrics topology generations. |
-| [Upgrades](/docs/database/upgrades) | 2 | 37 | Instance-wide upgrade runs and the per-server daemon and instance steps that belong to them. |
+| [Upgrades](/docs/database/upgrades) | 2 | 37 | Upgrade runs across all servers and the per-server daemon and control plane steps that belong to them. |
 | [Git and SSH](/docs/database/git) | 6 | 75 | Git forges, connections, repositories, the webhook delivery ledger and user SSH keys. |
 | [Notifications](/docs/database/notifications) | 12 | 168 | The notification catalogue rows, delivery channels, routing rules and per-channel attempts. |
 

@@ -23,7 +23,7 @@ One Git provider grant to one organization, a GitHub App installation or a GitLa
 | `organization_id` | `uuid` | yes | Parent `organization` row (on delete cascade). |
 | `forge_id` | `uuid` | yes | Application the grant was made through; with `external_installation_id` it resolves a webhook delivery to exactly one row (cascades on forge delete). |
 | `provider` | `text` | yes | `github` or `gitlab`, denormalized from the forge as a filter column. |
-| `external_installation_id` | `text` | yes | Provider-side id as text: the numeric GitHub App installation id, or the GitLab user/group id; for GitHub unique per forge across the instance. |
+| `external_installation_id` | `text` | yes | Provider-side id as text: the numeric GitHub App installation id, or the GitLab user/group id; for GitHub unique per forge across the control plane. |
 | `account_login` | `varchar(255)` | no | Login of the provider account the grant sits on (GitHub installation account or GitLab user), refreshed on every connect or reconnect. |
 | `account_type` | `text` | no | Provider account kind as GitHub reports it (`User` or `Organization`); always `User` for GitLab connections. |
 | `suspended_at` | `timestamp(3) with time zone` | no | Set while the provider reports the installation suspended or a token refresh failed; cleared on reconnect, and suspended rows are skipped by the trigger. |
@@ -47,14 +47,14 @@ Replay-protection ledger of inbound webhook deliveries for every gate kind (GitH
 
 ## `forge` [#forge]
 
-A registered Git provider application (GitHub App or GitLab OAuth app) that connections are granted through; `organization_id` NULL means instance-wide.
+A registered Git provider application (GitHub App or GitLab OAuth app) that connections are granted through; `organization_id` NULL means control-plane-wide.
 
 | Column | Type | Required | Description |
 | --- | --- | --- | --- |
 | `id` | `uuid` | yes | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | yes | Row creation time. |
 | `updated_at` | `timestamp(3) with time zone` | yes | Last write time; the ORM sets it to `now()` on every update. |
-| `organization_id` | `uuid` | no | NULL means instance-wide (any organization may connect through it); set means the app belongs to that organization alone. |
+| `organization_id` | `uuid` | no | NULL means control-plane-wide (any organization may connect through it); set means the app belongs to that organization alone. |
 | `name` | `varchar(255)` | yes | Display name of the app; for GitHub Apps it is overwritten from the provider on each sync, and varchar(255) is that write's only length guard. |
 | `provider` | `text` | yes | Git provider kind, `github` or `gitlab`, chosen at registration and never changed. |
 | `base_url` | `text` | yes | Origin the app lives on (github.com, gitlab.com or a self-managed host); part of the unique key with `provider` and `external_app_id`. |
@@ -70,7 +70,7 @@ A registered Git provider application (GitHub App or GitLab OAuth app) that conn
 | `envelopes` | `jsonb` | yes | Sealed `tpsecret` envelopes under JSON keys `privateKeyEnvelope`, `clientSecretEnvelope`, `webhookSecretEnvelope`; never returned by the API. |
 | `webhook_ref` | `varchar(64)` | yes | Opaque unguessable routing token that ends this app's webhook URL (`/webhook/github/` plus the token); it routes a delivery to its app, not a credential. |
 | `webhook_token_hash` | `text` | no | GitLab only: HMAC of the webhook token so a delivery on the unscoped path resolves in one indexed lookup; NULL for GitHub apps. |
-| `is_public` | `boolean` | yes | Whether the provider was told the app is publicly installable; set at creation (true for instance-wide apps) and refreshed from GitHub on sync. |
+| `is_public` | `boolean` | yes | Whether the provider was told the app is publicly installable; set at creation (true for control-plane-wide apps) and refreshed from GitHub on sync. |
 
 ## `repository` [#repository]
 
