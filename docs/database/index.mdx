@@ -25,10 +25,10 @@ The control plane keeps its state in one PostgreSQL database (PostgreSQL 18 or n
 | [Access, Audit and Configuration](/docs/database/platform) | 7 | 66 | Authorization grants, the audit ledger, control-plane-wide settings and the global lease table the schedulers coordinate through. |
 | [Networking](/docs/database/networking) | 15 | 192 | Datacenters as logical routing domains, the org network registry, managed addresses, and the TurboFabric mesh (fabric, relays, subnets). |
 | [Resource Tree and Tagging](/docs/database/resources) | 18 | 201 | Workspace → project → environment → service → hosting / container, plus the principals, tenancies, bindings and variables that hang off them, and the free-form tag and marker tables. |
-| [Managed Databases](/docs/database/managed) | 11 | 132 | Managed database servers, their replicas, backups and recovery runs. |
+| [Managed Databases](/docs/database/managed) | 11 | 132 | Managed database clusters, their replicas, backups and recovery runs. |
 | [Storage and Secrets](/docs/database/storage) | 5 | 60 | Storage volumes, their copies and mounts, and the sealed secret envelopes. |
 | [Servers, Runtime and Metrics](/docs/database/runtime) | 11 | 163 | Enrolled servers and their daemon keys, the command / dispatch pipeline, deployments, slots, tasks, labels, and the metrics topology generations. |
-| [Upgrades](/docs/database/upgrades) | 2 | 37 | Control-plane-wide upgrade runs and the per-server daemon and control plane steps that belong to them. |
+| [Upgrades](/docs/database/upgrades) | 2 | 37 | Upgrade runs across all servers and the per-server daemon and control plane steps that belong to them. |
 | [Git and SSH](/docs/database/git) | 6 | 75 | Git forges, connections, repositories, the webhook delivery ledger and user SSH keys. |
 | [Notifications](/docs/database/notifications) | 12 | 168 | The notification catalogue rows, delivery channels, routing rules and per-channel attempts. |
 

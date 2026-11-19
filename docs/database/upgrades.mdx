@@ -7,7 +7,7 @@ description: "2 tables and 37 columns in the Upgrades group of the control plane
 
 # Upgrades
 
-Control-plane-wide upgrade runs and the per-server daemon and control plane steps that belong to them.
+Upgrade runs across all servers and the per-server daemon and control plane steps that belong to them.
 
 Tables in this group: [`stage`](#stage), [`upgrade`](#upgrade).
 
@@ -42,7 +42,7 @@ One daemon or control plane install (`daemon` or `instance`) on one server insid
 
 ## `upgrade` [#upgrade]
 
-One control-plane-wide upgrade run, written by the upgrade orchestrator, with at most one `pending` or `running` row.
+One upgrade run across all servers, written by the upgrade orchestrator, with at most one `pending` or `running` row.
 
 | Column | Type | Required | Description |
 | --- | --- | --- | --- |

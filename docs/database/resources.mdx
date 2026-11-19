@@ -45,7 +45,7 @@ Pins one Docker container to a service and the server observed to host it; rows 
 | `container_name` | `text` | yes | Docker `container_name`; `uuid` naming yields the service UUID plus `-N` per ordinal, `-in` for ingress, `-ha` for Orchestrator; `custom` keeps authored names. |
 | `role` | `text` | yes | `service` for workload or engine replicas, `ingress` for the per-service Traefik or shared ProxySQL frontend (ordinal 1), `turbopanel` for the platform stack. |
 | `compose_service_name` | `text` | yes | Compose service key the container was started under, as reported by the daemon; multi-replica clones carry a `-N` suffix on the base key. |
-| `ordinal` | `integer` | yes | 1-based replica index within the service, unique with `service_id` and `role`; ingress rows are always 1 and managed replicas match `replica.ordinal`. |
+| `ordinal` | `integer` | yes | 1-based index within the service, unique with `service_id` and `role`; ingress rows are always 1 and managed replicas match `replica.ordinal`. |
 
 ## `environment` [#environment]
 
