@@ -166,7 +166,7 @@ One enrolled host per row (uuidv7 id); daemon enroll and heartbeats project host
 | `options` | `jsonb` | no | Operator config served by GET /servers: `timezone`, `sshPort`, `ntp`, `hosting`, `cellLocationHint`, `cellGeneration`, `metricsCapabilityPlan`, `phpModes`. |
 | `organization_id` | `uuid` | no | Owning organization, nullable; ON DELETE RESTRICT so an organization that still has server rows cannot be deleted. |
 | `assigned_tier_id` | `uuid` | no | Tier a manager assigned this server (Add Server choice, license-tier route or a named size change); self-hosted fills the top tier. NULL until set. |
-| `preferred_tier_id` | `uuid` | no | Written in step with `assigned_tier_id`, for the console's picked label; set alone when the Add Server tier had no free seat at enroll. |
+| `preferred_tier_id` | `uuid` | no | Written in step with `assigned_tier_id`, for the web interface's picked label; set alone when the Add Server tier had no free seat at enroll. |
 | `preferred_datacenter_id` | `uuid` | no | The datacenter whose network this server prefers when it belongs to several; NULL means no preference; set null when the datacenter is deleted. |
 | `name` | `text` | no | Optional operator-chosen display name, set when the registration key is minted or via PATCH; the UI falls back to `hostname` when null. |
 | `role` | `text` | yes | What the server is for: `server` runs workloads, `witness` only votes in database failover and holds no data; written by an administrator. |
@@ -188,7 +188,7 @@ One enrolled host per row (uuidv7 id); daemon enroll and heartbeats project host
 | `sealing_key_kid` | `text` | no | Fingerprint of the daemon X25519 sealing key, set when it registers; decrypt answers are sealed to that key for daemons listing `daemon-sealed-secrets-v1`. |
 | `sealing_key_pub` | `text` | no | Base64url raw public half of the daemon sealing key, stored only after its signature verified against the daemon key; NULL until registered. |
 | `sealing_key_reported_at` | `timestamp(3) with time zone` | no | When the daemon last registered its sealing key; NULL until it does. |
-| `plaintext_secrets_at` | `timestamp(3) with time zone` | no | Unused. Nothing reads or writes it any more; the column is dropped in the next release. |
+| `plaintext_secrets_at` | `timestamp(3) with time zone` | no | Unused: nothing writes or reads it any more; dropped in the release after the one that stopped reading it. |
 | `fabric_role` | `text` | no | Operator TurboFabric role, `gateway` (accepts connections) or `client` (only dials out); NULL means automatic, gateway when a public address is known. |
 | `trust_pinned_by` | `text` | no | How the daemon pinned the panel key: `install`, `upgrade` or `unsafe` (installed with the skip flag); NULL until the daemon reports it. |
 | `trust_level` | `smallint` | yes | Highest daemon session trust this server has used: 0 unsigned, 1 signed frames, 2 signed with a daemon attach proof; raised only, never lowered. |
@@ -216,7 +216,7 @@ One enrolled host per row (uuidv7 id); daemon enroll and heartbeats project host
 
 ## `slot` [#slot]
 
-One scheduled replica instance of a service on a server; derived scheduling state the planner writes through `replaceEnvironmentSlots` on each deploy.
+One scheduled replica of a service on a server; derived scheduling state the planner writes through `replaceEnvironmentSlots` on each deploy.
 
 | Column | Type | Required | Description |
 | --- | --- | --- | --- |

@@ -7,7 +7,7 @@ description: "11 tables and 132 columns in the Managed Databases group of the co
 
 # Managed Databases
 
-Managed database instances, their replicas, backups and recovery runs.
+Managed database servers, their replicas, backups and recovery runs.
 
 Tables in this group: [`backup`](#backup), [`cache`](#cache), [`database`](#database), [`destination`](#destination), [`managed`](#managed), [`recovery`](#recovery), [`replica`](#replica), [`retention`](#retention), [`scope`](#scope), [`shipment`](#shipment), [`snapshot`](#snapshot).
 
@@ -20,14 +20,14 @@ One completed managed-engine backup artifact recorded from the daemon's `managed
 | `id` | `uuid` | yes | Primary key (`uuidv7()`, time-ordered). |
 | `created_at` | `timestamp(3) with time zone` | yes | Row creation time. |
 | `managed_id` | `uuid` | yes | Parent `managed` row (on delete cascade). |
-| `database_id` | `uuid` | no | The `database` row the dump was of, set null if that database is dropped; null for an instance-scope backup. |
+| `database_id` | `uuid` | no | The `database` row the dump was of, set null if that database is dropped; null for a whole-server backup. |
 | `retention_id` | `uuid` | no | The `retention` whose scheduled run made this artifact; null for a manual backup or once that retention is deleted. |
 | `server_id` | `uuid` | no | Host that holds the on-disk artifact (the primary when the backup ran); null after that server is deleted. |
 | `origin` | `text` | yes | `backup` when a backup run made the file, `import` when it was brought in to be restored; existing rows are `backup`. |
 | `backup_id` | `text` | yes | Daemon-minted `bk_` plus hex token that is also the artifact filename on the host; unique per managed engine, not globally. |
 | `size_bytes` | `bigint` | yes | Artifact size in bytes as reported by the daemon after writing the dump; re-checked before a restore. |
 | `checksum` | `text` | yes | Lowercase SHA-256 hex digest of the artifact computed by the daemon; a restore refuses on mismatch. |
-| `database` | `text` | no | Database name for a single-database backup, kept as history; null for an instance-scope backup. |
+| `database` | `text` | no | Database name for a single-database backup, kept as history; null for a whole-server backup. |
 | `path` | `text` | yes | Artifact path relative to the backup root of the host that made it (`managed/` plus the cluster id, then the file). |
 
 ## `cache` [#cache]
@@ -85,7 +85,7 @@ A named S3-compatible destination an organization copies finished backups to; th
 | `bucket` | `text` | yes | Bucket the copies are written to. |
 | `prefix` | `text` | yes | Folder inside the bucket, without a leading or trailing slash; empty for the bucket root. |
 | `access_key_id` | `text` | yes | Access key id for the bucket; an identifier, returned by the API. |
-| `secret_key_sealed` | `text` | yes | Secret access key sealed with the instance data key (`tpsecret` envelope); never returned by any API. |
+| `secret_key_sealed` | `text` | yes | Secret access key sealed with the control plane data key (`tpsecret` envelope); never returned by any API. |
 | `last_tested_at` | `timestamp(3) with time zone` | no | When the connection test last ran against this target; null before the first test. |
 | `last_test_error` | `text` | no | A plain reason the last connection test failed; null when it passed or was never run. |
 | `is_path_style` | `boolean` | yes | True addresses the bucket in the path (`endpoint/bucket/key`); false uses the bucket as a host name prefix. |
@@ -161,7 +161,7 @@ A scheduled backup of one managed engine or one local storage copy, pushed to it
 | `managed_id` | `uuid` | no | Parent `managed` row (on delete cascade). |
 | `copy_id` | `uuid` | no | Parent `copy` row (on delete cascade). |
 | `created_by` | `uuid` | no | User who created the policy; null for an automatic default policy or once that user is deleted. |
-| `name` | `text` | yes | Operator label for the policy, shown in the console's backup list. |
+| `name` | `text` | yes | Operator label for the policy, shown in the web interface's backup list. |
 | `target_kind` | `text` | yes | `managed` or `copy`: which of `managed_id` and `copy_id` names the target; exactly one is set (`retention_target_check`). |
 | `schedule` | `text` | yes | The schedule as authored, a cron expression or alias; translated to a systemd `OnCalendar` value when pushed to the host. |
 | `timezone` | `text` | no | IANA zone the schedule is read in; null means the host's local time. |
