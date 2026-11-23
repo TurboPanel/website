@@ -14,10 +14,10 @@ This repo is the **public marketing + docs site**, not the signed-in product con
 | North star | Fast, trustworthy, **light-first** marketing + readable docs; dark mode supported | Dark-first OLED ops console, dense tables |
 | Design system | `design-system/turbopanel-website/` | `design-system/turbopanel/` |
 | Skill path | `.agents/skills/ui-ux-pro-max/` | `.agents/skills/ui-ux-pro-max/` |
-| Tokens | `--tp-*` in `src/app/globals.css` | `src/lib/theme.ts` (Tamagui) |
+| Tokens | `--tp-*` in `src/app/globals.css` | `src/lib/theme.ts` and `src/lib/theme-palettes.ts` |
 | Stack search | `--stack nextjs` (also `react` / `html-tailwind` as needed) | `--stack react-native` |
 
-Shared brand cues: primary blue `#3366cc`, secondary green `#3dd68c`. Do **not** copy OLED console density, Tamagui patterns, or console page overrides into this site — and do not apply this site’s spacious marketing layout to the console.
+Shared brand cues: primary blue `#3366cc`, secondary green `#3dd68c`. Do **not** copy OLED console density, console styling patterns, or console page overrides into this site — and do not apply this site’s spacious marketing layout to the console.
 
 ### When to use (mandatory)
 
@@ -97,7 +97,7 @@ These are non-negotiable for this site (detail + checklist live in Master):
 ### Anti-patterns / do-not
 
 - Skip the skill and freestyle a purple/indigo SaaS or cream+serif “AI default” look
-- Apply `~/turbopanel/ui` OLED console / Tamagui / dense-ops patterns to marketing or docs chrome
+- Apply `~/turbopanel/ui` OLED console / dense-ops patterns to marketing or docs chrome
 - Raw hex in components when a `--tp-*` token exists
 - Entrance choreography, staggered reveals, GSAP scroll theaters, multiple pulsing CTAs
 - Emoji-as-icons; layout-shifting hover scales on cards

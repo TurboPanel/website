@@ -35,7 +35,7 @@ const renderOpts = {
 } as const
 
 function pkg(
-  overrides: Partial<NoticePackage> & Pick<NoticePackage, 'name' | 'license'>,
+  overrides: Partial<NoticePackage> & Pick<NoticePackage, 'name' | 'license'>
 ): NoticePackage {
   return {
     version: '1.0.0',
@@ -114,7 +114,7 @@ describe('packagesFromDenoLock', () => {
       {
         '@std/assert@1.0.19': 'MIT',
         'yaml@2.9.0': 'ISC',
-      },
+      }
     )
     expect(packages).toEqual([
       {
@@ -184,55 +184,40 @@ describe('classifyLicense', () => {
 
   it('allows copyleft only for development-only or orchestration roles', () => {
     expect(classifyLicense('LGPL-3.0-or-later', 'development')).toBeNull()
-    expect(classifyLicense('LGPL-3.0-or-later', 'production')).toBe(
-      'copyleft-production',
-    )
+    expect(classifyLicense('LGPL-3.0-or-later', 'production')).toBe('copyleft-production')
   })
 
-  it('defaults @std and @tamagui package names to MIT', () => {
+  it('defaults @std package names to MIT', () => {
     expect(defaultLicenseForPackageName('@std/assert')).toBe('MIT')
-    expect(defaultLicenseForPackageName('@tamagui/core')).toBe('MIT')
     expect(defaultLicenseForPackageName('react')).toBeUndefined()
   })
 
   it('allows GPL-3.0-or-later only for orchestration tooling', () => {
     expect(classifyLicense('GPL-3.0-or-later', 'orchestration')).toBeNull()
-    expect(classifyLicense('GPL-3.0-or-later', 'production')).toBe(
-      'copyleft-production',
-    )
+    expect(classifyLicense('GPL-3.0-or-later', 'production')).toBe('copyleft-production')
   })
 
   it('rejects AGPL-3.0-only production dependencies for this Apache-2.0 website', () => {
-    expect(classifyLicense('AGPL-3.0-only', 'production')).toBe(
-      'copyleft-production',
-    )
+    expect(classifyLicense('AGPL-3.0-only', 'production')).toBe('copyleft-production')
     expect(classifyLicense('AGPL-3.0-only', 'production', 'third-party-agpl')).toBe(
-      'copyleft-production',
+      'copyleft-production'
     )
   })
 
   it('rejects unreviewed classes', () => {
     expect(classifyLicense('', 'production')).toBe('missing')
     expect(classifyLicense('UNKNOWN', 'production')).toBe('missing')
-    expect(classifyLicense('SEE LICENSE IN LICENSE.md', 'production')).toBe(
-      'see-license-in',
-    )
+    expect(classifyLicense('SEE LICENSE IN LICENSE.md', 'production')).toBe('see-license-in')
     expect(classifyLicense('LicenseRef-Proprietary', 'production')).toBe('custom')
     expect(classifyLicense('CC-BY-NC-4.0', 'production')).toBe('noncommercial')
     expect(classifyLicense('BUSL-1.1', 'production')).toBe('source-available')
-    expect(classifyLicense('LGPL-3.0-or-later', 'production')).toBe(
-      'copyleft-production',
-    )
-    expect(classifyLicense('AGPL-3.0-or-later', 'production')).toBe(
-      'copyleft-production',
-    )
+    expect(classifyLicense('LGPL-3.0-or-later', 'production')).toBe('copyleft-production')
+    expect(classifyLicense('AGPL-3.0-or-later', 'production')).toBe('copyleft-production')
   })
 
   it('requires every AND operand to be allowed', () => {
     expect(classifyLicense('MIT AND ISC', 'production')).toBeNull()
-    expect(classifyLicense('MIT AND GPL-3.0-only', 'production')).toBe(
-      'copyleft-production',
-    )
+    expect(classifyLicense('MIT AND GPL-3.0-only', 'production')).toBe('copyleft-production')
   })
 })
 
@@ -272,7 +257,7 @@ describe('renderThirdPartyNotices', () => {
           role: 'development',
         }),
       ],
-      renderOpts,
+      renderOpts
     )
     expect(markdown).toContain('are not relicensed by TurboPanel Website')
     expect(markdown).toContain('Apache-2.0')
@@ -303,7 +288,7 @@ describe('renderThirdPartyNotices', () => {
           noticeText: 'Copyright 2020 Example\nThis product includes...',
         }),
       ],
-      renderOpts,
+      renderOpts
     )
     expect(markdown).toContain('## Upstream NOTICE files')
     expect(markdown).toContain('Copyright 2020 Example')
@@ -312,7 +297,7 @@ describe('renderThirdPartyNotices', () => {
   it('omits the upstream NOTICE section when notice text is blank', () => {
     const markdown = renderThirdPartyNotices(
       [pkg({ name: 'foo', license: 'Apache-2.0', noticeText: '   ' })],
-      renderOpts,
+      renderOpts
     )
     expect(markdown).not.toContain('## Upstream NOTICE files')
   })
@@ -321,9 +306,7 @@ describe('renderThirdPartyNotices', () => {
 describe('noticesAreCurrent', () => {
   it('ignores trailing whitespace and CRLF', () => {
     const generated = renderThirdPartyNotices([], renderOpts)
-    expect(noticesAreCurrent(`${generated.replaceAll('\n', '\r\n')}\n\n`, generated)).toBe(
-      true,
-    )
+    expect(noticesAreCurrent(`${generated.replaceAll('\n', '\r\n')}\n\n`, generated)).toBe(true)
     expect(noticesAreCurrent(`${generated}stale`, generated)).toBe(false)
   })
 })
@@ -335,11 +318,7 @@ describe('helpers', () => {
       pkg({ name: 'a', version: '2.0.0', license: 'MIT' }),
       pkg({ name: 'a', version: '1.0.0', license: 'MIT' }),
     ])
-    expect(sorted.map((row) => noticeKey(row))).toEqual([
-      'a@1.0.0',
-      'a@2.0.0',
-      'b@2.0.0',
-    ])
+    expect(sorted.map((row) => noticeKey(row))).toEqual(['a@1.0.0', 'a@2.0.0', 'b@2.0.0'])
   })
 
   it('prefers production when merging the same coordinate', () => {
@@ -365,7 +344,7 @@ describe('helpers', () => {
   it('attaches licenses from a lookup map', () => {
     const attached = attachLicensesFromMap(
       [pkg({ name: 'Expo', version: '57.0.14', license: '', role: 'native' })],
-      { 'Expo@57.0.14': 'MIT' },
+      { 'Expo@57.0.14': 'MIT' }
     )
     expect(attached[0]?.license).toBe('MIT')
   })
@@ -389,7 +368,7 @@ describe('helpers', () => {
     expect(paths.get('next@16.2.9')).toBe('node_modules/next')
     const withNotice = attachNoticeText(
       pkg({ name: 'next', version: '16.2.9', license: 'Apache-2.0' }),
-      '  Apache Next NOTICE  ',
+      '  Apache Next NOTICE  '
     )
     expect(withNotice.noticeText).toBe('Apache Next NOTICE')
   })
@@ -406,11 +385,8 @@ describe('helpers', () => {
 describe('fillMissingLicenses', () => {
   it('looks up only empty license strings', async () => {
     const filled = await fillMissingLicenses(
-      [
-        pkg({ name: 'yaml', license: 'ISC' }),
-        pkg({ name: '@std/assert', license: '' }),
-      ],
-      async (row) => (row.name === '@std/assert' ? 'MIT' : 'SHOULD_NOT_RUN'),
+      [pkg({ name: 'yaml', license: 'ISC' }), pkg({ name: '@std/assert', license: '' })],
+      async (row) => (row.name === '@std/assert' ? 'MIT' : 'SHOULD_NOT_RUN')
     )
     expect(filled[0]?.license).toBe('ISC')
     expect(filled[1]?.license).toBe('MIT')
@@ -419,7 +395,7 @@ describe('fillMissingLicenses', () => {
   it('falls back to the known package default when lookup is blank', async () => {
     const filled = await fillMissingLicenses(
       [pkg({ name: 'khroma', license: 'UNKNOWN' })],
-      async () => '   ',
+      async () => '   '
     )
     expect(filled[0]?.license).toBe('MIT')
   })
@@ -440,7 +416,7 @@ describe('enrichMissingPackageLicenses', () => {
         pkg({ name: 'khroma', license: '' }),
         pkg({ name: 'mystery', license: 'NONE' }),
       ],
-      (row) => (row.name === 'expo-modules' ? ' MIT ' : undefined),
+      (row) => (row.name === 'expo-modules' ? ' MIT ' : undefined)
     )
     expect(enriched[0]?.license).toBe('MIT')
     expect(enriched[1]?.license).toBe('MIT')
@@ -480,7 +456,7 @@ describe('packagesFromPnpmLicenses edge rows', () => {
           },
         ],
       },
-      new Set(['left-pad@1.3.0']),
+      new Set(['left-pad@1.3.0'])
     )
     expect(packages).toEqual([
       {
@@ -544,7 +520,7 @@ describe('packagesFromDenoLock edge ids', () => {
       {
         '@std/bytes@1.0.0': 'MIT',
         'left-pad@1.3.0': 'WTFPL',
-      },
+      }
     )
     expect(packages).toEqual([
       {
@@ -612,7 +588,7 @@ describe('attachLicensesFromMap', () => {
         pkg({ name: 'Expo', version: '57.0.14', license: '', role: 'native' }),
         pkg({ name: 'mystery', license: '' }),
       ],
-      { Expo: 'MIT' },
+      { Expo: 'MIT' }
     )
     expect(attached[0]?.license).toBe('MIT')
     expect(attached[1]?.license).toBe('')
@@ -666,15 +642,13 @@ describe('classifyLicense remaining classes', () => {
     expect(
       classifyLicense('AGPL-3.0-only', 'production', 'self', {
         repoLicense: 'AGPL-3.0-only',
-      }),
+      })
     ).toBeNull()
   })
 
   it('allows reviewed sharp LGPL production bindings', () => {
     expect(classifyLicense('LGPL-3.0-or-later', 'production', '@img/sharp')).toBeNull()
-    expect(
-      classifyLicense('LGPL-3.0-or-later', 'production', '@img/sharp-linux-x64'),
-    ).toBeNull()
+    expect(classifyLicense('LGPL-3.0-or-later', 'production', '@img/sharp-linux-x64')).toBeNull()
   })
 
   it('rejects remaining copyleft SPDX tokens in production', () => {
@@ -694,16 +668,14 @@ describe('classifyLicense remaining classes', () => {
     expect(classifyLicense('FSL-1.1-MIT', 'production')).toBe('source-available')
     expect(classifyLicense('Fair Source License', 'production')).toBe('source-available')
     expect(classifyLicense('Elastic-2.0', 'production')).toBe('source-available')
-    expect(classifyLicense('PolyForm-Noncommercial-1.0.0', 'production')).toBe(
-      'noncommercial',
-    )
+    expect(classifyLicense('PolyForm-Noncommercial-1.0.0', 'production')).toBe('noncommercial')
     expect(classifyLicense('SEE TERMS', 'production')).toBe('custom')
     expect(classifyLicense('WTFPL', 'production')).toBe('custom')
   })
 
   it('returns the first failing OR operand when every alternative is disallowed', () => {
     expect(classifyLicense('GPL-3.0-only OR AGPL-3.0-only', 'production')).toBe(
-      'copyleft-production',
+      'copyleft-production'
     )
   })
 
@@ -767,7 +739,7 @@ describe('renderThirdPartyNotices remaining sections', () => {
           'pnpm-lock.yaml': 'sha256:abc',
           'package-lock.json': 'sha256:def',
         },
-      },
+      }
     )
     expect(markdown).toContain('Extra attribution note.')
     expect(markdown).toContain('_None._')
@@ -776,9 +748,7 @@ describe('renderThirdPartyNotices remaining sections', () => {
     expect(markdown).toContain('- License: (missing)')
     expect(markdown).toContain('### Expo@57.0.14')
     expect(markdown).toContain('package-lock.json sha256:def')
-    expect(markdown.indexOf('package-lock.json')).toBeLessThan(
-      markdown.indexOf('pnpm-lock.yaml'),
-    )
+    expect(markdown.indexOf('package-lock.json')).toBeLessThan(markdown.indexOf('pnpm-lock.yaml'))
   })
 })
 

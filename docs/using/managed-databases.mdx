@@ -32,20 +32,20 @@ Two facts shape everything below:
 <Steps>
   <Step>**Projects → New project**, name it, choose **Managed**.</Step>
   <Step>
-    Pick the engine from the catalog. Only released engines are selectable; the
-    card says so otherwise.
+    Pick the engine from the catalog. Only released engines are selectable; the card says so
+    otherwise.
   </Step>
   <Step>
-    Choose the **version series** and the base-OS **variant** (Alpine, Debian,
-    Oracle Linux 9 or UBI, per engine), and the **server** for the primary.
+    Choose the **version series** and the base-OS **variant** (Alpine, Debian, Oracle Linux 9 or
+    UBI, per engine), and the **server** for the primary.
   </Step>
   <Step>
-    **Create project.** The root password is shown **once** — copy it now; the
-    platform never shows it again (you can rotate it later).
+    **Create project.** The root password is shown **once** — copy it now; the platform never shows
+    it again (you can rotate it later).
   </Step>
   <Step>
-    The **Overview** shows the cluster provisioning, then *Running*.
-    Provisioning polls only while it is in progress.
+    The **Overview** shows the cluster provisioning, then *Running*. Provisioning polls only while
+    it is in progress.
   </Step>
 </Steps>
 
@@ -63,20 +63,17 @@ The **Connect** tab is the one place to read the endpoint from; never dial an en
 
 <Steps>
   <Step>
-    Read the **listener endpoint** — host and port of the ProxySQL on the
-    primary's server (or, for a service bound elsewhere, on that service's
-    server).
+    Read the **listener endpoint** — host and port of the ProxySQL on the primary's server (or, for
+    a service bound elsewhere, on that service's server).
   </Step>
   <Step>
-    Note the **effective SSL policy** and its DSN parameter (`sslmode=` for
-    PostgreSQL, `ssl-mode=` for MySQL and MariaDB). For `verify-ca` or
-    `verify-full`, download the **Organization CA** from the same tab and point
-    your driver at it.
+    Note the **effective SSL policy** and its DSN parameter (`sslmode=` for PostgreSQL, `ssl-mode=`
+    for MySQL and MariaDB). For `verify-ca` or `verify-full`, download the **Organization CA** from
+    the same tab and point your driver at it.
   </Step>
   <Step>
-    Use a login from the **Data** tab. Under the default `partial` scheme
-    applied usernames carry a random suffix (`app_x7…`), so copy the applied
-    name, not the short one you typed.
+    Use a login from the **Data** tab. Under the default `partial` scheme applied usernames carry a
+    random suffix (`app_x7…`), so copy the applied name, not the short one you typed.
   </Step>
 </Steps>
 
@@ -86,9 +83,9 @@ For a service in a compose project, do not paste any of this into variables: bin
 
 A binding hands the service the organization CA in one of two forms, so you never have to download it:
 
-| Variable | What it holds | Which service gets it |
-| --- | --- | --- |
-| `<PREFIX>_CA_CERT` | The certificate as text | A service that runs in a container |
+| Variable           | What it holds                                 | Which service gets it                                                                                                            |
+| ------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `<PREFIX>_CA_CERT` | The certificate as text                       | A service that runs in a container                                                                                               |
 | `<PREFIX>_CA_FILE` | The path of a file that holds the certificate | A site that runs on the server itself, such as a PHP site; a container also gets it, pointing at `/run/secrets/<PREFIX>_CA_CERT` |
 
 A site on the server gets a path rather than text because a web server mangles a value that spans several lines. TurboPanel writes the file into the site's `.turbopanel-hosting` folder, readable only by the site owner's Linux user, and refreshes it on every deploy. `<PREFIX>` is the key prefix of the binding, `DATABASE` by default.
@@ -124,19 +121,18 @@ Resolution is three-layer — the cluster's own override, then the organization 
 
 <Steps>
   <Step>
-    **Rotate root** shows a new root password once. Root is platform-suffixed
-    (`postgres_…` / `root_…`); the bare engine admin name is never a login.
+    **Rotate root** shows a new root password once. Root is platform-suffixed (`postgres_…` /
+    `root_…`); the bare engine admin name is never a login.
   </Step>
   <Step>
-    **Create user**: a short name and a **Connection role** — **read-write**
-    (routed to the primary) or **read-only** (routed to read-eligible replicas;
-    on a cluster with no replica it goes to the primary, so a login that may
-    only read works on a single server). The password is shown once; **Rotate**
-    and **Delete** act per user.
+    **Create user**: a short name and a **Connection role** — **read-write** (routed to the primary)
+    or **read-only** (routed to read-eligible replicas; on a cluster with no replica it goes to the
+    primary, so a login that may only read works on a single server). The password is shown once;
+    **Rotate** and **Delete** act per user.
   </Step>
   <Step>
-    **Create database** / **Delete database**. The initial database and the root
-    user cannot be dropped.
+    **Create database** / **Delete database**. The initial database and the root user cannot be
+    dropped.
   </Step>
 </Steps>
 
@@ -338,31 +334,28 @@ Existing logins and system users are never renamed by a default or a lock change
 
 **Overview** tab — the topology.
 
-| Replica class             | Where                          | What it is for                                                                                                            |
-| ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Replica class             | Where                                  | What it is for                                                                                                            |
+| ------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Failover replica**      | Same datacenter network as the primary | Automatic failover when the primary dies; a **switchover** on demand.                                                     |
-| **Remote / read replica** | Any server in the organization | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
+| **Remote / read replica** | Any server in the organization         | Read traffic close to consumers, and **disaster recovery** when the primary's site is down. Never promoted automatically. |
 
 MariaDB 12.3 stays on one server: **Add replica** and converting a replica to a failover member need MariaDB 11.8 until failover for 12.x is supported.
 
 <Steps>
   <Step>
-    **Add replica**, pick the class and the server, and whether it **serves read
-    traffic** (`readEligible`). Apply.
+    **Add replica**, pick the class and the server, and whether it **serves read traffic**
+    (`readEligible`). Apply.
   </Step>
   <Step>
-    **Promote** a failover replica for a planned switchover: the old primary
-    becomes a replica, the endpoint does not change.
+    **Promote** a failover replica for a planned switchover: the old primary becomes a replica, the
+    endpoint does not change.
   </Step>
   <Step>
-    **Promote for disaster recovery** a remote replica only when the primary's
-    site is gone: one writer results; any failover replica left in the old
-    datacenter network is rewritten to a read replica.
+    **Promote for disaster recovery** a remote replica only when the primary's site is gone: one
+    writer results; any failover replica left in the old datacenter network is rewritten to a read
+    replica.
   </Step>
-  <Step>
-    **Remove** a replica that is no longer needed. The primary cannot be
-    removed.
-  </Step>
+  <Step>**Remove** a replica that is no longer needed. The primary cannot be removed.</Step>
 </Steps>
 
 ### Manual promote
@@ -463,6 +456,8 @@ Shared ProxySQL aborts on hosts whose kernel uses 16 KiB or 64 KiB pages (common
 
 Each backup is checked with a SHA-256 checksum when it is written and again before a restore; a restore refuses a file that no longer matches. Backups are metadata in the app: there is no download, and the file lives on the server (under `managed/<cluster id>/` in the backup folder, which is `/backup` or the directory the operator set with `TURBOPANEL_BACKUP_DIR`; the app stores each backup's path relative to that folder). **Manual backups to keep** in the cluster's settings (`1`–`50`) prunes the backups made with **Back up now**; each schedule keeps its own count.
 
+**The backup login is as sensitive as an admin login.** On MySQL and MariaDB the platform makes backups with its own backup login. It reads every database, including the system database `mysql`, so it can read `mysql.user` (the account list with password hashes), and it holds the `TRIGGER` and `EVENT` rights, which would let it add or drop triggers and scheduled events on any table. Backups themselves write nothing, but treat the backup password like an admin password: never copy it out or share it.
+
 ### Schedules
 
 The **Schedules** panel on the Backups tab makes backups on a timetable. Only organization **owners** and **managers** see it. The server runs them on its own, even while the control plane is unreachable, and a run that was missed because the server was off happens once when it is back.
@@ -471,18 +466,13 @@ Every **new** managed database starts with one schedule named **Daily**: every d
 
 <Steps>
   <Step>
-    **Add schedule**, give it a **Name** (up to 64 characters) and choose
-    **Schedule**: **Hourly**, **Daily** (a time, `HH:MM`, 24-hour), **Weekly**
-    (a day and a time) or **Advanced: cron** (five fields: minute, hour, day of
-    month, month, day of week).
+    **Add schedule**, give it a **Name** (up to 64 characters) and choose **Schedule**: **Hourly**,
+    **Daily** (a time, `HH:MM`, 24-hour), **Weekly** (a day and a time) or **Advanced: cron** (five
+    fields: minute, hour, day of month, month, day of week).
   </Step>
+  <Step>Pick a **Timezone** or leave **Server time** to follow the server's own clock.</Step>
   <Step>
-    Pick a **Timezone** or leave **Server time** to follow the server's own
-    clock.
-  </Step>
-  <Step>
-    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add
-    schedule** saves it.
+    Set **Backups to keep** (`1`–`50`) and leave **Enabled** on. **Add schedule** saves it.
   </Step>
 </Steps>
 
@@ -506,7 +496,7 @@ A server runs one listener for every database on it, so who can reach it from ou
 
 | Setting          | Who can connect                                                                                                                                                                                                                                                                                           |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **No** (default) | Only services on that server: sites run by a Hosting Account (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect.               |
+| **No** (default) | Only services on that server: sites run by a Hosting Account (they connect to `127.0.0.1` on port `13306` for MySQL and MariaDB, `15432` for PostgreSQL), and containers bound to the database over the organization's managed Docker network. Nothing off the machine can connect.                       |
 | **Yes**          | The same ports are also published on all of the server's addresses. Anyone who can reach the server's network can try to connect. TurboPanel's firewall is a preview only and enforces nothing yet, so restrict access with your cloud or provider firewall. It covers **every** database on that server. |
 
 ### The root login only works from your own machines
@@ -542,7 +532,7 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 | Listener ports     | default `15432` / `13306`; range `1024–65535`; reserved `6032`, `6132`, `45000–45999`                                                                                                                                                                       |
 | SSL modes          | `disable` · `allow` · `prefer` · `require` (default) · `verify-ca` · `verify-full`                                                                                                                                                                          |
 | Connection roles   | `read-write` (default) · `read-only`                                                                                                                                                                                                                        |
-| Replica classes    | `failover` (same datacenter network) · `read` (anywhere)                                                                                                                                                                                                            |
+| Replica classes    | `failover` (same datacenter network) · `read` (anywhere)                                                                                                                                                                                                    |
 | Automatic failover | `TURBOPANEL_AUTO_FAILOVER`; 15 minute cooldown per cluster; engine-dead on a live server (Postgres probe / Orchestrator); whole-host loss via `ha-host-loss` for PostgreSQL, MySQL, and MariaDB (`metadata.detector = host-loss` on host-loss blocked rows) |
 | Recovery kinds     | `automatic-failover` · `switchover` · `disaster-recovery`                                                                                                                                                                                                   |
 | Applied login      | by [name scheme](#name-schemes): `plain`, `partial` (`<short>_<11 random>`, default) or `random`; the admin login is never `plain`                                                                                                                          |
@@ -550,59 +540,59 @@ Find the switch in the **create database** form (it shows the chosen server's cu
 
 ## Errors
 
-| Code                                                                                                                                                                                                       | Status    | Meaning                                                                                                                                                                |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `managed_engine_unavailable`                                                                                                                                                                               | 400       | The engine is not released yet.                                                                                                                                        |
-| `managed_version_unsupported`                                                                                                                                                                              | 422       | The series or variant is not creatable.                                                                                                                                |
-| `managed_series_immutable`                                                                                                                                                                                 | 422       | A cluster's series cannot change after provisioning; only the variant may.                                                                                             |
-| `server_placement_required`                                                                                                                                                                                | 409       | No server chosen for the primary.                                                                                                                                      |
-| `server_offline`                                                                                                                                                                                           | 409       | The action needs the member's daemon connected.                                                                                                                        |
-| `managed_busy`                                                                                                                                                                                             | 409       | The cluster is provisioning or applying; wait for it.                                                                                                                  |
-| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing`                                                                                                                            | 409       | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary.                                  |
-| `managed_replica_not_promotable`                                                                                                                                                                           | 422       | Only a failover or read replica in a promotable state can be promoted.                                                                                                 |
-| `untrusted_network_needs_fabric`, `failover_replica_requires_datacenter_transport`                                                                                                                   | 422       | A failover replica needs a trusted datacenter network path to the primary, or TurboFabric over an untrusted one.                                                                                    |
-| `fabric_address_required`                                                                                                                                                                                  | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                                                                |
-| `managed_private_port_exhausted`                                                                                                                                                                           | 409       | The server has no private replication port left (45000–45999).                                                                                                         |
-| `managed_listener_bind_conflict`                                                                                                                                                                           | 422       | The listener port is already bound on that server.                                                                                                                     |
-| `managed_user_exists`, `database_exists`                                                                                                                                                                   | 409       | The user or database already exists on this cluster.                                                                                                                   |
-| `username_in_use`                                                                                                                                                                                          | 409       | A login with that name exists on another cluster in the organization's servers.                                                                                        |
-| `username_reserved`                                                                                                                                                                                        | 400       | `postgres`, `root`, `mysql`, `superadmin`, and any name starting with `tp_`.                                                                                           |
-| `managed_owner_login_invalid`, `managed_owner_login_unsupported` | 400 | The login picked as a database owner cannot own one (it must be a migrations or read/write login that TurboPanel manages), or the engine has no database owner (MySQL, MariaDB). |
-| `managed_database_owner_needs_daemon_update` | 409 | The server's TurboPanel daemon is too old to give a database a login as its owner. Update the server, or leave the owner out. |
-| `managed_database_owner_change_not_available` | 409 | Changing the owner of an existing database is not available yet. Choose it when you create the database. |
-| `managed_login_owns_databases` | 409 | The login owns one or more databases, so it cannot be taken off them or made read-only. |
-| `managed_admin_login_not_read_only`                                                                                                                                                                        | 400       | A Database admin login cannot be read-only.                                                                                                                            |
-| `managed_owner_role_unsupported`, `managed_owner_role_name_too_long`                                                                                                                                       | 400       | Owner roles are PostgreSQL only, and need a database name of at most 54 characters.                                                                                    |
-| `principal_scheme_locked`                                                                                                                                                                                  | 409       | The organization locks the name scheme and the request asked for a different one.                                                                                      |
-| `managed_login_sources_empty`, `managed_login_sources_invalid`, `managed_login_source_invalid`, `managed_login_sources_too_many`, `managed_login_sources_any_alone`, `managed_login_source_server_unknown` | 400       | The `allowedSources` list is empty, malformed, too long, mixes `any` with other places, or names a server that is not the organization's. The response says which.     |
-| `managed_login_source_range_not_exact`                                                                                                                                                                     | 400       | The range cannot be matched exactly. List the addresses or use a prefix.                                                                                               |
-| `managed_login_max_connections_invalid`                                                                                                                                                                    | 400       | `maxConnections` must be a whole number from 1 to 10000.                                                                                                               |
-| `managed_login_limits_need_daemon_update`                                                                                                                                                                  | 409       | The server's daemon is too old to enforce login limits; update the server first.                                                                                       |
-| `straight_through_conflicts_with_source_limit` | 400 | A login that connects straight through cannot be limited to certain addresses. Turn one off. |
-| `straight_through_postgres_only` | 400 | Connecting straight through is only available for PostgreSQL logins. |
-| `straight_through_login_not_allowed` | 400 | Connecting straight through can only be set on logins you created, not on the cluster administrator or replication logins. |
-| `managed_readwrite_needs_daemon_update`                                                                                                                                                                    | 409       | The server's daemon is too old to make a MySQL or MariaDB read/write login data changes only; update the server first.                                                 |
-| `managed_user_has_bindings`, `managed_database_has_bindings`                                                                                                                                               | 409       | Sever the service bindings first.                                                                                                                                      |
-| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route`                                                                                       | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**.                                                                               |
-| `managed_backup_unsupported`                                                                                                                                                                               | 400       | The engine does not support backups.                                                                                                                                   |
-| `backup_not_found`                                                                                                                                                                                         | 404       | No backup with that id.                                                                                                                                                |
-| `backup_policy_invalid`                                                                                                                                                                                    | 400       | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset.                                                         |
-| `backup_schedule_invalid`, `backup_timezone_invalid`                                                                                                                                                       | 400       | The schedule or timezone cannot be used; the response says why.                                                                                                        |
-| `backup_target_unsupported`                                                                                                                                                                                | 400       | This target cannot have a schedule through this route.                                                                                                                 |
-| `backup_policy_not_found`                                                                                                                                                                                  | 404       | No schedule with that id on this database.                                                                                                                             |
-| `backup_policy_limit`                                                                                                                                                                                      | 409       | The database already has 20 schedules.                                                                                                                                 |
-| `backup_on_other_server`                                                                                                                                                                                   | 409       | The backup file is stored on the server that was primary when it ran; restore only works on that host — take a new backup on the current primary or switch back first. |
-| `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                        |
-| `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                     |
-| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                               |
-| `managed_login_all_databases_not_allowed`                                                                                                                                                                  | 400       | All Databases is switched off for the organization or the Database Cluster. The message names the switch.                                                              |
-| `managed_login_all_databases_conflict`                                                                                                                                                                     | 400       | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change.   |
-| `admin_tool_engine_mismatch`                                                                                                                                                                               | 400       | The tool does not work with this database engine.                                                                                                                      |
-| `invalid_hostname`                                                                                                                                                                                         | 400       | The admin tool's hostname is not valid.                                                                                                                                |
-| `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                  |
-| `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                    |
-| `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                            |
-| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain that does not start with a digit and has no `/` or `\` before the @ and has a dot.                                                                  |
+| Code                                                                                                                                                                                                       | Status    | Meaning                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `managed_engine_unavailable`                                                                                                                                                                               | 400       | The engine is not released yet.                                                                                                                                                         |
+| `managed_version_unsupported`                                                                                                                                                                              | 422       | The series or variant is not creatable.                                                                                                                                                 |
+| `managed_series_immutable`                                                                                                                                                                                 | 422       | A cluster's series cannot change after provisioning; only the variant may.                                                                                                              |
+| `server_placement_required`                                                                                                                                                                                | 409       | No server chosen for the primary.                                                                                                                                                       |
+| `server_offline`                                                                                                                                                                                           | 409       | The action needs the member's daemon connected.                                                                                                                                         |
+| `managed_busy`                                                                                                                                                                                             | 409       | The cluster is provisioning or applying; wait for it.                                                                                                                                   |
+| `managed_member_exists`, `managed_member_is_primary`, `managed_primary_missing`                                                                                                                            | 409       | The server already holds a member of this cluster (one member per server); the primary cannot be removed; the cluster has no primary.                                                   |
+| `managed_replica_not_promotable`                                                                                                                                                                           | 422       | Only a failover or read replica in a promotable state can be promoted.                                                                                                                  |
+| `untrusted_network_needs_fabric`, `failover_replica_requires_datacenter_transport`                                                                                                                         | 422       | A failover replica needs a trusted datacenter network path to the primary, or TurboFabric over an untrusted one.                                                                        |
+| `fabric_address_required`                                                                                                                                                                                  | 422       | A remote replica or consumer needs a TurboFabric address on its server.                                                                                                                 |
+| `managed_private_port_exhausted`                                                                                                                                                                           | 409       | The server has no private replication port left (45000–45999).                                                                                                                          |
+| `managed_listener_bind_conflict`                                                                                                                                                                           | 422       | The listener port is already bound on that server.                                                                                                                                      |
+| `managed_user_exists`, `database_exists`                                                                                                                                                                   | 409       | The user or database already exists on this cluster.                                                                                                                                    |
+| `username_in_use`                                                                                                                                                                                          | 409       | A login with that name exists on another cluster in the organization's servers.                                                                                                         |
+| `username_reserved`                                                                                                                                                                                        | 400       | `postgres`, `root`, `mysql`, `superadmin`, and any name starting with `tp_`.                                                                                                            |
+| `managed_owner_login_invalid`, `managed_owner_login_unsupported`                                                                                                                                           | 400       | The login picked as a database owner cannot own one (it must be a migrations or read/write login that TurboPanel manages), or the engine has no database owner (MySQL, MariaDB).        |
+| `managed_database_owner_needs_daemon_update`                                                                                                                                                               | 409       | The server's TurboPanel daemon is too old to give a database a login as its owner. Update the server, or leave the owner out.                                                           |
+| `managed_database_owner_change_not_available`                                                                                                                                                              | 409       | Changing the owner of an existing database is not available yet. Choose it when you create the database.                                                                                |
+| `managed_login_owns_databases`                                                                                                                                                                             | 409       | The login owns one or more databases, so it cannot be taken off them or made read-only.                                                                                                 |
+| `managed_admin_login_not_read_only`                                                                                                                                                                        | 400       | A Database admin login cannot be read-only.                                                                                                                                             |
+| `managed_owner_role_unsupported`, `managed_owner_role_name_too_long`                                                                                                                                       | 400       | Owner roles are PostgreSQL only, and need a database name of at most 54 characters.                                                                                                     |
+| `principal_scheme_locked`                                                                                                                                                                                  | 409       | The organization locks the name scheme and the request asked for a different one.                                                                                                       |
+| `managed_login_sources_empty`, `managed_login_sources_invalid`, `managed_login_source_invalid`, `managed_login_sources_too_many`, `managed_login_sources_any_alone`, `managed_login_source_server_unknown` | 400       | The `allowedSources` list is empty, malformed, too long, mixes `any` with other places, or names a server that is not the organization's. The response says which.                      |
+| `managed_login_source_range_not_exact`                                                                                                                                                                     | 400       | The range cannot be matched exactly. List the addresses or use a prefix.                                                                                                                |
+| `managed_login_max_connections_invalid`                                                                                                                                                                    | 400       | `maxConnections` must be a whole number from 1 to 10000.                                                                                                                                |
+| `managed_login_limits_need_daemon_update`                                                                                                                                                                  | 409       | The server's daemon is too old to enforce login limits; update the server first.                                                                                                        |
+| `straight_through_conflicts_with_source_limit`                                                                                                                                                             | 400       | A login that connects straight through cannot be limited to certain addresses. Turn one off.                                                                                            |
+| `straight_through_postgres_only`                                                                                                                                                                           | 400       | Connecting straight through is only available for PostgreSQL logins.                                                                                                                    |
+| `straight_through_login_not_allowed`                                                                                                                                                                       | 400       | Connecting straight through can only be set on logins you created, not on the cluster administrator or replication logins.                                                              |
+| `managed_readwrite_needs_daemon_update`                                                                                                                                                                    | 409       | The server's daemon is too old to make a MySQL or MariaDB read/write login data changes only; update the server first.                                                                  |
+| `managed_user_has_bindings`, `managed_database_has_bindings`                                                                                                                                               | 409       | Sever the service bindings first.                                                                                                                                                       |
+| `cannot_drop_root_user`, `cannot_drop_initial_database`, `cannot_rotate_replication_user`, `use_root_password_route`                                                                                       | 400 / 409 | Platform-managed accounts and the initial database; rotate root through **Rotate root**.                                                                                                |
+| `managed_backup_unsupported`                                                                                                                                                                               | 400       | The engine does not support backups.                                                                                                                                                    |
+| `backup_not_found`                                                                                                                                                                                         | 404       | No backup with that id.                                                                                                                                                                 |
+| `backup_policy_invalid`                                                                                                                                                                                    | 400       | A schedule field is wrong (the response names the field): name length, how many to keep, or an unknown preset.                                                                          |
+| `backup_schedule_invalid`, `backup_timezone_invalid`                                                                                                                                                       | 400       | The schedule or timezone cannot be used; the response says why.                                                                                                                         |
+| `backup_target_unsupported`                                                                                                                                                                                | 400       | This target cannot have a schedule through this route.                                                                                                                                  |
+| `backup_policy_not_found`                                                                                                                                                                                  | 404       | No schedule with that id on this database.                                                                                                                                              |
+| `backup_policy_limit`                                                                                                                                                                                      | 409       | The database already has 20 schedules.                                                                                                                                                  |
+| `backup_on_other_server`                                                                                                                                                                                   | 409       | The backup file is stored on the server that was primary when it ran; restore only works on that host — take a new backup on the current primary or switch back first.                  |
+| `managed_runtime_present`                                                                                                                                                                                  | 409       | Destroy the cluster before deleting its project or environment.                                                                                                                         |
+| `managed_destroy_failed`                                                                                                                                                                                   | 502       | The daemon could not tear the cluster down; see the server's logs.                                                                                                                      |
+| `managed_settings_invalid`, `managed_credential_not_sealed`, `root_principal_missing`, `daemon_key_unavailable`                                                                                            | 500 / 503 | Control plane faults; not something a form change fixes.                                                                                                                                |
+| `managed_login_all_databases_not_allowed`                                                                                                                                                                  | 400       | All Databases is switched off for the organization or the Database Cluster. The message names the switch.                                                                               |
+| `managed_login_all_databases_conflict`                                                                                                                                                                     | 400       | Choose All Databases or a list of databases, not both. A login that uses All Databases cannot be given a list unless All Databases is turned off in the same change.                    |
+| `admin_tool_engine_mismatch`                                                                                                                                                                               | 400       | The tool does not work with this database engine.                                                                                                                                       |
+| `invalid_hostname`                                                                                                                                                                                         | 400       | The admin tool's hostname is not valid.                                                                                                                                                 |
+| `admin_tool_hostname_in_use`, `hostname_in_use`                                                                                                                                                            | 409       | The hostname is already used by the web interface or by another site.                                                                                                                   |
+| `admin_tool_needs_database`                                                                                                                                                                                | 409       | Add a database to the Database Cluster before adding an admin tool.                                                                                                                     |
+| `admin_tool_needs_daemon_update`                                                                                                                                                                           | 409       | Adminer and pgAdmin need a newer daemon on the Database Cluster's server; update it before adding the tool (phpMyAdmin does not need this).                                             |
+| `admin_tool_email_invalid`                                                                                                                                                                                 | 400       | pgAdmin signs in with your email and does not accept this address. Use an address on a public domain that does not start with a digit and has no `/` or `\` before the @ and has a dot. |
 
 ## Related
 

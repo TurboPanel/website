@@ -162,6 +162,17 @@ A `reach` of the wrong shape (a port outside 1 to 65535, no `from`, more than ei
 
 **Reachable from Sites** shows on a service of the project's **Base** compose, not on an environment's own compose overlay. The host port is not shown in the web interface; the site reads it from the variable.
 
+### Example: a PDF engine for a PHP app
+
+Some PHP apps make PDFs with a headless browser. Invoice Ninja does it with `snappdf`, which downloads a Chromium build on first use. On a TurboPanel site that cannot work: the release is read-only, so the download has no place to write, and the server has none of the system libraries a browser needs. The PDF download then fails with "Browser binary not found". TurboPanel adds no browser to PHP servers. Run the PDF engine as a helper container and point the app at it instead. A helper port is the only way a site on the server reaches a container, so the engine needs nothing public.
+
+1. In the site's project, add a service from the image `gotenberg/gotenberg:9`, with no `hosting` entry, so it has no public address.
+2. Give it a helper port for the site: `x-turbopanel.reach` with `port: 3000` and `from` naming the site. The service must be in the same compose document (the same environment) as the site, and the site must have a Hosting Account.
+3. Preview the deploy and read the host port of the engine (a number from 18080 to 18999). Deploy once so the site's service exists.
+4. Set these variables on the site's service: `PDF_GENERATOR` to `gotenberg` and `GOTENBERG_API_URL` to `http://127.0.0.1:<host port>`. Deploy again.
+
+The URL has to carry the port itself. A variable's value is not interpolated, so `{$TURBOPANEL_HELPER_GOTENBERG_PORT}` inside `GOTENBERG_API_URL` reaches the app as plain text. An app that can read `TURBOPANEL_HELPER_GOTENBERG_HOST` and `TURBOPANEL_HELPER_GOTENBERG_PORT` itself needs no hard-coded port. The host port stays the same across redeploys while it is free.
+
 ## Daemon update
 
 Caches and helper ports are carried to the server by the daemon, so the daemon on that server must be a version that lists the `project-cache-v1` feature. Until it does:

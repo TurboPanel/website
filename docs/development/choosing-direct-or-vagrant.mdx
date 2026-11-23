@@ -1,11 +1,11 @@
 ---
-title: Choosing Direct or Vagrant
-description: Which development environment to use, what each one needs, and where you edit, commit and run tests in each
+title: Choosing Direct, Vagrant or Incus
+description: Which development environment to use (Direct, Vagrant or Incus), what each one needs, and where you edit, commit and run tests in each
 ---
 
-# Choosing Direct or Vagrant
+# Choosing Direct, Vagrant or Incus
 
-TurboPanel runs its whole development stack on Debian. You get that Debian in one of two ways, and the setup script (see [Contribute Without Access](/docs/development/contribute-without-access)) asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
+TurboPanel runs its whole development stack on Debian. You get that Debian in one of three ways, and the setup script (see [Contribute Without Access](/docs/development/contribute-without-access)) asks once and stores the answer in `.turbopanel-dev-mode` inside the `turbopanel` folder that holds the repos.
 
 ## The Choice
 
@@ -13,15 +13,15 @@ TurboPanel runs its whole development stack on Debian. You get that Debian in on
 | --- | --- |
 | macOS | **Vagrant** only (UTM provider, Debian 12 guest today) |
 | Linux, Debian 13, already a virtual machine | **Direct** (recommended; nested virtual machines are slow) |
-| Linux, Debian 13, bare metal | Either |
-| Other Linux | **Vagrant** (libvirt provider) |
+| Linux, Debian 13, bare metal | **Direct** or **Incus** |
+| Other Linux | **Vagrant** (libvirt provider) or **Incus** |
 | Windows | Not supported |
 
-**Direct** needs Debian 13 (Trixie) as a full virtual machine or bare metal, never an LXC container, with 4 or more CPUs, 8 GB or more of RAM and 40 GB of disk, and a non-root user with passwordless sudo. The setup follows the [Direct VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md). **Vagrant** needs Vagrant and a provider on your computer; see [Prerequisites](/docs/development/prerequisites).
+**Direct** needs Debian 13 (Trixie) as a full virtual machine or bare metal, never an LXC container, with 4 or more CPUs, 8 GB or more of RAM and 40 GB of disk, and a non-root user with passwordless sudo. The setup follows the [Direct VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md). **Vagrant** needs Vagrant and a provider on your computer; see [Prerequisites](/docs/development/prerequisites). **Incus** (Linux only; it does not run on macOS) runs a Debian 13 virtual machine from your Linux computer, like Vagrant does, and needs Incus and `incant`; see [The Incus Option](#the-incus-option).
 
 ## Start the Setup
 
-One command, run as your normal user (not root) from any folder, on the machine where you edit (your computer for Vagrant, the Debian machine for Direct):
+One command, run as your normal user (not root) from any folder, on the machine where you edit (your computer for Vagrant and Incus, the Debian machine for Direct):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/TurboPanel/dev/trunk/scripts/start.sh | sh
@@ -35,27 +35,59 @@ less start.sh
 sh start.sh
 ```
 
-It creates `~/turbopanel`, clones `dev` there over HTTPS and hands over to `setup.sh`, which asks Direct or Vagrant. To answer in advance, put the option after `sh -s --`, for example `... | sh -s -- --mode direct`. Details and the other options: [Contribute Without Access](/docs/development/contribute-without-access).
+It creates `~/turbopanel`, clones `dev` there over HTTPS and hands over to `setup.sh`, which asks Direct, Vagrant or Incus. To answer in advance, put the option after `sh -s --`, for example `... | sh -s -- --mode direct`. Incus is offered on Linux only. Details and the other options: [Contribute Without Access](/docs/development/contribute-without-access).
 
 ## Folder Layout
 
-In both modes the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
+In every mode the six repos live inside a folder named `turbopanel`, wherever you choose to put it, for example `$HOME/work/turbopanel/{dev,turbopanel,turbopaneld,ui,website,.github}`. The control plane is `turbopanel/turbopanel`. Under Vagrant and Incus this folder is on your computer and the guest mounts the repos. Under Direct it is on the Debian machine.
 
-On the Debian machine (Direct mode) the repos must sit in a folder named `turbopanel`, so the layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`. The Vagrant guest uses the same layout: the repos are mounted at `/home/vagrant/turbopanel/<repo>`. The setup script has merged and does this for you. A full run from `~/turbopanel` in Direct mode and the guest mounts are not yet proven end to end, so report anything that breaks.
+On the Debian machine (Direct mode) the repos must sit in a folder named `turbopanel`, so the layout is `~/turbopanel/<repo>` and the Developer Console is `~/turbopanel/dev/console`. The Vagrant guest uses the same layout: the repos are mounted at `/home/vagrant/turbopanel/<repo>`. The Incus guest does too, at `~/turbopanel/<repo>` for a guest user with the same name as yours. The setup script has merged and does this for you. A full run from `~/turbopanel` in Direct mode and the guest mounts are not yet proven end to end, so report anything that breaks.
 
 ## Where Things Happen
 
-| | Vagrant | Direct |
-| --- | --- | --- |
-| Where you edit | On your computer; the repos are mounted into the guest | On the Debian machine itself, for example over a remote editor |
-| Where you commit | **On your computer (the host)** | On the Debian machine |
-| Hooks on commit | Secret scan only; CI checks the rest | The hooks in the toolchain on the machine |
-| Where you run the stack | `vagrant ssh`, then `turbopanel/dev/console` | `turbopanel/dev/console` |
-| Where tests run | Inside the guest, or in CI | On the machine, or in CI |
+| | Vagrant | Incus | Direct |
+| --- | --- | --- | --- |
+| Where you edit | On your computer; the repos are mounted into the guest | On your computer; the repos are mounted into the guest | On the Debian machine itself, for example over a remote editor |
+| Where you commit | **On your computer (the host)** | **On your computer (the host)** | On the Debian machine |
+| Hooks on commit | Secret scan only; CI checks the rest | Secret scan only; CI checks the rest | The hooks in the toolchain on the machine |
+| Where you run the stack | `vagrant ssh`, then `turbopanel/dev/console` | `incus exec turbopanel-dev -- su -l <you>`, then `turbopanel/dev/console` | `turbopanel/dev/console` |
+| Where tests run | Inside the guest, or in CI | Inside the guest, or in CI | On the machine, or in CI |
 
-In Vagrant mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh`, then `export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"`, then the formatter in the repo) where the tools live. Direct mode needs the same `PATH` line, after `dev/console` has installed the runtimes. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
+In Vagrant and Incus mode the host has no Node or Deno tree, so the host commit hooks only run the secret scan, which is never skipped. Formatting, typechecks and tests are caught by CI, so format your changed source files before you commit, inside the guest (`vagrant ssh` or `incus exec`, then `export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"`, then the formatter in the repo) where the tools live. Direct mode needs the same `PATH` line, after `dev/console` has installed the runtimes. CI fails an unformatted file (see [Contribute Without Access](/docs/development/contribute-without-access#make-a-change-and-open-a-pull-request)).
 
-Full suites are heavy. On a 16 GB computer the 8 GB guest is tight, and CI is the usual place to run everything.
+Full suites are heavy. On a 16 GB computer the 8 GB guest is tight (Metro alone can peak above 5 GB), and CI is the usual place to run everything.
+
+## The Incus Option
+
+Incus is for Linux computers. Like Vagrant, the repos stay on your computer, you edit and commit there, and the virtual machine only runs the stack. Incus is a KVM virtual machine, not a container: Docker, systemd, swap and firewall rules need a full virtual machine.
+
+**You need:**
+
+- Incus from your distribution's packages, set up with `incus admin init`, and your user in the `incus-admin` group.
+- `incant`, a small Vagrant-like front end for Incus: `pipx install incus-incant`. The package named `incant` on PyPI is an unrelated library, so do not install that one.
+- Free host ports 80, 443, 8443, 8081, 8088, 19820, 4983, 8025, 5540 and 4213. Another web server on port 80, or the Incus API on 8443, clashes. You can move the Incus API with `incus config set core.https_address 127.0.0.1:<other port>`.
+- If Docker runs on the same computer, its firewall rules can break Incus networking. See "Prevent connectivity issues with Incus and Docker" in the Incus documentation.
+
+**Steps:**
+
+1. Run the setup script and pick Incus (`--mode incus`). It prints install hints and installs nothing.
+2. From the `dev` checkout, run `incant up`. It creates, starts and provisions a Debian 13 virtual machine named `turbopanel-dev` with 8 CPUs, 8 GiB of memory and 64 GiB of disk. For more memory, set `TURBOPANEL_INCUS_MEMORY=10GiB` before `incant up`.
+3. Set a password for your guest user: `incus exec -t turbopanel-dev -- passwd <you>`. The guest user has your name and user id, so files on the shared folders keep their owner. No password is set, and the panel installer checks it, so do this before the first panel install.
+4. Open a shell with `incus exec turbopanel-dev -- su -l <you>`, then run `~/turbopanel/dev/console`.
+
+`incant provision` runs the provisioning again. `incant destroy` removes the virtual machine and leaves the repos on your computer untouched.
+
+**Ports.** The virtual machine answers on the same ten ports as the Vagrant guest. Use your computer's LAN name or address, for example `https://<host>:8443`, not `localhost`: the loopback of your computer does not reach the virtual machine.
+
+All ten ports listen on every address of your computer. That includes 4983, 8025, 5540 and 4213, which Vagrant keeps on loopback. Those are unauthenticated development tools (the database browser, the mail catcher and Redis Insight), so anyone on your network can reach them. Use Incus only on a network you trust.
+
+**Tests** run inside the virtual machine, never on your computer:
+
+```bash
+incus exec turbopanel-dev -- su -l <you> -c 'export PATH="/opt/turbopanel/vendor/node/current/bin:/opt/turbopanel/vendor/deno/current:$PATH"; cd ~/turbopanel/dev && pnpm test'
+```
+
+Maintainer details are in the [Incus VM guide](https://github.com/TurboPanel/dev/blob/trunk/docs/dev-environment.md).
 
 ## Related
 

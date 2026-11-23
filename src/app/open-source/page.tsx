@@ -44,7 +44,7 @@ const REPOS: readonly RepoRow[] = [
   {
     name: 'TurboPanel UI',
     slug: 'ui',
-    role: 'Signed-in product console (Expo / Tamagui)',
+    role: 'Signed-in product console (Expo)',
     license: 'AGPL-3.0-only',
     licenseNote: 'with Apple App Store additional permission',
     noticesHref: 'https://github.com/TurboPanel/ui/blob/trunk/THIRD_PARTY_NOTICES.md',
