@@ -243,7 +243,7 @@ services:
 
 ## Variables in the document
 
-Reference a variable as `${KEY}` or `${scope.KEY}`. Non-secret values are written to a generated `.env` beside the runtime compose; secret values never touch YAML — they compile to Compose `secrets:` with a file path the daemon materializes at deploy, plus a courtesy `KEY_FILE` variable holding that path. A binding to a managed database contributes its own locked variables under the binding's prefix.
+Reference a variable as `${KEY}` or `${scope.KEY}`. Non-secret values are written to a generated `.env` beside the runtime compose; secret values never touch YAML — they compile to Compose `secrets:` with a file path the daemon materializes at deploy, plus a courtesy `KEY_FILE` variable holding that path. `NAME: "{$KEY}"` therefore gives the container `NAME_FILE` and leaves `NAME` unset, and a secret that nothing in `environment` or `build.args` references is not injected at all (the deploy warns with `secret_variable_not_injected`). To put a secret's value into a file, use a generated config file: `configs:` with `{$KEY}` in the content. A binding to a managed database contributes its own locked variables under the binding's prefix.
 
 ## Releases and rollback
 
