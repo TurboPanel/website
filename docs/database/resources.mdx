@@ -306,7 +306,7 @@ One config key/value at exactly one scope (organization, workspace, project, env
 | `key` | `varchar(255)` | yes | Environment variable name matching `^[A-Za-z_][A-Za-z0-9_]*$`, unique per scope parent via partial unique indexes. |
 | `value` | `text` | yes | Plaintext for non-secrets; for secrets a sealed `tpsecret` envelope (data-encryption key) the API never returns and deploy delivers as a file. |
 | `description` | `text` | no | Optional free-text note written by the client API. |
-| `is_secret` | `boolean` | yes | True marks the value sealed and write-only: read back as null, never interpolated into YAML or `.env`, compiled to a Compose secret file at deploy. |
+| `is_secret` | `boolean` | yes | Sealed, read back as null, never in YAML or .env; a container gets it only as a file (NAME becomes NAME_FILE), and only when referenced. |
 | `is_literal` | `boolean` | yes | True escapes `$` so Docker Compose does not interpolate the value; false leaves a `$OTHER` reference for Compose to expand (API field `isLiteral`). |
 | `is_for_build` | `boolean` | yes | True injects the non-secret value into `build.args` at deploy (API field `forBuild`); default false. |
 | `is_for_runtime` | `boolean` | yes | True injects the non-secret value into the container `environment` at deploy (API field `forRuntime`); default true. |
